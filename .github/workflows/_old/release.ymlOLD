@@ -1,0 +1,158 @@
+name: Release
+
+env:
+  JAVA_ENV_VERSION: '21'      # LTS version
+  NODEJS_VERSION:   '21.2.0'  # TODO: updated for LTS (being 22 for langium?)
+
+on:
+    push:
+        tags:
+            - '*.*.*' # Only Admin can push such tags
+
+permissions: write-all
+
+
+jobs:
+    
+    build_compiler:
+        defaults: 
+            run:
+                working-directory: './compiler'
+        runs-on: ubuntu-latest
+        
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Java
+              uses: actions/setup-java@v4
+              with:
+                java-version: ${{env.JAVA_ENV_VERSION}}
+                distribution: 'adopt'
+                cache: 'maven'
+
+            - name: Build compiler
+              run: |
+                mvn install
+            
+            - name: Upload JAR artefact
+              uses: actions/upload-artifact@v4
+              with:
+                name: jpipe-${{ github.ref_name }}.jar
+                path: compiler/jpipe.jar
+    
+    build_extension:
+        defaults: 
+            run:
+                working-directory: './langium'
+        runs-on: ubuntu-latest
+        needs: [build_compiler]
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            
+            - name: Set up node.js
+              uses: actions/setup-node@v4
+              with:
+                node-version: '${{env.NODEJS_VERSION}}'
+            
+            - name: retrieve compiler
+              uses: actions/download-artifact@v4
+              with:
+                  name: jpipe-${{ github.ref_name }}.jar
+                  path: langium/jar/
+            
+            - name: build extension
+              run: |
+                  npm install
+                  npm install -g @vscode/vsce
+                  vsce package -o jpipe-extension.vsix
+
+            - name: Upload VSIX artefact
+              uses: actions/upload-artifact@v4
+              with:
+                name: jpipe-extension-${{ github.ref_name }}.vsix
+                path: langium/jpipe-extension.vsix
+    
+    build_homebrew:
+        defaults: 
+            run:
+                working-directory: './homebrew'
+        runs-on: ubuntu-latest
+        needs: [build_compiler]
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: retrieve compiler
+              uses: actions/download-artifact@v4
+              with:
+                  name: jpipe-${{ github.ref_name }}.jar
+                  path: homebrew/
+
+            - name: Create Homebrew artefact
+              run: |
+                tar czvf jpipe-${{ github.ref_name }}.tar.gz *
+            
+            - name: Upload Homebrew artefact
+              uses: actions/upload-artifact@v4
+              with:
+                name: jpipe-${{ github.ref_name }}.tar.gz
+                path: homebrew/jpipe-${{ github.ref_name }}.tar.gz
+
+    release_artefacts:
+        runs-on: ubuntu-latest
+        needs: [build_compiler, build_extension, build_homebrew]
+        
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Create release directory
+              run: |
+                mkdir release
+
+            - name: retrieve compiler
+              uses: actions/download-artifact@v4
+              with:
+                  name: jpipe-${{ github.ref_name }}.jar
+                  path: release/
+
+            - name: retrieve extension
+              uses: actions/download-artifact@v4
+              with:
+                name: jpipe-extension-${{ github.ref_name }}.vsix
+                path: release/
+            
+            - name: retrieve homebrew
+              uses: actions/download-artifact@v4
+              with:
+                  name: jpipe-${{ github.ref_name }}.tar.gz
+                  path: release/
+
+            - name: List artefacts to release
+              run: |
+                ls -lh release
+
+            - name: Create the release on GitHub
+              uses: ncipollo/release-action@v1
+              with:
+                artifacts: "release/*"
+                body: "Release automatically created by the CI/CD pipeline"
+                name: "Release ${{github.ref_name}}"
+            - name: Delete compiler artefact
+              uses: geekyeggo/delete-artifact@v5
+              with:
+                name: jpipe-${{ github.ref_name }}.jar
+            - name: Delete extension artefact
+              uses: geekyeggo/delete-artifact@v5
+              with:
+                name: jpipe-extension-${{ github.ref_name }}.vsix
+            - name: Delete homebrew artefact
+              uses: geekyeggo/delete-artifact@v5
+              with:
+                name: jpipe-${{ github.ref_name }}.tar.gz
+
+    

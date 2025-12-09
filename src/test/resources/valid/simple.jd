@@ -1,0 +1,22 @@
+
+justification proving {
+
+    evidence Su1 is "Atomic Petri Nets are available"
+    strategy St1 is "Merge atomic models"
+    Su1 supports St1
+
+    sub-conclusion SC1 is "Complete model is merged"
+    St1 supports SC1
+
+    evidence Su2 is "Prover is available"
+    evidence Su3 is "Scenario are available as TINA artefacts"
+    strategy St2 is "Prove model"
+    Su2 supports St2
+    Su3 supports St2
+    SC1 supports St2
+
+    conclusion C is "Model is correct"
+    St2 supports C
+
+}
+

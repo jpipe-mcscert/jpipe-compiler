@@ -1,0 +1,60 @@
+justification phone {
+    conclusion c1 is "Only interested individuals are contacted"
+
+    strategy calling is "Individual calls to invite for participation"
+    calling supports c1
+
+    evidence script is "Call script is available"
+    script supports calling
+
+    evidence directory is "Phone directory is available"
+    directory supports calling
+
+}
+
+justification existing_directory {
+    conclusion c4 is "Phone directory can be re-used"
+
+    strategy check is "Assessing the TOU w.r.t. the intended usage"
+    check supports c4
+
+    evidence directory is "Phone directory is provided by a partner centre"
+    directory supports check
+
+    evidence tou is "Terms of use (TOU)"
+    tou supports check
+
+}
+
+
+composition {
+    justification phone_reuse is refine(phone, existing_directory) {
+        hook: "Phone directory is available"
+    }
+}
+
+/*
+justification phone_reuse {
+    conclusion c1 is "Only interested individuals are contacted"
+
+    strategy calling is "Individual calls to invite for participation"
+    calling supports c1
+
+    evidence script is "Call script is available"
+    script supports calling
+
+    sub-conclusion reused is "Phone directory can be reused"
+    reused supports calling
+
+    strategy check is "Assessing the TOU w.r.t. the intended usage"
+    check supports reused
+
+    evidence directory is "Phone directory is provided by a partner centre"
+    directory supports check
+
+    evidence tou is "Terms of use (TOU)"
+    tou supports check
+
+}
+
+*/

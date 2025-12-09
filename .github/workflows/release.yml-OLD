@@ -1,0 +1,11 @@
+name: Release
+
+env:
+  JAVA_ENV_VERSION: '21'      # LTS version
+
+on:
+  push:
+    tags:
+        - '*.*.*' # Only Admin can push such tags
+jobs:
+

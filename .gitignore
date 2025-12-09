@@ -1,0 +1,11 @@
+.vscode
+.idea
+*.iml
+target
+*.class 
+*~
+*.png
+*.svg
+*.jar
+.DS_Store
+.java-version

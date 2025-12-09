@@ -1,0 +1,22 @@
+justification j1 {
+    conclusion c1 is "a unique conclusion"
+    strategy s1   is "an equivalent strategy"
+    evidence e1   is "an unique evidence"
+    e1 supports s1
+    s1 supports c1
+}
+
+justification j2 {
+    conclusion c2 is "a different conclusion"
+    strategy s2   is "an equiv strategy"
+    evidence e2   is "another unique evidence"
+    e2 supports s2
+    s2 supports c2
+}
+
+composition {
+    justification j is assemble(j1, j2) {
+      conclusionLabel:  "This model is ready to deploy"
+      strategyLabel: "Aggregating all subconclusion"
+    }
+}

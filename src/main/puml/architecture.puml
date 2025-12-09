@@ -1,0 +1,60 @@
+@startuml model
+!include ./commons.style
+
+title "Justification Domain Model (jPipe)"
+
+interface Cloneable <<Java>> {
+    + clone(): Object
+}
+
+interface Visitable {
+    + accept(v: ModelVisitor<T>)
+}
+visitors.ModelVisitor <.Visitable
+
+class Unit implements Visitable {
+    + name: String
+    --
+    + add(m: JustificationModel)
+    + addInto(id: String, elem: JustificationElement)
+    --
+    + getContents(): JustificationModel[]
+}
+
+Unit *--> SymbolTable: T -> JutificationModel
+Cloneable <|. Unit
+
+class SymbolTable<T> {
+    + record(id: String, elem: T)
+    --
+    + get(id: String): T
+    + keys(): String[]
+    + values(): T[]
+}
+
+class UnknownSymbol <<Error>>
+SymbolTable .> UnknownSymbol
+
+package elements {
+
+    abstract class JustificationModel
+    class Pattern extends JustificationModel
+    class Justification extends JustificationModel
+
+    abstract class JustificationElement
+
+}
+Cloneable <|.. elements.JustificationModel
+
+
+SymbolTable <--* elements.JustificationModel: T -> JustificationElement
+
+package visitors {
+    abstract class ModelVisitor<Result> {
+        + getAccumulator(): Result
+        + visit(...)
+    }
+}
+
+
+@enduml

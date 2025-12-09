@@ -1,0 +1,298 @@
+/*
+Source: rewbah/01_capturing/recruitement.jd
+*/
+
+/*************************************
+ * Off-the-shelf recruitment methods *
+ *************************************/
+
+justification phone {
+    conclusion c1 is "Only interested individuals are contacted"
+
+    strategy calling is "Individual calls to invite for participation"
+    calling supports c1
+
+    evidence script is "Call script is available"
+    script supports calling
+
+    evidence directory is "Phone directory is available"
+    directory supports calling
+
+}
+
+justification posters {
+
+    conclusion c2 is "General audience has awareness of the event"
+
+    strategy display is "Display posters in strategic places"
+    display supports c2
+
+    evidence locations is "Approved locations list"
+    locations supports display
+
+    evidence poster is "Approved poster file"
+    poster supports display
+
+}
+
+justification trusted {
+
+    conclusion c3 is "Established trust exists with potential on-site participants"
+
+    strategy chat is "On-site discussion with potential participants"
+    chat supports c3
+
+    evidence talking_points is "Identified talking points"
+    talking_points supports chat
+
+    evidence locations is "Approved locations list"
+    locations supports chat
+
+}
+
+/********************************************
+ * combining recruitments methods into one  *
+ ********************************************/
+
+composition {
+    justification recruitement is assemble(phone, posters, trusted) {
+        conclusionLabel: "Potential participant pool is large enough"
+        strategyLabel: "Combining recruitments methods"
+    }
+}
+
+/*
+justification recruitement {
+
+    conclusion c is "Potential participant pool is large enough"
+    strategy and is "Combining recruitments methods"
+    and supports c
+
+    sub-conclusion c1 is "Only interested individuals are contacted"
+    c1 supports and
+    strategy calling is "Individual calls to invite for participation"
+    calling supports c1
+    evidence script is "Call script is available"
+    script supports calling
+    evidence directory is "Phone directory is available"
+    directory supports calling
+
+    sub-conclusion c2 is "General audience has awareness of the event"
+    c2 supports and
+    strategy display is "Display posters in strategic places"
+    display supports c2
+    evidence locations is "Approved locations list"
+    locations supports display
+    evidence poster is "Approved poster file"
+    poster supports display
+
+    sub-conclusion c3 is "Established trust exists with potential on-site participants"
+    c3 supports and
+    strategy chat is "On-site discussion with potential participants"
+    chat supports c3
+    evidence talking_points is "Identified talking points"
+    talking_points supports chat
+    locations supports chat
+}
+*/
+
+
+/***********************************
+ * Refinements for phone directory *
+ ***********************************/
+
+
+justification existing_directory {
+    conclusion c4 is "Phone directory can be re-used"
+
+    strategy check is "Assessing the TOU w.r.t. the intended usage"
+    check supports c4
+
+    evidence directory is "Phone directory is provided by a partner centre"
+    directory supports check
+
+    evidence tou is "Terms of use (TOU)"
+    tou supports check
+
+}
+
+justification build_directory {
+    conclusion c5 is "Phone directory can be used"
+
+    strategy record is "Record consent from individuals when signing-up"
+    record supports c5
+
+    evidence form is "Sign-up form is available"
+    form supports record
+
+}
+
+
+
+/***********************************************
+ * Refining the access to the phone directory  *
+ ***********************************************/
+
+composition {
+    justification phone_reuse is refine(phone, existing_directory) {
+        hook: "Phone directory is available"
+    }
+}
+
+/*
+justification phone_reuse {
+    conclusion c1 is "Only interested individuals are contacted"
+
+    strategy calling is "Individual calls to invite for participation"
+    calling supports c1
+
+    evidence script is "Call script is available"
+    script supports calling
+
+    sub-conclusion reused is "Phone directory can be reused"
+    reused supports calling
+
+    strategy check is "Assessing the TOU w.r.t. the intended usage"
+    check supports reused
+
+    evidence directory is "Phone directory is provided by a partner centre"
+    directory supports check
+
+    evidence tou is "Terms of use (TOU)"
+    tou supports check
+}
+*/
+
+composition {
+    justification phone_build is refine(phone, build_directory) {
+        hook: "Phone directory is available"
+    }
+}
+
+/*
+justification phone_build {
+    conclusion c1 is "Only interested individuals are contacted"
+
+    strategy calling is "Individual calls to invite for participation"
+    calling supports c1
+
+    evidence script is "Call script is available"
+    script supports calling
+
+    sub-conclusion c5 is "Phone directory can be used"
+    c5 supports calling
+
+    strategy record is "Record consent from individuals when signing-up"
+    record supports c5
+
+    evidence form is "Sign-up form is available"
+    form supports record
+}
+*/
+
+
+/*****************************************
+ * Refining the access to the locations  *
+ *****************************************/
+
+justification locations {
+    conclusion loc_available is "List of usable locations is available"
+
+    strategy combining is "Combining both lists into one single"
+    combining supports loc_available
+
+    evidence public is "List of public location not requiring authorization"
+    public supports combining
+
+    sub-conclusion authorized is "List of authorized locations is available"
+    authorized supports combining
+
+    strategy authorization is "Collecting authorization from stakeholders"
+    authorization supports authorized
+
+    evidence places is "List of locations requiring authorization"
+    places supports authorization
+
+}
+
+
+/*****************************************
+ * Complete composition (final choices)  *
+ *****************************************/
+
+composition {
+
+    justification recruitment is assemble(phone, posters, trusted) {
+        conclusionLabel: "Potential participant pool is large enough"
+        strategyLabel: "Combining recruitments methods"
+    }
+    justification temp is refine(recruitment, locations) {
+        hook: "Approved locations list"
+    }
+    justification final is refine(temp, phone_reuse) {
+        hook: "Phone directory is available"
+    }
+
+}
+
+
+/*
+justification recruitement_final {
+
+    conclusion c is "Potential participant pool is large enough"
+    strategy and is "Combining recruitments methods"
+    and supports c
+
+    sub-conclusion c1 is "Only interested individuals are contacted"
+    c1 supports and
+
+    strategy calling is "Individual calls to invite for participation"
+    calling supports c1
+
+    evidence script is "Call script is available"
+    script supports calling
+
+    sub-conclusion reused is "Phone directory can be reused"
+    reused supports calling
+
+    strategy check is "Assessing the TOU w.r.t. the intended usage"
+    check supports reused
+
+    evidence directory is "Phone directory is provided by a partner centre"
+    directory supports check
+
+    evidence tou is "Terms of use (TOU)"
+    tou supports check
+
+    sub-conclusion c2 is "General audience has awareness of the event"
+    c2 supports and
+    strategy display is "Display posters in strategic places"
+    display supports c2
+
+    evidence poster is "Approved poster file"
+    poster supports display
+
+    sub-conclusion c3 is "Established trust exists with potential on-site participants"
+    c3 supports and
+    strategy chat is "On-site discussion with potential participants"
+    chat supports c3
+    evidence talking_points is "Identified talking points"
+    talking_points supports chat
+
+    sub-conclusion locations is "List of usable locations is available"
+    locations supports chat
+    locations supports display
+
+    strategy combining is "Combining both lists into one single"
+    combining supports locations
+    evidence public is "List of public location not requiring authorization"
+    public supports combining
+    sub-conclusion authorized is "List of authorized locations is available"
+    authorized supports combining
+    strategy authorization is "Collecting authorization from stakeholders"
+    authorization supports authorized
+    evidence places is "List of locations requiring authorization"
+    places supports authorization
+
+}
+*/

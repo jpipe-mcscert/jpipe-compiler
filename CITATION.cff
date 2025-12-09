@@ -1,0 +1,38 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: jPipe
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names:  Sébastien
+    family-names: Mosser
+  - given-names:  Kalvin Thuan-Phong
+    family-names: Khuu
+  - given-names:  Nirmal
+    family-names: Chaudhari
+  - given-names:  Aaron
+    family-names: Loh
+  - given-names:  Deesha
+    family-names: Patel
+  - given-names:  Corinne
+    family-names: Pulgar
+repository-code: 'https://github.com/jpipe-mcscert/jpipe-compiler'
+url: 'https://www.jpipe.org'
+abstract: >-
+  The jPipe environment supports the definition of
+  justification to support software maintenance activities.
+  The name comes from "justified pipelines", as the key idea
+  is to design an environment supporting the justification
+  of CI/CD pipelines by design.
+keywords:
+  - language
+  - pipeline
+  - justification
+  - continuous integration
+  - continuous deployment
+  - modelling
+license: MIT

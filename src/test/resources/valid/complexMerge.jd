@@ -1,0 +1,30 @@
+justification j1 {
+    conclusion c1 is "a shared conclusion"
+    strategy AND1 is "<AND>"
+    sub-conclusion sc1 is "an equivalent sub-conclusion"
+    strategy s1   is "an equivalent strategy"
+    evidence e1   is "an unique evidence"
+    e1 supports s1
+    AND1 supports c1
+    sc1 supports AND1
+    s1 supports sc1
+}
+
+justification j2 {
+    conclusion c2 is "a shared conclusion"
+    strategy AND2 is "<AND>"
+    sub-conclusion sc2 is "a completely separate sub-conclusion"
+    strategy s2   is "completely separate strategy"
+    evidence e2   is "an unique evidence"
+    e2 supports s2
+    AND2 supports c2
+    sc2 supports AND2
+    s2 supports sc2
+}
+
+composition {
+    justification j is merge(j1, j2) {
+      equivalence:  "levenshtein"
+      threshold:    "10"
+    }
+}

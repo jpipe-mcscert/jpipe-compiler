@@ -1,0 +1,51 @@
+# workflow to be called manually to create the HomeBrew artefacts
+
+name: Homebrew
+
+on:
+
+  workflow_dispatch:  # Can be triggered manually
+    inputs:
+      version:
+        required: true
+        type: string
+
+jobs:
+    
+    build_compiler:
+        # skip compilation if compiler already available
+        uses: ./.github/workflows/compiler.yml
+  
+    release:
+        runs-on: ubuntu-latest
+        
+        needs:  [build_compiler]
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: retrieve compiler
+              uses: actions/download-artifact@v4
+              with:
+                name: jpipe.jar
+                path: homebrew/
+
+            - name: Create Homebrew artefact
+              run: |
+                cd homebrew
+                ls -lh 
+                tar czvf jpipe-formula.tar.gz *
+            
+            - name: Delete compiler artefact
+              uses: geekyeggo/delete-artifact@v5
+              with:
+                name: jpipe.jar
+
+            - name: Archive homebrew artefact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: jpipe-${{inputs.version}}.tar.gz
+                  path: homebrew/jpipe-formula.tar.gz
+
+            

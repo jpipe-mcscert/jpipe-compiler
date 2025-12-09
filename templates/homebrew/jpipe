@@ -1,0 +1,15 @@
+#! env sh
+
+which java > /dev/null
+if [ $? -ne 0 ]; then
+    echo "[homebrew:jpipe] Java not found"
+    exit 1
+fi
+
+which dot > /dev/null
+if [ $? -ne 0 ]; then
+    echo "[homebrew:jpipe] Graphviz not found"
+    exit 1
+fi
+
+@@JAVA@@ -jar @@PREFIX@@/jpipe.jar "$@"

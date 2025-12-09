@@ -1,0 +1,103 @@
+justification phone {
+    conclusion c1 is "Only interested individuals are contacted"
+
+    strategy calling is "Individual calls to invite for participation"
+    calling supports c1
+
+    evidence script is "Call script is available"
+    script supports calling
+
+    evidence directory is "Phone directory is available"
+    directory supports calling
+
+}
+
+justification posters {
+
+    conclusion c2 is "General audience has awareness of the event"
+
+    strategy display is "Display posters in strategic places"
+    display supports c2
+
+    evidence locations is "Approved locations list"
+    locations supports display
+
+    evidence poster is "Approved poster file"
+    poster supports display
+
+}
+
+justification trusted {
+
+    conclusion c3 is "Established trust exists with potential on-site participants"
+
+    strategy chat is "On-site discussion with potential participants"
+    chat supports c3
+
+    evidence talking_points is "Identified talking points"
+    talking_points supports chat
+
+    evidence locations is "Approved locations list"
+    locations supports chat
+
+}
+
+
+justification locations {
+    conclusion loc_available is "List of usable locations is available"
+
+    strategy combining is "Combining both lists into one single"
+    combining supports loc_available
+
+    evidence public is "List of public location not requiring authorization"
+    public supports combining
+
+    sub-conclusion authorized is "List of authorized locations is available"
+    authorized supports combining
+
+    strategy authorization is "Collecting authorization from stakeholders"
+    authorization supports authorized
+
+    evidence places is "List of locations requiring authorization"
+    places supports authorization
+
+}
+
+
+justification phone_reuse {
+
+    conclusion reused is "Phone directory can be reused"
+
+    strategy check is "Assessing the TOU w.r.t. the intended usage"
+    check supports reused
+
+    evidence directory is "Phone directory is provided by a partner centre"
+    directory supports check
+
+    evidence tou is "Terms of use (TOU)"
+    tou supports check
+}
+
+
+composition {
+    justification recruitment is assemble(phone, posters, trusted) {
+        conclusionLabel: "Potential participant pool is large enough"
+        strategyLabel: "Combining recruitments methods"
+    }
+    justification temp is refine(recruitment, locations) {
+        hook: "Approved locations list"
+    }
+    justification final is refine(temp, phone_reuse) {
+        hook: "Phone directory is available"
+    }
+}
+
+/*
+phone.locations
+posters.locations
+
+recruitment.phone.locations
+recruitment.posters.locations
+
+
+*/

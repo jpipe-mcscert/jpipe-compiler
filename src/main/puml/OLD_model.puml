@@ -1,0 +1,54 @@
+@startuml model
+!include ./commons.style
+
+'title "Justification Domain Model (jPipe)"
+
+class Unit {
+    + name: String
+    + loaded: File[]
+}
+
+Unit *--> "1..*" JustificationModel
+
+abstract class JustificationModel implements Visitable {
+    + name: String
+}
+
+class Justification extends JustificationModel {
+}
+
+class Pattern extends JustificationModel
+
+JustificationModel --> "0..1\nparent" Pattern
+
+
+JustificationModel --> "1\nconclusion" Conclusion
+JustificationModel *-> "symbols\n*" JustificationElement
+
+abstract class JustificationElement implements Visitable {
+    + id: Symbol
+    + label: String
+}
+
+class Conclusion extends JustificationElement
+
+Conclusion -> "1\nstrategy" Strategy
+
+class Strategy extends JustificationElement
+
+Strategy -> "1..*\nsupports" Support
+
+abstract class Support extends JustificationElement
+
+class Evidence extends Support
+
+class SubConclusion extends Support
+
+Strategy "1\nstrategy" <-- SubConclusion
+
+interface Visitable {
+    + accept(v: ModelVisitor)
+
+}
+
+@enduml
