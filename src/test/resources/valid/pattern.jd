@@ -13,7 +13,7 @@ justification proving implements prover {
 
 }
 
-pattern prover {
+template prover {
 
     @support Su1 is "Model is ready"
     @support Su2 is "Prover is available"
@@ -29,7 +29,7 @@ pattern prover {
 
 }
 
-pattern partial implements prover {
+template partial implements prover {
 
   evidence Su2 is "TINA is available"  // Override prover.Su2
 

@@ -5,15 +5,15 @@ grammar JPipe;
  ******************/
 
 // Root rule for parsing (called by the compilationChain)
-unit            : (justification | pattern | load | composition)+ EOF;
+unit            : (justification | template | load | composition)+ EOF;
 
 // Declare a justification
 justification   : JUSTIFICATION id=ID (IMPLEMENTS parent=ID)? OPEN justif_body CLOSE;
 justif_body     : (evidence | sub_conclusion | strategy | relation | conclusion)+;
 
 // Declare a pattern (like a justification, but allowing abstract supports)
-pattern         : PATTERN id=ID (IMPLEMENTS parent=ID)? OPEN pattern_body CLOSE;
-pattern_body    : (evidence | sub_conclusion | strategy | relation | conclusion | abstract)+;
+template         : TEMPLATE id=ID (IMPLEMENTS parent=ID)? OPEN template_body CLOSE;
+template_body    : (evidence | sub_conclusion | strategy | relation | conclusion | abstract)+;
 
 // load another file
 load            : LOAD path=STRING;
@@ -30,7 +30,7 @@ relation        : from=ID SUPPORT_LNK to=ID;
 
 // composition unit
 composition     : COMPOSITION OPEN (rule_decl)+ CLOSE;
-rule_decl       : type=(JUSTIFICATION | PATTERN) id=ID IS operator=ID OPEN_P params_decl* CLOSE_P rule_config?;
+rule_decl       : type=(JUSTIFICATION | TEMPLATE) id=ID IS operator=ID OPEN_P params_decl* CLOSE_P rule_config?;
 params_decl     : id=ID (COMMA params_decl)*;
 rule_config     : OPEN key_val_decl+ CLOSE;
 key_val_decl    : key=ID COLON value=STRING;
@@ -49,7 +49,7 @@ EVIDENCE        : 'evidence';
 STRATEGY        : 'strategy';
 SUBCONCLUSION   : 'sub-conclusion';
 CONCLUSION      : 'conclusion';
-PATTERN         : 'pattern';
+TEMPLATE         : 'template';
 ABSTRACT_SUP    : '@support';
 
 SUPPORT_LNK     : 'supports';

@@ -10,8 +10,16 @@ type: software
 authors:
   - given-names:  Sébastien
     family-names: Mosser
-  - given-names:  Kalvin
-    family-names: Thuan-Phong Khuu
+  - given-names:  Kalvin Thuan-Phong
+    family-names: Khuu
+  - given-names:  Nirmal
+    family-names: Chaudhari
+  - given-names:  Aaron
+    family-names: Loh
+  - given-names:  Deesha
+    family-names: Patel
+  - given-names:  Corinne
+    family-names: Pulgar
 repository-code: 'https://github.com/jpipe-mcscert/jpipe-compiler'
 url: 'https://www.jpipe.org'
 abstract: >-

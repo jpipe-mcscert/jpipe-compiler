@@ -108,7 +108,7 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Act
         }
 
         @Override
-        public void enterPattern(JPipeParser.PatternContext ctx) {
+        public void enterTemplate(JPipeParser.TemplateContext ctx) {
             this.buildContext = buildContext.updateCurrentJustification(ctx.id.getText());
             if (ctx.parent == null) {
                 result.add(new CreatePattern(ctx.id.getText()));
@@ -118,7 +118,7 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Act
         }
 
         @Override
-        public void exitPattern(JPipeParser.PatternContext ctx) {
+        public void exitTemplate(JPipeParser.TemplateContext ctx) {
             closeJustificationModel(ctx.parent, ctx.id);
             this.buildContext = buildContext.updateCurrentJustification(null);
         }
@@ -179,7 +179,7 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Act
         public void enterRule_decl(JPipeParser.Rule_declContext ctx) {
             CompositionOperator.ReturnType type = switch (ctx.type.getType()) {
                 case JPipeLexer.JUSTIFICATION -> CompositionOperator.ReturnType.JUSTIFICATION;
-                case JPipeLexer.PATTERN -> CompositionOperator.ReturnType.PATTERN;
+                case JPipeLexer.TEMPLATE -> CompositionOperator.ReturnType.PATTERN;
                 default -> throw new IllegalArgumentException(ctx.type.getText());
             };
             this.currentCall = new CallOperator(type, ctx.id.getText(), ctx.operator.getText());

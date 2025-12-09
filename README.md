@@ -16,23 +16,21 @@ The jPipe environment supports the definition of justification to support softwa
 
 </div>
 
-- Architect and main developer:
+- Principal Investigator:
   - [Sébastien Mosser](https://mosser.github.io/), McSCert, McMaster University.
-- Main Contributors:
-  - [Cass Braun](https://www.linkedin.com/in/cass-braun/), McSCert, McMaster University. Developer.
-  - [Nirmal Chaudhari](https://www.linkedin.com/in/nirmal2003/), McSCert, McMaster University. Developer.
-  - [Aaron Loh](https://www.linkedin.com/in/aaron-loh26/), McSCert, McMaster University. Developer.
-  - [Deesha Patel](https://www.linkedin.com/in/deeshupatel/), McSCert, McMaster University. Developer.
-  - [Corinne Pulgar](https://www.linkedin.com/in/corinne-pulgar-12a58190/), École de Technologie Supérieure (ETS). Developer
-- Advisors:
-  - [Jean-Michel Bruel](https://jmbruel.netlify.app/), Université de Toulouse. Language design.
-  - [Mireille Blay-Fornarino](https://mireilleblayfornarino.i3s.unice.fr/), Université Côte d'Azur. Composition mechanisms.
+- Active Contributors:
+  - [Kalvin Thuan-Phong Khuu](https://www.linkedin.com/in/kalvin-khuu/), McSCert, McMaster University. PhD Student.
+- Contributors:
+  - [Nirmal Chaudhari](https://www.linkedin.com/in/nirmal2003/), McSCert, McMaster University. Undergraduate Researhc Assistant.
+  - [Aaron Loh](https://www.linkedin.com/in/aaron-loh26/), McSCert, McMaster University. Undergraduate Researhc Assistant.
+  - [Deesha Patel](https://www.linkedin.com/in/deeshupatel/), McSCert, McMaster University. Master Student.
+  - [Corinne Pulgar](https://www.linkedin.com/in/corinne-pulgar-12a58190/), École de Technologie Supérieure (ETS). Master Student
 
 ## Repository organization
 
-  - `compiler`: source code of the (action-based) compiler
-  - `brew`: distribution of the code using HomeBrew
-
+  - `src`: source code of the compiler
+  - `docs`: technical documentation about the compiler
+  - `templates`: templates used for distributing the compiler with Homebrew and apt.
 
 ## How to cite?
 
