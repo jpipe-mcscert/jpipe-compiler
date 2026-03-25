@@ -1,20 +1,16 @@
 # jPipe - Justified Pipelines
 
 <div align="center">
-
-  <img alt="tool logo" src="./docs/logo.svg" width="300">
-
+  <img alt="jPipe logo" src="./docs/logo.svg" height="100" style="vertical-align:middle">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img alt="McSCert logo" src="./docs/sponsors/mcscert.svg" height="100" style="vertical-align:middle">
 </div>
+
+<br>
 
 The jPipe environment supports the definition of justification to support software maintenance activities. The name comes from "justified pipelines", as the key idea is to design an environment supporting the justification of CI/CD pipelines by design.
 
 ## General Information
-
-<div align="center" markdown="1">
-
-![McScert logo](./docs/sponsors/mcscert.svg)
-
-</div>
 
 - Principal Investigator:
   - [Sébastien Mosser](https://mosser.github.io/), McSCert, McMaster University.
@@ -24,9 +20,9 @@ The jPipe environment supports the definition of justification to support softwa
   - [Nirmal Chaudhari](https://www.linkedin.com/in/nirmal2003/), McSCert, McMaster University. Undergraduate Research Assistant.
   - [Aaron Loh](https://www.linkedin.com/in/aaron-loh26/), McSCert, McMaster University. Undergraduate Research Assistant.
   - [Deesha Patel](https://www.linkedin.com/in/deeshupatel/), McSCert, McMaster University. Master Student.
-  - [Corinne Pulgar](https://www.linkedin.com/in/corinne-pulgar-12a58190/), École de Technologie Supérieure (ETS). Master Student
+  - [Corinne Pulgar](https://www.linkedin.com/in/corinne-pulgar-12a58190/), École de Technologie Supérieure (ETS). Master Student.
 
-## Repository organization
+### Repository organization
 
 - `jpipe-lang`: ANTLR4 grammar and generated lexer/parser
 - `jpipe-model`: domain model (justification elements, symbol table)
@@ -36,9 +32,9 @@ The jPipe environment supports the definition of justification to support softwa
 - `docs`: technical documentation and architecture decision records
 - `templates`: templates used for distributing the compiler with Homebrew and apt
 
-## Developer Setup
+### Developer Setup
 
-### Required tools
+#### Required tools
 
 | Tool | Version | Purpose |
 |---|---|---|
@@ -46,13 +42,13 @@ The jPipe environment supports the definition of justification to support softwa
 | [Maven](https://maven.apache.org/) | 3.x | Build tool |
 | [adr-tools](https://github.com/npryce/adr-tools) | latest | Browsing and creating architecture decision records |
 
-### Optional tools
+#### Optional tools
 
 | Tool | Version | Purpose |
 |---|---|---|
 | [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) | latest | Previewing the documentation site locally (`mkdocs serve`) |
 
-### Building
+#### Building
 
 ```bash
 mvn package
@@ -60,7 +56,7 @@ mvn package
 
 The fat JAR is produced in `jpipe-cli/target/`.
 
-### Code style
+#### Code style
 
 Formatting is enforced by Spotless (Google Java Format) and Checkstyle. To auto-format before committing:
 
@@ -98,12 +94,9 @@ Parts of this codebase were developed with the assistance of [Claude](https://cl
 
 ## Sponsors
 
-
-We acknowledge the support of the _Natural Sciences and Engineering Research Council of Canada_ 
+We acknowledge the support of the _Natural Sciences and Engineering Research Council of Canada_
 (NSERC), as well as McMaster _Excellence in Research Award_ (EREA) from the Faculty of Engineering.
 
 <div align="center">
-
   <img alt="NSERC logo" src="./docs/sponsors/nserc.svg" width="300">
-
 </div>
