@@ -10,7 +10,7 @@ The jPipe environment supports the definition of justification to support softwa
 
 ## General Information
 
-<div align="center">
+<div align="center" markdown="1">
 
 ![McScert logo](./docs/sponsors/mcscert.svg)
 
@@ -28,13 +28,13 @@ The jPipe environment supports the definition of justification to support softwa
 
 ## Repository organization
 
-  - `jpipe-lang`: ANTLR4 grammar and generated lexer/parser
-  - `jpipe-model`: domain model (justification elements, symbol table)
-  - `jpipe-operators`: composition operator extension point and built-in operators
-  - `jpipe-compiler`: compiler pipeline (parsing, model building, validation, export)
-  - `jpipe-cli`: command-line interface and fat JAR entry point
-  - `docs`: technical documentation and architecture decision records
-  - `templates`: templates used for distributing the compiler with Homebrew and apt
+- `jpipe-lang`: ANTLR4 grammar and generated lexer/parser
+- `jpipe-model`: domain model (justification elements, symbol table)
+- `jpipe-operators`: composition operator extension point and built-in operators
+- `jpipe-compiler`: compiler pipeline (parsing, model building, validation, export)
+- `jpipe-cli`: command-line interface and fat JAR entry point
+- `docs`: technical documentation and architecture decision records
+- `templates`: templates used for distributing the compiler with Homebrew and apt
 
 ## Developer Setup
 
