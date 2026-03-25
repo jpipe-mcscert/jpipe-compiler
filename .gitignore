@@ -2,10 +2,13 @@
 .idea
 *.iml
 target
-*.class 
+*.class
 *~
 *.png
 *.svg
+!docs/**/*.png
+!docs/**/*.svg
 *.jar
 .DS_Store
 .java-version
+site/

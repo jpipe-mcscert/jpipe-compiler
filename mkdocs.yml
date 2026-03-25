@@ -1,0 +1,28 @@
+site_name: jPipe
+site_description: Justified Pipelines language and compiler
+site_url: https://ace-design.github.io/jpipe
+repo_url: https://github.com/jpipe-mcscert/jpipe-compiler
+repo_name: jpipe-mcscert/jpipe-compiler
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - toc.integrate
+
+extra_css:
+  - stylesheets/mcmaster.css
+
+nav:
+  - Home: index.md
+  - Architecture Decisions:
+      - adr/0001-semver-versioning.md
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.snippets:
+      base_path: .
+

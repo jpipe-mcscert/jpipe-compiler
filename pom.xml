@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ca.mcscert.jpipe</groupId>
+    <artifactId>jpipe</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>jPipe</name>
+    <description>Justified Pipelines language and compiler</description>
+    <url>https://github.com/jpipe-mcscert/jpipe-compiler</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Sébastien Mosser</name>
+            <email>mossers@mcmaster.ca</email>
+            <organization>McSCert, McMaster University</organization>
+            <url>https://mosser.github.io/</url>
+        </developer>
+        <developer>
+            <name>Kalvin Thuan-Phong Khuu</name>
+            <organization>McSCert, McMaster University</organization>
+            <url>https://kalvinkhuu.github.io/</url>
+        </developer>
+        <developer>
+            <name>Nirmal Chaudhari</name>
+            <organization>McSCert, McMaster University</organization>
+            <url>https://www.linkedin.com/in/nirmal2003/</url>
+        </developer>
+        <developer>
+            <name>Aaron Loh</name>
+            <organization>McSCert, McMaster University</organization>
+            <url>https://www.linkedin.com/in/aaron-loh26/</url>
+        </developer>
+        <developer>
+            <name>Deesha Patel</name>
+            <organization>McSCert, McMaster University</organization>
+            <url>https://www.linkedin.com/in/deeshupatel/</url>
+        </developer>
+        <developer>
+            <name>Corinne Pulgar</name>
+            <organization>École de Technologie Supérieure (ETS)</organization>
+            <url>https://www.linkedin.com/in/corinne-pulgar-12a58190/</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/jpipe-mcscert/jpipe-compiler.git</connection>
+        <developerConnection>scm:git:ssh://github.com/jpipe-mcscert/jpipe-compiler.git</developerConnection>
+        <url>https://github.com/jpipe-mcscert/jpipe-compiler</url>
+    </scm>
+
+    <modules>
+        <module>jpipe-lang</module>
+        <module>jpipe-model</module>
+        <module>jpipe-operators</module>
+        <module>jpipe-compiler</module>
+        <module>jpipe-cli</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Dependency versions -->
+        <antlr4.version>4.13.2</antlr4.version>
+        <picocli.version>4.7.6</picocli.version>
+        <json.version>20250107</json.version>
+        <log4j.version>2.24.3</log4j.version>
+        <junit.version>5.11.4</junit.version>
+
+        <!-- Plugin versions -->
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
+        <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
+        <spotless-plugin.version>2.43.0</spotless-plugin.version>
+        <checkstyle-plugin.version>3.5.0</checkstyle-plugin.version>
+        <checkstyle.version>10.21.1</checkstyle.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Inter-module -->
+            <dependency>
+                <groupId>ca.mcscert.jpipe</groupId>
+                <artifactId>jpipe-lang</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ca.mcscert.jpipe</groupId>
+                <artifactId>jpipe-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ca.mcscert.jpipe</groupId>
+                <artifactId>jpipe-operators</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ca.mcscert.jpipe</groupId>
+                <artifactId>jpipe-compiler</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- ANTLR4 -->
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-runtime</artifactId>
+                <version>${antlr4.version}</version>
+            </dependency>
+
+            <!-- CLI -->
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli</artifactId>
+                <version>${picocli.version}</version>
+            </dependency>
+
+            <!-- JSON -->
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>${json.version}</version>
+            </dependency>
+
+            <!-- Logging -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+
+            <!-- Testing -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.antlr</groupId>
+                    <artifactId>antlr4-maven-plugin</artifactId>
+                    <version>${antlr4.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${maven-shade-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>com.diffplug.spotless</groupId>
+                    <artifactId>spotless-maven-plugin</artifactId>
+                    <version>${spotless-plugin.version}</version>
+                    <configuration>
+                        <java>
+                            <googleJavaFormat/>
+                            <removeUnusedImports/>
+                            <trimTrailingWhitespace/>
+                            <endWithNewline/>
+                        </java>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <phase>verify</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${checkstyle-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>${checkstyle.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <configLocation>google_checks.xml</configLocation>
+                        <failsOnError>true</failsOnError>
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <phase>verify</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
