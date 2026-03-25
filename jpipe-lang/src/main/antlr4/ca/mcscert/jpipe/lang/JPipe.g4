@@ -20,8 +20,8 @@ template        : TEMPLATE id=ID (IMPLEMENTS parent=ID)?
                   ( OPEN template_body CLOSE | IS operator=qualified_id OPEN_P params_decl? CLOSE_P rule_config? );
 template_body   : (evidence | sub_conclusion | strategy | relation | conclusion | abstract)+;
 
-// load another file
-load            : LOAD path=STRING;
+// load another file and bind its symbols under a namespace alias
+load            : LOAD path=STRING AS namespace=ID;
 
 // Body of a justification/template content
 element         : id=ID IS name=STRING;
@@ -57,6 +57,7 @@ ABSTRACT_SUP    : '@support';
 SUPPORT_LNK     : 'supports';
 
 LOAD            : 'load';
+AS              : 'as';
 
 // Making whitespaces and newlines irrelevant to the syntax
 WHITESPACE  : [ \t]+                -> channel(HIDDEN);
@@ -78,3 +79,6 @@ COMMA            : ',';
 COLON            : ':';
 
 fragment STRING_CHAR : ~('\r' | '\n');
+
+// Catch-all: skip unrecognized characters, error reporting handled by the error listener
+ERROR_TOKEN : . -> skip;
