@@ -1,7 +1,9 @@
 .vscode
 .idea
+.antlr
 *.iml
 target
+jpipe-lang/src/main/java
 *.class
 *~
 *.png
