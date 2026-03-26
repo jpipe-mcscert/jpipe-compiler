@@ -93,7 +93,6 @@
 
         <!-- SonarCloud -->
         <sonar.organization>jpipe-mcscert</sonar.organization>
-        <sonar.projectKey>jpipe-mcscert_jpipe-compiler</sonar.projectKey>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     </properties>
 
