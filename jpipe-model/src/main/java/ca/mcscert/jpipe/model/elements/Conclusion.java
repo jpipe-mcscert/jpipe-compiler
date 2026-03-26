@@ -3,7 +3,7 @@ package ca.mcscert.jpipe.model.elements;
 import java.util.Optional;
 
 /** The top-level conclusion that a justification aims to establish. */
-public final class Conclusion implements CommonElement, Supportable<Strategy> {
+public final class Conclusion implements CommonElement {
 
 	private final String id;
 	private final String label;
@@ -24,7 +24,6 @@ public final class Conclusion implements CommonElement, Supportable<Strategy> {
 		return label;
 	}
 
-	@Override
 	public void addSupport(Strategy supporter) {
 		if (this.supporter != null) {
 			throw new IllegalStateException("Conclusion already has a supporting strategy");
@@ -32,7 +31,6 @@ public final class Conclusion implements CommonElement, Supportable<Strategy> {
 		this.supporter = supporter;
 	}
 
-	@Override
 	public Optional<Strategy> getSupport() {
 		return Optional.ofNullable(supporter);
 	}

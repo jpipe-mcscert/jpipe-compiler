@@ -1,12 +1,11 @@
 package ca.mcscert.jpipe.model.exceptions;
 
 import ca.mcscert.jpipe.model.Justification;
-import ca.mcscert.jpipe.model.elements.Supportable;
 import java.util.List;
 
 /**
- * Thrown when {@link Justification#lock()} detects that one or more
- * {@link Supportable} elements have no supporter assigned.
+ * Thrown when {@link Justification#lock()} detects that one or more elements
+ * have no supporter assigned.
  */
 public class IncompleteJustificationException extends IllegalStateException {
 

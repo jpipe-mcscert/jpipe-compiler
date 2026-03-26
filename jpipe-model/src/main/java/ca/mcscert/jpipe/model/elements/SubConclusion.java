@@ -3,7 +3,7 @@ package ca.mcscert.jpipe.model.elements;
 import java.util.Optional;
 
 /** An intermediate conclusion within a justification. */
-public final class SubConclusion implements CommonElement, SupportLeaf, Supportable<Strategy> {
+public final class SubConclusion implements CommonElement, SupportLeaf {
 
 	private final String id;
 	private final String label;
@@ -24,7 +24,6 @@ public final class SubConclusion implements CommonElement, SupportLeaf, Supporta
 		return label;
 	}
 
-	@Override
 	public void addSupport(Strategy supporter) {
 		if (this.supporter != null) {
 			throw new IllegalStateException("SubConclusion already has a supporting strategy");
@@ -32,7 +31,6 @@ public final class SubConclusion implements CommonElement, SupportLeaf, Supporta
 		this.supporter = supporter;
 	}
 
-	@Override
 	public Optional<Strategy> getSupport() {
 		return Optional.ofNullable(supporter);
 	}

@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.exceptions.IncompleteJustificationException;
-import ca.mcscert.jpipe.model.exceptions.LockedJustificationException;
+import ca.mcscert.jpipe.model.exceptions.LockedModelException;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
@@ -247,7 +247,7 @@ class JustificationModelTest {
 			Justification j = complete();
 			j.lock();
 			assertThatThrownBy(() -> j.addElement(new Evidence("e2", "extra")))
-					.isInstanceOf(LockedJustificationException.class);
+					.isInstanceOf(LockedModelException.class);
 		}
 
 		@Test

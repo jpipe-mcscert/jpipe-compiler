@@ -3,7 +3,24 @@
 The `jpipe-model` module defines the internal representation of a compiled jPipe
 file. It is structured around four packages.
 
-## Class diagram
+## Packages
+
+### `model.elements` and `model`
+
+The element hierarchy is rooted at the sealed interface `JustificationElement`.
+Elements that appear in both justifications and templates implement `CommonElement`;
+`AbstractSupport` is template-only.
+
+Support relationships are encoded directly via typed fields and one marker interface:
+
+- **`SupportLeaf`** — marker for elements that can act as direct supporters
+  (`SubConclusion`, `Evidence`, `AbstractSupport`).
+- `Conclusion` and `SubConclusion` each hold a single `supporter : Strategy`; `Strategy`
+  holds a single `supporter : SupportLeaf`. Cardinality is enforced at assignment time.
+
+`JustificationModel<E>` is the sealed base for `Justification` (accepts only
+`CommonElement`) and `Template` (accepts any `JustificationElement`). A `Unit`
+is the root produced by compiling one `.jd` file.
 
 ```plantuml
 @startuml model
@@ -11,10 +28,6 @@ file. It is structured around four packages.
 skinparam packageStyle rectangle
 skinparam classAttributeIconSize 0
 hide empty members
-
-' ─────────────────────────────────────────────
-' Elements
-' ─────────────────────────────────────────────
 
 package "model.elements" {
 
@@ -27,27 +40,28 @@ package "model.elements" {
   interface CommonElement <<sealed>>
   interface SupportLeaf <<marker>>
 
-  interface Supportable<T> {
-    + addSupport(T) : void
-    + getSupporters() : List<T>
-  }
-
   class Conclusion {
     - id : String
     - label : String
-    - supporters : List<Strategy>
+    - supporter : Strategy
+    + addSupport(Strategy) : void
+    + getSupport() : Optional<Strategy>
   }
 
   class SubConclusion {
     - id : String
     - label : String
-    - supporters : List<Strategy>
+    - supporter : Strategy
+    + addSupport(Strategy) : void
+    + getSupport() : Optional<Strategy>
   }
 
   class Strategy {
     - id : String
     - label : String
-    - supporters : List<SupportLeaf>
+    - supporter : SupportLeaf
+    + addSupport(SupportLeaf) : void
+    + getSupport() : Optional<SupportLeaf>
   }
 
   class Evidence <<record>> {
@@ -72,43 +86,39 @@ package "model.elements" {
   SupportLeaf <|.. Evidence
   SupportLeaf <|.. AbstractSupport
 
-  Supportable <|.. Conclusion     : <Strategy>
-  Supportable <|.. SubConclusion  : <Strategy>
-  Supportable <|.. Strategy       : <SupportLeaf>
+  Conclusion    --> Strategy    : supporter
+  SubConclusion --> Strategy    : supporter
+  Strategy      --> SupportLeaf : supporter
 }
-
-' ─────────────────────────────────────────────
-' Model
-' ─────────────────────────────────────────────
 
 package "model" {
 
   abstract class JustificationModel<E extends JustificationElement> {
     - name : String
+    - conclusion : Conclusion
     - parent : Template
     - elements : List<E>
     + getName() : String
+    + setConclusion(Conclusion) : void
+    + conclusion() : Optional<Conclusion>
     + getParent() : Optional<Template>
     + setParent(Template) : void
     + addElement(E) : void
     + getElements() : List<E>
     + findById(String) : Optional<E>
     + elementsOfType(Class<T>) : List<T>
+    + subConclusions() : List<SubConclusion>
+    + strategies() : List<Strategy>
+    + evidence() : List<Evidence>
     + accept(JustificationVisitor<R>) : R
   }
 
   class Justification {
-    + conclusions() : List<Conclusion>
-    + subConclusions() : List<SubConclusion>
-    + strategies() : List<Strategy>
-    + evidence() : List<Evidence>
+    + isLocked() : boolean
+    + lock() : void
   }
 
   class Template {
-    + conclusions() : List<Conclusion>
-    + subConclusions() : List<SubConclusion>
-    + strategies() : List<Strategy>
-    + evidence() : List<Evidence>
     + abstractSupports() : List<AbstractSupport>
   }
 
@@ -130,29 +140,34 @@ package "model" {
   JustificationModel <|-- Template
 
   Unit o-- JustificationModel : models
-
-  Justification ..> Conclusion
-  Justification ..> SubConclusion
-  Justification ..> Strategy
-  Justification ..> Evidence
-
-  Template ..> Conclusion
-  Template ..> SubConclusion
-  Template ..> Strategy
-  Template ..> Evidence
-  Template ..> AbstractSupport
-
   Template --o JustificationModel : parent
+
+  JustificationModel --> Conclusion : conclusion
 }
 
-' ─────────────────────────────────────────────
-' Commands
-' ─────────────────────────────────────────────
+@enduml
+```
+
+### `commands` / `commands.creation`
+
+Model construction uses the Command pattern. `RegularCommand` is the base for all
+concrete commands. The `ExecutionEngine` handles deferred execution (commands whose
+condition is not yet met) and deadlock detection.
+
+```plantuml
+@startuml commands
+
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+hide empty members
+
+' Stub
+class Unit
 
 package "commands" {
 
   interface Command {
-    + condition() : Function<Unit, Boolean>
+    + condition() : Predicate<Unit>
     + execute(Unit) : void
   }
 
@@ -186,9 +201,25 @@ package "commands.creation" {
   RegularCommand <|-- CreateAbstractSupport
 }
 
-' ─────────────────────────────────────────────
-' Visitor
-' ─────────────────────────────────────────────
+@enduml
+```
+
+### `visitor`
+
+`JustificationVisitor<R>` provides a typed traversal over the full element
+hierarchy. All model nodes implement `accept`.
+
+```plantuml
+@startuml visitor
+
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+hide empty members
+
+' Stubs for linked types
+class Unit
+interface JustificationElement <<sealed>>
+abstract class JustificationModel
 
 package "visitor" {
   interface JustificationVisitor<R> {
@@ -209,35 +240,3 @@ Unit                 ..> JustificationVisitor : accept
 
 @enduml
 ```
-
-## Packages
-
-### `model.elements`
-
-The element hierarchy is rooted at the sealed interface `JustificationElement`.
-Elements that appear in both justifications and templates implement `CommonElement`;
-`AbstractSupport` is template-only.
-
-Support relationships are encoded via two interfaces:
-
-- **`SupportLeaf`** — marker for elements that can act as direct supporters
-  (`SubConclusion`, `Evidence`, `AbstractSupport`).
-- **`Supportable<T>`** — implemented by elements that *receive* support, with `T`
-  constraining the allowed supporter type.
-
-### `model`
-
-`JustificationModel<E>` is the sealed base for `Justification` (accepts only
-`CommonElement`) and `Template` (accepts any `JustificationElement`). A `Unit`
-is the root produced by compiling one `.jd` file.
-
-### `commands` / `commands.creation`
-
-Model construction uses the Command pattern. `RegularCommand` is the base for all concrete commands. The `ExecutionEngine`
-handles deferred execution (commands whose condition is not yet met) and deadlock
-detection.
-
-### `visitor`
-
-`JustificationVisitor<R>` provides a typed traversal over the full element
-hierarchy. All model nodes implement `accept`.

@@ -3,7 +3,7 @@ package ca.mcscert.jpipe.model.elements;
 import java.util.Optional;
 
 /** A reasoning strategy connecting evidence to a conclusion. */
-public final class Strategy implements CommonElement, Supportable<SupportLeaf> {
+public final class Strategy implements CommonElement {
 
 	private final String id;
 	private final String label;
@@ -24,7 +24,6 @@ public final class Strategy implements CommonElement, Supportable<SupportLeaf> {
 		return label;
 	}
 
-	@Override
 	public void addSupport(SupportLeaf supporter) {
 		if (this.supporter != null) {
 			throw new IllegalStateException("Strategy already has a supporting element");
@@ -32,7 +31,6 @@ public final class Strategy implements CommonElement, Supportable<SupportLeaf> {
 		this.supporter = supporter;
 	}
 
-	@Override
 	public Optional<SupportLeaf> getSupport() {
 		return Optional.ofNullable(supporter);
 	}
