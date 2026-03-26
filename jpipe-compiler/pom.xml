@@ -17,7 +17,7 @@
     <dependencies>
         <dependency>
             <groupId>ca.mcscert.jpipe</groupId>
-            <artifactId>jpipe-lang</artifactId>
+            <artifactId>jpipe-lang</artifactId> 
         </dependency>
         <dependency>
             <groupId>ca.mcscert.jpipe</groupId>
@@ -48,5 +48,6 @@
             <artifactId>cucumber-junit-platform-engine</artifactId>
         </dependency>
     </dependencies>
+
 
 </project>

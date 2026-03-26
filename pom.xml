@@ -85,9 +85,16 @@
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
         <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
-        <spotless-plugin.version>2.43.0</spotless-plugin.version>
+        <spotless-plugin.version>2.46.0</spotless-plugin.version>
         <checkstyle-plugin.version>3.5.0</checkstyle-plugin.version>
         <checkstyle.version>10.21.1</checkstyle.version>
+        <jacoco-plugin.version>0.8.13</jacoco-plugin.version>
+        <sonar-plugin.version>4.0.0.4121</sonar-plugin.version>
+
+        <!-- SonarCloud -->
+        <sonar.organization>jpipe-mcscert</sonar.organization>
+        <sonar.projectKey>jpipe</sonar.projectKey>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     </properties>
 
     <dependencyManagement>
@@ -208,7 +215,9 @@
                     <version>${spotless-plugin.version}</version>
                     <configuration>
                         <java>
-                            <googleJavaFormat/>
+                            <eclipse>
+                                <version>4.33</version>
+                            </eclipse>
                             <removeUnusedImports/>
                             <trimTrailingWhitespace/>
                             <endWithNewline/>
@@ -218,6 +227,27 @@
                         <execution>
                             <goals>
                                 <goal>check</goal>
+                            </goals>
+                            <phase>verify</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>prepare-agent</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <goals>
+                                <goal>report</goal>
                             </goals>
                             <phase>verify</phase>
                         </execution>
@@ -260,6 +290,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
