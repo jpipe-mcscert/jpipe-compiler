@@ -4,7 +4,7 @@ import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 
-/** Creates a {@link Conclusion} inside a justification. */
+/** Creates a {@link Conclusion} inside a justification or template. */
 public final class CreateConclusion extends RegularCommand {
 
 	private final String container;
@@ -19,7 +19,7 @@ public final class CreateConclusion extends RegularCommand {
 
 	@Override
 	public void execute(Unit context) {
-		context.addInto(container, new Conclusion(identifier, label));
+		context.get(container).setConclusion(new Conclusion(identifier, label));
 	}
 
 	@Override

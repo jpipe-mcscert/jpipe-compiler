@@ -79,11 +79,10 @@ class CreationCommandsTest {
 	class CreateConclusionTest {
 
 		@Test
-		void addsConclusionToContainer() throws Exception {
+		void setsConclusionOnModel() throws Exception {
 			Unit unit = unitWithJustification("j1");
 			new CreateConclusion("j1", "c1", "my conclusion").execute(unit);
-			assertThat(unit.get("j1").getElements()).hasSize(1).first().isInstanceOf(Conclusion.class)
-					.extracting(e -> ((Conclusion) e).id()).isEqualTo("c1");
+			assertThat(unit.get("j1").conclusion()).isPresent().get().extracting(Conclusion::id).isEqualTo("c1");
 		}
 
 		@Test

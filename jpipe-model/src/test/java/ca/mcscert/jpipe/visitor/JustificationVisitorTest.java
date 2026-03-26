@@ -99,7 +99,7 @@ class JustificationVisitorTest {
 		void setUp() {
 			unit = new Unit("test.jd");
 			Justification j = new Justification("my-justification");
-			j.addElement(new Conclusion("c1", "a conclusion"));
+			j.setConclusion(new Conclusion("c1", "a conclusion"));
 			j.addElement(new Strategy("s1", "a strategy"));
 			j.addElement(new Evidence("e1", "an evidence"));
 			unit.add(j);
@@ -122,7 +122,7 @@ class JustificationVisitorTest {
 		void setUp() {
 			unit = new Unit("test.jd");
 			Template t = new Template("my-template");
-			t.addElement(new Conclusion("c1", "a conclusion"));
+			t.setConclusion(new Conclusion("c1", "a conclusion"));
 			t.addElement(new AbstractSupport("as1", "an abstract support"));
 			unit.add(t);
 		}
@@ -144,7 +144,7 @@ class JustificationVisitorTest {
 		void setUp() {
 			unit = new Unit("test.jd");
 			Justification j1 = new Justification("j1");
-			j1.addElement(new Conclusion("c1", "conclusion one"));
+			j1.setConclusion(new Conclusion("c1", "conclusion one"));
 			Justification j2 = new Justification("j2");
 			j2.addElement(new SubConclusion("sc1", "sub-conclusion one"));
 			unit.add(j1);

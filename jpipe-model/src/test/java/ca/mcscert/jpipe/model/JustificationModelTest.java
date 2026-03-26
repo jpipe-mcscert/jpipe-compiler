@@ -30,9 +30,9 @@ class JustificationModelTest {
 		@BeforeEach
 		void setUp() {
 			model = new Justification("j1");
-			model.addElement(new Conclusion("c1", "first conclusion"));
+			model.setConclusion(new Conclusion("c1", "first conclusion"));
 			model.addElement(new Strategy("s1", "a strategy"));
-			model.addElement(new Conclusion("c2", "second conclusion"));
+			model.addElement(new SubConclusion("sc1", "a sub-conclusion"));
 		}
 
 		@Test
@@ -48,8 +48,13 @@ class JustificationModelTest {
 		}
 
 		@Test
-		void findByIdReturnsElementWhenPresent() {
+		void findByIdReturnsConclusionFromField() {
 			assertThat(model.findById("c1")).isPresent().get().isInstanceOf(Conclusion.class);
+		}
+
+		@Test
+		void findByIdReturnsElementFromList() {
+			assertThat(model.findById("s1")).isPresent().get().isInstanceOf(Strategy.class);
 		}
 
 		@Test
@@ -59,8 +64,8 @@ class JustificationModelTest {
 
 		@Test
 		void elementsOfTypeFiltersCorrectly() {
-			assertThat(model.elementsOfType(Conclusion.class)).hasSize(2).extracting(Conclusion::id)
-					.containsExactly("c1", "c2");
+			assertThat(model.elementsOfType(SubConclusion.class)).hasSize(1).extracting(SubConclusion::id)
+					.containsExactly("sc1");
 		}
 
 		@Test
@@ -81,15 +86,15 @@ class JustificationModelTest {
 		@BeforeEach
 		void setUp() {
 			j = new Justification("j1");
-			j.addElement(new Conclusion("c1", "a conclusion"));
+			j.setConclusion(new Conclusion("c1", "a conclusion"));
 			j.addElement(new SubConclusion("sc1", "a sub-conclusion"));
 			j.addElement(new Strategy("s1", "a strategy"));
 			j.addElement(new Evidence("e1", "an evidence"));
 		}
 
 		@Test
-		void conclusionsReturnsOnlyConclusions() {
-			assertThat(j.conclusions()).extracting(Conclusion::id).containsExactly("c1");
+		void conclusionReturnsTheConclusion() {
+			assertThat(j.conclusion()).isPresent().get().extracting(Conclusion::id).isEqualTo("c1");
 		}
 
 		@Test
@@ -120,7 +125,7 @@ class JustificationModelTest {
 		@BeforeEach
 		void setUp() {
 			t = new Template("t1");
-			t.addElement(new Conclusion("c1", "a conclusion"));
+			t.setConclusion(new Conclusion("c1", "a conclusion"));
 			t.addElement(new SubConclusion("sc1", "a sub-conclusion"));
 			t.addElement(new Strategy("s1", "a strategy"));
 			t.addElement(new Evidence("e1", "an evidence"));
@@ -128,8 +133,8 @@ class JustificationModelTest {
 		}
 
 		@Test
-		void conclusionsReturnsOnlyConclusions() {
-			assertThat(t.conclusions()).extracting(Conclusion::id).containsExactly("c1");
+		void conclusionReturnsTheConclusion() {
+			assertThat(t.conclusion()).isPresent().get().extracting(Conclusion::id).isEqualTo("c1");
 		}
 
 		@Test
@@ -175,7 +180,7 @@ class JustificationModelTest {
 			conclusion.addSupport(strategy);
 			strategy.addSupport(evidence);
 			Justification j = new Justification("j1");
-			j.addElement(conclusion);
+			j.setConclusion(conclusion);
 			j.addElement(strategy);
 			j.addElement(evidence);
 			return j;
@@ -189,7 +194,7 @@ class JustificationModelTest {
 		@Test
 		void lockThrowsWhenConclusionHasNoSupport() {
 			Justification j = new Justification("j1");
-			j.addElement(conclusion);
+			j.setConclusion(conclusion);
 			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
 					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
 							.containsExactly("c1"));
@@ -199,7 +204,7 @@ class JustificationModelTest {
 		void lockThrowsWhenStrategyHasNoSupport() {
 			conclusion.addSupport(strategy);
 			Justification j = new Justification("j1");
-			j.addElement(conclusion);
+			j.setConclusion(conclusion);
 			j.addElement(strategy);
 			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
 					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
@@ -212,7 +217,7 @@ class JustificationModelTest {
 			strategy.addSupport(sc);
 			conclusion.addSupport(strategy);
 			Justification j = new Justification("j1");
-			j.addElement(conclusion);
+			j.setConclusion(conclusion);
 			j.addElement(strategy);
 			j.addElement(sc);
 			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
@@ -223,7 +228,7 @@ class JustificationModelTest {
 		@Test
 		void lockExceptionIncludesAllIncompleteIds() {
 			Justification j = new Justification("j1");
-			j.addElement(conclusion);
+			j.setConclusion(conclusion);
 			j.addElement(strategy);
 			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
 					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
@@ -248,7 +253,7 @@ class JustificationModelTest {
 		@Test
 		void lockExceptionReportsJustificationName() {
 			Justification j = new Justification("myJustification");
-			j.addElement(conclusion);
+			j.setConclusion(conclusion);
 			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
 					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getJustificationName())
 							.isEqualTo("myJustification"));
