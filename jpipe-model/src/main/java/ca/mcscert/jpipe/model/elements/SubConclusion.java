@@ -1,15 +1,13 @@
 package ca.mcscert.jpipe.model.elements;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 
 /** An intermediate conclusion within a justification. */
 public final class SubConclusion implements CommonElement, SupportLeaf, Supportable<Strategy> {
 
 	private final String id;
 	private final String label;
-	private final List<Strategy> supporters = new ArrayList<>();
+	private Strategy supporter;
 
 	public SubConclusion(String id, String label) {
 		this.id = id;
@@ -28,12 +26,15 @@ public final class SubConclusion implements CommonElement, SupportLeaf, Supporta
 
 	@Override
 	public void addSupport(Strategy supporter) {
-		supporters.add(supporter);
+		if (this.supporter != null) {
+			throw new IllegalStateException("SubConclusion already has a supporting strategy");
+		}
+		this.supporter = supporter;
 	}
 
 	@Override
-	public List<Strategy> getSupporters() {
-		return Collections.unmodifiableList(supporters);
+	public Optional<Strategy> getSupport() {
+		return Optional.ofNullable(supporter);
 	}
 
 	@Override

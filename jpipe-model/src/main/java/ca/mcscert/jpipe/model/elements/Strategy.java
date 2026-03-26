@@ -1,15 +1,13 @@
 package ca.mcscert.jpipe.model.elements;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 
 /** A reasoning strategy connecting evidence to a conclusion. */
 public final class Strategy implements CommonElement, Supportable<SupportLeaf> {
 
 	private final String id;
 	private final String label;
-	private final List<SupportLeaf> supporters = new ArrayList<>();
+	private SupportLeaf supporter;
 
 	public Strategy(String id, String label) {
 		this.id = id;
@@ -28,12 +26,15 @@ public final class Strategy implements CommonElement, Supportable<SupportLeaf> {
 
 	@Override
 	public void addSupport(SupportLeaf supporter) {
-		supporters.add(supporter);
+		if (this.supporter != null) {
+			throw new IllegalStateException("Strategy already has a supporting element");
+		}
+		this.supporter = supporter;
 	}
 
 	@Override
-	public List<SupportLeaf> getSupporters() {
-		return Collections.unmodifiableList(supporters);
+	public Optional<SupportLeaf> getSupport() {
+		return Optional.ofNullable(supporter);
 	}
 
 	@Override

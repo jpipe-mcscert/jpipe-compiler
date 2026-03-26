@@ -1,9 +1,12 @@
 package ca.mcscert.jpipe.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.exceptions.IncompleteJustificationException;
+import ca.mcscert.jpipe.model.exceptions.LockedJustificationException;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
@@ -46,8 +49,7 @@ class JustificationModelTest {
 
 		@Test
 		void findByIdReturnsElementWhenPresent() {
-			assertThat(model.findById("c1")).isPresent()
-					.get().isInstanceOf(Conclusion.class);
+			assertThat(model.findById("c1")).isPresent().get().isInstanceOf(Conclusion.class);
 		}
 
 		@Test
@@ -57,9 +59,7 @@ class JustificationModelTest {
 
 		@Test
 		void elementsOfTypeFiltersCorrectly() {
-			assertThat(model.elementsOfType(Conclusion.class))
-					.hasSize(2)
-					.extracting(Conclusion::id)
+			assertThat(model.elementsOfType(Conclusion.class)).hasSize(2).extracting(Conclusion::id)
 					.containsExactly("c1", "c2");
 		}
 
@@ -154,6 +154,108 @@ class JustificationModelTest {
 	}
 
 	// -------------------------------------------------------------------------
+	// Justification#lock — completeness validation
+	// -------------------------------------------------------------------------
+
+	@Nested
+	class JustificationLock {
+
+		private Conclusion conclusion;
+		private Strategy strategy;
+		private Evidence evidence;
+
+		@BeforeEach
+		void setUp() {
+			conclusion = new Conclusion("c1", "a conclusion");
+			strategy = new Strategy("s1", "a strategy");
+			evidence = new Evidence("e1", "an evidence");
+		}
+
+		private Justification complete() {
+			conclusion.addSupport(strategy);
+			strategy.addSupport(evidence);
+			Justification j = new Justification("j1");
+			j.addElement(conclusion);
+			j.addElement(strategy);
+			j.addElement(evidence);
+			return j;
+		}
+
+		@Test
+		void lockSucceedsWhenAllElementsAreSupported() {
+			assertThat(complete()).satisfies(j -> assertThatCode(j::lock).doesNotThrowAnyException());
+		}
+
+		@Test
+		void lockThrowsWhenConclusionHasNoSupport() {
+			Justification j = new Justification("j1");
+			j.addElement(conclusion);
+			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
+					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
+							.containsExactly("c1"));
+		}
+
+		@Test
+		void lockThrowsWhenStrategyHasNoSupport() {
+			conclusion.addSupport(strategy);
+			Justification j = new Justification("j1");
+			j.addElement(conclusion);
+			j.addElement(strategy);
+			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
+					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
+							.containsExactly("s1"));
+		}
+
+		@Test
+		void lockThrowsWhenSubConclusionHasNoSupport() {
+			SubConclusion sc = new SubConclusion("sc1", "a sub-conclusion");
+			strategy.addSupport(sc);
+			conclusion.addSupport(strategy);
+			Justification j = new Justification("j1");
+			j.addElement(conclusion);
+			j.addElement(strategy);
+			j.addElement(sc);
+			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
+					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
+							.containsExactly("sc1"));
+		}
+
+		@Test
+		void lockExceptionIncludesAllIncompleteIds() {
+			Justification j = new Justification("j1");
+			j.addElement(conclusion);
+			j.addElement(strategy);
+			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
+					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
+							.containsExactlyInAnyOrder("c1", "s1"));
+		}
+
+		@Test
+		void lockSetsLockedFlag() {
+			Justification j = complete();
+			j.lock();
+			assertThat(j.isLocked()).isTrue();
+		}
+
+		@Test
+		void addElementAfterLockThrows() {
+			Justification j = complete();
+			j.lock();
+			assertThatThrownBy(() -> j.addElement(new Evidence("e2", "extra")))
+					.isInstanceOf(LockedJustificationException.class);
+		}
+
+		@Test
+		void lockExceptionReportsJustificationName() {
+			Justification j = new Justification("myJustification");
+			j.addElement(conclusion);
+			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
+					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getJustificationName())
+							.isEqualTo("myJustification"));
+		}
+	}
+
+	// -------------------------------------------------------------------------
 	// Unit query methods
 	// -------------------------------------------------------------------------
 
@@ -171,14 +273,12 @@ class JustificationModelTest {
 
 		@Test
 		void templatesReturnsOnlyTemplates() {
-			assertThat(unit.templates()).hasSize(1)
-					.extracting(Template::getName).containsExactly("t1");
+			assertThat(unit.templates()).hasSize(1).extracting(Template::getName).containsExactly("t1");
 		}
 
 		@Test
 		void getThrowsForUnknownName() {
-			assertThatThrownBy(() -> unit.get("nonexistent"))
-					.isInstanceOf(NoSuchElementException.class)
+			assertThatThrownBy(() -> unit.get("nonexistent")).isInstanceOf(NoSuchElementException.class)
 					.hasMessageContaining("nonexistent");
 		}
 	}
