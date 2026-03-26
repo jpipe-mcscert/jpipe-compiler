@@ -18,13 +18,12 @@ public final class CreateConclusion extends RegularCommand {
 	}
 
 	@Override
-	public void execute(Unit context) {
+	public void doExecute(Unit context) {
 		context.get(container).setConclusion(new Conclusion(identifier, label));
 	}
 
 	@Override
 	public String toString() {
-		return "CreateConclusion{container='" + container + "', identifier='" + identifier + "', label='" + label
-				+ "'}";
+		return "create_conclusion('" + container + "', '" + identifier + "', '" + label + "').";
 	}
 }

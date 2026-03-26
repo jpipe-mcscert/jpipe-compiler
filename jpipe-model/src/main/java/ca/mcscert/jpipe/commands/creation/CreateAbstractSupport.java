@@ -18,13 +18,12 @@ public final class CreateAbstractSupport extends RegularCommand {
 	}
 
 	@Override
-	public void execute(Unit context) {
+	public void doExecute(Unit context) {
 		context.addInto(container, new AbstractSupport(identifier, label));
 	}
 
 	@Override
 	public String toString() {
-		return "CreateAbstractSupport{container='" + container + "', identifier='" + identifier + "', label='" + label
-				+ "'}";
+		return "create_abstract_support('" + container + "', '" + identifier + "', '" + label + "').";
 	}
 }

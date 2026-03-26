@@ -14,7 +14,7 @@ import java.util.Optional;
  * Root of a compiled jPipe file. Contains all named justification models
  * defined in the file.
  */
-public class Unit {
+public final class Unit {
 
 	private final String source;
 	private final Map<String, JustificationModel<?>> models = new LinkedHashMap<>();

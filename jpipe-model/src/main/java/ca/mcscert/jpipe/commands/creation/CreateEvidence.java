@@ -18,12 +18,12 @@ public final class CreateEvidence extends RegularCommand {
 	}
 
 	@Override
-	public void execute(Unit context) {
+	public void doExecute(Unit context) {
 		context.addInto(container, new Evidence(identifier, label));
 	}
 
 	@Override
 	public String toString() {
-		return "CreateEvidence{container='" + container + "', identifier='" + identifier + "', label='" + label + "'}";
+		return "create_evidence('" + container + "', '" + identifier + "', '" + label + "').";
 	}
 }

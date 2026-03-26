@@ -6,11 +6,21 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * Base class for commands that execute directly on a {@link Unit}.
+ *
+ * <p>
+ * Subclasses implement {@link #doExecute(Unit)} rather than {@code execute}.
+ * This class logs each execution at DEBUG level under the concrete subclass
+ * name before delegating.
  */
 public abstract class RegularCommand implements Command {
 
-	protected static final Logger logger = LogManager.getLogger();
+	private final Logger logger = LogManager.getLogger(getClass());
 
 	@Override
-	public abstract void execute(Unit context) throws Exception;
+	public final void execute(Unit context) throws Exception {
+		logger.debug("Executing {}", this);
+		doExecute(context);
+	}
+
+	protected abstract void doExecute(Unit context) throws Exception;
 }

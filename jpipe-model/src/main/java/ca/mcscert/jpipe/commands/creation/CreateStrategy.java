@@ -18,12 +18,12 @@ public final class CreateStrategy extends RegularCommand {
 	}
 
 	@Override
-	public void execute(Unit context) {
+	public void doExecute(Unit context) {
 		context.addInto(container, new Strategy(identifier, label));
 	}
 
 	@Override
 	public String toString() {
-		return "CreateStrategy{container='" + container + "', identifier='" + identifier + "', label='" + label + "'}";
+		return "create_strategy('" + container + "', '" + identifier + "', '" + label + "').";
 	}
 }

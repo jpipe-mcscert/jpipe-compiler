@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -85,12 +85,12 @@ class ExecutionEngineTest {
 		void commandIsRetiredAfterItsConditionBecomesTrue() {
 			RegularCommand conditionedCmd = new RegularCommand() {
 				@Override
-				public Function<Unit, Boolean> condition() {
+				public Predicate<Unit> condition() {
 					return unit -> unit.findModel("j1").isPresent();
 				}
 
 				@Override
-				public void execute(Unit context) {
+				public void doExecute(Unit context) {
 					context.add(new ca.mcscert.jpipe.model.Justification("j2"));
 				}
 			};
@@ -112,22 +112,22 @@ class ExecutionEngineTest {
 		void engineTerminatesWhenAllCommandsAreStuck() {
 			RegularCommand stuck1 = new RegularCommand() {
 				@Override
-				public Function<Unit, Boolean> condition() {
+				public Predicate<Unit> condition() {
 					return unit -> false;
 				}
 
 				@Override
-				public void execute(Unit context) {
+				public void doExecute(Unit context) {
 				}
 			};
 			RegularCommand stuck2 = new RegularCommand() {
 				@Override
-				public Function<Unit, Boolean> condition() {
+				public Predicate<Unit> condition() {
 					return unit -> false;
 				}
 
 				@Override
-				public void execute(Unit context) {
+				public void doExecute(Unit context) {
 				}
 			};
 
@@ -147,7 +147,7 @@ class ExecutionEngineTest {
 		void engineContinuesAfterExceptionInExecute() {
 			RegularCommand failing = new RegularCommand() {
 				@Override
-				public void execute(Unit context) throws Exception {
+				public void doExecute(Unit context) throws Exception {
 					throw new RuntimeException("intentional failure");
 				}
 			};

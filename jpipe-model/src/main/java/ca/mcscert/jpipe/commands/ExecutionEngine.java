@@ -34,12 +34,11 @@ public final class ExecutionEngine {
 				return;
 			}
 			Command command = commands.removeFirst();
-			if (!command.condition().apply(unit)) {
+			if (!command.condition().test(unit)) {
 				logger.trace("Deferring command [{}]", command);
 				commands.add(command);
 				deferCount++;
 			} else {
-				logger.trace("Executing command [{}]", command);
 				try {
 					command.execute(unit);
 				} catch (Exception e) {

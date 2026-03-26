@@ -25,13 +25,13 @@ class CreationCommandsTest {
 
 		private final RegularCommand cmd = new RegularCommand() {
 			@Override
-			public void execute(Unit context) {
+			public void doExecute(Unit context) {
 			}
 		};
 
 		@Test
 		void defaultConditionIsAlwaysTrue() {
-			assertThat(cmd.condition().apply(new Unit("x"))).isTrue();
+			assertThat(cmd.condition().test(new Unit("x"))).isTrue();
 		}
 	}
 

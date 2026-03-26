@@ -14,12 +14,12 @@ public final class CreateTemplate extends RegularCommand {
 	}
 
 	@Override
-	public void execute(Unit context) {
+	public void doExecute(Unit context) {
 		context.add(new Template(identifier));
 	}
 
 	@Override
 	public String toString() {
-		return "CreateTemplate{identifier='" + identifier + "'}";
+		return "create_template('" + identifier + "').";
 	}
 }

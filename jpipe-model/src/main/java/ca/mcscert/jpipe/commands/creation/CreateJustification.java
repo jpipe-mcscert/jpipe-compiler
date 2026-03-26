@@ -14,12 +14,12 @@ public final class CreateJustification extends RegularCommand {
 	}
 
 	@Override
-	public void execute(Unit context) {
+	public void doExecute(Unit context) {
 		context.add(new Justification(identifier));
 	}
 
 	@Override
 	public String toString() {
-		return "CreateJustification{identifier='" + identifier + "'}";
+		return "create_justification('" + identifier + "').";
 	}
 }
