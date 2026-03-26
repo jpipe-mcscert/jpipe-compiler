@@ -7,8 +7,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Executes a sequence of commands against a {@link Unit}, handling macro
- * expansion and deferred execution for commands whose condition is not yet met.
+ * Executes a sequence of commands against a {@link Unit}, handling deferred
+ * execution for commands whose condition is not yet met.
  */
 public final class ExecutionEngine {
 
@@ -38,16 +38,6 @@ public final class ExecutionEngine {
 				logger.trace("Deferring command [{}]", command);
 				commands.add(command);
 				deferCount++;
-			} else if (command.isExpandable()) {
-				logger.trace("Expanding macro command [{}]", command);
-				try {
-					List<Command> expanded = command.expand(unit);
-					expanded.addAll(commands);
-					commands = expanded;
-				} catch (Exception e) {
-					logger.error("Error expanding command [{}]: {}", command, e.getMessage());
-				}
-				deferCount = 0;
 			} else {
 				logger.trace("Executing command [{}]", command);
 				try {

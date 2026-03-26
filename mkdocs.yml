@@ -18,6 +18,8 @@ extra_css:
 
 nav:
   - Home: index.md
+  - Design:
+      - design/model.md
   - Architecture Decisions:
       - adr/0001-semver-versioning.md
       - adr/0002-multi-module-structure.md
@@ -32,4 +34,7 @@ markdown_extensions:
   - md_in_html
   - pymdownx.snippets:
       base_path: .
+  - plantuml_markdown:
+      format: svg
+      plantuml_cmd: plantuml
 

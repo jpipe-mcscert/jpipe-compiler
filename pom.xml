@@ -84,6 +84,7 @@
         <!-- Plugin versions -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
+        <junit-tree-reporter.version>1.4.0</junit-tree-reporter.version>
         <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
         <spotless-plugin.version>2.46.0</spotless-plugin.version>
         <checkstyle-plugin.version>3.5.0</checkstyle-plugin.version>
@@ -194,6 +195,22 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>me.fabriciorby</groupId>
+                            <artifactId>maven-surefire-junit5-tree-reporter</artifactId>
+                            <version>${junit-tree-reporter.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <consoleOutputReporter>
+                            <disable>true</disable>
+                        </consoleOutputReporter>
+                        <statelessTestsetInfoReporter
+                            implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter">
+                            <theme>UNICODE</theme>
+                        </statelessTestsetInfoReporter>
+                    </configuration>
                 </plugin>
 
                 <plugin>
