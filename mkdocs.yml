@@ -20,12 +20,17 @@ nav:
   - Home: index.md
   - Design:
       - design/model.md
+      - design/compiler.md
   - Architecture Decisions:
       - adr/0001-semver-versioning.md
       - adr/0002-multi-module-structure.md
       - adr/0003-fat-jar-with-shade.md
       - adr/0004-sonarcloud-quality-gate.md
       - adr/0005-command-pattern-for-model-construction.md
+      - adr/0006-logging-conventions.md
+      - adr/0007-dependency-freshness-policy.md
+      - adr/0008-visitor-pattern-for-model-traversal.md
+      - adr/0009-pipeline-abstraction-for-compilation.md
 
 plugins:
   - search

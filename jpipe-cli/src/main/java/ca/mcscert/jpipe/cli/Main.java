@@ -1,6 +1,6 @@
 package ca.mcscert.jpipe.cli;
 
-import ca.mcscert.jpipe.compiler.Compiler;
+import ca.mcscert.jpipe.compiler.StubCompiler;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
@@ -16,7 +16,7 @@ public class Main implements Callable<Integer> {
 
 	@Override
 	public Integer call() throws Exception {
-		new Compiler().compile(source.toPath());
+		new StubCompiler().compile(source.getPath(), "");
 		return 0;
 	}
 
