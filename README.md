@@ -1,7 +1,7 @@
 # jPipe - Justified Pipelines
 
 <div align="center">
-  <img alt="jPipe logo" src="./docs/logo.svg" height="100" style="vertical-align:middle">
+  <img alt="jPipe logo" src="./docs/logo.png" height="100" style="vertical-align:middle">
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img alt="McSCert logo" src="./docs/sponsors/mcscert.svg" height="100" style="vertical-align:middle">
 </div>
