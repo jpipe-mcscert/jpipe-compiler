@@ -37,14 +37,29 @@ public final class CompilationContext {
 		report(Diagnostic.warning(sourcePath, message));
 	}
 
+	/** Convenience: append a WARNING diagnostic with source location. */
+	public void warn(int line, int column, String message) {
+		report(Diagnostic.warning(sourcePath, line, column, message));
+	}
+
 	/** Convenience: append a non-fatal ERROR diagnostic. */
 	public void error(String message) {
 		report(Diagnostic.error(sourcePath, message));
 	}
 
+	/** Convenience: append a non-fatal ERROR diagnostic with source location. */
+	public void error(int line, int column, String message) {
+		report(Diagnostic.error(sourcePath, line, column, message));
+	}
+
 	/** Convenience: append a FATAL diagnostic. */
 	public void fatal(String message) {
 		report(Diagnostic.fatal(sourcePath, message));
+	}
+
+	/** Convenience: append a FATAL diagnostic with source location. */
+	public void fatal(int line, int column, String message) {
+		report(Diagnostic.fatal(sourcePath, line, column, message));
 	}
 
 	/** True if any ERROR or FATAL diagnostic has been reported. */

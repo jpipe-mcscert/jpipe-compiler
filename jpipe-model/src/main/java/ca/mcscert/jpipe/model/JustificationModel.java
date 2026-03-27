@@ -154,10 +154,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 	}
 
 	public final <R> R accept(JustificationVisitor<R> visitor) {
-		R result = visitSelf(visitor);
-		conclusion().ifPresent(c -> c.accept(visitor));
-		getElements().forEach(e -> e.accept(visitor));
-		return result;
+		return visitSelf(visitor);
 	}
 
 	protected abstract <R> R visitSelf(JustificationVisitor<R> visitor);

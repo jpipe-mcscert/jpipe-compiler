@@ -3,29 +3,59 @@ package ca.mcscert.jpipe.compiler.model;
 /**
  * A single diagnostic message produced during compilation.
  *
+ * <p>
+ * {@code line} and {@code column} carry the source location when known; both
+ * are {@code 0} when no location is available (ANTLR lines are 1-based, so
+ * {@code 0} is a safe sentinel).
+ *
  * @param level
  *            severity of the diagnostic.
  * @param source
  *            path to the file that triggered it.
+ * @param line
+ *            1-based source line, or {@code 0} if unknown.
+ * @param column
+ *            0-based column offset, or {@code 0} if unknown.
  * @param message
  *            human-readable description.
  */
-public record Diagnostic(Level level, String source, String message) {
+public record Diagnostic(Level level, String source, int line, int column, String message) {
 
 	public enum Level {
 		WARNING, ERROR, FATAL
 	}
 
+	/** True if this diagnostic carries a known source location. */
+	public boolean hasLocation() {
+		return line > 0;
+	}
+
+	// ── without location ────────────────────────────────────────────────────
+
 	public static Diagnostic warning(String source, String message) {
-		return new Diagnostic(Level.WARNING, source, message);
+		return new Diagnostic(Level.WARNING, source, 0, 0, message);
 	}
 
 	public static Diagnostic error(String source, String message) {
-		return new Diagnostic(Level.ERROR, source, message);
+		return new Diagnostic(Level.ERROR, source, 0, 0, message);
 	}
 
 	public static Diagnostic fatal(String source, String message) {
-		return new Diagnostic(Level.FATAL, source, message);
+		return new Diagnostic(Level.FATAL, source, 0, 0, message);
+	}
+
+	// ── with location ────────────────────────────────────────────────────────
+
+	public static Diagnostic warning(String source, int line, int column, String message) {
+		return new Diagnostic(Level.WARNING, source, line, column, message);
+	}
+
+	public static Diagnostic error(String source, int line, int column, String message) {
+		return new Diagnostic(Level.ERROR, source, line, column, message);
+	}
+
+	public static Diagnostic fatal(String source, int line, int column, String message) {
+		return new Diagnostic(Level.FATAL, source, line, column, message);
 	}
 
 	/** True for ERROR and FATAL. */

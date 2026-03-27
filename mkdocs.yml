@@ -31,6 +31,7 @@ nav:
       - adr/0007-dependency-freshness-policy.md
       - adr/0008-visitor-pattern-for-model-traversal.md
       - adr/0009-pipeline-abstraction-for-compilation.md
+      - adr/0010-model-visitors-in-jpipe-model.md
 
 plugins:
   - search

@@ -20,7 +20,7 @@ import org.apache.logging.log4j.Logger;
  */
 public abstract class Transformation<I, O> {
 
-	protected static final Logger logger = LogManager.getLogger();
+	protected static final Logger logger = LogManager.getLogger(Transformation.class);
 
 	/**
 	 * Functional interface for the {@link #of} factory — allows steps to be

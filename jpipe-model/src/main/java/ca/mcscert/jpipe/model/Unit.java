@@ -57,8 +57,6 @@ public final class Unit {
 	}
 
 	public <R> R accept(JustificationVisitor<R> visitor) {
-		R result = visitor.visit(this);
-		models.values().forEach(m -> m.accept(visitor));
-		return result;
+		return visitor.visit(this);
 	}
 }

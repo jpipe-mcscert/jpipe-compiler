@@ -26,18 +26,23 @@ class JustificationVisitorTest {
 		@Override
 		public Void visit(Unit u) {
 			visited.add("unit:" + u.getSource());
+			u.getModels().forEach(m -> m.accept(this));
 			return null;
 		}
 
 		@Override
 		public Void visit(Justification j) {
 			visited.add("justification:" + j.getName());
+			j.conclusion().ifPresent(c -> c.accept(this));
+			j.getElements().forEach(e -> e.accept(this));
 			return null;
 		}
 
 		@Override
 		public Void visit(Template t) {
 			visited.add("template:" + t.getName());
+			t.conclusion().ifPresent(c -> c.accept(this));
+			t.getElements().forEach(e -> e.accept(this));
 			return null;
 		}
 
