@@ -1,7 +1,7 @@
 # jPipe - Justified Pipelines
 
 <div align="center">
-  <img alt="jPipe logo" src="./docs/logo.png" height="100" style="vertical-align:middle">
+  <img alt="jPipe logo" src="./docs/logo.svg" height="100" style="vertical-align:middle">
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img alt="McSCert logo" src="./docs/sponsors/mcscert.svg" height="100" style="vertical-align:middle">
 </div>
@@ -62,6 +62,14 @@ Formatting is enforced by Spotless (Google Java Format) and Checkstyle. To auto-
 
 ```bash
 mvn spotless:apply
+```
+
+#### Build output / shade warnings
+
+The fat JAR build (`jpipe-cli`) merges many dependencies and would normally emit overlap warnings from the Maven Shade plugin. These are suppressed by default via `.mvn/jvm.config`. To re-enable them for a single run:
+
+```bash
+mvn package -Dorg.slf4j.simpleLogger.log.org.apache.maven.plugins.shade.DefaultShader=warn
 ```
 
 ## How to cite?

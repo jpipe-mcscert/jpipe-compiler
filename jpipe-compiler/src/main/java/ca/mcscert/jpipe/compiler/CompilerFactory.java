@@ -5,6 +5,7 @@ import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.compiler.steps.checkers.HaltAndCatchFire;
 import ca.mcscert.jpipe.compiler.steps.io.sinks.StringSink;
 import ca.mcscert.jpipe.compiler.steps.io.sources.FileSource;
+import ca.mcscert.jpipe.compiler.steps.transformations.ActionListInterpretation;
 import ca.mcscert.jpipe.compiler.steps.transformations.ActionListProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJpipe;
@@ -60,17 +61,13 @@ public final class CompilerFactory {
 	}
 
 	/**
-	 * Full unit builder: extends the parsing chain with model construction and
-	 * validation.
+	 * Full unit builder: extends the parsing chain with model construction.
 	 *
 	 * <p>
-	 * TODO: not yet implemented — requires porting
-	 * {@code ActionListInterpretation}, {@code CompletenessChecker}, and
-	 * {@code ConsistencyChecker}.
+	 * TODO: port {@code CompletenessChecker} and {@code ConsistencyChecker}.
 	 */
 	public static Transformation<List<Command>, Unit> unitBuilder() {
-		throw new UnsupportedOperationException(
-				"Model building steps (ActionListInterpretation, checkers) are not yet ported");
+		return new ActionListInterpretation();
 	}
 
 	// -------------------------------------------------------------------------

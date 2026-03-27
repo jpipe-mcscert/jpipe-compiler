@@ -28,9 +28,14 @@ public class Main implements Callable<Integer> {
 			"--format"}, description = "Output format: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).", defaultValue = "JPIPE")
 	private Format format;
 
+	@Option(names = {"--headless"}, description = "Suppress logo output.")
+	private boolean headless;
+
 	@Override
 	public Integer call() throws Exception {
-		Logo.sout();
+		if (!headless) {
+			Logo.sout();
+		}
 		CompilationConfig config = new CompilationConfig(input, output, mode, format);
 		CompilerFactory.build(config).compile(input, output);
 		return 0;

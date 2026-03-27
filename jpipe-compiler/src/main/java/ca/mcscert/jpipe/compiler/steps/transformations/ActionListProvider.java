@@ -138,7 +138,7 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 
 		@Override
 		public void enterRelation(JPipeParser.RelationContext ctx) {
-			result.add(new AddSupport(buildContext.justificationId, ctx.from.getText(), ctx.to.getText()));
+			result.add(new AddSupport(buildContext.justificationId, ctx.to.getText(), ctx.from.getText()));
 		}
 
 		/*
@@ -163,10 +163,9 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 		private void closeJustificationModel(Token parent, Token id) {
 			if (parent != null) {
 				result.add(new ImplementsTemplate(id.getText(), parent.getText()));
-			} else {
-				throw new UnsupportedOperationException(
-						"publish (model finalisation without a template parent) is not yet supported in the refactored pipeline");
 			}
+			// standalone models (no implements clause) have null parent by default;
+			// no command needed here — locking belongs to a downstream checker step
 		}
 	}
 }

@@ -32,6 +32,7 @@ nav:
       - adr/0008-visitor-pattern-for-model-traversal.md
       - adr/0009-pipeline-abstraction-for-compilation.md
       - adr/0010-model-visitors-in-jpipe-model.md
+      - adr/0011-cucumber-for-compiler-end-to-end-tests.md
 
 plugins:
   - search

@@ -1,0 +1,7 @@
+justification simple {
+    conclusion c is "The system is correct"
+    strategy s is "Testing"
+    evidence e1 is "Test results"
+    e1 supports s
+    s supports c
+}
