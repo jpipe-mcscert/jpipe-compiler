@@ -54,6 +54,23 @@ All compiler end-to-end tests are written as Cucumber scenarios.
 - Cucumber was already a declared dependency; no new third-party library is
   introduced.
 
+## Feature file formatting
+
+`And` and `But` steps are indented two extra spaces relative to the enclosing
+`Given`, `When`, or `Then` step, visually grouping continuations under their
+parent:
+
+```gherkin
+    When examining justification "simple"
+    Then it has a conclusion with id "c" and label "The system is correct"
+      And it has a strategy with id "s" and label "Testing"
+      And the strategy "s" supports the conclusion "c"
+```
+
+Spotless is configured for Java only and does not touch `.feature` files, so
+this indentation is preserved as written. New feature files must follow this
+convention manually.
+
 ## Consequences
 
 - Every new end-to-end compiler behaviour must be captured as a Cucumber

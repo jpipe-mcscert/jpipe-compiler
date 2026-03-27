@@ -4,6 +4,7 @@ import ca.mcscert.jpipe.compiler.CompilationConfig;
 import ca.mcscert.jpipe.compiler.CompilerFactory;
 import ca.mcscert.jpipe.compiler.Format;
 import ca.mcscert.jpipe.compiler.Mode;
+import ca.mcscert.jpipe.compiler.model.CompilationException;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -11,6 +12,10 @@ import picocli.CommandLine.Option;
 
 @Command(name = "jpipe", description = "Compile and process jPipe justification files.", mixinStandardHelpOptions = true, version = "jPipe 2.0.0")
 public class Main implements Callable<Integer> {
+
+	static final int EXIT_OK = 0;
+	static final int EXIT_JPIPE_ERROR = 1;
+	static final int EXIT_SYSTEM_ERROR = 42;
 
 	@Option(names = {"-i",
 			"--input"}, description = "Input .jd source file (default: stdin).", defaultValue = CompilationConfig.STDIN)
@@ -32,13 +37,21 @@ public class Main implements Callable<Integer> {
 	private boolean headless;
 
 	@Override
-	public Integer call() throws Exception {
+	public Integer call() {
 		if (!headless) {
 			Logo.sout();
 		}
-		CompilationConfig config = new CompilationConfig(input, output, mode, format);
-		CompilerFactory.build(config).compile(input, output);
-		return 0;
+		try {
+			CompilationConfig config = new CompilationConfig(input, output, mode, format);
+			CompilerFactory.build(config).compile(input, output);
+			return EXIT_OK;
+		} catch (CompilationException | UnsupportedOperationException e) {
+			System.err.println("error: " + e.getMessage());
+			return EXIT_JPIPE_ERROR;
+		} catch (Exception e) {
+			System.err.println("unexpected error: " + e.getMessage());
+			return EXIT_SYSTEM_ERROR;
+		}
 	}
 
 	public static void main(String[] args) {
