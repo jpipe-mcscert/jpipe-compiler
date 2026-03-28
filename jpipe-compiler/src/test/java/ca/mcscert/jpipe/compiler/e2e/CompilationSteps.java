@@ -13,10 +13,10 @@ import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
+import ca.mcscert.jpipe.visitor.DotExporter;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-
 import java.io.FileInputStream;
 import java.io.InputStream;
 
@@ -28,6 +28,7 @@ public class CompilationSteps {
 	private Unit unit;
 	private Exception compilationError;
 	private JustificationModel<?> currentModel;
+	private String dotOutput;
 
 	@Given("the source file {string}")
 	public void theSourceFile(String filename) {
@@ -134,5 +135,15 @@ public class CompilationSteps {
 		assertThat(strategy.getSupport()).isPresent().hasValueSatisfying(
 				sl -> assertThat(((JustificationElement) sl).id())
 						.isEqualTo(evidenceId));
+	}
+
+	@When("I export the current model to DOT format")
+	public void iExportTheCurrentModelToDotFormat() {
+		dotOutput = new DotExporter().export(currentModel);
+	}
+
+	@Then("the DOT output contains a node with id {string}")
+	public void theDotOutputContainsANodeWithId(String id) {
+		assertThat(dotOutput).contains("id=\"" + id + "\"");
 	}
 }

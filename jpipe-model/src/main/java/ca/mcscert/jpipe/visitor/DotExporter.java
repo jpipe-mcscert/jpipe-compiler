@@ -31,6 +31,7 @@ public class DotExporter implements JustificationVisitor<Void> {
 	private static final String INDENT = "  ";
 
 	private final StringBuilder builder = new StringBuilder();
+	private String currentModelName;
 
 	/**
 	 * Serialise {@code model} to DOT text.
@@ -109,6 +110,7 @@ public class DotExporter implements JustificationVisitor<Void> {
 	// ---------------------------------------------------------------------------
 
 	private void exportModelBody(JustificationModel<?> model) {
+		currentModelName = model.getName();
 		builder.append("digraph ").append(quoted(model.getName())).append(" {")
 				.append(System.lineSeparator());
 		builder.append(INDENT).append("rankdir=BT;")
@@ -122,25 +124,33 @@ public class DotExporter implements JustificationVisitor<Void> {
 	}
 
 	private void exportEdges(JustificationModel<?> model) {
-		model.conclusion().ifPresent(
-				c -> c.getSupport().ifPresent(s -> appendEdge(s.id(), c.id())));
+		model.conclusion().ifPresent(c -> c.getSupport()
+				.ifPresent(s -> appendEdge(qualify(s.id()), qualify(c.id()))));
 		model.subConclusions().forEach(sc -> sc.getSupport()
-				.ifPresent(s -> appendEdge(s.id(), sc.id())));
-		model.strategies().forEach(s -> s.getSupport().ifPresent(
-				leaf -> appendEdge(((JustificationElement) leaf).id(),
-						s.id())));
+				.ifPresent(s -> appendEdge(qualify(s.id()), qualify(sc.id()))));
+		model.strategies()
+				.forEach(s -> s.getSupport()
+						.ifPresent(leaf -> appendEdge(
+								qualify(((JustificationElement) leaf).id()),
+								qualify(s.id()))));
 	}
 
 	private void appendNode(JustificationElement element, String attrs) {
-		builder.append(INDENT).append(quoted(element.id())).append(" [label=")
-				.append(quoted(element.label())).append(", ").append(attrs)
-				.append("];").append(System.lineSeparator());
+		String qid = qualify(element.id());
+		builder.append(INDENT).append(quoted(qid)).append(" [label=")
+				.append(quoted(element.label())).append(", id=")
+				.append(quoted(qid)).append(", ").append(attrs).append("];")
+				.append(System.lineSeparator());
 	}
 
 	private void appendEdge(String fromId, String toId) {
 		builder.append(INDENT).append(quoted(fromId)).append(" -> ")
 				.append(quoted(toId)).append(";")
 				.append(System.lineSeparator());
+	}
+
+	private String qualify(String elementId) {
+		return currentModelName + ":" + elementId;
 	}
 
 	private static String quoted(String value) {

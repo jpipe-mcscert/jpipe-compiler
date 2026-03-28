@@ -11,6 +11,7 @@ import ca.mcscert.jpipe.compiler.steps.transformations.ActionListInterpretation;
 import ca.mcscert.jpipe.compiler.steps.transformations.ActionListProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToDot;
+import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJson;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJpipe;
 import ca.mcscert.jpipe.compiler.steps.transformations.Lexer;
 import ca.mcscert.jpipe.compiler.steps.transformations.Parser;
@@ -109,6 +110,13 @@ public final class CompilerFactory {
 			case JPEG -> parsingChain().andThen(dotChain(config))
 					.andThen(new RenderWithDot("jpeg"))
 					.andThen(new ByteSink(stdout));
+			case SVG -> parsingChain().andThen(dotChain(config))
+					.andThen(new RenderWithDot("svg"))
+					.andThen(new ByteSink(stdout));
+			case JSON -> parsingChain().andThen(unitBuilder())
+					.andThen(new SelectModel(config.diagramName()))
+					.andThen(new ExportToJson())
+					.andThen(new StringSink(stdout));
 			default -> throw new UnsupportedOperationException(
 					"Format not yet supported: " + config.format());
 		};
