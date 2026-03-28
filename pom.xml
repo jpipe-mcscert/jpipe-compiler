@@ -234,6 +234,7 @@
                         <java>
                             <eclipse>
                                 <version>4.33</version>
+                                <file>${maven.multiModuleProjectDirectory}/config/eclipse-formatter.xml</file>
                             </eclipse>
                             <removeUnusedImports/>
                             <trimTrailingWhitespace/>
