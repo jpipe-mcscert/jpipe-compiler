@@ -15,7 +15,8 @@ class TransformationTest {
 		ctx = new CompilationContext("file.jd");
 	}
 
-	// ── happy path ────────────────────────────────────────────────────────────
+	// ── happy path
+	// ────────────────────────────────────────────────────────────
 
 	@Test
 	void fire_returnsResultOfRun() {
@@ -23,23 +24,29 @@ class TransformationTest {
 		assertThat(t.fire("anything", ctx)).isEqualTo(42);
 	}
 
-	// ── null guard ────────────────────────────────────────────────────────────
+	// ── null guard
+	// ────────────────────────────────────────────────────────────
 
 	@Test
 	void fire_throwsWhenRunReturnsNull() {
-		Transformation<String, String> t = Transformation.of((input, c) -> null);
-		assertThatThrownBy(() -> t.fire("input", ctx)).isInstanceOf(NullPointerException.class);
+		Transformation<String, String> t = Transformation
+				.of((input, c) -> null);
+		assertThatThrownBy(() -> t.fire("input", ctx))
+				.isInstanceOf(NullPointerException.class);
 	}
 
-	// ── exception handling ────────────────────────────────────────────────────
+	// ── exception handling
+	// ────────────────────────────────────────────────────
 
 	@Test
 	void fire_wrapsCheckedExceptionInCompilationException() {
 		Transformation<String, String> t = Transformation.of((input, c) -> {
 			throw new Exception("checked");
 		});
-		assertThatThrownBy(() -> t.fire("input", ctx)).isInstanceOf(CompilationException.class)
-				.hasCauseInstanceOf(Exception.class).hasMessageContaining("checked");
+		assertThatThrownBy(() -> t.fire("input", ctx))
+				.isInstanceOf(CompilationException.class)
+				.hasCauseInstanceOf(Exception.class)
+				.hasMessageContaining("checked");
 	}
 
 	@Test
@@ -53,20 +60,24 @@ class TransformationTest {
 
 	@Test
 	void fire_propagatesCompilationExceptionUnwrapped() {
-		CompilationException original = new CompilationException("step", "reason");
+		CompilationException original = new CompilationException("step",
+				"reason");
 		Transformation<String, String> t = Transformation.of((input, c) -> {
 			throw original;
 		});
 		assertThatThrownBy(() -> t.fire("input", ctx)).isSameAs(original);
 	}
 
-	// ── fast-fail ─────────────────────────────────────────────────────────────
+	// ── fast-fail
+	// ─────────────────────────────────────────────────────────────
 
 	@Test
 	void fire_fastFailsWhenContextHasFatalErrors() {
 		ctx.fatal("previous step exploded");
-		Transformation<String, String> t = Transformation.of((input, c) -> "should not run");
-		assertThatThrownBy(() -> t.fire("input", ctx)).isInstanceOf(CompilationException.class)
+		Transformation<String, String> t = Transformation
+				.of((input, c) -> "should not run");
+		assertThatThrownBy(() -> t.fire("input", ctx))
+				.isInstanceOf(CompilationException.class)
 				.hasMessageContaining("fatal");
 	}
 
@@ -77,23 +88,28 @@ class TransformationTest {
 		assertThat(t.fire("input", ctx)).isEqualTo(7);
 	}
 
-	// ── composition ───────────────────────────────────────────────────────────
+	// ── composition
+	// ───────────────────────────────────────────────────────────
 
 	@Test
 	void andThen_composesResultsInOrder() {
-		Transformation<String, Integer> length = Transformation.of((input, c) -> input.length());
-		Transformation<Integer, String> label = Transformation.of((n, c) -> "len=" + n);
+		Transformation<String, Integer> length = Transformation
+				.of((input, c) -> input.length());
+		Transformation<Integer, String> label = Transformation
+				.of((n, c) -> "len=" + n);
 		assertThat(length.andThen(label).fire("hello", ctx)).isEqualTo("len=5");
 	}
 
 	@Test
 	void andThen_threadsSameContextThroughBothSteps() {
-		Transformation<String, String> reportError = Transformation.of((input, c) -> {
-			c.error("from first step");
-			return input;
-		});
+		Transformation<String, String> reportError = Transformation
+				.of((input, c) -> {
+					c.error("from first step");
+					return input;
+				});
 		Transformation<String, Integer> countErrors = Transformation
-				.of((input, c) -> (int) c.diagnostics().stream().filter(Diagnostic::isError).count());
+				.of((input, c) -> (int) c.diagnostics().stream()
+						.filter(Diagnostic::isError).count());
 
 		int errorCount = reportError.andThen(countErrors).fire("x", ctx);
 		assertThat(errorCount).isEqualTo(1);

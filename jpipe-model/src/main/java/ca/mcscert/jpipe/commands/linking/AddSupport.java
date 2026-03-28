@@ -35,7 +35,8 @@ public final class AddSupport extends RegularCommand {
 	private final String supportableId;
 	private final String supporterId;
 
-	public AddSupport(String container, String supportableId, String supporterId) {
+	public AddSupport(String container, String supportableId,
+			String supporterId) {
 		this.container = container;
 		this.supportableId = supportableId;
 		this.supporterId = supporterId;
@@ -44,28 +45,38 @@ public final class AddSupport extends RegularCommand {
 	@Override
 	public Predicate<Unit> condition() {
 		return unit -> unit.findModel(container)
-				.map(m -> m.findById(supportableId).isPresent() && m.findById(supporterId).isPresent()).orElse(false);
+				.map(m -> m.findById(supportableId).isPresent()
+						&& m.findById(supporterId).isPresent())
+				.orElse(false);
 	}
 
 	@Override
 	public void doExecute(Unit context) {
 		var model = context.get(container);
-		JustificationElement supportable = model.findById(supportableId).map(e -> (JustificationElement) e)
-				.orElseThrow(() -> new NoSuchElementException("No element with id: " + supportableId));
-		JustificationElement supporter = model.findById(supporterId).map(e -> (JustificationElement) e)
-				.orElseThrow(() -> new NoSuchElementException("No element with id: " + supporterId));
+		JustificationElement supportable = model.findById(supportableId)
+				.map(e -> (JustificationElement) e)
+				.orElseThrow(() -> new NoSuchElementException(
+						"No element with id: " + supportableId));
+		JustificationElement supporter = model.findById(supporterId)
+				.map(e -> (JustificationElement) e)
+				.orElseThrow(() -> new NoSuchElementException(
+						"No element with id: " + supporterId));
 
 		switch (supportable) {
-			case Conclusion c when supporter instanceof Strategy s -> c.addSupport(s);
-			case SubConclusion sc when supporter instanceof Strategy s -> sc.addSupport(s);
-			case Strategy st when supporter instanceof SupportLeaf sl -> st.addSupport(sl);
-			default ->
-				throw new IllegalArgumentException("'" + supporterId + "' cannot support '" + supportableId + "'");
+			case Conclusion c when supporter instanceof Strategy s ->
+				c.addSupport(s);
+			case SubConclusion sc when supporter instanceof Strategy s ->
+				sc.addSupport(s);
+			case Strategy st when supporter instanceof SupportLeaf sl ->
+				st.addSupport(sl);
+			default -> throw new IllegalArgumentException("'" + supporterId
+					+ "' cannot support '" + supportableId + "'");
 		}
 	}
 
 	@Override
 	public String toString() {
-		return "support('" + container + "', '" + supportableId + "', '" + supporterId + "').";
+		return "support('" + container + "', '" + supportableId + "', '"
+				+ supporterId + "').";
 	}
 }

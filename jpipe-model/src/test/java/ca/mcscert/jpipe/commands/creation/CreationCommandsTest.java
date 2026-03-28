@@ -46,7 +46,8 @@ class CreationCommandsTest {
 		void addsJustificationToUnit() throws Exception {
 			Unit unit = new Unit("src");
 			new CreateJustification("j1").execute(unit);
-			assertThat(unit.findModel("j1")).isPresent().get().isInstanceOf(Justification.class);
+			assertThat(unit.findModel("j1")).isPresent().get()
+					.isInstanceOf(Justification.class);
 		}
 
 		@Test
@@ -62,7 +63,8 @@ class CreationCommandsTest {
 		void addsTemplateToUnit() throws Exception {
 			Unit unit = new Unit("src");
 			new CreateTemplate("t1").execute(unit);
-			assertThat(unit.findModel("t1")).isPresent().get().isInstanceOf(Template.class);
+			assertThat(unit.findModel("t1")).isPresent().get()
+					.isInstanceOf(Template.class);
 		}
 
 		@Test
@@ -82,7 +84,8 @@ class CreationCommandsTest {
 		void setsConclusionOnModel() throws Exception {
 			Unit unit = unitWithJustification("j1");
 			new CreateConclusion("j1", "c1", "my conclusion").execute(unit);
-			assertThat(unit.get("j1").conclusion()).isPresent().get().extracting(Conclusion::id).isEqualTo("c1");
+			assertThat(unit.get("j1").conclusion()).isPresent().get()
+					.extracting(Conclusion::id).isEqualTo("c1");
 		}
 
 		@Test
@@ -99,7 +102,8 @@ class CreationCommandsTest {
 		void addsStrategyToContainer() throws Exception {
 			Unit unit = unitWithJustification("j1");
 			new CreateStrategy("j1", "s1", "my strategy").execute(unit);
-			assertThat(unit.get("j1").getElements()).hasSize(1).first().isInstanceOf(Strategy.class)
+			assertThat(unit.get("j1").getElements()).hasSize(1).first()
+					.isInstanceOf(Strategy.class)
 					.extracting(e -> ((Strategy) e).id()).isEqualTo("s1");
 		}
 
@@ -117,7 +121,8 @@ class CreationCommandsTest {
 		void addsEvidenceToContainer() throws Exception {
 			Unit unit = unitWithJustification("j1");
 			new CreateEvidence("j1", "e1", "my evidence").execute(unit);
-			assertThat(unit.get("j1").getElements()).hasSize(1).first().isInstanceOf(Evidence.class)
+			assertThat(unit.get("j1").getElements()).hasSize(1).first()
+					.isInstanceOf(Evidence.class)
 					.extracting(e -> ((Evidence) e).id()).isEqualTo("e1");
 		}
 
@@ -134,8 +139,10 @@ class CreationCommandsTest {
 		@Test
 		void addsSubConclusionToContainer() throws Exception {
 			Unit unit = unitWithJustification("j1");
-			new CreateSubConclusion("j1", "sc1", "my sub-conclusion").execute(unit);
-			assertThat(unit.get("j1").getElements()).hasSize(1).first().isInstanceOf(SubConclusion.class)
+			new CreateSubConclusion("j1", "sc1", "my sub-conclusion")
+					.execute(unit);
+			assertThat(unit.get("j1").getElements()).hasSize(1).first()
+					.isInstanceOf(SubConclusion.class)
 					.extracting(e -> ((SubConclusion) e).id()).isEqualTo("sc1");
 		}
 
@@ -152,9 +159,12 @@ class CreationCommandsTest {
 		@Test
 		void addsAbstractSupportToContainer() throws Exception {
 			Unit unit = unitWithTemplate("t1");
-			new CreateAbstractSupport("t1", "as1", "my abstract support").execute(unit);
-			assertThat(unit.get("t1").getElements()).hasSize(1).first().isInstanceOf(AbstractSupport.class)
-					.extracting(e -> ((AbstractSupport) e).id()).isEqualTo("as1");
+			new CreateAbstractSupport("t1", "as1", "my abstract support")
+					.execute(unit);
+			assertThat(unit.get("t1").getElements()).hasSize(1).first()
+					.isInstanceOf(AbstractSupport.class)
+					.extracting(e -> ((AbstractSupport) e).id())
+					.isEqualTo("as1");
 		}
 
 		@Test

@@ -18,7 +18,8 @@ public final class RewireStrategySupport extends RegularCommand {
 	private final String strategyId;
 	private final String newSupporterId;
 
-	public RewireStrategySupport(String container, String strategyId, String newSupporterId) {
+	public RewireStrategySupport(String container, String strategyId,
+			String newSupporterId) {
 		this.container = container;
 		this.strategyId = strategyId;
 		this.newSupporterId = newSupporterId;
@@ -27,21 +28,26 @@ public final class RewireStrategySupport extends RegularCommand {
 	@Override
 	public Predicate<Unit> condition() {
 		return unit -> unit.findModel(container)
-				.map(m -> m.findById(strategyId).isPresent() && m.findById(newSupporterId).isPresent()).orElse(false);
+				.map(m -> m.findById(strategyId).isPresent()
+						&& m.findById(newSupporterId).isPresent())
+				.orElse(false);
 	}
 
 	@Override
 	protected void doExecute(Unit context) {
 		JustificationModel<?> model = context.get(container);
 		Strategy strategy = (Strategy) model.findById(strategyId)
-				.orElseThrow(() -> new NoSuchElementException("No strategy with id: " + strategyId));
+				.orElseThrow(() -> new NoSuchElementException(
+						"No strategy with id: " + strategyId));
 		SupportLeaf newSupport = (SupportLeaf) model.findById(newSupporterId)
-				.orElseThrow(() -> new NoSuchElementException("No element with id: " + newSupporterId));
+				.orElseThrow(() -> new NoSuchElementException(
+						"No element with id: " + newSupporterId));
 		strategy.replaceSupport(newSupport);
 	}
 
 	@Override
 	public String toString() {
-		return "rewire('" + container + "', '" + strategyId + "', '" + newSupporterId + "')";
+		return "rewire('" + container + "', '" + strategyId + "', '"
+				+ newSupporterId + "')";
 	}
 }

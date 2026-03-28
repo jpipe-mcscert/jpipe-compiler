@@ -28,7 +28,8 @@ public abstract class Checker<I> extends Transformation<I, I> {
 	public static <I> Checker<I> checking(Check<I> check) {
 		return new Checker<>() {
 			@Override
-			protected void check(I input, CompilationContext ctx) throws Exception {
+			protected void check(I input, CompilationContext ctx)
+					throws Exception {
 				check.apply(input, ctx);
 			}
 		};
@@ -41,9 +42,10 @@ public abstract class Checker<I> extends Transformation<I, I> {
 	}
 
 	/**
-	 * Perform the check. Must not modify {@code input}. Non-fatal issues should be
-	 * reported via {@code ctx.error()} or {@code ctx.warn()} rather than thrown;
-	 * throw (or call {@code ctx.fatal()}) only for unrecoverable failures.
+	 * Perform the check. Must not modify {@code input}. Non-fatal issues should
+	 * be reported via {@code ctx.error()} or {@code ctx.warn()} rather than
+	 * thrown; throw (or call {@code ctx.fatal()}) only for unrecoverable
+	 * failures.
 	 *
 	 * @param input
 	 *            the value to inspect.
@@ -52,6 +54,7 @@ public abstract class Checker<I> extends Transformation<I, I> {
 	 * @throws Exception
 	 *             if the check encounters an unrecoverable failure.
 	 */
-	protected abstract void check(I input, CompilationContext ctx) throws Exception;
+	protected abstract void check(I input, CompilationContext ctx)
+			throws Exception;
 
 }

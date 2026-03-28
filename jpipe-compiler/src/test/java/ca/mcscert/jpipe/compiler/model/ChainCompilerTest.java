@@ -28,7 +28,8 @@ class ChainCompilerTest {
 		Sink<Integer>[] sinkHolder = new Sink[1];
 		AtomicReference<Integer> captured = capturingSink(sinkHolder);
 
-		Compiler compiler = Source.of(sourceName -> "hello").andThen(Transformation.of((input, ctx) -> input.length()))
+		Compiler compiler = Source.of(sourceName -> "hello")
+				.andThen(Transformation.of((input, ctx) -> input.length()))
 				.andThen(sinkHolder[0]);
 
 		compiler.compile("input.jd", "output.txt");
@@ -44,10 +45,11 @@ class ChainCompilerTest {
 		sinkHolder[0] = output -> {
 		};
 
-		Compiler compiler = fixedSource("x").andThen(Transformation.of((input, ctx) -> {
-			capturedPath.set(ctx.sourcePath());
-			return input;
-		})).andThen(sinkHolder[0]);
+		Compiler compiler = fixedSource("x")
+				.andThen(Transformation.of((input, ctx) -> {
+					capturedPath.set(ctx.sourcePath());
+					return input;
+				})).andThen(sinkHolder[0]);
 
 		compiler.compile("my/source.jd", "out.txt");
 
@@ -60,8 +62,10 @@ class ChainCompilerTest {
 		Sink<String>[] sinkHolder = new Sink[1];
 		AtomicReference<String> captured = capturingSink(sinkHolder);
 
-		Compiler compiler = fixedSource("hello").andThen(Transformation.of((s, ctx) -> s.toUpperCase()))
-				.andThen(Transformation.of((s, ctx) -> s + "!")).andThen(sinkHolder[0]);
+		Compiler compiler = fixedSource("hello")
+				.andThen(Transformation.of((s, ctx) -> s.toUpperCase()))
+				.andThen(Transformation.of((s, ctx) -> s + "!"))
+				.andThen(sinkHolder[0]);
 
 		compiler.compile("f.jd", "out.txt");
 
@@ -75,10 +79,15 @@ class ChainCompilerTest {
 		sinkHolder[0] = output -> {
 		};
 
-		Compiler compiler = fixedSource("bad").andThen(Checker.checking((input, ctx) -> ctx.fatal("invalid input")))
-				.andThen(Transformation.of((input, ctx) -> input + " processed")).andThen(sinkHolder[0]);
+		Compiler compiler = fixedSource("bad")
+				.andThen(Checker
+						.checking((input, ctx) -> ctx.fatal("invalid input")))
+				.andThen(
+						Transformation.of((input, ctx) -> input + " processed"))
+				.andThen(sinkHolder[0]);
 
-		assertThatThrownBy(() -> compiler.compile("f.jd", "out.txt")).isInstanceOf(CompilationException.class)
+		assertThatThrownBy(() -> compiler.compile("f.jd", "out.txt"))
+				.isInstanceOf(CompilationException.class)
 				.hasMessageContaining("fatal");
 	}
 

@@ -17,7 +17,8 @@ public final class RemoveElement extends RegularCommand {
 
 	@Override
 	public Predicate<Unit> condition() {
-		return unit -> unit.findModel(container).map(m -> m.findById(elementId).isPresent()).orElse(false);
+		return unit -> unit.findModel(container)
+				.map(m -> m.findById(elementId).isPresent()).orElse(false);
 	}
 
 	@Override

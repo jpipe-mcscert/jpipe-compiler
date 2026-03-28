@@ -24,6 +24,7 @@ public final class CreateConclusion extends RegularCommand {
 
 	@Override
 	public String toString() {
-		return "create_conclusion('" + container + "', '" + identifier + "', '" + label + "').";
+		return "create_conclusion('" + container + "', '" + identifier + "', '"
+				+ label + "').";
 	}
 }

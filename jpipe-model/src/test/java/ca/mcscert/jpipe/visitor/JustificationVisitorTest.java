@@ -19,7 +19,9 @@ import org.junit.jupiter.api.Test;
 class JustificationVisitorTest {
 
 	/** Collects the id (or name) of each node visited, in order. */
-	private static class CollectingVisitor implements JustificationVisitor<Void> {
+	private static class CollectingVisitor
+			implements
+				JustificationVisitor<Void> {
 
 		final List<String> visited = new ArrayList<>();
 
@@ -113,8 +115,9 @@ class JustificationVisitorTest {
 		@Test
 		void visitsInPreOrder() {
 			unit.accept(visitor);
-			assertThat(visitor.visited).containsExactly("unit:test.jd", "justification:my-justification",
-					"conclusion:c1", "strategy:s1", "evidence:e1");
+			assertThat(visitor.visited).containsExactly("unit:test.jd",
+					"justification:my-justification", "conclusion:c1",
+					"strategy:s1", "evidence:e1");
 		}
 	}
 
@@ -135,7 +138,8 @@ class JustificationVisitorTest {
 		@Test
 		void visitsInPreOrder() {
 			unit.accept(visitor);
-			assertThat(visitor.visited).containsExactly("unit:test.jd", "template:my-template", "conclusion:c1",
+			assertThat(visitor.visited).containsExactly("unit:test.jd",
+					"template:my-template", "conclusion:c1",
 					"abstractsupport:as1");
 		}
 	}
@@ -159,8 +163,9 @@ class JustificationVisitorTest {
 		@Test
 		void visitsAllModelsInInsertionOrder() {
 			unit.accept(visitor);
-			assertThat(visitor.visited).containsExactly("unit:test.jd", "justification:j1", "conclusion:c1",
-					"justification:j2", "subconclusion:sc1");
+			assertThat(visitor.visited).containsExactly("unit:test.jd",
+					"justification:j1", "conclusion:c1", "justification:j2",
+					"subconclusion:sc1");
 		}
 	}
 }

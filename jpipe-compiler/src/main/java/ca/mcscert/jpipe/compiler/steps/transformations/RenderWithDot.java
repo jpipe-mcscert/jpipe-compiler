@@ -33,12 +33,15 @@ public class RenderWithDot extends Transformation<String, byte[]> {
 	}
 
 	@Override
-	protected byte[] run(String dotSource, CompilationContext ctx) throws Exception {
+	protected byte[] run(String dotSource, CompilationContext ctx)
+			throws Exception {
 		Process process;
 		try {
 			process = new ProcessBuilder("dot", "-T" + dotFormat).start();
 		} catch (IOException e) {
-			throw new IOException("dot not found on PATH — install Graphviz or run 'jpipe --doctor'", e);
+			throw new IOException(
+					"dot not found on PATH — install Graphviz or run 'jpipe --doctor'",
+					e);
 		}
 
 		Thread writer = Thread.ofVirtual().start(() -> {
@@ -53,8 +56,10 @@ public class RenderWithDot extends Transformation<String, byte[]> {
 		int exitCode = process.waitFor();
 
 		if (exitCode != 0) {
-			String error = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
-			throw new IOException("dot exited with code " + exitCode + ": " + error.strip());
+			String error = new String(process.getErrorStream().readAllBytes(),
+					StandardCharsets.UTF_8);
+			throw new IOException(
+					"dot exited with code " + exitCode + ": " + error.strip());
 		}
 		return result;
 	}

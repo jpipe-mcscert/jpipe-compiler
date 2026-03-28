@@ -39,8 +39,8 @@ public abstract class Source<I> {
 	public abstract I provideFrom(String sourceName) throws IOException;
 
 	/**
-	 * DSL entry-point: combine this source with the first transformation to start
-	 * building a compilation chain.
+	 * DSL entry-point: combine this source with the first transformation to
+	 * start building a compilation chain.
 	 *
 	 * @param next
 	 *            the transformation to apply to this source's output.

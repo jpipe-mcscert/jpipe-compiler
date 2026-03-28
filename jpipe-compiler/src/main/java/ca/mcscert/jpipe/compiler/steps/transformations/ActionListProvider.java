@@ -24,10 +24,13 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 /**
  * Create a list of commands to build a model out of a parse tree.
  */
-public final class ActionListProvider extends Transformation<ParseTree, List<Command>> {
+public final class ActionListProvider
+		extends
+			Transformation<ParseTree, List<Command>> {
 
 	@Override
-	protected List<Command> run(ParseTree input, CompilationContext ctx) throws Exception {
+	protected List<Command> run(ParseTree input, CompilationContext ctx)
+			throws Exception {
 		ActionBuilder ab = new ActionBuilder(ctx.sourcePath());
 		ParseTreeWalker.DEFAULT.walk(ab, input);
 		logger.debug(ab.collect());
@@ -64,7 +67,8 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 
 		@Override
 		public void enterLoad(JPipeParser.LoadContext ctx) {
-			throw new UnsupportedOperationException("load directive is not yet supported in the refactored pipeline");
+			throw new UnsupportedOperationException(
+					"load directive is not yet supported in the refactored pipeline");
 		}
 
 		/*
@@ -75,7 +79,8 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 
 		@Override
 		public void enterJustification(JPipeParser.JustificationContext ctx) {
-			this.buildContext = buildContext.updateCurrentJustification(ctx.id.getText());
+			this.buildContext = buildContext
+					.updateCurrentJustification(ctx.id.getText());
 			result.add(new CreateJustification(ctx.id.getText()));
 		}
 
@@ -87,7 +92,8 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 
 		@Override
 		public void enterTemplate(JPipeParser.TemplateContext ctx) {
-			this.buildContext = buildContext.updateCurrentJustification(ctx.id.getText());
+			this.buildContext = buildContext
+					.updateCurrentJustification(ctx.id.getText());
 			result.add(new CreateTemplate(ctx.id.getText()));
 		}
 
@@ -98,8 +104,8 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 		}
 
 		/*
-		 * ********************************** * * Parsing justification elements * *
-		 * **********************************
+		 * ********************************** * * Parsing justification elements
+		 * * * **********************************
 		 */
 
 		@Override
@@ -107,31 +113,34 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 			String identifier = ctx.element().id.getText();
 			String label = strip(ctx.element().name.getText());
 			if (identifier.contains(":")) {
-				result.add(new OverrideAbstractSupport(buildContext.justificationId, identifier, "evidence", label));
+				result.add(new OverrideAbstractSupport(
+						buildContext.justificationId, identifier, "evidence",
+						label));
 			} else {
-				result.add(new CreateEvidence(buildContext.justificationId, identifier, label));
+				result.add(new CreateEvidence(buildContext.justificationId,
+						identifier, label));
 			}
 		}
 
 		@Override
 		public void enterAbstract(JPipeParser.AbstractContext ctx) {
 			String identifier = ctx.element().id.getText();
-			result.add(new CreateAbstractSupport(buildContext.justificationId, identifier,
-					strip(ctx.element().name.getText())));
+			result.add(new CreateAbstractSupport(buildContext.justificationId,
+					identifier, strip(ctx.element().name.getText())));
 		}
 
 		@Override
 		public void enterStrategy(JPipeParser.StrategyContext ctx) {
 			String identifier = ctx.element().id.getText();
-			result.add(
-					new CreateStrategy(buildContext.justificationId, identifier, strip(ctx.element().name.getText())));
+			result.add(new CreateStrategy(buildContext.justificationId,
+					identifier, strip(ctx.element().name.getText())));
 		}
 
 		@Override
 		public void enterConclusion(JPipeParser.ConclusionContext ctx) {
 			String identifier = ctx.element().id.getText();
-			result.add(new CreateConclusion(buildContext.justificationId, identifier,
-					strip(ctx.element().name.getText())));
+			result.add(new CreateConclusion(buildContext.justificationId,
+					identifier, strip(ctx.element().name.getText())));
 		}
 
 		@Override
@@ -139,18 +148,22 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 			String identifier = ctx.element().id.getText();
 			String label = strip(ctx.element().name.getText());
 			if (identifier.contains(":")) {
-				result.add(
-						new OverrideAbstractSupport(buildContext.justificationId, identifier, "sub-conclusion", label));
+				result.add(new OverrideAbstractSupport(
+						buildContext.justificationId, identifier,
+						"sub-conclusion", label));
 			} else {
-				result.add(new CreateSubConclusion(buildContext.justificationId, identifier, label));
+				result.add(new CreateSubConclusion(buildContext.justificationId,
+						identifier, label));
 			}
 		}
 
 		@Override
 		public void enterRelation(JPipeParser.RelationContext ctx) {
-			// ctx.from/ctx.to are qualified_id contexts; getText() returns the full id
+			// ctx.from/ctx.to are qualified_id contexts; getText() returns the
+			// full id
 			// (e.g. "t:s")
-			result.add(new AddSupport(buildContext.justificationId, ctx.to.getText(), ctx.from.getText()));
+			result.add(new AddSupport(buildContext.justificationId,
+					ctx.to.getText(), ctx.from.getText()));
 		}
 
 		/*
@@ -174,10 +187,13 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 
 		private void closeJustificationModel(Token parent, Token id) {
 			if (parent != null) {
-				result.add(new ImplementsTemplate(id.getText(), parent.getText()));
+				result.add(
+						new ImplementsTemplate(id.getText(), parent.getText()));
 			}
-			// standalone models (no implements clause) have null parent by default;
-			// no command needed here — locking belongs to a downstream checker step
+			// standalone models (no implements clause) have null parent by
+			// default;
+			// no command needed here — locking belongs to a downstream checker
+			// step
 		}
 	}
 }

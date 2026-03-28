@@ -20,7 +20,8 @@ import org.apache.logging.log4j.Logger;
  */
 public abstract class Transformation<I, O> {
 
-	protected static final Logger logger = LogManager.getLogger(Transformation.class);
+	protected static final Logger logger = LogManager
+			.getLogger(Transformation.class);
 
 	/**
 	 * Functional interface for the {@link #of} factory — allows steps to be
@@ -40,7 +41,8 @@ public abstract class Transformation<I, O> {
 	 *            input type.
 	 * @param <O>
 	 *            output type.
-	 * @return a {@code Transformation} that delegates {@link #run} to {@code step}.
+	 * @return a {@code Transformation} that delegates {@link #run} to
+	 *         {@code step}.
 	 */
 	public static <I, O> Transformation<I, O> of(Step<I, O> step) {
 		return new Transformation<>() {
@@ -59,7 +61,8 @@ public abstract class Transformation<I, O> {
 	 * @param input
 	 *            the value produced by the previous step.
 	 * @param ctx
-	 *            compilation context carrying the source path and diagnostic bag.
+	 *            compilation context carrying the source path and diagnostic
+	 *            bag.
 	 * @return the transformed value — never {@code null}.
 	 * @throws Exception
 	 *             if anything goes wrong.
@@ -73,8 +76,8 @@ public abstract class Transformation<I, O> {
 	 * <li>Fast-fails if the context already holds fatal errors (a previous step
 	 * marked the pipeline as broken).</li>
 	 * <li>Wraps any checked exception in {@link CompilationException}.</li>
-	 * <li>Rejects a {@code null} return from {@link #run} as a programming error in
-	 * the step implementation.</li>
+	 * <li>Rejects a {@code null} return from {@link #run} as a programming
+	 * error in the step implementation.</li>
 	 * </ul>
 	 *
 	 * @param in
@@ -85,12 +88,14 @@ public abstract class Transformation<I, O> {
 	 */
 	public final O fire(I in, CompilationContext ctx) {
 		if (ctx.hasFatalErrors()) {
-			throw new CompilationException(getClass().getSimpleName(), "pipeline aborted due to previous fatal errors");
+			throw new CompilationException(getClass().getSimpleName(),
+					"pipeline aborted due to previous fatal errors");
 		}
 		logger.info("Firing transformation [{}]", getClass().getSimpleName());
 		try {
 			O result = run(in, ctx);
-			return Objects.requireNonNull(result, "Transformation [" + getClass().getSimpleName() + "] returned null");
+			return Objects.requireNonNull(result, "Transformation ["
+					+ getClass().getSimpleName() + "] returned null");
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -99,8 +104,8 @@ public abstract class Transformation<I, O> {
 	}
 
 	/**
-	 * Compose this transformation with {@code next}, producing a new transformation
-	 * that runs both in sequence.
+	 * Compose this transformation with {@code next}, producing a new
+	 * transformation that runs both in sequence.
 	 *
 	 * <pre>
 	 *   this : I → O

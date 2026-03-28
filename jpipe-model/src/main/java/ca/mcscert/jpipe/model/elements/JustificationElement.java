@@ -7,7 +7,8 @@ import ca.mcscert.jpipe.visitor.JustificationVisitor;
  * {@link AbstractSupport}, ensuring exhaustive pattern matching over all
  * element types.
  */
-public sealed interface JustificationElement permits CommonElement, AbstractSupport {
+public sealed interface JustificationElement
+		permits CommonElement, AbstractSupport {
 	String id();
 	String label();
 

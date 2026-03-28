@@ -15,8 +15,8 @@ public final class Justification extends JustificationModel<CommonElement> {
 	}
 
 	/**
-	 * Includes all template elements — including {@link AbstractSupport} copies —
-	 * so that override commands can find and replace them after inlining.
+	 * Includes all template elements — including {@link AbstractSupport} copies
+	 * — so that override commands can find and replace them after inlining.
 	 */
 	@Override
 	protected boolean includeInExpansion(JustificationElement copy) {

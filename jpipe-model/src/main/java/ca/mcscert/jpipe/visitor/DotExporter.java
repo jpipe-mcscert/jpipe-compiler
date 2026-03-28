@@ -73,7 +73,8 @@ public class DotExporter implements JustificationVisitor<Void> {
 
 	@Override
 	public Void visit(Conclusion conclusion) {
-		appendNode(conclusion, "shape=rect, style=\"filled,rounded\", fillcolor=lightgrey");
+		appendNode(conclusion,
+				"shape=rect, style=\"filled,rounded\", fillcolor=lightgrey");
 		return null;
 	}
 
@@ -85,13 +86,15 @@ public class DotExporter implements JustificationVisitor<Void> {
 
 	@Override
 	public Void visit(Strategy strategy) {
-		appendNode(strategy, "shape=parallelogram, style=filled, fillcolor=palegreen");
+		appendNode(strategy,
+				"shape=parallelogram, style=filled, fillcolor=palegreen");
 		return null;
 	}
 
 	@Override
 	public Void visit(Evidence evidence) {
-		appendNode(evidence, "shape=note, style=filled, fillcolor=lightskyblue2");
+		appendNode(evidence,
+				"shape=note, style=filled, fillcolor=lightskyblue2");
 		return null;
 	}
 
@@ -106,10 +109,12 @@ public class DotExporter implements JustificationVisitor<Void> {
 	// ---------------------------------------------------------------------------
 
 	private void exportModelBody(JustificationModel<?> model) {
-		builder.append("digraph ").append(quoted(model.getName())).append(" {").append(System.lineSeparator());
-		builder.append(INDENT).append("rankdir=BT;").append(System.lineSeparator());
-		builder.append(INDENT).append("label=").append(quoted(model.getName())).append(";")
+		builder.append("digraph ").append(quoted(model.getName())).append(" {")
 				.append(System.lineSeparator());
+		builder.append(INDENT).append("rankdir=BT;")
+				.append(System.lineSeparator());
+		builder.append(INDENT).append("label=").append(quoted(model.getName()))
+				.append(";").append(System.lineSeparator());
 		model.conclusion().ifPresent(c -> c.accept(this));
 		model.getElements().forEach(e -> e.accept(this));
 		exportEdges(model);
@@ -117,19 +122,24 @@ public class DotExporter implements JustificationVisitor<Void> {
 	}
 
 	private void exportEdges(JustificationModel<?> model) {
-		model.conclusion().ifPresent(c -> c.getSupport().ifPresent(s -> appendEdge(s.id(), c.id())));
-		model.subConclusions().forEach(sc -> sc.getSupport().ifPresent(s -> appendEdge(s.id(), sc.id())));
-		model.strategies()
-				.forEach(s -> s.getSupport().ifPresent(leaf -> appendEdge(((JustificationElement) leaf).id(), s.id())));
+		model.conclusion().ifPresent(
+				c -> c.getSupport().ifPresent(s -> appendEdge(s.id(), c.id())));
+		model.subConclusions().forEach(sc -> sc.getSupport()
+				.ifPresent(s -> appendEdge(s.id(), sc.id())));
+		model.strategies().forEach(s -> s.getSupport().ifPresent(
+				leaf -> appendEdge(((JustificationElement) leaf).id(),
+						s.id())));
 	}
 
 	private void appendNode(JustificationElement element, String attrs) {
-		builder.append(INDENT).append(quoted(element.id())).append(" [label=").append(quoted(element.label()))
-				.append(", ").append(attrs).append("];").append(System.lineSeparator());
+		builder.append(INDENT).append(quoted(element.id())).append(" [label=")
+				.append(quoted(element.label())).append(", ").append(attrs)
+				.append("];").append(System.lineSeparator());
 	}
 
 	private void appendEdge(String fromId, String toId) {
-		builder.append(INDENT).append(quoted(fromId)).append(" -> ").append(quoted(toId)).append(";")
+		builder.append(INDENT).append(quoted(fromId)).append(" -> ")
+				.append(quoted(toId)).append(";")
 				.append(System.lineSeparator());
 	}
 

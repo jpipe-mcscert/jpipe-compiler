@@ -39,7 +39,8 @@ class CheckerTest {
 		Checker<String> failing = Checker.checking((value, c) -> {
 			throw new Exception("bad input");
 		});
-		assertThatThrownBy(() -> failing.fire("x", ctx)).isInstanceOf(CompilationException.class)
+		assertThatThrownBy(() -> failing.fire("x", ctx))
+				.isInstanceOf(CompilationException.class)
 				.hasCauseInstanceOf(Exception.class);
 	}
 
@@ -54,10 +55,13 @@ class CheckerTest {
 
 	@Test
 	void check_reportingFatalThenComposingFastFails() {
-		Checker<String> markFatal = Checker.checking((value, c) -> c.fatal("unrecoverable"));
-		Transformation<String, Integer> next = Transformation.of((input, c) -> input.length());
+		Checker<String> markFatal = Checker
+				.checking((value, c) -> c.fatal("unrecoverable"));
+		Transformation<String, Integer> next = Transformation
+				.of((input, c) -> input.length());
 
-		assertThatThrownBy(() -> markFatal.andThen(next).fire("hello", ctx)).isInstanceOf(CompilationException.class)
+		assertThatThrownBy(() -> markFatal.andThen(next).fire("hello", ctx))
+				.isInstanceOf(CompilationException.class)
 				.hasMessageContaining("fatal");
 	}
 

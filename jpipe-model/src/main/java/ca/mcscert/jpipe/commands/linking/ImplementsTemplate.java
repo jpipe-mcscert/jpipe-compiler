@@ -25,13 +25,16 @@ public final class ImplementsTemplate extends RegularCommand {
 
 	@Override
 	public Predicate<Unit> condition() {
-		return unit -> unit.findModel(modelName).isPresent() && unit.findModel(templateName).isPresent();
+		return unit -> unit.findModel(modelName).isPresent()
+				&& unit.findModel(templateName).isPresent();
 	}
 
 	@Override
 	public void doExecute(Unit context) {
-		Template template = context.findModel(templateName).filter(Template.class::isInstance).map(Template.class::cast)
-				.orElseThrow(() -> new NoSuchElementException("No template named: " + templateName));
+		Template template = context.findModel(templateName)
+				.filter(Template.class::isInstance).map(Template.class::cast)
+				.orElseThrow(() -> new NoSuchElementException(
+						"No template named: " + templateName));
 		context.get(modelName).inline(template, templateName);
 	}
 

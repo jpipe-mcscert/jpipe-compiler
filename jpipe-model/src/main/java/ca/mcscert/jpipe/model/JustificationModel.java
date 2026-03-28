@@ -35,7 +35,8 @@ import java.util.Optional;
  * Passing a {@link Conclusion} to {@link #addElement(JustificationElement)} is
  * rejected.
  */
-public abstract sealed class JustificationModel<E extends JustificationElement> permits Justification, Template {
+public abstract sealed class JustificationModel<E extends JustificationElement>
+		permits Justification, Template {
 
 	private final String name;
 	private boolean locked = false;
@@ -56,12 +57,13 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 	}
 
 	/**
-	 * Sets the single required conclusion. Throws {@link IllegalStateException} if
-	 * a conclusion has already been assigned.
+	 * Sets the single required conclusion. Throws {@link IllegalStateException}
+	 * if a conclusion has already been assigned.
 	 */
 	public void setConclusion(Conclusion conclusion) {
 		if (this.conclusion != null) {
-			throw new IllegalStateException("Model '" + name + "' already has a conclusion");
+			throw new IllegalStateException(
+					"Model '" + name + "' already has a conclusion");
 		}
 		this.conclusion = conclusion;
 	}
@@ -77,21 +79,24 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 
 	protected void setParent(Template parent) {
 		if (this.parent != null) {
-			throw new IllegalStateException("Model '" + name + "' already has a parent template");
+			throw new IllegalStateException(
+					"Model '" + name + "' already has a parent template");
 		}
 		this.parent = parent;
 	}
 
 	/**
-	 * Rejects {@link Conclusion} — use {@link #setConclusion(Conclusion)} instead.
-	 * Throws {@link LockedModelException} if the model has been locked.
+	 * Rejects {@link Conclusion} — use {@link #setConclusion(Conclusion)}
+	 * instead. Throws {@link LockedModelException} if the model has been
+	 * locked.
 	 */
 	public void addElement(E element) {
 		if (locked) {
 			throw new LockedModelException(name);
 		}
 		if (element instanceof Conclusion) {
-			throw new IllegalArgumentException("Use setConclusion() to assign the conclusion of a model");
+			throw new IllegalArgumentException(
+					"Use setConclusion() to assign the conclusion of a model");
 		}
 		elements.add(element);
 	}
@@ -115,11 +120,13 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 	public void inline(Template template, String templateName) {
 		setParent(template);
 
-		// Step 1: build copy map (original plain id → copied element with qualified id)
+		// Step 1: build copy map (original plain id → copied element with
+		// qualified id)
 		Map<String, JustificationElement> copies = new LinkedHashMap<>();
 
 		template.conclusion().ifPresent(tc -> {
-			SubConclusion copy = new SubConclusion(templateName + ":" + tc.id(), tc.label());
+			SubConclusion copy = new SubConclusion(templateName + ":" + tc.id(),
+					tc.label());
 			if (includeInExpansion(copy)) {
 				copies.put(tc.id(), copy);
 			}
@@ -135,14 +142,16 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 		// Step 2: re-wire support edges between included copies only
 		template.conclusion().ifPresent(tc -> tc.getSupport().ifPresent(s -> {
 			if (copies.containsKey(tc.id()) && copies.containsKey(s.id())) {
-				((SubConclusion) copies.get(tc.id())).addSupport((Strategy) copies.get(s.id()));
+				((SubConclusion) copies.get(tc.id()))
+						.addSupport((Strategy) copies.get(s.id()));
 			}
 		}));
 
 		for (SubConclusion sc : template.subConclusions()) {
 			sc.getSupport().ifPresent(s -> {
 				if (copies.containsKey(sc.id()) && copies.containsKey(s.id())) {
-					((SubConclusion) copies.get(sc.id())).addSupport((Strategy) copies.get(s.id()));
+					((SubConclusion) copies.get(sc.id()))
+							.addSupport((Strategy) copies.get(s.id()));
 				}
 			});
 		}
@@ -151,7 +160,8 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 			s.getSupport().ifPresent(leaf -> {
 				String leafId = ((JustificationElement) leaf).id();
 				if (copies.containsKey(s.id()) && copies.containsKey(leafId)) {
-					((Strategy) copies.get(s.id())).addSupport((SupportLeaf) copies.get(leafId));
+					((Strategy) copies.get(s.id()))
+							.addSupport((SupportLeaf) copies.get(leafId));
 				}
 			});
 		}
@@ -165,8 +175,8 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 	}
 
 	/**
-	 * Returns true if the given element copy should be added to this model during
-	 * template expansion. {@link Justification} returns false for
+	 * Returns true if the given element copy should be added to this model
+	 * during template expansion. {@link Justification} returns false for
 	 * {@link AbstractSupport}; {@link Template} returns true for all elements.
 	 */
 	protected abstract boolean includeInExpansion(JustificationElement copy);
@@ -178,13 +188,15 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 	 */
 	public final void lock() {
 		List<String> incomplete = new ArrayList<>();
-		conclusion().filter(c -> c.getSupport().isEmpty()).map(Conclusion::id).ifPresent(incomplete::add);
+		conclusion().filter(c -> c.getSupport().isEmpty()).map(Conclusion::id)
+				.ifPresent(incomplete::add);
 		if (conclusion().isEmpty()) {
 			incomplete.add("<conclusion>");
 		}
-		subConclusions().stream().filter(sc -> sc.getSupport().isEmpty()).map(SubConclusion::id)
-				.forEach(incomplete::add);
-		strategies().stream().filter(s -> s.getSupport().isEmpty()).map(Strategy::id).forEach(incomplete::add);
+		subConclusions().stream().filter(sc -> sc.getSupport().isEmpty())
+				.map(SubConclusion::id).forEach(incomplete::add);
+		strategies().stream().filter(s -> s.getSupport().isEmpty())
+				.map(Strategy::id).forEach(incomplete::add);
 		validateForLock(incomplete);
 		if (!incomplete.isEmpty()) {
 			throw new IncompleteJustificationException(name, incomplete);
@@ -193,8 +205,9 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 	}
 
 	/**
-	 * Hook for subclass-specific lock validation. Implementations should append the
-	 * ids (or symbolic names) of any incomplete elements to {@code incomplete}.
+	 * Hook for subclass-specific lock validation. Implementations should append
+	 * the ids (or symbolic names) of any incomplete elements to
+	 * {@code incomplete}.
 	 */
 	protected void validateForLock(List<String> incomplete) {
 	}
@@ -209,8 +222,8 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 	}
 
 	/**
-	 * Searches both the conclusion field and the elements list, so callers do not
-	 * need to know how the conclusion is stored.
+	 * Searches both the conclusion field and the elements list, so callers do
+	 * not need to know how the conclusion is stored.
 	 */
 	public Optional<E> findById(String id) {
 		if (conclusion != null && conclusion.id().equals(id)) {
@@ -218,18 +231,23 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 			E c = (E) conclusion;
 			return Optional.of(c);
 		}
-		Optional<E> exact = elements.stream().filter(e -> e.id().equals(id)).findFirst();
+		Optional<E> exact = elements.stream().filter(e -> e.id().equals(id))
+				.findFirst();
 		if (exact.isPresent()) {
 			return exact;
 		}
-		// Short-name suffix fallback: resolves a plain id to an inherited qualified
+		// Short-name suffix fallback: resolves a plain id to an inherited
+		// qualified
 		// element (e.g. "s" resolves to "t:s" after template expansion).
 		String suffix = ":" + id;
-		return elements.stream().filter(e -> e.id().endsWith(suffix)).findFirst();
+		return elements.stream().filter(e -> e.id().endsWith(suffix))
+				.findFirst();
 	}
 
-	public <T extends JustificationElement> List<T> elementsOfType(Class<T> type) {
-		return elements.stream().filter(type::isInstance).map(type::cast).toList();
+	public <T extends JustificationElement> List<T> elementsOfType(
+			Class<T> type) {
+		return elements.stream().filter(type::isInstance).map(type::cast)
+				.toList();
 	}
 
 	public List<SubConclusion> subConclusions() {
@@ -257,14 +275,16 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 	}
 
 	/** Creates a copy of {@code elem} with id {@code prefix:originalId}. */
-	protected static JustificationElement qualifiedCopy(JustificationElement elem, String prefix) {
+	protected static JustificationElement qualifiedCopy(
+			JustificationElement elem, String prefix) {
 		String qualifiedId = prefix + ":" + elem.id();
 		return switch (elem) {
 			case Evidence e -> new Evidence(qualifiedId, e.label());
 			case Strategy s -> new Strategy(qualifiedId, s.label());
 			case SubConclusion sc -> new SubConclusion(qualifiedId, sc.label());
 			case Conclusion c -> new SubConclusion(qualifiedId, c.label());
-			case AbstractSupport as -> new AbstractSupport(qualifiedId, as.label());
+			case AbstractSupport as ->
+				new AbstractSupport(qualifiedId, as.label());
 		};
 	}
 }

@@ -42,7 +42,8 @@ public class Main implements Callable<Integer> {
 			"--diagram"}, description = "Name of the model to export (required when the source defines multiple models).")
 	private String diagram;
 
-	@Option(names = {"--doctor"}, description = "Check that required external tools are available on PATH.")
+	@Option(names = {
+			"--doctor"}, description = "Check that required external tools are available on PATH.")
 	private boolean doctor;
 
 	@Override
@@ -55,8 +56,11 @@ public class Main implements Callable<Integer> {
 			return Doctor.run() ? EXIT_OK : EXIT_JPIPE_ERROR;
 		}
 		try {
-			OutputStream out = output.equals(CompilationConfig.STDOUT) ? System.out : new FileOutputStream(output);
-			CompilationConfig config = new CompilationConfig(input, output, mode, format, diagram);
+			OutputStream out = output.equals(CompilationConfig.STDOUT)
+					? System.out
+					: new FileOutputStream(output);
+			CompilationConfig config = new CompilationConfig(input, output,
+					mode, format, diagram);
 			CompilerFactory.build(config, out).compile(input, output);
 			return EXIT_OK;
 		} catch (CompilationException | UnsupportedOperationException e) {
@@ -69,6 +73,7 @@ public class Main implements Callable<Integer> {
 	}
 
 	public static void main(String[] args) {
-		System.exit(new CommandLine(new Main()).setCaseInsensitiveEnumValuesAllowed(true).execute(args));
+		System.exit(new CommandLine(new Main())
+				.setCaseInsensitiveEnumValuesAllowed(true).execute(args));
 	}
 }

@@ -24,6 +24,7 @@ public final class CreateEvidence extends RegularCommand {
 
 	@Override
 	public String toString() {
-		return "create_evidence('" + container + "', '" + identifier + "', '" + label + "').";
+		return "create_evidence('" + container + "', '" + identifier + "', '"
+				+ label + "').";
 	}
 }

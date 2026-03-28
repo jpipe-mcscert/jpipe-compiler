@@ -19,7 +19,8 @@ package ca.mcscert.jpipe.compiler.model;
  * @param message
  *            human-readable description.
  */
-public record Diagnostic(Level level, String source, int line, int column, String message) {
+public record Diagnostic(Level level, String source, int line, int column,
+		String message) {
 
 	public enum Level {
 		WARNING, ERROR, FATAL
@@ -46,15 +47,18 @@ public record Diagnostic(Level level, String source, int line, int column, Strin
 
 	// ── with location ────────────────────────────────────────────────────────
 
-	public static Diagnostic warning(String source, int line, int column, String message) {
+	public static Diagnostic warning(String source, int line, int column,
+			String message) {
 		return new Diagnostic(Level.WARNING, source, line, column, message);
 	}
 
-	public static Diagnostic error(String source, int line, int column, String message) {
+	public static Diagnostic error(String source, int line, int column,
+			String message) {
 		return new Diagnostic(Level.ERROR, source, line, column, message);
 	}
 
-	public static Diagnostic fatal(String source, int line, int column, String message) {
+	public static Diagnostic fatal(String source, int line, int column,
+			String message) {
 		return new Diagnostic(Level.FATAL, source, line, column, message);
 	}
 

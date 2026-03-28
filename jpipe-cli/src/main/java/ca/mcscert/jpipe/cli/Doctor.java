@@ -49,7 +49,8 @@ final class Doctor {
 
 	private static boolean isAvailable(String[] command) {
 		try {
-			Process p = new ProcessBuilder(command).redirectErrorStream(true).start();
+			Process p = new ProcessBuilder(command).redirectErrorStream(true)
+					.start();
 			p.getInputStream().transferTo(OutputStream.nullOutputStream());
 			p.waitFor();
 			return true;

@@ -60,7 +60,8 @@ class CompilationContextTest {
 
 	@Test
 	void diagnostics_isUnmodifiable() {
-		assertThatThrownBy(() -> ctx.diagnostics().add(Diagnostic.warning("x", "y")))
+		assertThatThrownBy(
+				() -> ctx.diagnostics().add(Diagnostic.warning("x", "y")))
 				.isInstanceOf(UnsupportedOperationException.class);
 	}
 
@@ -69,7 +70,8 @@ class CompilationContextTest {
 		ctx.warn("first");
 		ctx.error("second");
 		ctx.fatal("third");
-		assertThat(ctx.diagnostics()).extracting(Diagnostic::message).containsExactly("first", "second", "third");
+		assertThat(ctx.diagnostics()).extracting(Diagnostic::message)
+				.containsExactly("first", "second", "third");
 	}
 
 }

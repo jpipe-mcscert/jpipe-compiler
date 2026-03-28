@@ -26,7 +26,8 @@ public final class SubConclusion implements CommonElement, SupportLeaf {
 
 	public void addSupport(Strategy supporter) {
 		if (this.supporter != null) {
-			throw new IllegalStateException("SubConclusion already has a supporting strategy");
+			throw new IllegalStateException(
+					"SubConclusion already has a supporting strategy");
 		}
 		this.supporter = supporter;
 	}

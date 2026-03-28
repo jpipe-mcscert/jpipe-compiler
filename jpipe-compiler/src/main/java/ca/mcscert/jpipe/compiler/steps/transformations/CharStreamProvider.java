@@ -11,10 +11,13 @@ import org.antlr.v4.runtime.CharStreams;
  * Delegate to ANTLR the transformation of an input stream into a
  * character-based one.
  */
-public final class CharStreamProvider extends Transformation<InputStream, CharStream> {
+public final class CharStreamProvider
+		extends
+			Transformation<InputStream, CharStream> {
 
 	@Override
-	protected CharStream run(InputStream input, CompilationContext ctx) throws IOException {
+	protected CharStream run(InputStream input, CompilationContext ctx)
+			throws IOException {
 		return CharStreams.fromStream(input);
 	}
 }

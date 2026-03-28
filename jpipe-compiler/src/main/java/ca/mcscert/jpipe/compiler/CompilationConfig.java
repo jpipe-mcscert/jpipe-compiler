@@ -21,7 +21,8 @@ package ca.mcscert.jpipe.compiler;
  *            name of the model to export; {@code null} means auto-select when
  *            unambiguous.
  */
-public record CompilationConfig(String inputFile, String outputFile, Mode mode, Format format, String diagramName) {
+public record CompilationConfig(String inputFile, String outputFile, Mode mode,
+		Format format, String diagramName) {
 
 	public static final String STDIN = "<stdin>";
 	public static final String STDOUT = "<stdout>";

@@ -47,7 +47,9 @@ public final class CompilationContext {
 		report(Diagnostic.error(sourcePath, message));
 	}
 
-	/** Convenience: append a non-fatal ERROR diagnostic with source location. */
+	/**
+	 * Convenience: append a non-fatal ERROR diagnostic with source location.
+	 */
 	public void error(int line, int column, String message) {
 		report(Diagnostic.error(sourcePath, line, column, message));
 	}

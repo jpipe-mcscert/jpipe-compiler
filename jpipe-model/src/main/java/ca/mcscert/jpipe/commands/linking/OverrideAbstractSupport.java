@@ -28,7 +28,8 @@ public final class OverrideAbstractSupport implements MacroCommand {
 	private final String newType;
 	private final String label;
 
-	public OverrideAbstractSupport(String container, String qualifiedId, String newType, String label) {
+	public OverrideAbstractSupport(String container, String qualifiedId,
+			String newType, String label) {
 		this.container = container;
 		this.qualifiedId = qualifiedId;
 		this.newType = newType;
@@ -38,32 +39,41 @@ public final class OverrideAbstractSupport implements MacroCommand {
 	@Override
 	public Predicate<Unit> condition() {
 		return unit -> unit.findModel(container)
-				.map(m -> m.findById(qualifiedId).filter(AbstractSupport.class::isInstance).isPresent()).orElse(false);
+				.map(m -> m.findById(qualifiedId)
+						.filter(AbstractSupport.class::isInstance).isPresent())
+				.orElse(false);
 	}
 
 	@Override
 	public List<Command> expand(Unit unit) {
 		JustificationModel<?> model = unit.get(container);
 		AbstractSupport old = (AbstractSupport) model.findById(qualifiedId)
-				.orElseThrow(() -> new NoSuchElementException("No abstract support with id: " + qualifiedId));
+				.orElseThrow(() -> new NoSuchElementException(
+						"No abstract support with id: " + qualifiedId));
 
-		String strategyId = model.strategies().stream()
-				.filter(s -> s.getSupport().filter(sl -> ((JustificationElement) sl).id().equals(old.id())).isPresent())
-				.map(JustificationElement::id).findFirst()
-				.orElseThrow(() -> new IllegalStateException("No strategy supports abstract support: " + qualifiedId));
+		String strategyId = model.strategies().stream().filter(s -> s
+				.getSupport()
+				.filter(sl -> ((JustificationElement) sl).id().equals(old.id()))
+				.isPresent()).map(JustificationElement::id).findFirst()
+				.orElseThrow(() -> new IllegalStateException(
+						"No strategy supports abstract support: "
+								+ qualifiedId));
 
 		JustificationElement replacement = switch (newType) {
 			case "evidence" -> new Evidence(qualifiedId, label);
 			case "sub-conclusion" -> new SubConclusion(qualifiedId, label);
-			default -> throw new IllegalArgumentException("Cannot override abstract support with: " + newType);
+			default -> throw new IllegalArgumentException(
+					"Cannot override abstract support with: " + newType);
 		};
 
-		return List.of(new RemoveElement(container, qualifiedId), new AddElement(container, replacement),
+		return List.of(new RemoveElement(container, qualifiedId),
+				new AddElement(container, replacement),
 				new RewireStrategySupport(container, strategyId, qualifiedId));
 	}
 
 	@Override
 	public String toString() {
-		return "override('" + container + "', '" + qualifiedId + "', " + newType + ", '" + label + "')";
+		return "override('" + container + "', '" + qualifiedId + "', " + newType
+				+ ", '" + label + "')";
 	}
 }

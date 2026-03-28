@@ -49,12 +49,14 @@ class JustificationModelTest {
 
 		@Test
 		void findByIdReturnsConclusionFromField() {
-			assertThat(model.findById("c1")).isPresent().get().isInstanceOf(Conclusion.class);
+			assertThat(model.findById("c1")).isPresent().get()
+					.isInstanceOf(Conclusion.class);
 		}
 
 		@Test
 		void findByIdReturnsElementFromList() {
-			assertThat(model.findById("s1")).isPresent().get().isInstanceOf(Strategy.class);
+			assertThat(model.findById("s1")).isPresent().get()
+					.isInstanceOf(Strategy.class);
 		}
 
 		@Test
@@ -64,8 +66,8 @@ class JustificationModelTest {
 
 		@Test
 		void elementsOfTypeFiltersCorrectly() {
-			assertThat(model.elementsOfType(SubConclusion.class)).hasSize(1).extracting(SubConclusion::id)
-					.containsExactly("sc1");
+			assertThat(model.elementsOfType(SubConclusion.class)).hasSize(1)
+					.extracting(SubConclusion::id).containsExactly("sc1");
 		}
 
 		@Test
@@ -94,22 +96,26 @@ class JustificationModelTest {
 
 		@Test
 		void conclusionReturnsTheConclusion() {
-			assertThat(j.conclusion()).isPresent().get().extracting(Conclusion::id).isEqualTo("c1");
+			assertThat(j.conclusion()).isPresent().get()
+					.extracting(Conclusion::id).isEqualTo("c1");
 		}
 
 		@Test
 		void subConclusionsReturnsOnlySubConclusions() {
-			assertThat(j.subConclusions()).extracting(SubConclusion::id).containsExactly("sc1");
+			assertThat(j.subConclusions()).extracting(SubConclusion::id)
+					.containsExactly("sc1");
 		}
 
 		@Test
 		void strategiesReturnsOnlyStrategies() {
-			assertThat(j.strategies()).extracting(Strategy::id).containsExactly("s1");
+			assertThat(j.strategies()).extracting(Strategy::id)
+					.containsExactly("s1");
 		}
 
 		@Test
 		void evidenceReturnsOnlyEvidence() {
-			assertThat(j.evidence()).extracting(Evidence::id).containsExactly("e1");
+			assertThat(j.evidence()).extracting(Evidence::id)
+					.containsExactly("e1");
 		}
 	}
 
@@ -134,27 +140,32 @@ class JustificationModelTest {
 
 		@Test
 		void conclusionReturnsTheConclusion() {
-			assertThat(t.conclusion()).isPresent().get().extracting(Conclusion::id).isEqualTo("c1");
+			assertThat(t.conclusion()).isPresent().get()
+					.extracting(Conclusion::id).isEqualTo("c1");
 		}
 
 		@Test
 		void subConclusionsReturnsOnlySubConclusions() {
-			assertThat(t.subConclusions()).extracting(SubConclusion::id).containsExactly("sc1");
+			assertThat(t.subConclusions()).extracting(SubConclusion::id)
+					.containsExactly("sc1");
 		}
 
 		@Test
 		void strategiesReturnsOnlyStrategies() {
-			assertThat(t.strategies()).extracting(Strategy::id).containsExactly("s1");
+			assertThat(t.strategies()).extracting(Strategy::id)
+					.containsExactly("s1");
 		}
 
 		@Test
 		void evidenceReturnsOnlyEvidence() {
-			assertThat(t.evidence()).extracting(Evidence::id).containsExactly("e1");
+			assertThat(t.evidence()).extracting(Evidence::id)
+					.containsExactly("e1");
 		}
 
 		@Test
 		void abstractSupportsReturnsOnlyAbstractSupports() {
-			assertThat(t.abstractSupports()).extracting(AbstractSupport::id).containsExactly("as1");
+			assertThat(t.abstractSupports()).extracting(AbstractSupport::id)
+					.containsExactly("as1");
 		}
 	}
 
@@ -188,15 +199,19 @@ class JustificationModelTest {
 
 		@Test
 		void lockSucceedsWhenAllElementsAreSupported() {
-			assertThat(complete()).satisfies(j -> assertThatCode(j::lock).doesNotThrowAnyException());
+			assertThat(complete()).satisfies(
+					j -> assertThatCode(j::lock).doesNotThrowAnyException());
 		}
 
 		@Test
 		void lockThrowsWhenConclusionHasNoSupport() {
 			Justification j = new Justification("j1");
 			j.setConclusion(conclusion);
-			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
-					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
+			assertThatThrownBy(j::lock)
+					.isInstanceOf(IncompleteJustificationException.class)
+					.satisfies(e -> assertThat(
+							((IncompleteJustificationException) e)
+									.getIncompleteElementIds())
 							.containsExactly("c1"));
 		}
 
@@ -206,8 +221,11 @@ class JustificationModelTest {
 			Justification j = new Justification("j1");
 			j.setConclusion(conclusion);
 			j.addElement(strategy);
-			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
-					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
+			assertThatThrownBy(j::lock)
+					.isInstanceOf(IncompleteJustificationException.class)
+					.satisfies(e -> assertThat(
+							((IncompleteJustificationException) e)
+									.getIncompleteElementIds())
 							.containsExactly("s1"));
 		}
 
@@ -220,8 +238,11 @@ class JustificationModelTest {
 			j.setConclusion(conclusion);
 			j.addElement(strategy);
 			j.addElement(sc);
-			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
-					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
+			assertThatThrownBy(j::lock)
+					.isInstanceOf(IncompleteJustificationException.class)
+					.satisfies(e -> assertThat(
+							((IncompleteJustificationException) e)
+									.getIncompleteElementIds())
 							.containsExactly("sc1"));
 		}
 
@@ -230,8 +251,11 @@ class JustificationModelTest {
 			Justification j = new Justification("j1");
 			j.setConclusion(conclusion);
 			j.addElement(strategy);
-			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
-					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getIncompleteElementIds())
+			assertThatThrownBy(j::lock)
+					.isInstanceOf(IncompleteJustificationException.class)
+					.satisfies(e -> assertThat(
+							((IncompleteJustificationException) e)
+									.getIncompleteElementIds())
 							.containsExactlyInAnyOrder("c1", "s1"));
 		}
 
@@ -254,8 +278,11 @@ class JustificationModelTest {
 		void lockExceptionReportsJustificationName() {
 			Justification j = new Justification("myJustification");
 			j.setConclusion(conclusion);
-			assertThatThrownBy(j::lock).isInstanceOf(IncompleteJustificationException.class)
-					.satisfies(e -> assertThat(((IncompleteJustificationException) e).getJustificationName())
+			assertThatThrownBy(j::lock)
+					.isInstanceOf(IncompleteJustificationException.class)
+					.satisfies(e -> assertThat(
+							((IncompleteJustificationException) e)
+									.getJustificationName())
 							.isEqualTo("myJustification"));
 		}
 	}
@@ -278,12 +305,14 @@ class JustificationModelTest {
 
 		@Test
 		void templatesReturnsOnlyTemplates() {
-			assertThat(unit.templates()).hasSize(1).extracting(Template::getName).containsExactly("t1");
+			assertThat(unit.templates()).hasSize(1)
+					.extracting(Template::getName).containsExactly("t1");
 		}
 
 		@Test
 		void getThrowsForUnknownName() {
-			assertThatThrownBy(() -> unit.get("nonexistent")).isInstanceOf(NoSuchElementException.class)
+			assertThatThrownBy(() -> unit.get("nonexistent"))
+					.isInstanceOf(NoSuchElementException.class)
 					.hasMessageContaining("nonexistent");
 		}
 	}

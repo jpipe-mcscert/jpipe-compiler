@@ -11,7 +11,8 @@ public final class CreateAbstractSupport extends RegularCommand {
 	private final String identifier;
 	private final String label;
 
-	public CreateAbstractSupport(String container, String identifier, String label) {
+	public CreateAbstractSupport(String container, String identifier,
+			String label) {
 		this.container = container;
 		this.identifier = identifier;
 		this.label = label;
@@ -24,6 +25,7 @@ public final class CreateAbstractSupport extends RegularCommand {
 
 	@Override
 	public String toString() {
-		return "create_abstract_support('" + container + "', '" + identifier + "', '" + label + "').";
+		return "create_abstract_support('" + container + "', '" + identifier
+				+ "', '" + label + "').";
 	}
 }

@@ -40,7 +40,8 @@ class AddSupportTest {
 			new AddSupport("j1", "c1", "s1").execute(unit);
 
 			Conclusion c = conclusion(unit, "j1");
-			assertThat(c.getSupport()).isPresent().get().extracting(Strategy::id).isEqualTo("s1");
+			assertThat(c.getSupport()).isPresent().get()
+					.extracting(Strategy::id).isEqualTo("s1");
 		}
 	}
 
@@ -56,7 +57,8 @@ class AddSupportTest {
 			new AddSupport("j1", "sc1", "s1").execute(unit);
 
 			SubConclusion sc = element(unit, "j1", "sc1", SubConclusion.class);
-			assertThat(sc.getSupport()).isPresent().get().extracting(Strategy::id).isEqualTo("s1");
+			assertThat(sc.getSupport()).isPresent().get()
+					.extracting(Strategy::id).isEqualTo("s1");
 		}
 	}
 
@@ -72,7 +74,8 @@ class AddSupportTest {
 			new AddSupport("j1", "s1", "e1").execute(unit);
 
 			Strategy s = element(unit, "j1", "s1", Strategy.class);
-			assertThat(s.getSupport()).isPresent().get().isInstanceOf(Evidence.class)
+			assertThat(s.getSupport()).isPresent().get()
+					.isInstanceOf(Evidence.class)
 					.extracting(sl -> ((Evidence) sl).id()).isEqualTo("e1");
 		}
 	}
@@ -89,8 +92,10 @@ class AddSupportTest {
 			new AddSupport("j1", "s1", "sc1").execute(unit);
 
 			Strategy s = element(unit, "j1", "s1", Strategy.class);
-			assertThat(s.getSupport()).isPresent().get().isInstanceOf(SubConclusion.class)
-					.extracting(sl -> ((SubConclusion) sl).id()).isEqualTo("sc1");
+			assertThat(s.getSupport()).isPresent().get()
+					.isInstanceOf(SubConclusion.class)
+					.extracting(sl -> ((SubConclusion) sl).id())
+					.isEqualTo("sc1");
 		}
 	}
 
@@ -107,8 +112,10 @@ class AddSupportTest {
 			new AddSupport("t1", "s1", "as1").execute(unit);
 
 			Strategy s = element(unit, "t1", "s1", Strategy.class);
-			assertThat(s.getSupport()).isPresent().get().isInstanceOf(AbstractSupport.class)
-					.extracting(sl -> ((AbstractSupport) sl).id()).isEqualTo("as1");
+			assertThat(s.getSupport()).isPresent().get()
+					.isInstanceOf(AbstractSupport.class)
+					.extracting(sl -> ((AbstractSupport) sl).id())
+					.isEqualTo("as1");
 		}
 	}
 
@@ -125,7 +132,8 @@ class AddSupportTest {
 			new CreateEvidence("j1", "e1", "evidence").execute(unit);
 			new CreateStrategy("j1", "s1", "strategy").execute(unit);
 
-			assertThatThrownBy(() -> new AddSupport("j1", "e1", "s1").execute(unit))
+			assertThatThrownBy(
+					() -> new AddSupport("j1", "e1", "s1").execute(unit))
 					.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
@@ -140,14 +148,16 @@ class AddSupportTest {
 		@Test
 		void conditionFalseWhenModelAbsent() {
 			Unit unit = new Unit("src");
-			assertThat(new AddSupport("j1", "c1", "s1").condition().test(unit)).isFalse();
+			assertThat(new AddSupport("j1", "c1", "s1").condition().test(unit))
+					.isFalse();
 		}
 
 		@Test
 		void conditionFalseWhenOnlyOnElementExists() throws Exception {
 			Unit unit = unitWithJustification("j1");
 			new CreateConclusion("j1", "c1", "conclusion").execute(unit);
-			assertThat(new AddSupport("j1", "c1", "s1").condition().test(unit)).isFalse();
+			assertThat(new AddSupport("j1", "c1", "s1").condition().test(unit))
+					.isFalse();
 		}
 
 		@Test
@@ -155,17 +165,22 @@ class AddSupportTest {
 			Unit unit = unitWithJustification("j1");
 			new CreateConclusion("j1", "c1", "conclusion").execute(unit);
 			new CreateStrategy("j1", "s1", "strategy").execute(unit);
-			assertThat(new AddSupport("j1", "c1", "s1").condition().test(unit)).isTrue();
+			assertThat(new AddSupport("j1", "c1", "s1").condition().test(unit))
+					.isTrue();
 		}
 
 		@Test
 		void engineDefersUntilBothElementsCreated() {
 			ExecutionEngine engine = new ExecutionEngine();
-			Unit unit = engine.spawn("src", List.of(new AddSupport("j1", "c1", "s1"), new CreateJustification("j1"),
-					new CreateConclusion("j1", "c1", "conclusion"), new CreateStrategy("j1", "s1", "strategy")));
+			Unit unit = engine.spawn("src",
+					List.of(new AddSupport("j1", "c1", "s1"),
+							new CreateJustification("j1"),
+							new CreateConclusion("j1", "c1", "conclusion"),
+							new CreateStrategy("j1", "s1", "strategy")));
 
 			Conclusion c = conclusion(unit, "j1");
-			assertThat(c.getSupport()).isPresent().get().extracting(Strategy::id).isEqualTo("s1");
+			assertThat(c.getSupport()).isPresent().get()
+					.extracting(Strategy::id).isEqualTo("s1");
 		}
 	}
 
@@ -175,7 +190,8 @@ class AddSupportTest {
 
 	@Test
 	void toStringIsPrologFact() {
-		assertThat(new AddSupport("j1", "c1", "s1").toString()).isEqualTo("support('j1', 'c1', 's1').");
+		assertThat(new AddSupport("j1", "c1", "s1").toString())
+				.isEqualTo("support('j1', 'c1', 's1').");
 	}
 
 	// -------------------------------------------------------------------------
@@ -189,11 +205,13 @@ class AddSupportTest {
 	}
 
 	private static Conclusion conclusion(Unit unit, String model) {
-		return unit.get(model).conclusion().orElseThrow(() -> new AssertionError("No conclusion in " + model));
+		return unit.get(model).conclusion().orElseThrow(
+				() -> new AssertionError("No conclusion in " + model));
 	}
 
-	private static <T> T element(Unit unit, String model, String id, Class<T> type) {
-		return unit.get(model).findById(id).map(type::cast)
-				.orElseThrow(() -> new AssertionError("No element " + id + " in " + model));
+	private static <T> T element(Unit unit, String model, String id,
+			Class<T> type) {
+		return unit.get(model).findById(id).map(type::cast).orElseThrow(
+				() -> new AssertionError("No element " + id + " in " + model));
 	}
 }

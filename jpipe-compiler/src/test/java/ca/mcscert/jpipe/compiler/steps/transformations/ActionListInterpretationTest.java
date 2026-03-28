@@ -40,7 +40,9 @@ class ActionListInterpretationTest {
 
 	@Test
 	void multipleCommandsAreAllExecuted() throws Exception {
-		Unit unit = step.run(List.of(new CreateJustification("j1"), new CreateJustification("j2")), ctx);
-		assertThat(unit.justifications()).extracting(j -> j.getName()).containsExactlyInAnyOrder("j1", "j2");
+		Unit unit = step.run(List.of(new CreateJustification("j1"),
+				new CreateJustification("j2")), ctx);
+		assertThat(unit.justifications()).extracting(j -> j.getName())
+				.containsExactlyInAnyOrder("j1", "j2");
 	}
 }

@@ -8,7 +8,8 @@ package ca.mcscert.jpipe.compiler.model;
 public class CompilationException extends RuntimeException {
 
 	public CompilationException(String step, Throwable cause) {
-		super("Compilation failed in step [" + step + "]: " + cause.getMessage(), cause);
+		super("Compilation failed in step [" + step + "]: "
+				+ cause.getMessage(), cause);
 	}
 
 	public CompilationException(String step, String reason) {

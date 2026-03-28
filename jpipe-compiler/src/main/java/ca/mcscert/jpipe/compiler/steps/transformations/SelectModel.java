@@ -22,26 +22,31 @@ public class SelectModel extends Transformation<Unit, JustificationModel<?>> {
 
 	/**
 	 * @param diagramName
-	 *            name of the model to select, or {@code null} to auto-select when
-	 *            unambiguous.
+	 *            name of the model to select, or {@code null} to auto-select
+	 *            when unambiguous.
 	 */
 	public SelectModel(String diagramName) {
 		this.diagramName = diagramName;
 	}
 
 	@Override
-	protected JustificationModel<?> run(Unit unit, CompilationContext ctx) throws Exception {
+	protected JustificationModel<?> run(Unit unit, CompilationContext ctx)
+			throws Exception {
 		if (diagramName != null) {
-			return unit.findModel(diagramName).orElseThrow(() -> new CompilationException("SelectModel",
-					"no model named '" + diagramName + "' in " + ctx.sourcePath()));
+			return unit.findModel(diagramName)
+					.orElseThrow(() -> new CompilationException("SelectModel",
+							"no model named '" + diagramName + "' in "
+									+ ctx.sourcePath()));
 		}
 
 		Collection<JustificationModel<?>> models = unit.getModels();
 		if (models.size() == 1) {
 			return models.iterator().next();
 		}
-		String available = models.stream().map(JustificationModel::getName).collect(Collectors.joining(", "));
+		String available = models.stream().map(JustificationModel::getName)
+				.collect(Collectors.joining(", "));
 		throw new CompilationException("SelectModel",
-				"source defines multiple models — use -d to specify one: " + available);
+				"source defines multiple models — use -d to specify one: "
+						+ available);
 	}
 }

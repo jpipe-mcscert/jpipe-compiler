@@ -103,7 +103,8 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 
 	private void exportModelBody(String keyword, JustificationModel<?> model) {
 		builder.append(keyword).append(" ").append(model.getName());
-		model.getParent().ifPresent(p -> builder.append(" implements ").append(p.getName()));
+		model.getParent().ifPresent(
+				p -> builder.append(" implements ").append(p.getName()));
 		builder.append(" {").append(System.lineSeparator());
 
 		model.conclusion().ifPresent(c -> c.accept(this));
@@ -115,19 +116,23 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 	}
 
 	private void exportSupports(JustificationModel<?> model) {
-		model.conclusion().ifPresent(c -> c.getSupport().ifPresent(s -> appendRelation(s.id(), c.id())));
-		model.subConclusions().forEach(sc -> sc.getSupport().ifPresent(s -> appendRelation(s.id(), sc.id())));
-		model.strategies().forEach(
-				s -> s.getSupport().ifPresent(leaf -> appendRelation(((JustificationElement) leaf).id(), s.id())));
+		model.conclusion().ifPresent(c -> c.getSupport()
+				.ifPresent(s -> appendRelation(s.id(), c.id())));
+		model.subConclusions().forEach(sc -> sc.getSupport()
+				.ifPresent(s -> appendRelation(s.id(), sc.id())));
+		model.strategies().forEach(s -> s.getSupport().ifPresent(
+				leaf -> appendRelation(((JustificationElement) leaf).id(),
+						s.id())));
 	}
 
 	private void appendElement(String keyword, JustificationElement element) {
-		builder.append(INDENT).append(keyword).append(" ").append(element.id()).append(" is \"").append(element.label())
-				.append("\"").append(System.lineSeparator());
+		builder.append(INDENT).append(keyword).append(" ").append(element.id())
+				.append(" is \"").append(element.label()).append("\"")
+				.append(System.lineSeparator());
 	}
 
 	private void appendRelation(String supporterId, String supportedId) {
-		builder.append(INDENT).append(supporterId).append(" supports ").append(supportedId)
-				.append(System.lineSeparator());
+		builder.append(INDENT).append(supporterId).append(" supports ")
+				.append(supportedId).append(System.lineSeparator());
 	}
 }

@@ -40,14 +40,18 @@ class ExecutionEngineTest {
 
 		@Test
 		void executesCommands() {
-			Unit unit = engine.spawn("my.jd", List.of(new CreateJustification("j1")));
+			Unit unit = engine.spawn("my.jd",
+					List.of(new CreateJustification("j1")));
 			assertThat(unit.findModel("j1")).isPresent();
 		}
 
 		@Test
 		void executesMultipleCommandsInOrder() {
-			Unit unit = engine.spawn("my.jd", List.of(new CreateJustification("j1"), new CreateJustification("j2")));
-			assertThat(unit.justifications()).extracting(j -> j.getName()).containsExactly("j1", "j2");
+			Unit unit = engine.spawn("my.jd",
+					List.of(new CreateJustification("j1"),
+							new CreateJustification("j2")));
+			assertThat(unit.justifications()).extracting(j -> j.getName())
+					.containsExactly("j1", "j2");
 		}
 	}
 
@@ -95,7 +99,8 @@ class ExecutionEngineTest {
 				}
 			};
 
-			Unit unit = engine.spawn("src", List.of(conditionedCmd, new CreateJustification("j1")));
+			Unit unit = engine.spawn("src",
+					List.of(conditionedCmd, new CreateJustification("j1")));
 			assertThat(unit.findModel("j1")).isPresent();
 			assertThat(unit.findModel("j2")).isPresent();
 		}
@@ -152,7 +157,8 @@ class ExecutionEngineTest {
 				}
 			};
 
-			Unit unit = engine.spawn("src", List.of(failing, new CreateJustification("j1")));
+			Unit unit = engine.spawn("src",
+					List.of(failing, new CreateJustification("j1")));
 			assertThat(unit.findModel("j1")).isPresent();
 		}
 	}

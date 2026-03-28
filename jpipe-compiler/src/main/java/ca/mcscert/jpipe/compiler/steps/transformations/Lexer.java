@@ -37,7 +37,8 @@ public final class Lexer extends Transformation<CharStream, CommonTokenStream> {
 		}
 
 		@Override
-		public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
+		public void syntaxError(Recognizer<?, ?> recognizer,
+				Object offendingSymbol, int line, int charPositionInLine,
 				String msg, RecognitionException e) {
 			ctx.error(line, charPositionInLine, msg);
 		}

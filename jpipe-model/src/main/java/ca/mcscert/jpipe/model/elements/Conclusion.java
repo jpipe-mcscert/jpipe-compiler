@@ -26,7 +26,8 @@ public final class Conclusion implements CommonElement {
 
 	public void addSupport(Strategy supporter) {
 		if (this.supporter != null) {
-			throw new IllegalStateException("Conclusion already has a supporting strategy");
+			throw new IllegalStateException(
+					"Conclusion already has a supporting strategy");
 		}
 		this.supporter = supporter;
 	}

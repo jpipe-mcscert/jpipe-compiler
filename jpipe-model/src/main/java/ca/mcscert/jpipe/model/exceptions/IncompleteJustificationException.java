@@ -12,8 +12,11 @@ public class IncompleteJustificationException extends IllegalStateException {
 	private final String justificationName;
 	private final List<String> incompleteElementIds;
 
-	public IncompleteJustificationException(String justificationName, List<String> incompleteElementIds) {
-		super("Justification '" + justificationName + "' is incomplete: unsupported elements " + incompleteElementIds);
+	public IncompleteJustificationException(String justificationName,
+			List<String> incompleteElementIds) {
+		super("Justification '" + justificationName
+				+ "' is incomplete: unsupported elements "
+				+ incompleteElementIds);
 		this.justificationName = justificationName;
 		this.incompleteElementIds = List.copyOf(incompleteElementIds);
 	}

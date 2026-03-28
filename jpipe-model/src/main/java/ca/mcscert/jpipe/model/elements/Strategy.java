@@ -26,7 +26,8 @@ public final class Strategy implements CommonElement {
 
 	public void addSupport(SupportLeaf supporter) {
 		if (this.supporter != null) {
-			throw new IllegalStateException("Strategy already has a supporting element");
+			throw new IllegalStateException(
+					"Strategy already has a supporting element");
 		}
 		this.supporter = supporter;
 	}

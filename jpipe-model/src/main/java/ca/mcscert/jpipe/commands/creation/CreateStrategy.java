@@ -24,6 +24,7 @@ public final class CreateStrategy extends RegularCommand {
 
 	@Override
 	public String toString() {
-		return "create_strategy('" + container + "', '" + identifier + "', '" + label + "').";
+		return "create_strategy('" + container + "', '" + identifier + "', '"
+				+ label + "').";
 	}
 }

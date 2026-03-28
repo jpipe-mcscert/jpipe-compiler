@@ -46,8 +46,9 @@ public final class ChainBuilder<I, O> {
 	}
 
 	/**
-	 * Expose the accumulated chain as a plain {@link Transformation}, useful when
-	 * the chain is embedded inside a larger pipeline rather than used standalone.
+	 * Expose the accumulated chain as a plain {@link Transformation}, useful
+	 * when the chain is embedded inside a larger pipeline rather than used
+	 * standalone.
 	 *
 	 * @return the composed transformation.
 	 */

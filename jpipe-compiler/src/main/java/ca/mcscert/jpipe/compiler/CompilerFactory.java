@@ -48,7 +48,8 @@ public final class CompilerFactory {
 	 * @throws UnsupportedOperationException
 	 *             if the requested mode or format is not yet implemented.
 	 */
-	public static Compiler build(CompilationConfig config, OutputStream stdout) {
+	public static Compiler build(CompilationConfig config,
+			OutputStream stdout) {
 		return switch (config.mode()) {
 			case DIAGNOSTIC -> buildDiagnosticCompiler(config);
 			case PROCESS -> buildProcessCompiler(config, stdout);
@@ -60,12 +61,14 @@ public final class CompilerFactory {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Parsing chain: reads a source file, lexes, parses, and extracts the action
-	 * list. Aborts on any syntax error via {@link HaltAndCatchFire}.
+	 * Parsing chain: reads a source file, lexes, parses, and extracts the
+	 * action list. Aborts on any syntax error via {@link HaltAndCatchFire}.
 	 */
 	public static ChainBuilder<InputStream, List<Command>> parsingChain() {
-		return new FileSource().andThen(new CharStreamProvider()).andThen(new Lexer()).andThen(new Parser())
-				.andThen(new HaltAndCatchFire<ParseTree>()).andThen(new ActionListProvider());
+		return new FileSource().andThen(new CharStreamProvider())
+				.andThen(new Lexer()).andThen(new Parser())
+				.andThen(new HaltAndCatchFire<ParseTree>())
+				.andThen(new ActionListProvider());
 	}
 
 	/**
@@ -83,26 +86,37 @@ public final class CompilerFactory {
 	// -------------------------------------------------------------------------
 
 	private static Compiler buildDiagnosticCompiler(CompilationConfig config) {
-		// TODO: run the parsing chain and write a diagnostics report to the output
+		// TODO: run the parsing chain and write a diagnostics report to the
+		// output
 		// file.
-		// Requires deciding on a diagnostic report format and a corresponding Sink.
-		throw new UnsupportedOperationException("DIAGNOSTIC mode is not yet implemented");
+		// Requires deciding on a diagnostic report format and a corresponding
+		// Sink.
+		throw new UnsupportedOperationException(
+				"DIAGNOSTIC mode is not yet implemented");
 	}
 
-	private static Compiler buildProcessCompiler(CompilationConfig config, OutputStream stdout) {
+	private static Compiler buildProcessCompiler(CompilationConfig config,
+			OutputStream stdout) {
 		return switch (config.format()) {
-			case JPIPE ->
-				parsingChain().andThen(unitBuilder()).andThen(new ExportToJpipe()).andThen(new StringSink(stdout));
-			case DOT -> parsingChain().andThen(dotChain(config)).andThen(new StringSink(stdout));
-			case PNG -> parsingChain().andThen(dotChain(config)).andThen(new RenderWithDot("png"))
+			case JPIPE -> parsingChain().andThen(unitBuilder())
+					.andThen(new ExportToJpipe())
+					.andThen(new StringSink(stdout));
+			case DOT -> parsingChain().andThen(dotChain(config))
+					.andThen(new StringSink(stdout));
+			case PNG -> parsingChain().andThen(dotChain(config))
+					.andThen(new RenderWithDot("png"))
 					.andThen(new ByteSink(stdout));
-			case JPEG -> parsingChain().andThen(dotChain(config)).andThen(new RenderWithDot("jpeg"))
+			case JPEG -> parsingChain().andThen(dotChain(config))
+					.andThen(new RenderWithDot("jpeg"))
 					.andThen(new ByteSink(stdout));
-			default -> throw new UnsupportedOperationException("Format not yet supported: " + config.format());
+			default -> throw new UnsupportedOperationException(
+					"Format not yet supported: " + config.format());
 		};
 	}
 
-	private static Transformation<List<Command>, String> dotChain(CompilationConfig config) {
-		return unitBuilder().andThen(new SelectModel(config.diagramName())).andThen(new ExportToDot());
+	private static Transformation<List<Command>, String> dotChain(
+			CompilationConfig config) {
+		return unitBuilder().andThen(new SelectModel(config.diagramName()))
+				.andThen(new ExportToDot());
 	}
 }

@@ -12,9 +12,12 @@ import org.junit.jupiter.api.Test;
 class JustificationElementTest {
 
 	/**
-	 * A visitor that records which concrete type was visited, for dispatch tests.
+	 * A visitor that records which concrete type was visited, for dispatch
+	 * tests.
 	 */
-	private static class RecordingVisitor implements JustificationVisitor<Class<?>> {
+	private static class RecordingVisitor
+			implements
+				JustificationVisitor<Class<?>> {
 		@Override
 		public Class<?> visit(Unit u) {
 			return Unit.class;
@@ -53,7 +56,8 @@ class JustificationElementTest {
 
 	@Nested
 	class ConclusionTest {
-		private final Conclusion conclusion = new Conclusion("c1", "my conclusion");
+		private final Conclusion conclusion = new Conclusion("c1",
+				"my conclusion");
 
 		@Test
 		void storesId() {
@@ -71,7 +75,8 @@ class JustificationElementTest {
 
 	@Nested
 	class SubConclusionTest {
-		private final SubConclusion subConclusion = new SubConclusion("sc1", "my sub-conclusion");
+		private final SubConclusion subConclusion = new SubConclusion("sc1",
+				"my sub-conclusion");
 
 		@Test
 		void storesId() {
@@ -83,7 +88,8 @@ class JustificationElementTest {
 		}
 		@Test
 		void acceptDispatchesToVisitor() {
-			assertThat(subConclusion.accept(visitor)).isEqualTo(SubConclusion.class);
+			assertThat(subConclusion.accept(visitor))
+					.isEqualTo(SubConclusion.class);
 		}
 	}
 
@@ -125,7 +131,8 @@ class JustificationElementTest {
 
 	@Nested
 	class AbstractSupportTest {
-		private final AbstractSupport abstractSupport = new AbstractSupport("as1", "my abstract support");
+		private final AbstractSupport abstractSupport = new AbstractSupport(
+				"as1", "my abstract support");
 
 		@Test
 		void storesId() {
@@ -133,11 +140,13 @@ class JustificationElementTest {
 		}
 		@Test
 		void storesLabel() {
-			assertThat(abstractSupport.label()).isEqualTo("my abstract support");
+			assertThat(abstractSupport.label())
+					.isEqualTo("my abstract support");
 		}
 		@Test
 		void acceptDispatchesToVisitor() {
-			assertThat(abstractSupport.accept(visitor)).isEqualTo(AbstractSupport.class);
+			assertThat(abstractSupport.accept(visitor))
+					.isEqualTo(AbstractSupport.class);
 		}
 	}
 }

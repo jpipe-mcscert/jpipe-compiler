@@ -29,7 +29,8 @@ public final class ExecutionEngine {
 		int deferCount = 0;
 		while (!commands.isEmpty()) {
 			if (deferCount >= commands.size()) {
-				logger.error("Execution deadlocked — {} command(s) stuck:", commands.size());
+				logger.error("Execution deadlocked — {} command(s) stuck:",
+						commands.size());
 				commands.forEach(c -> logger.error("  stuck: {}", c));
 				return;
 			}
@@ -41,17 +42,20 @@ public final class ExecutionEngine {
 			} else if (command instanceof MacroCommand macro) {
 				try {
 					List<Command> expanded = macro.expand(unit);
-					logger.debug("Expanding macro [{}] into {} command(s)", macro, expanded.size());
+					logger.debug("Expanding macro [{}] into {} command(s)",
+							macro, expanded.size());
 					commands.addAll(0, expanded);
 				} catch (Exception e) {
-					logger.error("Error expanding macro [{}]: {}", macro, e.getMessage());
+					logger.error("Error expanding macro [{}]: {}", macro,
+							e.getMessage());
 				}
 				deferCount = 0;
 			} else {
 				try {
 					command.execute(unit);
 				} catch (Exception e) {
-					logger.error("Error executing command [{}]: {}", command, e.getMessage());
+					logger.error("Error executing command [{}]: {}", command,
+							e.getMessage());
 				}
 				deferCount = 0;
 			}

@@ -40,12 +40,14 @@ public final class Unit {
 	}
 
 	public JustificationModel<?> get(String name) {
-		return findModel(name).orElseThrow(() -> new NoSuchElementException("Unknown model: " + name));
+		return findModel(name).orElseThrow(
+				() -> new NoSuchElementException("Unknown model: " + name));
 	}
 
 	@SuppressWarnings("unchecked")
 	public void addInto(String modelName, JustificationElement element) {
-		((JustificationModel<JustificationElement>) get(modelName)).addElement(element);
+		((JustificationModel<JustificationElement>) get(modelName))
+				.addElement(element);
 	}
 
 	public void removeFrom(String modelName, String elementId) {
@@ -53,11 +55,13 @@ public final class Unit {
 	}
 
 	public List<Justification> justifications() {
-		return models.values().stream().filter(Justification.class::isInstance).map(Justification.class::cast).toList();
+		return models.values().stream().filter(Justification.class::isInstance)
+				.map(Justification.class::cast).toList();
 	}
 
 	public List<Template> templates() {
-		return models.values().stream().filter(Template.class::isInstance).map(Template.class::cast).toList();
+		return models.values().stream().filter(Template.class::isInstance)
+				.map(Template.class::cast).toList();
 	}
 
 	public <R> R accept(JustificationVisitor<R> visitor) {
