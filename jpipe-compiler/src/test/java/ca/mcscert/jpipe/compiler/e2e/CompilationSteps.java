@@ -14,6 +14,7 @@ import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.visitor.DotExporter;
+import ca.mcscert.jpipe.visitor.PythonExporter;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -29,6 +30,7 @@ public class CompilationSteps {
 	private Exception compilationError;
 	private JustificationModel<?> currentModel;
 	private String dotOutput;
+	private String pythonOutput;
 
 	@Given("the source file {string}")
 	public void theSourceFile(String filename) {
@@ -145,5 +147,23 @@ public class CompilationSteps {
 	@Then("the DOT output contains a node with id {string}")
 	public void theDotOutputContainsANodeWithId(String id) {
 		assertThat(dotOutput).contains("id=\"" + id + "\"");
+	}
+
+	@When("I export the current model to Python format")
+	public void iExportTheCurrentModelToPythonFormat() {
+		pythonOutput = new PythonExporter().export(currentModel);
+	}
+
+	@Then("the Python output contains a method named {string}")
+	public void thePythonOutputContainsAMethodNamed(String name) {
+		assertThat(pythonOutput).contains("def " + name + "(");
+	}
+
+	@Then("the Python output has @jpipe_link for id {string} commented out")
+	public void thePythonOutputHasJpipeLinkCommentedOut(String qualifiedId) {
+		assertThat(pythonOutput)
+				.contains("# @jpipe_link(\"" + qualifiedId + "\")");
+		assertThat(pythonOutput)
+				.doesNotContain("\n@jpipe_link(\"" + qualifiedId + "\")");
 	}
 }

@@ -13,6 +13,7 @@ import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToDot;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJson;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJpipe;
+import ca.mcscert.jpipe.compiler.steps.transformations.ExportToPython;
 import ca.mcscert.jpipe.compiler.steps.transformations.Lexer;
 import ca.mcscert.jpipe.compiler.steps.transformations.Parser;
 import ca.mcscert.jpipe.compiler.steps.transformations.RenderWithDot;
@@ -116,6 +117,10 @@ public final class CompilerFactory {
 			case JSON -> parsingChain().andThen(unitBuilder())
 					.andThen(new SelectModel(config.diagramName()))
 					.andThen(new ExportToJson())
+					.andThen(new StringSink(stdout));
+			case PYTHON -> parsingChain().andThen(unitBuilder())
+					.andThen(new SelectModel(config.diagramName()))
+					.andThen(new ExportToPython())
 					.andThen(new StringSink(stdout));
 			default -> throw new UnsupportedOperationException(
 					"Format not yet supported: " + config.format());

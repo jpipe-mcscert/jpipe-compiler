@@ -10,6 +10,7 @@ import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
+import ca.mcscert.jpipe.util.LabelEscaper;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -35,6 +36,7 @@ import org.json.JSONObject;
  */
 public class JsonExporter implements JustificationVisitor<Void> {
 
+	private String currentModelName;
 	private JSONObject result;
 	private JSONArray elements;
 	private JSONArray relations;
@@ -114,6 +116,7 @@ public class JsonExporter implements JustificationVisitor<Void> {
 	// -------------------------------------------------------------------------
 
 	private void exportModelBody(JustificationModel<?> model, String type) {
+		currentModelName = model.getName();
 		elements = new JSONArray();
 		relations = new JSONArray();
 
@@ -129,20 +132,23 @@ public class JsonExporter implements JustificationVisitor<Void> {
 	}
 
 	private void exportRelations(JustificationModel<?> model) {
-		model.conclusion().ifPresent(c -> c.getSupport()
-				.ifPresent(s -> appendRelation(s.id(), c.id())));
-		model.subConclusions().forEach(sc -> sc.getSupport()
-				.ifPresent(s -> appendRelation(s.id(), sc.id())));
-		model.strategies().forEach(s -> s.getSupport().ifPresent(
-				leaf -> appendRelation(((JustificationElement) leaf).id(),
-						s.id())));
+		model.conclusion().ifPresent(c -> c.getSupport().ifPresent(
+				s -> appendRelation(qualify(s.id()), qualify(c.id()))));
+		model.subConclusions().forEach(sc -> sc.getSupport().ifPresent(
+				s -> appendRelation(qualify(s.id()), qualify(sc.id()))));
+		model.strategies()
+				.forEach(s -> s.getSupport()
+						.ifPresent(leaf -> appendRelation(
+								qualify(((JustificationElement) leaf).id()),
+								qualify(s.id()))));
 	}
 
 	private void appendElement(String type, JustificationElement element) {
 		JSONObject obj = new JSONObject();
 		obj.put("type", type);
-		obj.put("id", element.id());
+		obj.put("id", qualify(element.id()));
 		obj.put("label", element.label());
+		obj.put("escaped", LabelEscaper.toMethodName(element.label()));
 		elements.put(obj);
 	}
 
@@ -151,5 +157,9 @@ public class JsonExporter implements JustificationVisitor<Void> {
 		obj.put("source", source);
 		obj.put("target", target);
 		relations.put(obj);
+	}
+
+	private String qualify(String elementId) {
+		return currentModelName + ":" + elementId;
 	}
 }
