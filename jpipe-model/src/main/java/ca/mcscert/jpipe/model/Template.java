@@ -15,6 +15,12 @@ public final class Template extends JustificationModel<JustificationElement> {
 		super(name);
 	}
 
+	/** Includes all elements — templates may inherit {@link AbstractSupport}s. */
+	@Override
+	protected boolean includeInExpansion(JustificationElement copy) {
+		return true;
+	}
+
 	public List<AbstractSupport> abstractSupports() {
 		return elementsOfType(AbstractSupport.class);
 	}

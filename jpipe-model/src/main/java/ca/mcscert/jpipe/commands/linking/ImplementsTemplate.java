@@ -32,7 +32,7 @@ public final class ImplementsTemplate extends RegularCommand {
 	public void doExecute(Unit context) {
 		Template template = context.findModel(templateName).filter(Template.class::isInstance).map(Template.class::cast)
 				.orElseThrow(() -> new NoSuchElementException("No template named: " + templateName));
-		context.get(modelName).setParent(template);
+		context.get(modelName).inline(template, templateName);
 	}
 
 	@Override

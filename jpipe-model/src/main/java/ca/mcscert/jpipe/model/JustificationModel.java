@@ -1,16 +1,20 @@
 package ca.mcscert.jpipe.model;
 
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
+import ca.mcscert.jpipe.model.elements.SupportLeaf;
 import ca.mcscert.jpipe.model.exceptions.IncompleteJustificationException;
 import ca.mcscert.jpipe.model.exceptions.LockedModelException;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -71,7 +75,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 		return Optional.ofNullable(parent);
 	}
 
-	public void setParent(Template parent) {
+	protected void setParent(Template parent) {
 		if (this.parent != null) {
 			throw new IllegalStateException("Model '" + name + "' already has a parent template");
 		}
@@ -91,6 +95,81 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 		}
 		elements.add(element);
 	}
+
+	/**
+	 * Inlines {@code template} into this model: each template element is copied
+	 * with a qualified id ({@code templateName:originalId}) and support edges
+	 * between copied elements are re-wired. The model becomes self-contained —
+	 * operators can mutate it freely without affecting the original template.
+	 *
+	 * <p>
+	 * Whether a copy is added is controlled by {@link #includeInExpansion}:
+	 * {@link Justification} excludes {@link AbstractSupport} copies (type
+	 * constraint; abstract supports must be overridden by concrete elements);
+	 * {@link Template} includes everything.
+	 *
+	 * <p>
+	 * The template's conclusion is always copied as a {@link SubConclusion},
+	 * becoming an intermediate goal rather than the top-level one.
+	 */
+	public void inline(Template template, String templateName) {
+		setParent(template);
+
+		// Step 1: build copy map (original plain id → copied element with qualified id)
+		Map<String, JustificationElement> copies = new LinkedHashMap<>();
+
+		template.conclusion().ifPresent(tc -> {
+			SubConclusion copy = new SubConclusion(templateName + ":" + tc.id(), tc.label());
+			if (includeInExpansion(copy)) {
+				copies.put(tc.id(), copy);
+			}
+		});
+
+		for (JustificationElement elem : template.getElements()) {
+			JustificationElement copy = qualifiedCopy(elem, templateName);
+			if (includeInExpansion(copy)) {
+				copies.put(elem.id(), copy);
+			}
+		}
+
+		// Step 2: re-wire support edges between included copies only
+		template.conclusion().ifPresent(tc -> tc.getSupport().ifPresent(s -> {
+			if (copies.containsKey(tc.id()) && copies.containsKey(s.id())) {
+				((SubConclusion) copies.get(tc.id())).addSupport((Strategy) copies.get(s.id()));
+			}
+		}));
+
+		for (SubConclusion sc : template.subConclusions()) {
+			sc.getSupport().ifPresent(s -> {
+				if (copies.containsKey(sc.id()) && copies.containsKey(s.id())) {
+					((SubConclusion) copies.get(sc.id())).addSupport((Strategy) copies.get(s.id()));
+				}
+			});
+		}
+
+		for (Strategy s : template.strategies()) {
+			s.getSupport().ifPresent(leaf -> {
+				String leafId = ((JustificationElement) leaf).id();
+				if (copies.containsKey(s.id()) && copies.containsKey(leafId)) {
+					((Strategy) copies.get(s.id())).addSupport((SupportLeaf) copies.get(leafId));
+				}
+			});
+		}
+
+		// Step 3: add included copies to this model
+		for (JustificationElement copy : copies.values()) {
+			@SuppressWarnings("unchecked")
+			E typed = (E) copy;
+			addElement(typed);
+		}
+	}
+
+	/**
+	 * Returns true if the given element copy should be added to this model during
+	 * template expansion. {@link Justification} returns false for
+	 * {@link AbstractSupport}; {@link Template} returns true for all elements.
+	 */
+	protected abstract boolean includeInExpansion(JustificationElement copy);
 
 	/**
 	 * Validates completeness and locks the model against further modification.
@@ -134,7 +213,14 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 			E c = (E) conclusion;
 			return Optional.of(c);
 		}
-		return elements.stream().filter(e -> e.id().equals(id)).findFirst();
+		Optional<E> exact = elements.stream().filter(e -> e.id().equals(id)).findFirst();
+		if (exact.isPresent()) {
+			return exact;
+		}
+		// Short-name suffix fallback: resolves a plain id to an inherited qualified
+		// element (e.g. "s" resolves to "t:s" after template expansion).
+		String suffix = ":" + id;
+		return elements.stream().filter(e -> e.id().endsWith(suffix)).findFirst();
 	}
 
 	public <T extends JustificationElement> List<T> elementsOfType(Class<T> type) {
@@ -158,4 +244,22 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 	}
 
 	protected abstract <R> R visitSelf(JustificationVisitor<R> visitor);
+
+	/** Returns the last colon-separated segment of a qualified id. */
+	protected static String plainId(String id) {
+		int colon = id.lastIndexOf(':');
+		return colon >= 0 ? id.substring(colon + 1) : id;
+	}
+
+	/** Creates a copy of {@code elem} with id {@code prefix:originalId}. */
+	protected static JustificationElement qualifiedCopy(JustificationElement elem, String prefix) {
+		String qualifiedId = prefix + ":" + elem.id();
+		return switch (elem) {
+			case Evidence e -> new Evidence(qualifiedId, e.label());
+			case Strategy s -> new Strategy(qualifiedId, s.label());
+			case SubConclusion sc -> new SubConclusion(qualifiedId, sc.label());
+			case Conclusion c -> new SubConclusion(qualifiedId, c.label());
+			case AbstractSupport as -> new AbstractSupport(qualifiedId, as.label());
+		};
+	}
 }
