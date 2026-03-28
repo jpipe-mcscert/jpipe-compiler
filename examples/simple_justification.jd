@@ -7,3 +7,13 @@ justification simple {
     evidence e1 is "Test results"
     e1 supports s
 }
+
+justification simple_simple_simple {
+    conclusion c is "The system is correct"
+    
+    strategy s is "Testing as,jdbaf xkjabdjasf akjbgsdkajbfjafb "
+    s supports c
+
+    evidence e1 is "Test results"
+    e1 supports s
+}

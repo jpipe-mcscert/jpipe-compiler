@@ -33,6 +33,59 @@ public class DotExporter implements JustificationVisitor<Void> {
 	private static final String INDENT = "  ";
 	private static final int WRAP_WIDTH = 40;
 
+	// -------------------------------------------------------------------------
+	// Node visual styles — change shapes and colours here
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Visual properties of a single node type. {@code dotStyle} is the DOT
+	 * {@code style=} value (e.g. {@code "filled"} or {@code "filled,rounded"});
+	 * {@code fillColor} maps to {@code fillcolor=}; {@code borderColor} maps to
+	 * {@code color=}. Any field may be {@code null} to omit that attribute. Hex
+	 * color values (e.g. {@code "#0072B2"}) are quoted automatically.
+	 */
+	private record NodeStyle(String shape, String dotStyle, String fillColor,
+			String borderColor) {
+
+		/** Renders this style as a DOT attribute fragment. */
+		String toAttrs() {
+			StringBuilder sb = new StringBuilder("shape=").append(shape);
+			if (dotStyle != null) {
+				sb.append(", style=");
+				if (dotStyle.contains(","))
+					sb.append('"').append(dotStyle).append('"');
+				else
+					sb.append(dotStyle);
+			}
+			if (fillColor != null)
+				sb.append(", fillcolor=").append(dotColor(fillColor));
+			if (borderColor != null)
+				sb.append(", color=").append(dotColor(borderColor));
+			return sb.toString();
+		}
+
+		/** Wraps hex color values in quotes; leaves X11 named colors as-is. */
+		private static String dotColor(String color) {
+			return color.startsWith("#") ? "\"" + color + "\"" : color;
+		}
+	}
+
+	// Palette derived from Okabe-Ito (2008) — safe for deuteranopia,
+	// protanopia, and tritanopia. Fills use lightened versions of the
+	// base hues so that black text remains readable (WCAG AA).
+	private static final NodeStyle CONCLUSION_STYLE = new NodeStyle("rect",
+			"filled,rounded", "lightgrey", null);
+	private static final NodeStyle SUB_CONCLUSION_STYLE = new NodeStyle("rect",
+			null, null, "#0072B2"); // Okabe-Ito blue
+	private static final NodeStyle STRATEGY_STYLE = new NodeStyle("hexagon",
+			"filled", "#F0C27F", null); // amber — replaces green
+	private static final NodeStyle EVIDENCE_STYLE = new NodeStyle("note",
+			"filled", "#9ECAE1", null); // sky blue
+	private static final NodeStyle ABSTRACT_SUPPORT_STYLE = new NodeStyle(
+			"rect", "dotted", null, null);
+
+	// -------------------------------------------------------------------------
+
 	private final StringBuilder builder = new StringBuilder();
 	private String currentModelName;
 
@@ -77,34 +130,31 @@ public class DotExporter implements JustificationVisitor<Void> {
 
 	@Override
 	public Void visit(Conclusion conclusion) {
-		appendNode(conclusion,
-				"shape=rect, style=\"filled,rounded\", fillcolor=lightgrey");
+		appendNode(conclusion, CONCLUSION_STYLE.toAttrs());
 		return null;
 	}
 
 	@Override
 	public Void visit(SubConclusion subConclusion) {
-		appendNode(subConclusion, "shape=rect, color=dodgerblue");
+		appendNode(subConclusion, SUB_CONCLUSION_STYLE.toAttrs());
 		return null;
 	}
 
 	@Override
 	public Void visit(Strategy strategy) {
-		appendNode(strategy,
-				"shape=parallelogram, style=filled, fillcolor=palegreen");
+		appendNode(strategy, STRATEGY_STYLE.toAttrs());
 		return null;
 	}
 
 	@Override
 	public Void visit(Evidence evidence) {
-		appendNode(evidence,
-				"shape=note, style=filled, fillcolor=lightskyblue2");
+		appendNode(evidence, EVIDENCE_STYLE.toAttrs());
 		return null;
 	}
 
 	@Override
 	public Void visit(AbstractSupport abstractSupport) {
-		appendNode(abstractSupport, "shape=rect, style=dotted");
+		appendNode(abstractSupport, ABSTRACT_SUPPORT_STYLE.toAttrs());
 		return null;
 	}
 
