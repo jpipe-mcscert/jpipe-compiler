@@ -25,4 +25,5 @@ Use Maven Shade in `jpipe-cli` to produce the fat JAR, accepting the cosmetic `M
 
 - Users need Java 25 installed to run jPipe. Homebrew and apt packages will declare it as a dependency.
 - The fat JAR is produced in `jpipe-cli/target/`.
+- **Log4j2 compatibility:** Shade merges JARs by overwriting duplicate resource paths. Log4j2 stores its plugin registry in `META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat`; without special handling, Shade silently drops all but one copy and Log4j2 degrades at runtime. The `log4j-transform-maven-shade-plugin-extensions` artifact must be added as a Shade plugin dependency, and `Log4j2PluginCacheFileTransformer` added as a transformer. Failure to do so breaks Log4j2 in the fat JAR — any `System.out` workarounds in pipeline code are a symptom of this misconfiguration.
 - A future ADR should revisit jlink + jpackage when the distribution pipeline is built, as it would eliminate the Java runtime dependency and produce proper native installers.

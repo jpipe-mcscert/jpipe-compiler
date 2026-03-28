@@ -14,6 +14,7 @@ import ca.mcscert.jpipe.compiler.steps.transformations.Parser;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.model.Unit;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -36,14 +37,17 @@ public final class CompilerFactory {
 	 *
 	 * @param config
 	 *            the compilation configuration.
+	 * @param stdout
+	 *            stream to use when the output target is
+	 *            {@link CompilationConfig#STDOUT}.
 	 * @return a ready-to-use {@link Compiler}.
 	 * @throws UnsupportedOperationException
 	 *             if the requested mode or format is not yet implemented.
 	 */
-	public static Compiler build(CompilationConfig config) {
+	public static Compiler build(CompilationConfig config, OutputStream stdout) {
 		return switch (config.mode()) {
 			case DIAGNOSTIC -> buildDiagnosticCompiler(config);
-			case PROCESS -> buildProcessCompiler(config);
+			case PROCESS -> buildProcessCompiler(config, stdout);
 		};
 	}
 
@@ -81,9 +85,10 @@ public final class CompilerFactory {
 		throw new UnsupportedOperationException("DIAGNOSTIC mode is not yet implemented");
 	}
 
-	private static Compiler buildProcessCompiler(CompilationConfig config) {
+	private static Compiler buildProcessCompiler(CompilationConfig config, OutputStream stdout) {
 		return switch (config.format()) {
-			case JPIPE -> parsingChain().andThen(unitBuilder()).andThen(new ExportToJpipe()).andThen(new StringSink());
+			case JPIPE ->
+				parsingChain().andThen(unitBuilder()).andThen(new ExportToJpipe()).andThen(new StringSink(stdout));
 			default -> throw new UnsupportedOperationException("Format not yet supported: " + config.format());
 		};
 	}

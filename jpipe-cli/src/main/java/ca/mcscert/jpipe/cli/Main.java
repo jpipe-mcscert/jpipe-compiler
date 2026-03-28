@@ -43,7 +43,7 @@ public class Main implements Callable<Integer> {
 		}
 		try {
 			CompilationConfig config = new CompilationConfig(input, output, mode, format);
-			CompilerFactory.build(config).compile(input, output);
+			CompilerFactory.build(config, System.out).compile(input, output);
 			return EXIT_OK;
 		} catch (CompilationException | UnsupportedOperationException e) {
 			System.err.println("error: " + e.getMessage());

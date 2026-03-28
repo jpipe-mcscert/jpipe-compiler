@@ -86,6 +86,7 @@
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
         <junit-tree-reporter.version>1.4.0</junit-tree-reporter.version>
         <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
+        <log4j-transform.version>0.1.0</log4j-transform.version>
         <spotless-plugin.version>2.46.0</spotless-plugin.version>
         <checkstyle-plugin.version>3.5.0</checkstyle-plugin.version>
         <checkstyle.version>10.21.1</checkstyle.version>

@@ -66,3 +66,4 @@ No `protected` logger fields. Subclass logging goes through a template method in
 - `Compiler` and `Main` must add `INFO` lifecycle logs.
 - New commands automatically inherit `DEBUG` logging via `RegularCommand`'s template method; no per-command logging code needed.
 - Existing `System.out` calls in pipeline classes are a compliance violation under this ADR and should be treated as bugs.
+- **Prerequisite — Shade compatibility (ADR-0003):** The logging conventions in this ADR are only effective in the fat JAR if Log4j2's plugin cache is correctly merged by Shade. Without `Log4j2PluginCacheFileTransformer`, Log4j2 degrades silently and `System.out` workarounds become necessary. Any pipeline code using `System.out` instead of Log4j2 should be treated as a Shade misconfiguration symptom first, a logging convention violation second.
