@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.commands.linking;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.MacroCommand;
 import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Evidence;
@@ -27,13 +28,20 @@ public final class OverrideAbstractSupport implements MacroCommand {
 	private final String qualifiedId;
 	private final String newType;
 	private final String label;
+	private final SourceLocation location;
 
 	public OverrideAbstractSupport(String container, String qualifiedId,
 			String newType, String label) {
+		this(container, qualifiedId, newType, label, SourceLocation.UNKNOWN);
+	}
+
+	public OverrideAbstractSupport(String container, String qualifiedId,
+			String newType, String label, SourceLocation location) {
 		this.container = container;
 		this.qualifiedId = qualifiedId;
 		this.newType = newType;
 		this.label = label;
+		this.location = location;
 	}
 
 	@Override
@@ -66,6 +74,7 @@ public final class OverrideAbstractSupport implements MacroCommand {
 					"Cannot override abstract support with: " + newType);
 		};
 
+		unit.recordLocation(container, qualifiedId, location);
 		return List.of(new RemoveElement(container, qualifiedId),
 				new AddElement(container, replacement),
 				new RewireStrategySupport(container, strategyId, qualifiedId));

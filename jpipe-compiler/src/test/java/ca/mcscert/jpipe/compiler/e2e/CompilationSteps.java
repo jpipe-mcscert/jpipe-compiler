@@ -8,6 +8,7 @@ import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
@@ -137,6 +138,21 @@ public class CompilationSteps {
 		assertThat(strategy.getSupport()).isPresent().hasValueSatisfying(
 				sl -> assertThat(((JustificationElement) sl).id())
 						.isEqualTo(evidenceId));
+	}
+
+	@Then("the model {string} is declared at line {int}")
+	public void theModelIsDeclaredAtLine(String modelName, int line) {
+		assertThat(unit.locationOf(modelName).line()).isEqualTo(line);
+	}
+
+	@Then("the element {string} in model {string} is declared at line {int}")
+	public void theElementInModelIsDeclaredAtLine(String elementId,
+			String modelName, int line) {
+		SourceLocation loc = unit.locationOf(modelName, elementId);
+		assertThat(loc.isKnown())
+				.as("location of %s/%s should be known", modelName, elementId)
+				.isTrue();
+		assertThat(loc.line()).isEqualTo(line);
 	}
 
 	@When("I export the current model to DOT format")

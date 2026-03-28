@@ -18,6 +18,7 @@ public final class Unit {
 
 	private final String source;
 	private final Map<String, JustificationModel<?>> models = new LinkedHashMap<>();
+	private final Map<String, SourceLocation> locations = new LinkedHashMap<>();
 
 	public Unit(String source) {
 		this.source = source;
@@ -62,6 +63,43 @@ public final class Unit {
 	public List<Template> templates() {
 		return models.values().stream().filter(Template.class::isInstance)
 				.map(Template.class::cast).toList();
+	}
+
+	/** Unmodifiable view of the full location registry. */
+	public Map<String, SourceLocation> locations() {
+		return Collections.unmodifiableMap(locations);
+	}
+
+	/** Records where a model (justification or template) was declared. */
+	public void recordLocation(String modelName, SourceLocation loc) {
+		if (loc.isKnown()) {
+			locations.put(modelName, loc);
+		}
+	}
+
+	/**
+	 * Returns the declared location of a model, or
+	 * {@link SourceLocation#UNKNOWN}.
+	 */
+	public SourceLocation locationOf(String modelName) {
+		return locations.getOrDefault(modelName, SourceLocation.UNKNOWN);
+	}
+
+	/** Records where a named element inside a model was declared. */
+	public void recordLocation(String modelName, String elementId,
+			SourceLocation loc) {
+		if (loc.isKnown()) {
+			locations.put(modelName + "/" + elementId, loc);
+		}
+	}
+
+	/**
+	 * Returns the declared location of an element inside a model, or
+	 * {@link SourceLocation#UNKNOWN}.
+	 */
+	public SourceLocation locationOf(String modelName, String elementId) {
+		return locations.getOrDefault(modelName + "/" + elementId,
+				SourceLocation.UNKNOWN);
 	}
 
 	public <R> R accept(JustificationVisitor<R> visitor) {

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
@@ -51,6 +52,21 @@ class CreationCommandsTest {
 		}
 
 		@Test
+		void registersLocationWhenProvided() throws Exception {
+			Unit unit = new Unit("src");
+			SourceLocation loc = new SourceLocation(2, 0);
+			new CreateJustification("j1", loc).execute(unit);
+			assertThat(unit.locationOf("j1")).isEqualTo(loc);
+		}
+
+		@Test
+		void locationIsUnknownWhenNotProvided() throws Exception {
+			Unit unit = new Unit("src");
+			new CreateJustification("j1").execute(unit);
+			assertThat(unit.locationOf("j1")).isEqualTo(SourceLocation.UNKNOWN);
+		}
+
+		@Test
 		void toStringIncludesIdentifier() {
 			assertThat(new CreateJustification("j1").toString()).contains("j1");
 		}
@@ -65,6 +81,21 @@ class CreationCommandsTest {
 			new CreateTemplate("t1").execute(unit);
 			assertThat(unit.findModel("t1")).isPresent().get()
 					.isInstanceOf(Template.class);
+		}
+
+		@Test
+		void registersLocationWhenProvided() throws Exception {
+			Unit unit = new Unit("src");
+			SourceLocation loc = new SourceLocation(5, 0);
+			new CreateTemplate("t1", loc).execute(unit);
+			assertThat(unit.locationOf("t1")).isEqualTo(loc);
+		}
+
+		@Test
+		void locationIsUnknownWhenNotProvided() throws Exception {
+			Unit unit = new Unit("src");
+			new CreateTemplate("t1").execute(unit);
+			assertThat(unit.locationOf("t1")).isEqualTo(SourceLocation.UNKNOWN);
 		}
 
 		@Test
@@ -89,6 +120,23 @@ class CreationCommandsTest {
 		}
 
 		@Test
+		void registersLocationWhenProvided() throws Exception {
+			Unit unit = unitWithJustification("j1");
+			SourceLocation loc = new SourceLocation(3, 2);
+			new CreateConclusion("j1", "c1", "my conclusion", loc)
+					.execute(unit);
+			assertThat(unit.locationOf("j1", "c1")).isEqualTo(loc);
+		}
+
+		@Test
+		void locationIsUnknownWhenNotProvided() throws Exception {
+			Unit unit = unitWithJustification("j1");
+			new CreateConclusion("j1", "c1", "my conclusion").execute(unit);
+			assertThat(unit.locationOf("j1", "c1"))
+					.isEqualTo(SourceLocation.UNKNOWN);
+		}
+
+		@Test
 		void toStringIncludesFields() {
 			String s = new CreateConclusion("j1", "c1", "lbl").toString();
 			assertThat(s).contains("j1").contains("c1").contains("lbl");
@@ -108,6 +156,22 @@ class CreationCommandsTest {
 		}
 
 		@Test
+		void registersLocationWhenProvided() throws Exception {
+			Unit unit = unitWithJustification("j1");
+			SourceLocation loc = new SourceLocation(4, 2);
+			new CreateStrategy("j1", "s1", "my strategy", loc).execute(unit);
+			assertThat(unit.locationOf("j1", "s1")).isEqualTo(loc);
+		}
+
+		@Test
+		void locationIsUnknownWhenNotProvided() throws Exception {
+			Unit unit = unitWithJustification("j1");
+			new CreateStrategy("j1", "s1", "my strategy").execute(unit);
+			assertThat(unit.locationOf("j1", "s1"))
+					.isEqualTo(SourceLocation.UNKNOWN);
+		}
+
+		@Test
 		void toStringIncludesFields() {
 			String s = new CreateStrategy("j1", "s1", "lbl").toString();
 			assertThat(s).contains("j1").contains("s1").contains("lbl");
@@ -124,6 +188,22 @@ class CreationCommandsTest {
 			assertThat(unit.get("j1").getElements()).hasSize(1).first()
 					.isInstanceOf(Evidence.class)
 					.extracting(e -> ((Evidence) e).id()).isEqualTo("e1");
+		}
+
+		@Test
+		void registersLocationWhenProvided() throws Exception {
+			Unit unit = unitWithJustification("j1");
+			SourceLocation loc = new SourceLocation(7, 2);
+			new CreateEvidence("j1", "e1", "my evidence", loc).execute(unit);
+			assertThat(unit.locationOf("j1", "e1")).isEqualTo(loc);
+		}
+
+		@Test
+		void locationIsUnknownWhenNotProvided() throws Exception {
+			Unit unit = unitWithJustification("j1");
+			new CreateEvidence("j1", "e1", "my evidence").execute(unit);
+			assertThat(unit.locationOf("j1", "e1"))
+					.isEqualTo(SourceLocation.UNKNOWN);
 		}
 
 		@Test
@@ -147,6 +227,24 @@ class CreationCommandsTest {
 		}
 
 		@Test
+		void registersLocationWhenProvided() throws Exception {
+			Unit unit = unitWithJustification("j1");
+			SourceLocation loc = new SourceLocation(6, 2);
+			new CreateSubConclusion("j1", "sc1", "my sub-conclusion", loc)
+					.execute(unit);
+			assertThat(unit.locationOf("j1", "sc1")).isEqualTo(loc);
+		}
+
+		@Test
+		void locationIsUnknownWhenNotProvided() throws Exception {
+			Unit unit = unitWithJustification("j1");
+			new CreateSubConclusion("j1", "sc1", "my sub-conclusion")
+					.execute(unit);
+			assertThat(unit.locationOf("j1", "sc1"))
+					.isEqualTo(SourceLocation.UNKNOWN);
+		}
+
+		@Test
 		void toStringIncludesFields() {
 			String s = new CreateSubConclusion("j1", "sc1", "lbl").toString();
 			assertThat(s).contains("j1").contains("sc1").contains("lbl");
@@ -165,6 +263,24 @@ class CreationCommandsTest {
 					.isInstanceOf(AbstractSupport.class)
 					.extracting(e -> ((AbstractSupport) e).id())
 					.isEqualTo("as1");
+		}
+
+		@Test
+		void registersLocationWhenProvided() throws Exception {
+			Unit unit = unitWithTemplate("t1");
+			SourceLocation loc = new SourceLocation(8, 2);
+			new CreateAbstractSupport("t1", "as1", "my abstract support", loc)
+					.execute(unit);
+			assertThat(unit.locationOf("t1", "as1")).isEqualTo(loc);
+		}
+
+		@Test
+		void locationIsUnknownWhenNotProvided() throws Exception {
+			Unit unit = unitWithTemplate("t1");
+			new CreateAbstractSupport("t1", "as1", "my abstract support")
+					.execute(unit);
+			assertThat(unit.locationOf("t1", "as1"))
+					.isEqualTo(SourceLocation.UNKNOWN);
 		}
 
 		@Test

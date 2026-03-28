@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
+import ca.mcscert.jpipe.commands.MacroCommand;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.Unit;
@@ -18,6 +19,15 @@ public final class ActionListInterpretation
 	@Override
 	protected Unit run(List<Command> input, CompilationContext ctx)
 			throws Exception {
-		return new ExecutionEngine().spawn(ctx.sourcePath(), input);
+		long macros = input.stream().filter(MacroCommand.class::isInstance)
+				.count();
+		ctx.recordStat("commands.total", input.size());
+		ctx.recordStat("commands.macros", macros);
+
+		ExecutionEngine engine = new ExecutionEngine();
+		Unit unit = engine.spawn(ctx.sourcePath(), input);
+
+		ctx.recordStat("commands.deferrals", engine.totalDeferrals());
+		return unit;
 	}
 }

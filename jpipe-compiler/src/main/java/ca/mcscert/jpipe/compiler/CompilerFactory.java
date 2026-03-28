@@ -10,6 +10,7 @@ import ca.mcscert.jpipe.compiler.steps.io.sources.FileSource;
 import ca.mcscert.jpipe.compiler.steps.transformations.ActionListInterpretation;
 import ca.mcscert.jpipe.compiler.steps.transformations.ActionListProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
+import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticReport;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToDot;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJson;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJpipe;
@@ -53,7 +54,7 @@ public final class CompilerFactory {
 	public static Compiler build(CompilationConfig config,
 			OutputStream stdout) {
 		return switch (config.mode()) {
-			case DIAGNOSTIC -> buildDiagnosticCompiler(config);
+			case DIAGNOSTIC -> buildDiagnosticCompiler(config, stdout);
 			case PROCESS -> buildProcessCompiler(config, stdout);
 		};
 	}
@@ -87,14 +88,11 @@ public final class CompilerFactory {
 	// Mode builders
 	// -------------------------------------------------------------------------
 
-	private static Compiler buildDiagnosticCompiler(CompilationConfig config) {
-		// TODO: run the parsing chain and write a diagnostics report to the
-		// output
-		// file.
-		// Requires deciding on a diagnostic report format and a corresponding
-		// Sink.
-		throw new UnsupportedOperationException(
-				"DIAGNOSTIC mode is not yet implemented");
+	private static Compiler buildDiagnosticCompiler(CompilationConfig config,
+			OutputStream stdout) {
+		return parsingChain().andThen(unitBuilder())
+				.andThen(new DiagnosticReport())
+				.andThen(new StringSink(stdout));
 	}
 
 	private static Compiler buildProcessCompiler(CompilationConfig config,

@@ -2,7 +2,9 @@ package ca.mcscert.jpipe.compiler.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Mutable context threaded through every step of a compilation pipeline.
@@ -17,6 +19,7 @@ public final class CompilationContext {
 
 	private final String sourcePath;
 	private final List<Diagnostic> diagnostics = new ArrayList<>();
+	private final Map<String, Long> stats = new LinkedHashMap<>();
 
 	public CompilationContext(String sourcePath) {
 		this.sourcePath = sourcePath;
@@ -77,6 +80,16 @@ public final class CompilationContext {
 	/** Unmodifiable view of all diagnostics in report order. */
 	public List<Diagnostic> diagnostics() {
 		return Collections.unmodifiableList(diagnostics);
+	}
+
+	/** Record a named numeric statistic produced during compilation. */
+	public void recordStat(String key, long value) {
+		stats.put(key, value);
+	}
+
+	/** Unmodifiable view of all recorded statistics in insertion order. */
+	public Map<String, Long> stats() {
+		return Collections.unmodifiableMap(stats);
 	}
 
 }

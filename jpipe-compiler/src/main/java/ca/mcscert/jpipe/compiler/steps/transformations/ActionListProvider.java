@@ -15,6 +15,7 @@ import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.lang.JPipeBaseListener;
 import ca.mcscert.jpipe.lang.JPipeParser;
+import ca.mcscert.jpipe.model.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 import org.antlr.v4.runtime.Token;
@@ -81,7 +82,9 @@ public final class ActionListProvider
 		public void enterJustification(JPipeParser.JustificationContext ctx) {
 			this.buildContext = buildContext
 					.updateCurrentJustification(ctx.id.getText());
-			result.add(new CreateJustification(ctx.id.getText()));
+			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
+					ctx.id.getLine(), ctx.id.getCharPositionInLine());
+			result.add(new CreateJustification(ctx.id.getText(), loc));
 		}
 
 		@Override
@@ -94,7 +97,9 @@ public final class ActionListProvider
 		public void enterTemplate(JPipeParser.TemplateContext ctx) {
 			this.buildContext = buildContext
 					.updateCurrentJustification(ctx.id.getText());
-			result.add(new CreateTemplate(ctx.id.getText()));
+			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
+					ctx.id.getLine(), ctx.id.getCharPositionInLine());
+			result.add(new CreateTemplate(ctx.id.getText(), loc));
 		}
 
 		@Override
@@ -112,48 +117,63 @@ public final class ActionListProvider
 		public void enterEvidence(JPipeParser.EvidenceContext ctx) {
 			String identifier = ctx.element().id.getText();
 			String label = strip(ctx.element().name.getText());
+			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
+					ctx.element().id.getStart().getLine(),
+					ctx.element().id.getStart().getCharPositionInLine());
 			if (identifier.contains(":")) {
 				result.add(new OverrideAbstractSupport(
 						buildContext.justificationId, identifier, "evidence",
-						label));
+						label, loc));
 			} else {
 				result.add(new CreateEvidence(buildContext.justificationId,
-						identifier, label));
+						identifier, label, loc));
 			}
 		}
 
 		@Override
 		public void enterAbstract(JPipeParser.AbstractContext ctx) {
 			String identifier = ctx.element().id.getText();
+			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
+					ctx.element().id.getStart().getLine(),
+					ctx.element().id.getStart().getCharPositionInLine());
 			result.add(new CreateAbstractSupport(buildContext.justificationId,
-					identifier, strip(ctx.element().name.getText())));
+					identifier, strip(ctx.element().name.getText()), loc));
 		}
 
 		@Override
 		public void enterStrategy(JPipeParser.StrategyContext ctx) {
 			String identifier = ctx.element().id.getText();
+			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
+					ctx.element().id.getStart().getLine(),
+					ctx.element().id.getStart().getCharPositionInLine());
 			result.add(new CreateStrategy(buildContext.justificationId,
-					identifier, strip(ctx.element().name.getText())));
+					identifier, strip(ctx.element().name.getText()), loc));
 		}
 
 		@Override
 		public void enterConclusion(JPipeParser.ConclusionContext ctx) {
 			String identifier = ctx.element().id.getText();
+			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
+					ctx.element().id.getStart().getLine(),
+					ctx.element().id.getStart().getCharPositionInLine());
 			result.add(new CreateConclusion(buildContext.justificationId,
-					identifier, strip(ctx.element().name.getText())));
+					identifier, strip(ctx.element().name.getText()), loc));
 		}
 
 		@Override
 		public void enterSub_conclusion(JPipeParser.Sub_conclusionContext ctx) {
 			String identifier = ctx.element().id.getText();
 			String label = strip(ctx.element().name.getText());
+			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
+					ctx.element().id.getStart().getLine(),
+					ctx.element().id.getStart().getCharPositionInLine());
 			if (identifier.contains(":")) {
 				result.add(new OverrideAbstractSupport(
 						buildContext.justificationId, identifier,
-						"sub-conclusion", label));
+						"sub-conclusion", label, loc));
 			} else {
 				result.add(new CreateSubConclusion(buildContext.justificationId,
-						identifier, label));
+						identifier, label, loc));
 			}
 		}
 

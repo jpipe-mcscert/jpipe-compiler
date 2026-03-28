@@ -14,6 +14,13 @@ public final class ExecutionEngine {
 
 	private static final Logger logger = LogManager.getLogger();
 
+	private int totalDeferrals = 0;
+
+	/** Total number of times a command was deferred across all executions. */
+	public int totalDeferrals() {
+		return totalDeferrals;
+	}
+
 	public Unit spawn(String source, List<Command> commands) {
 		Unit unit = new Unit(source);
 		execute(new ArrayList<>(commands), unit);
@@ -39,6 +46,7 @@ public final class ExecutionEngine {
 				logger.trace("Deferring command [{}]", command);
 				commands.add(command);
 				deferCount++;
+				totalDeferrals++;
 			} else if (command instanceof MacroCommand macro) {
 				try {
 					List<Command> expanded = macro.expand(unit);

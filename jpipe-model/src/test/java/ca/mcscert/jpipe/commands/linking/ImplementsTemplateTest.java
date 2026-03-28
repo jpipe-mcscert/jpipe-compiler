@@ -11,6 +11,7 @@ import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.Unit;
@@ -208,6 +209,25 @@ class ImplementsTemplateTest {
 		}
 
 		@Test
+		void overrideRegistersOverrideSiteLocation() {
+			SourceLocation overrideLoc = new SourceLocation(10, 4);
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src", List.of(new CreateTemplate("t"),
+					new CreateConclusion("t", "tc", "Template conclusion"),
+					new CreateStrategy("t", "ts", "Template strategy"),
+					new CreateAbstractSupport("t", "as", "Abstract support"),
+					new AddSupport("t", "ts", "as"),
+					new AddSupport("t", "tc", "ts"),
+					new CreateJustification("j"),
+					new CreateConclusion("j", "c", "My conclusion"),
+					new ImplementsTemplate("j", "t"),
+					new OverrideAbstractSupport("j", "t:as", "evidence",
+							"Concrete", overrideLoc)));
+
+			assertThat(unit.locationOf("j", "t:as")).isEqualTo(overrideLoc);
+		}
+
+		@Test
 		void overrideAbstractSupportReplacesPlaceholderWithEvidence() {
 			ExecutionEngine engine = new ExecutionEngine();
 			Unit unit = engine.spawn("src", List.of(new CreateTemplate("t"),
@@ -316,6 +336,64 @@ class ImplementsTemplateTest {
 
 			assertThat(unit.get("child").getParent()).isPresent().get()
 					.extracting(Template::getName).isEqualTo("parent");
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Location propagation
+	// -------------------------------------------------------------------------
+
+	@Nested
+	class LocationPropagation {
+
+		@Test
+		void inlinedElementsInheritTemplateLocations() throws Exception {
+			SourceLocation stratLoc = new SourceLocation(5, 2);
+			SourceLocation evidLoc = new SourceLocation(6, 2);
+			Unit unit = new Unit("src");
+			new CreateTemplate("t").execute(unit);
+			new CreateConclusion("t", "tc", "Template conclusion")
+					.execute(unit);
+			new CreateStrategy("t", "ts", "Template strategy", stratLoc)
+					.execute(unit);
+			new CreateEvidence("t", "te", "Template evidence", evidLoc)
+					.execute(unit);
+			new CreateJustification("j").execute(unit);
+			new CreateConclusion("j", "c", "My conclusion").execute(unit);
+			new ImplementsTemplate("j", "t").execute(unit);
+
+			assertThat(unit.locationOf("j", "t:ts")).isEqualTo(stratLoc);
+			assertThat(unit.locationOf("j", "t:te")).isEqualTo(evidLoc);
+		}
+
+		@Test
+		void inlinedConclusionInheritsTemplateLocation() throws Exception {
+			SourceLocation concLoc = new SourceLocation(3, 0);
+			Unit unit = new Unit("src");
+			new CreateTemplate("t").execute(unit);
+			new CreateConclusion("t", "tc", "Template conclusion", concLoc)
+					.execute(unit);
+			new CreateJustification("j").execute(unit);
+			new CreateConclusion("j", "c", "My conclusion").execute(unit);
+			new ImplementsTemplate("j", "t").execute(unit);
+
+			assertThat(unit.locationOf("j", "t:tc")).isEqualTo(concLoc);
+		}
+
+		@Test
+		void inlinedElementWithUnknownTemplateLocationStaysUnknown()
+				throws Exception {
+			Unit unit = new Unit("src");
+			new CreateTemplate("t").execute(unit);
+			new CreateConclusion("t", "tc", "Template conclusion")
+					.execute(unit);
+			new CreateEvidence("t", "te", "Template evidence").execute(unit);
+			new CreateJustification("j").execute(unit);
+			new CreateConclusion("j", "c", "My conclusion").execute(unit);
+			new ImplementsTemplate("j", "t").execute(unit);
+
+			assertThat(unit.locationOf("j", "t:te"))
+					.isEqualTo(SourceLocation.UNKNOWN);
 		}
 	}
 
