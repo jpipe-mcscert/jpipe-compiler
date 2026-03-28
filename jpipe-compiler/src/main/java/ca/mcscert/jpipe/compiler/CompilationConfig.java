@@ -1,7 +1,7 @@
 package ca.mcscert.jpipe.compiler;
 
 /**
- * Immutable configuration for a single compilation run.
+ * Immutable configuration for a single process-mode compilation run.
  *
  * <p>
  * Use {@link #STDIN} / {@link #STDOUT} as sentinel values for {@code inputFile}
@@ -12,16 +12,12 @@ package ca.mcscert.jpipe.compiler;
  *            path to the {@code .jd} source file, or {@link #STDIN}.
  * @param outputFile
  *            path to the output file, or {@link #STDOUT}.
- * @param mode
- *            whether to run in {@link Mode#DIAGNOSTIC} or {@link Mode#PROCESS}
- *            mode.
  * @param format
- *            output format, relevant only in {@link Mode#PROCESS} mode.
+ *            output format.
  * @param diagramName
- *            name of the model to export; {@code null} means auto-select when
- *            unambiguous.
+ *            name of the model to export.
  */
-public record CompilationConfig(String inputFile, String outputFile, Mode mode,
+public record CompilationConfig(String inputFile, String outputFile,
 		Format format, String diagramName) {
 
 	public static final String STDIN = "<stdin>";

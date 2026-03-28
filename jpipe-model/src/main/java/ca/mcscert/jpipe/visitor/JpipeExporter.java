@@ -41,6 +41,19 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 		return builder.toString();
 	}
 
+	/**
+	 * Serialise a single {@code model} to {@code .jd} source text.
+	 *
+	 * @param model
+	 *            the model to serialise.
+	 * @return well-formed {@code .jd} text for this model only.
+	 */
+	public String export(JustificationModel<?> model) {
+		builder.setLength(0);
+		model.accept(this);
+		return builder.toString();
+	}
+
 	// -------------------------------------------------------------------------
 	// Unit and model visit methods
 	// -------------------------------------------------------------------------

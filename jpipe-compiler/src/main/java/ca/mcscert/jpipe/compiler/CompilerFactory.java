@@ -30,7 +30,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
  * appropriate pipeline steps.
  *
  * <p>
- * Not all modes and formats are implemented yet. Unsupported combinations throw
+ * Not all formats are implemented yet. Unsupported combinations throw
  * {@link UnsupportedOperationException} at factory time, before any file I/O
  * occurs.
  */
@@ -40,7 +40,7 @@ public final class CompilerFactory {
 	}
 
 	/**
-	 * Build a compiler from the given configuration.
+	 * Build a process-mode compiler from the given configuration.
 	 *
 	 * @param config
 	 *            the compilation configuration.
@@ -49,14 +49,52 @@ public final class CompilerFactory {
 	 *            {@link CompilationConfig#STDOUT}.
 	 * @return a ready-to-use {@link Compiler}.
 	 * @throws UnsupportedOperationException
-	 *             if the requested mode or format is not yet implemented.
+	 *             if the requested format is not yet implemented.
 	 */
 	public static Compiler build(CompilationConfig config,
 			OutputStream stdout) {
-		return switch (config.mode()) {
-			case DIAGNOSTIC -> buildDiagnosticCompiler(config, stdout);
-			case PROCESS -> buildProcessCompiler(config, stdout);
+		return switch (config.format()) {
+			case JPIPE -> parsingChain().andThen(unitBuilder())
+					.andThen(new SelectModel(config.diagramName()))
+					.andThen(new ExportToJpipe())
+					.andThen(new StringSink(stdout));
+			case DOT -> parsingChain().andThen(dotChain(config))
+					.andThen(new StringSink(stdout));
+			case PNG -> parsingChain().andThen(dotChain(config))
+					.andThen(new RenderWithDot("png"))
+					.andThen(new ByteSink(stdout));
+			case JPEG -> parsingChain().andThen(dotChain(config))
+					.andThen(new RenderWithDot("jpeg"))
+					.andThen(new ByteSink(stdout));
+			case SVG -> parsingChain().andThen(dotChain(config))
+					.andThen(new RenderWithDot("svg"))
+					.andThen(new ByteSink(stdout));
+			case JSON -> parsingChain().andThen(unitBuilder())
+					.andThen(new SelectModel(config.diagramName()))
+					.andThen(new ExportToJson())
+					.andThen(new StringSink(stdout));
+			case PYTHON -> parsingChain().andThen(unitBuilder())
+					.andThen(new SelectModel(config.diagramName()))
+					.andThen(new ExportToPython())
+					.andThen(new StringSink(stdout));
+			default -> throw new UnsupportedOperationException(
+					"Format not yet supported: " + config.format());
 		};
+	}
+
+	/**
+	 * Build a diagnostic-mode compiler that parses the source and produces a
+	 * human-readable report without exporting any model.
+	 *
+	 * @param stdout
+	 *            stream to use when the output target is
+	 *            {@link CompilationConfig#STDOUT}.
+	 * @return a ready-to-use {@link Compiler}.
+	 */
+	public static Compiler buildDiagnosticCompiler(OutputStream stdout) {
+		return parsingChain().andThen(unitBuilder())
+				.andThen(new DiagnosticReport())
+				.andThen(new StringSink(stdout));
 	}
 
 	// -------------------------------------------------------------------------
@@ -85,45 +123,8 @@ public final class CompilerFactory {
 	}
 
 	// -------------------------------------------------------------------------
-	// Mode builders
+	// Private helpers
 	// -------------------------------------------------------------------------
-
-	private static Compiler buildDiagnosticCompiler(CompilationConfig config,
-			OutputStream stdout) {
-		return parsingChain().andThen(unitBuilder())
-				.andThen(new DiagnosticReport())
-				.andThen(new StringSink(stdout));
-	}
-
-	private static Compiler buildProcessCompiler(CompilationConfig config,
-			OutputStream stdout) {
-		return switch (config.format()) {
-			case JPIPE -> parsingChain().andThen(unitBuilder())
-					.andThen(new ExportToJpipe())
-					.andThen(new StringSink(stdout));
-			case DOT -> parsingChain().andThen(dotChain(config))
-					.andThen(new StringSink(stdout));
-			case PNG -> parsingChain().andThen(dotChain(config))
-					.andThen(new RenderWithDot("png"))
-					.andThen(new ByteSink(stdout));
-			case JPEG -> parsingChain().andThen(dotChain(config))
-					.andThen(new RenderWithDot("jpeg"))
-					.andThen(new ByteSink(stdout));
-			case SVG -> parsingChain().andThen(dotChain(config))
-					.andThen(new RenderWithDot("svg"))
-					.andThen(new ByteSink(stdout));
-			case JSON -> parsingChain().andThen(unitBuilder())
-					.andThen(new SelectModel(config.diagramName()))
-					.andThen(new ExportToJson())
-					.andThen(new StringSink(stdout));
-			case PYTHON -> parsingChain().andThen(unitBuilder())
-					.andThen(new SelectModel(config.diagramName()))
-					.andThen(new ExportToPython())
-					.andThen(new StringSink(stdout));
-			default -> throw new UnsupportedOperationException(
-					"Format not yet supported: " + config.format());
-		};
-	}
 
 	private static Transformation<List<Command>, String> dotChain(
 			CompilationConfig config) {
