@@ -9,12 +9,14 @@ import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+
 import java.io.FileInputStream;
 import java.io.InputStream;
 
@@ -44,11 +46,6 @@ public class CompilationSteps {
 		}
 	}
 
-	@When("examining justification {string}")
-	public void examiningJustification(String name) {
-		currentModel = unit.get(name);
-	}
-
 	@Then("the compilation succeeds")
 	public void theCompilationSucceeds() {
 		assertThat(compilationError).isNull();
@@ -64,11 +61,13 @@ public class CompilationSteps {
 	@Then("the unit contains a justification named {string}")
 	public void theUnitContainsAJustificationNamed(String name) {
 		assertThat(unit.justifications()).extracting(JustificationModel::getName).contains(name);
+		currentModel = unit.get(name);
 	}
 
 	@Then("the unit contains a template named {string}")
 	public void theUnitContainsATemplateNamed(String name) {
 		assertThat(unit.templates()).extracting(JustificationModel::getName).contains(name);
+		currentModel = unit.get(name);
 	}
 
 	@Then("it has a conclusion with id {string} and label {string}")
@@ -97,6 +96,20 @@ public class CompilationSteps {
 				.orElseThrow(() -> new AssertionError("No conclusion with id: " + conclusionId));
 		assertThat(conclusion.getSupport()).isPresent()
 				.hasValueSatisfying(s -> assertThat(s.id()).isEqualTo(strategyId));
+	}
+
+	@Then("it has an abstract support with id {string} and label {string}")
+	public void itHasAbstractSupport(String id, String label) {
+		assertThat(currentModel.elementsOfType(AbstractSupport.class))
+				.extracting(JustificationElement::id, JustificationElement::label).contains(tuple(id, label));
+	}
+
+	@Then("the abstract support {string} supports the strategy {string}")
+	public void abstractSupportSupportsStrategy(String abstractSupportId, String strategyId) {
+		Strategy strategy = (Strategy) currentModel.findById(strategyId)
+				.orElseThrow(() -> new AssertionError("No strategy with id: " + strategyId));
+		assertThat(strategy.getSupport()).isPresent()
+				.hasValueSatisfying(sl -> assertThat(((JustificationElement) sl).id()).isEqualTo(abstractSupportId));
 	}
 
 	@Then("the evidence {string} supports the strategy {string}")

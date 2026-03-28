@@ -1,0 +1,7 @@
+justification j {
+    conclusion c is "a conclusion"
+    s supports c
+    strategy s is "a strategy"
+    e supports s
+    evidence e is "an evidence"
+}
