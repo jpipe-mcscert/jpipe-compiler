@@ -17,8 +17,11 @@ package ca.mcscert.jpipe.compiler;
  *            mode.
  * @param format
  *            output format, relevant only in {@link Mode#PROCESS} mode.
+ * @param diagramName
+ *            name of the model to export; {@code null} means auto-select when
+ *            unambiguous.
  */
-public record CompilationConfig(String inputFile, String outputFile, Mode mode, Format format) {
+public record CompilationConfig(String inputFile, String outputFile, Mode mode, Format format, String diagramName) {
 
 	public static final String STDIN = "<stdin>";
 	public static final String STDOUT = "<stdout>";

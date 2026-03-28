@@ -38,14 +38,25 @@ public class Main implements Callable<Integer> {
 	@Option(names = {"--headless"}, description = "Suppress logo output.")
 	private boolean headless;
 
+	@Option(names = {"-d",
+			"--diagram"}, description = "Name of the model to export (required when the source defines multiple models).")
+	private String diagram;
+
+	@Option(names = {"--doctor"}, description = "Check that required external tools are available on PATH.")
+	private boolean doctor;
+
 	@Override
 	public Integer call() {
 		if (!headless) {
 			Logo.sout();
 		}
+		if (doctor) {
+			System.out.println("Checking external tools:");
+			return Doctor.run() ? EXIT_OK : EXIT_JPIPE_ERROR;
+		}
 		try {
 			OutputStream out = output.equals(CompilationConfig.STDOUT) ? System.out : new FileOutputStream(output);
-			CompilationConfig config = new CompilationConfig(input, output, mode, format);
+			CompilationConfig config = new CompilationConfig(input, output, mode, format, diagram);
 			CompilerFactory.build(config, out).compile(input, output);
 			return EXIT_OK;
 		} catch (CompilationException | UnsupportedOperationException e) {

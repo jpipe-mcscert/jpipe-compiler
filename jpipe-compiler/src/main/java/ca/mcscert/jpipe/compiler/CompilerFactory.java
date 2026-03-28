@@ -1,17 +1,21 @@
 package ca.mcscert.jpipe.compiler;
 
+import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.compiler.steps.checkers.HaltAndCatchFire;
+import ca.mcscert.jpipe.compiler.steps.io.sinks.ByteSink;
 import ca.mcscert.jpipe.compiler.steps.io.sinks.StringSink;
 import ca.mcscert.jpipe.compiler.steps.io.sources.FileSource;
 import ca.mcscert.jpipe.compiler.steps.transformations.ActionListInterpretation;
 import ca.mcscert.jpipe.compiler.steps.transformations.ActionListProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
+import ca.mcscert.jpipe.compiler.steps.transformations.ExportToDot;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJpipe;
 import ca.mcscert.jpipe.compiler.steps.transformations.Lexer;
 import ca.mcscert.jpipe.compiler.steps.transformations.Parser;
-import ca.mcscert.jpipe.commands.Command;
+import ca.mcscert.jpipe.compiler.steps.transformations.RenderWithDot;
+import ca.mcscert.jpipe.compiler.steps.transformations.SelectModel;
 import ca.mcscert.jpipe.model.Unit;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -89,7 +93,16 @@ public final class CompilerFactory {
 		return switch (config.format()) {
 			case JPIPE ->
 				parsingChain().andThen(unitBuilder()).andThen(new ExportToJpipe()).andThen(new StringSink(stdout));
+			case DOT -> parsingChain().andThen(dotChain(config)).andThen(new StringSink(stdout));
+			case PNG -> parsingChain().andThen(dotChain(config)).andThen(new RenderWithDot("png"))
+					.andThen(new ByteSink(stdout));
+			case JPEG -> parsingChain().andThen(dotChain(config)).andThen(new RenderWithDot("jpeg"))
+					.andThen(new ByteSink(stdout));
 			default -> throw new UnsupportedOperationException("Format not yet supported: " + config.format());
 		};
+	}
+
+	private static Transformation<List<Command>, String> dotChain(CompilationConfig config) {
+		return unitBuilder().andThen(new SelectModel(config.diagramName())).andThen(new ExportToDot());
 	}
 }
