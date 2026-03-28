@@ -18,7 +18,7 @@ class ChainCompilerTest {
 	/** Sink that captures whatever it receives. */
 	private static <O> AtomicReference<O> capturingSink(Sink<O>[] holder) {
 		AtomicReference<O> captured = new AtomicReference<>();
-		holder[0] = (output, fileName) -> captured.set(output);
+		holder[0] = output -> captured.set(output);
 		return captured;
 	}
 
@@ -41,7 +41,7 @@ class ChainCompilerTest {
 	void compile_contextSourcePathMatchesSourceFile() throws IOException {
 		AtomicReference<String> capturedPath = new AtomicReference<>();
 		Sink<String>[] sinkHolder = new Sink[1];
-		sinkHolder[0] = (output, fileName) -> {
+		sinkHolder[0] = output -> {
 		};
 
 		Compiler compiler = fixedSource("x").andThen(Transformation.of((input, ctx) -> {
@@ -72,7 +72,7 @@ class ChainCompilerTest {
 	@SuppressWarnings("unchecked")
 	void compile_abortWhenCheckerReportsFatal() {
 		Sink<String>[] sinkHolder = new Sink[1];
-		sinkHolder[0] = (output, fileName) -> {
+		sinkHolder[0] = output -> {
 		};
 
 		Compiler compiler = fixedSource("bad").andThen(Checker.checking((input, ctx) -> ctx.fatal("invalid input")))

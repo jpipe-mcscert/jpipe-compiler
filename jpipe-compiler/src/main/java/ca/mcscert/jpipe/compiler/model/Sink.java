@@ -11,15 +11,13 @@ import java.io.IOException;
 public interface Sink<O> {
 
 	/**
-	 * Write {@code output} to {@code fileName}.
+	 * Write {@code output} to the sink's pre-configured destination.
 	 *
 	 * @param output
 	 *            the value produced by the preceding transformation chain.
-	 * @param fileName
-	 *            destination file path.
 	 * @throws IOException
-	 *             if the file cannot be written.
+	 *             if the destination cannot be written.
 	 */
-	void pourInto(O output, String fileName) throws IOException;
+	void pourInto(O output) throws IOException;
 
 }

@@ -5,6 +5,8 @@ import ca.mcscert.jpipe.compiler.CompilerFactory;
 import ca.mcscert.jpipe.compiler.Format;
 import ca.mcscert.jpipe.compiler.Mode;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -42,8 +44,9 @@ public class Main implements Callable<Integer> {
 			Logo.sout();
 		}
 		try {
+			OutputStream out = output.equals(CompilationConfig.STDOUT) ? System.out : new FileOutputStream(output);
 			CompilationConfig config = new CompilationConfig(input, output, mode, format);
-			CompilerFactory.build(config, System.out).compile(input, output);
+			CompilerFactory.build(config, out).compile(input, output);
 			return EXIT_OK;
 		} catch (CompilationException | UnsupportedOperationException e) {
 			System.err.println("error: " + e.getMessage());
@@ -55,6 +58,6 @@ public class Main implements Callable<Integer> {
 	}
 
 	public static void main(String[] args) {
-		System.exit(new CommandLine(new Main()).execute(args));
+		System.exit(new CommandLine(new Main()).setCaseInsensitiveEnumValuesAllowed(true).execute(args));
 	}
 }

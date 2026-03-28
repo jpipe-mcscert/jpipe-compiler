@@ -30,7 +30,7 @@ public final class ChainCompiler<I, O> implements Compiler {
 		CompilationContext ctx = new CompilationContext(sourceFile);
 		I input = source.provideFrom(sourceFile);
 		O output = chain.fire(input, ctx);
-		sink.pourInto(output, sinkFile);
+		sink.pourInto(output);
 	}
 
 }
