@@ -49,7 +49,7 @@ public class JsonExporter implements JustificationVisitor<Void> {
 	public String export(JustificationModel<?> model) {
 		result = null;
 		model.accept(this);
-		return result.toString();
+		return result.toString(2);
 	}
 
 	// -------------------------------------------------------------------------
