@@ -35,7 +35,7 @@ public final class ChainBuilder<I, O> {
 
 	/**
 	 * Finalise the chain by attaching a sink, producing a ready-to-use
-	 * {@link Compiler}.
+	 * {@link ca.mcscert.jpipe.compiler.Compiler}.
 	 *
 	 * @param sink
 	 *            the final serialisation step.
