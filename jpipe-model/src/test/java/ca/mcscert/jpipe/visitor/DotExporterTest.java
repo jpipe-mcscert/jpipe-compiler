@@ -25,6 +25,39 @@ class DotExporterTest {
 	}
 
 	@Test
+	void export_shortLabelIsNotWrapped() {
+		Justification j = new Justification("j");
+		j.setConclusion(new Conclusion("c", "System correct"));
+
+		String dot = new DotExporter().export(j);
+
+		assertThat(dot).contains("label=\"System correct\"");
+	}
+
+	@Test
+	void export_longLabelIsWrappedAtWordBoundary() {
+		Justification j = new Justification("j");
+		// 46 chars — exceeds the 40-char wrap width
+		j.setConclusion(new Conclusion("c",
+				"The system is fully correct and validated"));
+
+		String dot = new DotExporter().export(j);
+
+		assertThat(dot).contains(
+				"label=\"The system is fully correct and\\nvalidated\"");
+	}
+
+	@Test
+	void export_labelSpecialCharsAreEscapedBeforeWrapping() {
+		Justification j = new Justification("j");
+		j.setConclusion(new Conclusion("c", "A \"quoted\" label"));
+
+		String dot = new DotExporter().export(j);
+
+		assertThat(dot).contains("label=\"A \\\"quoted\\\" label\"");
+	}
+
+	@Test
 	void export_templateExpandedElementsCarryModelAndTemplatePrefix() {
 		Justification j = new Justification("j");
 		j.setConclusion(new Conclusion("t:c", "System correct"));

@@ -10,6 +10,8 @@ import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Serialises a single {@link JustificationModel} to Graphviz DOT text, ready to
@@ -29,6 +31,7 @@ import ca.mcscert.jpipe.model.elements.SubConclusion;
 public class DotExporter implements JustificationVisitor<Void> {
 
 	private static final String INDENT = "  ";
+	private static final int WRAP_WIDTH = 40;
 
 	private final StringBuilder builder = new StringBuilder();
 	private String currentModelName;
@@ -138,7 +141,7 @@ public class DotExporter implements JustificationVisitor<Void> {
 	private void appendNode(JustificationElement element, String attrs) {
 		String qid = qualify(element.id());
 		builder.append(INDENT).append(quoted(qid)).append(" [label=")
-				.append(quoted(element.label())).append(", id=")
+				.append(wrapAndQuoteLabel(element.label())).append(", id=")
 				.append(quoted(qid)).append(", ").append(attrs).append("];")
 				.append(System.lineSeparator());
 	}
@@ -155,5 +158,37 @@ public class DotExporter implements JustificationVisitor<Void> {
 
 	private static String quoted(String value) {
 		return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+	}
+
+	/**
+	 * Wraps {@code label} at word boundaries so that no line exceeds
+	 * {@link #WRAP_WIDTH} characters, then returns the result as a DOT-quoted
+	 * string. Lines are separated by {@code \n}, which Graphviz renders as a
+	 * centred newline inside a node label.
+	 *
+	 * <p>
+	 * Each word is escaped for backslashes and double-quotes before measuring
+	 * and joining, so the wrap decision is based on the characters that will
+	 * actually appear in the rendered label.
+	 */
+	private static String wrapAndQuoteLabel(String label) {
+		String[] words = label.trim().split("\\s+");
+		List<String> lines = new ArrayList<>();
+		StringBuilder current = new StringBuilder();
+		for (String word : words) {
+			String escaped = word.replace("\\", "\\\\").replace("\"", "\\\"");
+			if (current.length() > 0
+					&& current.length() + 1 + escaped.length() > WRAP_WIDTH) {
+				lines.add(current.toString());
+				current = new StringBuilder(escaped);
+			} else {
+				if (current.length() > 0)
+					current.append(' ');
+				current.append(escaped);
+			}
+		}
+		if (current.length() > 0)
+			lines.add(current.toString());
+		return "\"" + String.join("\\n", lines) + "\"";
 	}
 }
