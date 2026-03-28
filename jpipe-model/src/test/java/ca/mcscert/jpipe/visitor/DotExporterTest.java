@@ -48,6 +48,19 @@ class DotExporterTest {
 	}
 
 	@Test
+	void export_underscoresInLabelAreEscapedForMarkdown() {
+		Justification j = new Justification("j");
+		j.setConclusion(new Conclusion("c", "s_s_s"));
+
+		String dot = new DotExporter().export(j);
+
+		assertThat(dot).contains("label=\"s\\_s\\_s\"");
+		// node ID must NOT be escaped — underscores are valid in DOT
+		// identifiers
+		assertThat(dot).contains("id=\"j:c\"");
+	}
+
+	@Test
 	void export_labelSpecialCharsAreEscapedBeforeWrapping() {
 		Justification j = new Justification("j");
 		j.setConclusion(new Conclusion("c", "A \"quoted\" label"));

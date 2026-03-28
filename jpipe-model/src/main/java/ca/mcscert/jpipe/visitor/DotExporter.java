@@ -118,8 +118,9 @@ public class DotExporter implements JustificationVisitor<Void> {
 				.append(System.lineSeparator());
 		builder.append(INDENT).append("rankdir=BT;")
 				.append(System.lineSeparator());
-		builder.append(INDENT).append("label=").append(quoted(model.getName()))
-				.append(";").append(System.lineSeparator());
+		builder.append(INDENT).append("label=")
+				.append(wrapAndQuoteLabel(model.getName())).append(";")
+				.append(System.lineSeparator());
 		model.conclusion().ifPresent(c -> c.accept(this));
 		model.getElements().forEach(e -> e.accept(this));
 		exportEdges(model);
@@ -176,7 +177,8 @@ public class DotExporter implements JustificationVisitor<Void> {
 		List<String> lines = new ArrayList<>();
 		StringBuilder current = new StringBuilder();
 		for (String word : words) {
-			String escaped = word.replace("\\", "\\\\").replace("\"", "\\\"");
+			String escaped = word.replace("\\", "\\\\").replace("\"", "\\\"")
+					.replace("_", "\\_");
 			if (current.length() > 0
 					&& current.length() + 1 + escaped.length() > WRAP_WIDTH) {
 				lines.add(current.toString());
