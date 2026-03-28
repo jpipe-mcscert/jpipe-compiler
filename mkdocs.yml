@@ -18,6 +18,7 @@ extra_css:
 
 nav:
   - Home: index.md
+  - API Reference: api-reference.md
   - Design:
       - design/model.md
       - design/compiler.md

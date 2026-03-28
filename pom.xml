@@ -91,6 +91,7 @@
         <checkstyle-plugin.version>3.5.0</checkstyle-plugin.version>
         <checkstyle.version>10.21.1</checkstyle.version>
         <jacoco-plugin.version>0.8.13</jacoco-plugin.version>
+        <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
         <sonar-plugin.version>4.0.0.4121</sonar-plugin.version>
 
         <!-- SonarCloud -->
@@ -190,6 +191,19 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven-javadoc-plugin.version}</version>
+                    <configuration>
+                        <!-- Aggregate all modules into a single Javadoc site -->
+                        <aggregate>true</aggregate>
+                        <!-- ANTLR-generated sources fail strict doclint -->
+                        <doclint>none</doclint>
+                        <quiet>true</quiet>
+                    </configuration>
                 </plugin>
 
                 <plugin>
