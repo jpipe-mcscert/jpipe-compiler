@@ -74,7 +74,7 @@
 
         <!-- Dependency versions -->
         <antlr4.version>4.13.2</antlr4.version>
-        <picocli.version>4.7.6</picocli.version>
+        <picocli.version>4.7.7</picocli.version>
         <json.version>20250107</json.version>
         <log4j.version>2.24.3</log4j.version>
         <junit.version>5.11.4</junit.version>

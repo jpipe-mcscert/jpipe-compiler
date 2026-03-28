@@ -36,10 +36,11 @@ public class Main {
 	 * present, making {@code process} the effective default subcommand.
 	 *
 	 * <p>
-	 * Help/version flags are left untouched so that {@code jpipe --help} still
-	 * shows top-level help. The insertion point is placed after any
-	 * parent-level flags ({@code --headless}) so that picocli can attribute
-	 * them correctly.
+	 * Picocli 4.x has no built-in default-subcommand API, so we pre-process the
+	 * argument list. Help/version flags are left untouched so that
+	 * {@code jpipe --help} still shows top-level help. The insertion point is
+	 * placed after any parent-level flags ({@code --headless}) so that picocli
+	 * attributes them to the parent command correctly.
 	 */
 	static String[] withDefaultSubcommand(String[] args) {
 		for (String arg : args) {
