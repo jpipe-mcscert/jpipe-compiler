@@ -24,14 +24,16 @@ template_body   : (evidence | sub_conclusion | strategy | relation | conclusion 
 load            : LOAD path=STRING AS namespace=ID;
 
 // Body of a justification/template content
-element         : id=ID IS name=STRING;
+// element id is a qualified_id to allow override syntax (e.g. evidence t:abs is "...")
+element         : id=qualified_id IS name=STRING;
 evidence        : EVIDENCE      element;
 strategy        : STRATEGY      element;
 sub_conclusion  : SUBCONCLUSION element;
 conclusion      : CONCLUSION    element;
 abstract        : ABSTRACT_SUP  element;
 
-relation        : from=ID SUPPORT_LNK to=ID;
+// from/to are qualified_ids to allow cross-model relations (e.g. e1 supports t:s)
+relation        : from=qualified_id SUPPORT_LNK to=qualified_id;
 
 // Operator call configuration
 params_decl     : id+=qualified_id (COMMA id+=qualified_id)*;

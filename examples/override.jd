@@ -1,0 +1,11 @@
+template t {
+    conclusion c is "System correct"
+    strategy s is "Testing"
+    s supports c
+    @support abs is "Abstract support"
+    abs supports s
+}
+
+justification j implements t {
+    evidence t:abs is "Test results"
+}

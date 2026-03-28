@@ -48,6 +48,10 @@ public final class Unit {
 		((JustificationModel<JustificationElement>) get(modelName)).addElement(element);
 	}
 
+	public void removeFrom(String modelName, String elementId) {
+		get(modelName).removeElement(elementId);
+	}
+
 	public List<Justification> justifications() {
 		return models.values().stream().filter(Justification.class::isInstance).map(Justification.class::cast).toList();
 	}

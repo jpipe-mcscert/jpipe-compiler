@@ -166,19 +166,35 @@ class ImplementsTemplateTest {
 		}
 
 		@Test
-		void overriddenAbstractSupportIsNotCopied() {
+		void abstractSupportIsInlinedAsPlaceholder() {
 			ExecutionEngine engine = new ExecutionEngine();
 			Unit unit = engine.spawn("src",
 					List.of(new CreateTemplate("t"), new CreateConclusion("t", "tc", "Template conclusion"),
 							new CreateStrategy("t", "ts", "Template strategy"),
 							new CreateAbstractSupport("t", "as", "Abstract support"), new AddSupport("t", "ts", "as"),
 							new AddSupport("t", "tc", "ts"), new CreateJustification("j"),
-							new CreateConclusion("j", "c", "My conclusion"),
-							new CreateEvidence("j", "as", "Concrete evidence"), new ImplementsTemplate("j", "t")));
+							new CreateConclusion("j", "c", "My conclusion"), new ImplementsTemplate("j", "t")));
+
+			assertThat(unit.get("j").findById("t:as")).isPresent().get().isInstanceOf(AbstractSupport.class);
+		}
+
+		@Test
+		void overrideAbstractSupportReplacesPlaceholderWithEvidence() {
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src",
+					List.of(new CreateTemplate("t"), new CreateConclusion("t", "tc", "Template conclusion"),
+							new CreateStrategy("t", "ts", "Template strategy"),
+							new CreateAbstractSupport("t", "as", "Abstract support"), new AddSupport("t", "ts", "as"),
+							new AddSupport("t", "tc", "ts"), new CreateJustification("j"),
+							new CreateConclusion("j", "c", "My conclusion"), new ImplementsTemplate("j", "t"),
+							new OverrideAbstractSupport("j", "t:as", "evidence", "Concrete evidence")));
 
 			Justification j = (Justification) unit.get("j");
-			assertThat(j.findById("t:as")).isEmpty();
-			assertThat(j.findById("as")).isPresent().get().isInstanceOf(Evidence.class);
+			assertThat(j.findById("t:as")).isPresent().get().isInstanceOf(Evidence.class);
+			Strategy ts = (Strategy) j.findById("t:ts").orElseThrow();
+			assertThat(ts.getSupport()).isPresent().get()
+					.extracting(sl -> ((ca.mcscert.jpipe.model.elements.JustificationElement) sl).id())
+					.isEqualTo("t:as");
 		}
 
 		@Test

@@ -35,6 +35,10 @@ public final class Strategy implements CommonElement {
 		return Optional.ofNullable(supporter);
 	}
 
+	public void replaceSupport(SupportLeaf replacement) {
+		this.supporter = replacement;
+	}
+
 	@Override
 	public String toString() {
 		return "Strategy{id='" + id + "', label='" + label + "'}";

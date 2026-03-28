@@ -10,6 +10,7 @@ import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
+import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.lang.JPipeBaseListener;
@@ -104,8 +105,12 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 		@Override
 		public void enterEvidence(JPipeParser.EvidenceContext ctx) {
 			String identifier = ctx.element().id.getText();
-			result.add(
-					new CreateEvidence(buildContext.justificationId, identifier, strip(ctx.element().name.getText())));
+			String label = strip(ctx.element().name.getText());
+			if (identifier.contains(":")) {
+				result.add(new OverrideAbstractSupport(buildContext.justificationId, identifier, "evidence", label));
+			} else {
+				result.add(new CreateEvidence(buildContext.justificationId, identifier, label));
+			}
 		}
 
 		@Override
@@ -132,12 +137,19 @@ public final class ActionListProvider extends Transformation<ParseTree, List<Com
 		@Override
 		public void enterSub_conclusion(JPipeParser.Sub_conclusionContext ctx) {
 			String identifier = ctx.element().id.getText();
-			result.add(new CreateSubConclusion(buildContext.justificationId, identifier,
-					strip(ctx.element().name.getText())));
+			String label = strip(ctx.element().name.getText());
+			if (identifier.contains(":")) {
+				result.add(
+						new OverrideAbstractSupport(buildContext.justificationId, identifier, "sub-conclusion", label));
+			} else {
+				result.add(new CreateSubConclusion(buildContext.justificationId, identifier, label));
+			}
 		}
 
 		@Override
 		public void enterRelation(JPipeParser.RelationContext ctx) {
+			// ctx.from/ctx.to are qualified_id contexts; getText() returns the full id
+			// (e.g. "t:s")
 			result.add(new AddSupport(buildContext.justificationId, ctx.to.getText(), ctx.from.getText()));
 		}
 

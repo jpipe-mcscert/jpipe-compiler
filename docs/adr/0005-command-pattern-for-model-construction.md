@@ -14,21 +14,22 @@ Two alternatives were considered:
 
 ## Decision
 
-The model is constructed and modified exclusively through commands (`ca.mcscert.jpipe.commands`). One command kind is defined:
+The model is constructed and modified exclusively through commands (`ca.mcscert.jpipe.commands`). Two command kinds are defined:
 
 - `RegularCommand` — an atomic operation executed directly on a `Unit` (e.g., creating an element, adding a support edge, inlining a template).
+- `MacroCommand` — a composite that expands into a list of `RegularCommand`s at execution time. `ExecutionEngine` splices the expanded list in place and continues processing.
 
-An `ExecutionEngine` drives execution: it processes commands sequentially and defers commands whose `condition` is not yet satisfied to the end of the queue.
+An `ExecutionEngine` drives execution: it processes commands sequentially, expands macros in place, and defers commands whose `condition` is not yet satisfied to the end of the queue.
 
 ## Rationale
 
 - Deferred execution handles forward references and cross-file dependencies without requiring a multi-pass parser.
 - Commands are plain objects — they are easy to log, test, and inspect independently of the model.
 - The `condition` mechanism handles ordering constraints without requiring the caller to know evaluation order.
-- A `MacroCommand` composite was considered for expanding multi-file `load` directives, but template inlining (ADR-0012) covers the main composition use case without requiring macro expansion. `load` is deferred; `MacroCommand` is not needed.
+- `MacroCommand` keeps high-level operations (e.g., overriding an abstract support) expressed as a single intent while delegating the atomic steps to independently testable `RegularCommand`s. The first concrete use case is `OverrideAbstractSupport`, which expands into `RemoveElement` + `AddElement` + `RewireStrategySupport`.
 
 ## Consequences
 
-- The model API (`Unit`, `JustificationModel`) must expose mutation methods (`add`, `addInto`) callable by commands.
+- The model API (`Unit`, `JustificationModel`) must expose mutation methods (`add`, `addInto`, `removeFrom`) callable by commands.
 - Direct mutation of the model outside of commands is discouraged; the `ExecutionEngine` is the intended entry point for all model construction.
-- `CreateRelation` (support edges between elements) is not yet implemented; it requires edges to be added to the element model first.
+- `MacroCommand.expand(Unit)` is called only when the command's `condition` is satisfied; the expanded commands inherit no automatic deferral and must encode their own preconditions if needed.

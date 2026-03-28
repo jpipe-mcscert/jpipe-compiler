@@ -38,6 +38,15 @@ public final class ExecutionEngine {
 				logger.trace("Deferring command [{}]", command);
 				commands.add(command);
 				deferCount++;
+			} else if (command instanceof MacroCommand macro) {
+				try {
+					List<Command> expanded = macro.expand(unit);
+					logger.debug("Expanding macro [{}] into {} command(s)", macro, expanded.size());
+					commands.addAll(0, expanded);
+				} catch (Exception e) {
+					logger.error("Error expanding macro [{}]: {}", macro, e.getMessage());
+				}
+				deferCount = 0;
 			} else {
 				try {
 					command.execute(unit);

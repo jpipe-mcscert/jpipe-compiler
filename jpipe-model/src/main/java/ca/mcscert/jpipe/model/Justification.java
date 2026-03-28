@@ -1,6 +1,5 @@
 package ca.mcscert.jpipe.model;
 
-import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.CommonElement;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
@@ -16,13 +15,12 @@ public final class Justification extends JustificationModel<CommonElement> {
 	}
 
 	/**
-	 * Excludes {@link AbstractSupport} copies from expansion: they cannot be added
-	 * to a {@link Justification} and must be resolved by overriding with a concrete
-	 * element.
+	 * Includes all template elements — including {@link AbstractSupport} copies —
+	 * so that override commands can find and replace them after inlining.
 	 */
 	@Override
 	protected boolean includeInExpansion(JustificationElement copy) {
-		return !(copy instanceof AbstractSupport);
+		return true;
 	}
 
 	@Override

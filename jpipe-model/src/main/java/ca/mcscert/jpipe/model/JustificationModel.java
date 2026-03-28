@@ -199,6 +199,11 @@ public abstract sealed class JustificationModel<E extends JustificationElement> 
 	protected void validateForLock(List<String> incomplete) {
 	}
 
+	/** Removes the element with the given id from the elements list. */
+	public void removeElement(String id) {
+		elements.removeIf(e -> e.id().equals(id));
+	}
+
 	public List<E> getElements() {
 		return Collections.unmodifiableList(elements);
 	}
