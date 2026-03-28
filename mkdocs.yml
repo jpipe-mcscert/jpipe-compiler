@@ -34,6 +34,7 @@ nav:
       - adr/0010-model-visitors-in-jpipe-model.md
       - adr/0011-cucumber-for-compiler-end-to-end-tests.md
       - adr/0012-qualified-ids-and-template-expansion.md
+      - adr/0013-export-strategy-text-vs-library.md 
 
 plugins:
   - search
