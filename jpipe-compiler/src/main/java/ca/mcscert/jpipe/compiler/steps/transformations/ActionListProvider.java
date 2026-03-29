@@ -45,9 +45,11 @@ public final class ActionListProvider
 	 */
 	private static class ActionBuilder extends JPipeBaseListener {
 
-		private record Context(String unitFileName, String justificationId) {
-			public Context updateCurrentJustification(String id) {
-				return new Context(this.unitFileName, id);
+		private record Context(String unitFileName, String justificationId,
+				String parentTemplateName) {
+			public Context updateCurrentJustification(String id,
+					String parentName) {
+				return new Context(this.unitFileName, id, parentName);
 			}
 		}
 
@@ -58,7 +60,7 @@ public final class ActionListProvider
 
 		public ActionBuilder(String name, CompilationContext compilationCtx) {
 			this.result = new ArrayList<>();
-			this.buildContext = new Context(name, null);
+			this.buildContext = new Context(name, null, null);
 			this.compilationCtx = compilationCtx;
 		}
 
@@ -85,8 +87,11 @@ public final class ActionListProvider
 
 		@Override
 		public void enterJustification(JPipeParser.JustificationContext ctx) {
+			String parentName = ctx.parent != null
+					? ctx.parent.getText()
+					: null;
 			this.buildContext = buildContext
-					.updateCurrentJustification(ctx.id.getText());
+					.updateCurrentJustification(ctx.id.getText(), parentName);
 			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
 					ctx.id.getLine(), ctx.id.getCharPositionInLine());
 			result.add(new CreateJustification(ctx.id.getText(), loc));
@@ -95,13 +100,17 @@ public final class ActionListProvider
 		@Override
 		public void exitJustification(JPipeParser.JustificationContext ctx) {
 			closeJustificationModel(ctx.parent, ctx.id);
-			this.buildContext = buildContext.updateCurrentJustification(null);
+			this.buildContext = buildContext.updateCurrentJustification(null,
+					null);
 		}
 
 		@Override
 		public void enterTemplate(JPipeParser.TemplateContext ctx) {
+			String parentName = ctx.parent != null
+					? ctx.parent.getText()
+					: null;
 			this.buildContext = buildContext
-					.updateCurrentJustification(ctx.id.getText());
+					.updateCurrentJustification(ctx.id.getText(), parentName);
 			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
 					ctx.id.getLine(), ctx.id.getCharPositionInLine());
 			result.add(new CreateTemplate(ctx.id.getText(), loc));
@@ -110,7 +119,8 @@ public final class ActionListProvider
 		@Override
 		public void exitTemplate(JPipeParser.TemplateContext ctx) {
 			closeJustificationModel(ctx.parent, ctx.id);
-			this.buildContext = buildContext.updateCurrentJustification(null);
+			this.buildContext = buildContext.updateCurrentJustification(null,
+					null);
 		}
 
 		/*
@@ -126,6 +136,9 @@ public final class ActionListProvider
 					ctx.element().id.getStart().getLine(),
 					ctx.element().id.getStart().getCharPositionInLine());
 			if (identifier.contains(":")) {
+				if (!validOverridePrefix(identifier, loc)) {
+					return;
+				}
 				result.add(new OverrideAbstractSupport(
 						buildContext.justificationId, identifier, "evidence",
 						label, loc));
@@ -180,6 +193,9 @@ public final class ActionListProvider
 					ctx.element().id.getStart().getLine(),
 					ctx.element().id.getStart().getCharPositionInLine());
 			if (identifier.contains(":")) {
+				if (!validOverridePrefix(identifier, loc)) {
+					return;
+				}
 				result.add(new OverrideAbstractSupport(
 						buildContext.justificationId, identifier,
 						"sub-conclusion", label, loc));
@@ -192,10 +208,19 @@ public final class ActionListProvider
 		@Override
 		public void enterRelation(JPipeParser.RelationContext ctx) {
 			// ctx.from/ctx.to are qualified_id contexts; getText() returns the
-			// full id
-			// (e.g. "t:s")
-			result.add(new AddSupport(buildContext.justificationId,
-					ctx.to.getText(), ctx.from.getText()));
+			// full id (e.g. "t:s")
+			String from = ctx.from.getText();
+			String to = ctx.to.getText();
+			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
+					ctx.from.getStart().getLine(),
+					ctx.from.getStart().getCharPositionInLine());
+			if (from.contains(":") && !validOverridePrefix(from, loc)) {
+				return;
+			}
+			if (to.contains(":") && !validOverridePrefix(to, loc)) {
+				return;
+			}
+			result.add(new AddSupport(buildContext.justificationId, to, from));
 		}
 
 		/*
@@ -212,6 +237,28 @@ public final class ActionListProvider
 		/*
 		 * ******************** * * Helper functions * * ********************
 		 */
+
+		/**
+		 * Returns true if the qualified {@code identifier}'s first segment
+		 * matches the parent template of the current model. Emits a
+		 * {@code [unresolved-override]} error and returns false otherwise.
+		 */
+		private boolean validOverridePrefix(String identifier,
+				SourceLocation loc) {
+			String prefix = identifier.substring(0, identifier.indexOf(':'));
+			String parent = buildContext.parentTemplateName;
+			if (parent == null || !prefix.equals(parent)) {
+				String hint = parent != null
+						? "; expected prefix '" + parent + "'"
+						: "";
+				compilationCtx.error(loc.line(), loc.column(),
+						"[unresolved-override] '" + identifier
+								+ "' does not refer to any element in model '"
+								+ buildContext.justificationId + "'" + hint);
+				return false;
+			}
+			return true;
+		}
 
 		private String strip(String s) {
 			return s.substring(1, s.length() - 1);
