@@ -1,0 +1,4 @@
+justification j {
+    conclusion c1 is "First conclusion"
+    conclusion c2 is "Second conclusion"
+}

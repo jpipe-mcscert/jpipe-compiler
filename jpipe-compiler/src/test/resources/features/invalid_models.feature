@@ -16,6 +16,12 @@ Feature: Consistency and completeness validation
     Then the compilation has validation errors
       And a validation error is reported for rule "acyclic-support"
 
+  Scenario: multiple conclusions in a justification are rejected
+    Given the source file "invalid/duplicate_conclusion.jd"
+    When I compile it into a unit
+    Then the compilation has validation errors
+      And a validation error is reported for rule "single-conclusion"
+
   # -----------------------------------------------------------------------
   # Completeness rules — common
   # -----------------------------------------------------------------------

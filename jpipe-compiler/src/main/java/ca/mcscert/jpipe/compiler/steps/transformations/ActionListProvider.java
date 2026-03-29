@@ -17,7 +17,9 @@ import ca.mcscert.jpipe.lang.JPipeBaseListener;
 import ca.mcscert.jpipe.lang.JPipeParser;
 import ca.mcscert.jpipe.model.SourceLocation;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
@@ -32,7 +34,7 @@ public final class ActionListProvider
 	@Override
 	protected List<Command> run(ParseTree input, CompilationContext ctx)
 			throws Exception {
-		ActionBuilder ab = new ActionBuilder(ctx.sourcePath());
+		ActionBuilder ab = new ActionBuilder(ctx.sourcePath(), ctx);
 		ParseTreeWalker.DEFAULT.walk(ab, input);
 		logger.debug(ab.collect());
 		return ab.collect();
@@ -51,10 +53,13 @@ public final class ActionListProvider
 
 		private final List<Command> result;
 		private Context buildContext;
+		private final CompilationContext compilationCtx;
+		private final Set<String> seenConclusionModels = new HashSet<>();
 
-		public ActionBuilder(String name) {
+		public ActionBuilder(String name, CompilationContext compilationCtx) {
 			this.result = new ArrayList<>();
 			this.buildContext = new Context(name, null);
+			this.compilationCtx = compilationCtx;
 		}
 
 		public List<Command> collect() {
@@ -156,8 +161,15 @@ public final class ActionListProvider
 			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
 					ctx.element().id.getStart().getLine(),
 					ctx.element().id.getStart().getCharPositionInLine());
-			result.add(new CreateConclusion(buildContext.justificationId,
-					identifier, strip(ctx.element().name.getText()), loc));
+			String modelId = buildContext.justificationId;
+			if (!seenConclusionModels.add(modelId)) {
+				compilationCtx.error(loc.line(), loc.column(),
+						"[single-conclusion] Model '" + modelId
+								+ "' declares multiple conclusions");
+				return;
+			}
+			result.add(new CreateConclusion(modelId, identifier,
+					strip(ctx.element().name.getText()), loc));
 		}
 
 		@Override
