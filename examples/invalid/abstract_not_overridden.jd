@@ -1,5 +1,5 @@
 template t {
-    conclusion c is "System correct"
+    conclusion c is "The system is correct"
     strategy s is "Testing"
     s supports c
     @support abs is "Abstract support"
@@ -7,8 +7,7 @@ template t {
 }
 
 justification j implements t {
-    evidence t:abs is "Test results"
-    conclusion top is "System correct"
+    conclusion top is "The system is correct"
     strategy js is "Via template"
     js supports top
     t:c supports js

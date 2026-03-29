@@ -6,6 +6,7 @@ import static org.assertj.core.groups.Tuple.tuple;
 import ca.mcscert.jpipe.compiler.CompilerFactory;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
+import ca.mcscert.jpipe.compiler.model.Diagnostic;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.SourceLocation;
@@ -181,5 +182,17 @@ public class CompilationSteps {
 				.contains("# @jpipe_link(\"" + qualifiedId + "\")");
 		assertThat(pythonOutput)
 				.doesNotContain("\n@jpipe_link(\"" + qualifiedId + "\")");
+	}
+
+	@Then("the compilation has validation errors")
+	public void theCompilationHasValidationErrors() {
+		assertThat(ctx.hasErrors()).isTrue();
+	}
+
+	@Then("a validation error is reported for rule {string}")
+	public void aValidationErrorIsReportedForRule(String rule) {
+		assertThat(ctx.diagnostics()).filteredOn(Diagnostic::isError)
+				.extracting(Diagnostic::message)
+				.anySatisfy(msg -> assertThat(msg).contains("[" + rule + "]"));
 	}
 }

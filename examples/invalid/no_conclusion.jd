@@ -1,0 +1,5 @@
+justification j {
+    strategy s is "Testing"
+    evidence e is "Test results"
+    e supports s
+}

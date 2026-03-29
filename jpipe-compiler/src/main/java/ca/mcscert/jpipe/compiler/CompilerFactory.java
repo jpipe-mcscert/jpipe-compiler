@@ -3,6 +3,8 @@ package ca.mcscert.jpipe.compiler;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
 import ca.mcscert.jpipe.compiler.model.Transformation;
+import ca.mcscert.jpipe.compiler.steps.checkers.CompletenessChecker;
+import ca.mcscert.jpipe.compiler.steps.checkers.ConsistencyChecker;
 import ca.mcscert.jpipe.compiler.steps.checkers.HaltAndCatchFire;
 import ca.mcscert.jpipe.compiler.steps.io.sinks.ByteSink;
 import ca.mcscert.jpipe.compiler.steps.io.sinks.StringSink;
@@ -113,13 +115,14 @@ public final class CompilerFactory {
 	}
 
 	/**
-	 * Full unit builder: extends the parsing chain with model construction.
-	 *
-	 * <p>
-	 * TODO: port {@code CompletenessChecker} and {@code ConsistencyChecker}.
+	 * Full unit builder: extends the parsing chain with model construction,
+	 * consistency checking, and completeness checking.
 	 */
 	public static Transformation<List<Command>, Unit> unitBuilder() {
-		return new ActionListInterpretation();
+		return new ActionListInterpretation().andThen(new ConsistencyChecker())
+				.andThen(new HaltAndCatchFire<>())
+				.andThen(new CompletenessChecker())
+				.andThen(new HaltAndCatchFire<>());
 	}
 
 	// -------------------------------------------------------------------------

@@ -1,0 +1,10 @@
+justification j {
+    conclusion c is "The system is correct"
+    strategy s_top is "Top strategy"
+    s_top supports c
+    sub-conclusion sc is "Intermediate goal"
+    sc supports s_top
+    strategy s is "Looping strategy"
+    s supports sc
+    sc supports s
+}

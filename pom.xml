@@ -247,7 +247,7 @@
                     <configuration>
                         <java>
                             <eclipse>
-                                <version>4.33</version>
+                                <version>4.35</version>
                                 <file>${maven.multiModuleProjectDirectory}/config/eclipse-formatter.xml</file>
                             </eclipse>
                             <removeUnusedImports/>

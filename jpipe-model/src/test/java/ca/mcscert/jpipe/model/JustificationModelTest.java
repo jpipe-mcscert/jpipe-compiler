@@ -1,12 +1,9 @@
 package ca.mcscert.jpipe.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
-import ca.mcscert.jpipe.model.exceptions.IncompleteJustificationException;
-import ca.mcscert.jpipe.model.exceptions.LockedModelException;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
@@ -170,11 +167,11 @@ class JustificationModelTest {
 	}
 
 	// -------------------------------------------------------------------------
-	// Justification#lock — completeness validation
+	// JustificationModel#validate — completeness and consistency
 	// -------------------------------------------------------------------------
 
 	@Nested
-	class JustificationLock {
+	class JustificationValidate {
 
 		private Conclusion conclusion;
 		private Strategy strategy;
@@ -198,39 +195,37 @@ class JustificationModelTest {
 		}
 
 		@Test
-		void lockSucceedsWhenAllElementsAreSupported() {
-			assertThat(complete()).satisfies(
-					j -> assertThatCode(j::lock).doesNotThrowAnyException());
+		void validateReturnsNoViolationsForCompleteModel() {
+			assertThat(complete().validate()).isEmpty();
 		}
 
 		@Test
-		void lockThrowsWhenConclusionHasNoSupport() {
+		void validateReportsMissingConclusion() {
+			Justification j = new Justification("j1");
+			assertThat(j.validate()).anySatisfy(
+					v -> assertThat(v.rule()).isEqualTo("conclusion-present"));
+		}
+
+		@Test
+		void validateReportsUnsupportedConclusion() {
 			Justification j = new Justification("j1");
 			j.setConclusion(conclusion);
-			assertThatThrownBy(j::lock)
-					.isInstanceOf(IncompleteJustificationException.class)
-					.satisfies(e -> assertThat(
-							((IncompleteJustificationException) e)
-									.getIncompleteElementIds())
-							.containsExactly("c1"));
+			assertThat(j.validate()).anySatisfy(v -> assertThat(v.rule())
+					.isEqualTo("conclusion-supported"));
 		}
 
 		@Test
-		void lockThrowsWhenStrategyHasNoSupport() {
+		void validateReportsUnsupportedStrategy() {
 			conclusion.addSupport(strategy);
 			Justification j = new Justification("j1");
 			j.setConclusion(conclusion);
 			j.addElement(strategy);
-			assertThatThrownBy(j::lock)
-					.isInstanceOf(IncompleteJustificationException.class)
-					.satisfies(e -> assertThat(
-							((IncompleteJustificationException) e)
-									.getIncompleteElementIds())
-							.containsExactly("s1"));
+			assertThat(j.validate()).anySatisfy(
+					v -> assertThat(v.rule()).isEqualTo("strategy-supported"));
 		}
 
 		@Test
-		void lockThrowsWhenSubConclusionHasNoSupport() {
+		void validateReportsUnsupportedSubConclusion() {
 			SubConclusion sc = new SubConclusion("sc1", "a sub-conclusion");
 			strategy.addSupport(sc);
 			conclusion.addSupport(strategy);
@@ -238,52 +233,37 @@ class JustificationModelTest {
 			j.setConclusion(conclusion);
 			j.addElement(strategy);
 			j.addElement(sc);
-			assertThatThrownBy(j::lock)
-					.isInstanceOf(IncompleteJustificationException.class)
-					.satisfies(e -> assertThat(
-							((IncompleteJustificationException) e)
-									.getIncompleteElementIds())
-							.containsExactly("sc1"));
+			assertThat(j.validate()).anySatisfy(v -> assertThat(v.rule())
+					.isEqualTo("sub-conclusion-supported"));
 		}
 
 		@Test
-		void lockExceptionIncludesAllIncompleteIds() {
+		void validateAccumulatesAllViolations() {
 			Justification j = new Justification("j1");
 			j.setConclusion(conclusion);
 			j.addElement(strategy);
-			assertThatThrownBy(j::lock)
-					.isInstanceOf(IncompleteJustificationException.class)
-					.satisfies(e -> assertThat(
-							((IncompleteJustificationException) e)
-									.getIncompleteElementIds())
-							.containsExactlyInAnyOrder("c1", "s1"));
+			// conclusion unsupported + strategy unsupported = 2 violations
+			assertThat(j.validate()).hasSizeGreaterThanOrEqualTo(2);
 		}
 
 		@Test
-		void lockSetsLockedFlag() {
-			Justification j = complete();
-			j.lock();
-			assertThat(j.isLocked()).isTrue();
-		}
+		void validateReportsAbstractSupportNotOverridden() {
+			Template t = new Template("t");
+			Conclusion tc = new Conclusion("c", "template conclusion");
+			t.setConclusion(tc);
+			Strategy ts = new Strategy("s", "template strategy");
+			t.addElement(ts);
+			AbstractSupport tabs = new AbstractSupport("abs",
+					"abstract support");
+			t.addElement(tabs);
+			ts.addSupport(tabs);
+			tc.addSupport(ts);
 
-		@Test
-		void addElementAfterLockThrows() {
-			Justification j = complete();
-			j.lock();
-			assertThatThrownBy(() -> j.addElement(new Evidence("e2", "extra")))
-					.isInstanceOf(LockedModelException.class);
-		}
+			Justification j = new Justification("j");
+			j.inline(t, "t");
 
-		@Test
-		void lockExceptionReportsJustificationName() {
-			Justification j = new Justification("myJustification");
-			j.setConclusion(conclusion);
-			assertThatThrownBy(j::lock)
-					.isInstanceOf(IncompleteJustificationException.class)
-					.satisfies(e -> assertThat(
-							((IncompleteJustificationException) e)
-									.getJustificationName())
-							.isEqualTo("myJustification"));
+			assertThat(j.validate()).anySatisfy(
+					v -> assertThat(v.rule()).isEqualTo("no-abstract-support"));
 		}
 	}
 

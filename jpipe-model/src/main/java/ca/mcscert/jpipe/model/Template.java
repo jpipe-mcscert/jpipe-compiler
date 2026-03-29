@@ -27,14 +27,6 @@ public final class Template extends JustificationModel<JustificationElement> {
 		return elementsOfType(AbstractSupport.class);
 	}
 
-	/** A valid template must declare at least one abstract support. */
-	@Override
-	protected void validateForLock(List<String> incomplete) {
-		if (abstractSupports().isEmpty()) {
-			incomplete.add("<abstract-support>");
-		}
-	}
-
 	@Override
 	protected <R> R visitSelf(JustificationVisitor<R> visitor) {
 		return visitor.visit(this);

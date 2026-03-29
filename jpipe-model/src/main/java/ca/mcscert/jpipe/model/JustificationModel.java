@@ -7,8 +7,8 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.model.elements.SupportLeaf;
-import ca.mcscert.jpipe.model.exceptions.IncompleteJustificationException;
-import ca.mcscert.jpipe.model.exceptions.LockedModelException;
+import ca.mcscert.jpipe.model.validation.CompletenessValidator;
+import ca.mcscert.jpipe.model.validation.ConsistencyValidator;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,12 +34,17 @@ import java.util.Optional;
  * {@link #setConclusion(Conclusion)} and accessed via {@link #conclusion()}.
  * Passing a {@link Conclusion} to {@link #addElement(JustificationElement)} is
  * rejected.
+ *
+ * <p>
+ * Use {@link #validate()} to check consistency and completeness. For
+ * location-aware diagnostics in a compiler pipeline use
+ * {@link ca.mcscert.jpipe.model.validation.ConsistencyValidator} and
+ * {@link ca.mcscert.jpipe.model.validation.CompletenessValidator} directly.
  */
 public abstract sealed class JustificationModel<E extends JustificationElement>
 		permits Justification, Template {
 
 	private final String name;
-	private boolean locked = false;
 	private Conclusion conclusion;
 	private Template parent = null;
 	private final List<E> elements = new ArrayList<>();
@@ -50,10 +55,6 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 
 	public String getName() {
 		return name;
-	}
-
-	public boolean isLocked() {
-		return locked;
 	}
 
 	/**
@@ -87,13 +88,9 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 
 	/**
 	 * Rejects {@link Conclusion} — use {@link #setConclusion(Conclusion)}
-	 * instead. Throws {@link LockedModelException} if the model has been
-	 * locked.
+	 * instead.
 	 */
 	public void addElement(E element) {
-		if (locked) {
-			throw new LockedModelException(name);
-		}
 		if (element instanceof Conclusion) {
 			throw new IllegalArgumentException(
 					"Use setConclusion() to assign the conclusion of a model");
@@ -182,34 +179,24 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	protected abstract boolean includeInExpansion(JustificationElement copy);
 
 	/**
-	 * Validates completeness and locks the model against further modification.
-	 * Subclasses may add extra validation rules by overriding
-	 * {@link #validateForLock(List)}.
+	 * Validates this model for consistency and completeness without requiring a
+	 * {@link Unit}. Useful for non-compiler consumers that build models
+	 * programmatically.
+	 *
+	 * <p>
+	 * All violations carry {@link SourceLocation#UNKNOWN} because source
+	 * location data is only available when building through the compiler
+	 * pipeline (see
+	 * {@link ca.mcscert.jpipe.model.validation.ConsistencyValidator} and
+	 * {@link ca.mcscert.jpipe.model.validation.CompletenessValidator}).
+	 *
+	 * @return unmodifiable list of violations; empty means valid.
 	 */
-	public final void lock() {
-		List<String> incomplete = new ArrayList<>();
-		conclusion().filter(c -> c.getSupport().isEmpty()).map(Conclusion::id)
-				.ifPresent(incomplete::add);
-		if (conclusion().isEmpty()) {
-			incomplete.add("<conclusion>");
-		}
-		subConclusions().stream().filter(sc -> sc.getSupport().isEmpty())
-				.map(SubConclusion::id).forEach(incomplete::add);
-		strategies().stream().filter(s -> s.getSupport().isEmpty())
-				.map(Strategy::id).forEach(incomplete::add);
-		validateForLock(incomplete);
-		if (!incomplete.isEmpty()) {
-			throw new IncompleteJustificationException(name, incomplete);
-		}
-		locked = true;
-	}
-
-	/**
-	 * Hook for subclass-specific lock validation. Implementations should append
-	 * the ids (or symbolic names) of any incomplete elements to
-	 * {@code incomplete}.
-	 */
-	protected void validateForLock(List<String> incomplete) {
+	public List<Violation> validate() {
+		List<Violation> violations = new ArrayList<>();
+		violations.addAll(new ConsistencyValidator().validateModel(this));
+		violations.addAll(new CompletenessValidator().validateModel(this));
+		return Collections.unmodifiableList(violations);
 	}
 
 	/** Removes the element with the given id from the elements list. */
