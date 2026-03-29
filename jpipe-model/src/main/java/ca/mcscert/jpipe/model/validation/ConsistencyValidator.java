@@ -21,6 +21,8 @@ import java.util.Set;
  * <li>{@code no-duplicate-ids} — all element IDs within a model are unique.
  * <li>{@code acyclic-support} — the support graph contains no cycles (it must
  * be a DAG).
+ * <li>{@code acyclic-implements} — the implements chain between models contains
+ * no cycles.
  * </ul>
  *
  * <p>
@@ -45,6 +47,7 @@ public final class ConsistencyValidator {
 			violations.addAll(checkNoDuplicateIds(model, unit));
 			violations.addAll(checkAcyclicSupport(model, unit));
 		}
+		violations.addAll(checkAcyclicImplements(unit));
 		return violations;
 	}
 
@@ -56,6 +59,7 @@ public final class ConsistencyValidator {
 		List<Violation> violations = new ArrayList<>();
 		violations.addAll(checkNoDuplicateIds(model, null));
 		violations.addAll(checkAcyclicSupport(model, null));
+		violations.addAll(checkAcyclicImplements(model));
 		return violations;
 	}
 
@@ -127,6 +131,54 @@ public final class ConsistencyValidator {
 					unit, violations);
 		}
 		currentPath.remove(node);
+	}
+
+	private List<Violation> checkAcyclicImplements(Unit unit) {
+		List<Violation> violations = new ArrayList<>();
+		Set<String> globalVisited = new HashSet<>();
+		for (JustificationModel<?> model : unit.getModels()) {
+			if (!globalVisited.contains(model.getName())) {
+				walkImplementsChain(model, globalVisited, new HashSet<>(), unit,
+						violations);
+			}
+		}
+		return violations;
+	}
+
+	private void walkImplementsChain(JustificationModel<?> model,
+			Set<String> globalVisited, Set<String> currentChain, Unit unit,
+			List<Violation> violations) {
+		String name = model.getName();
+		if (currentChain.contains(name)) {
+			violations.add(new Violation("acyclic-implements",
+					"Cycle in implements chain at model '" + name + "'",
+					unit.locationOf(name)));
+			return;
+		}
+		if (globalVisited.contains(name)) {
+			return;
+		}
+		globalVisited.add(name);
+		currentChain.add(name);
+		model.getParent().ifPresent(parent -> walkImplementsChain(parent,
+				globalVisited, currentChain, unit, violations));
+		currentChain.remove(name);
+	}
+
+	private List<Violation> checkAcyclicImplements(
+			JustificationModel<?> model) {
+		Set<String> seen = new HashSet<>();
+		JustificationModel<?> current = model;
+		while (current != null) {
+			if (!seen.add(current.getName())) {
+				return List.of(new Violation("acyclic-implements",
+						"Cycle in implements chain at model '"
+								+ current.getName() + "'",
+						SourceLocation.UNKNOWN));
+			}
+			current = current.getParent().orElse(null);
+		}
+		return List.of();
 	}
 
 	private SourceLocation location(Unit unit, String modelName,

@@ -1,0 +1,15 @@
+template t1 implements t2 {
+    conclusion c is "First template conclusion"
+    strategy s is "First template strategy"
+    s supports c
+    @support placeholder is "Abstract support"
+    placeholder supports s
+}
+
+template t2 implements t1 {
+    conclusion c is "Second template conclusion"
+    strategy s is "Second template strategy"
+    s supports c
+    @support placeholder is "Abstract support"
+    placeholder supports s
+}

@@ -16,6 +16,12 @@ Feature: Consistency and completeness validation
     Then the compilation has validation errors
       And a validation error is reported for rule "acyclic-support"
 
+  Scenario: a cycle in the implements chain is rejected
+    Given the source file "invalid/implements_cycle.jd"
+    When I compile it into a unit
+    Then the compilation has validation errors
+      And a validation error is reported for rule "acyclic-implements"
+
   Scenario: multiple conclusions in a justification are rejected
     Given the source file "invalid/duplicate_conclusion.jd"
     When I compile it into a unit

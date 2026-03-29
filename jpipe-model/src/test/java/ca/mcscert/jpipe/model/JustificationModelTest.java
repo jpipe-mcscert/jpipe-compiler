@@ -247,6 +247,17 @@ class JustificationModelTest {
 		}
 
 		@Test
+		void validateReportsImplementsCycle() {
+			Template t1 = new Template("t1");
+			Template t2 = new Template("t2");
+			t1.inline(t2, "t2"); // t1.parent = t2
+			t2.inline(t1, "t1"); // t2.parent = t1
+
+			assertThat(t1.validate()).anySatisfy(
+					v -> assertThat(v.rule()).isEqualTo("acyclic-implements"));
+		}
+
+		@Test
 		void validateReportsAbstractSupportNotOverridden() {
 			Template t = new Template("t");
 			Conclusion tc = new Conclusion("c", "template conclusion");
