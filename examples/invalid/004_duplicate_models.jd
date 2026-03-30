@@ -1,0 +1,25 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// A minimal justification: evidence -> strategy -> conclusion
+justification minimal {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+
+    s supports c
+    e supports s
+}
+
+// A minimal justification: evidence -> strategy -> conclusion
+justification minimal {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+
+    s supports c
+    e supports s
+}

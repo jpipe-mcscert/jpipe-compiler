@@ -1,0 +1,16 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// identifiers must be unique inside a model
+justification j {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence #1"
+    evidence   e is "An evidence #2"
+
+    s supports c
+    e supports s
+}

@@ -1,7 +1,0 @@
-justification j {
-    conclusion c is "The system is correct"
-    strategy s is "Testing"
-    s supports c
-    sub-conclusion sc is "Intermediate goal"
-    sc supports s
-}

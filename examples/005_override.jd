@@ -1,0 +1,30 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// a template defining an abstract support abs
+template a_template {
+    conclusion c   is "A conclusion"
+    strategy   s   is "A strategy"
+    @support   abs is "An abstract support"
+
+    abs supports s
+    s   supports c
+}
+
+// Immediately overriding the abstract support with an evidence.
+justification immediate implements a_template {
+    evidence a_template:abs is "An immediate evidence"   
+}
+
+// Providing an argumentation that leads to overriding the abstract support
+justification indirect implements a_template {
+    sub-conclusion a_template:abs is "An intermnediate sub-conclusion"
+    strategy       s              is "An indirect strategy"
+    evidence       e              is "An evidence"
+
+    s supports a_template:abs
+    e supports s
+}

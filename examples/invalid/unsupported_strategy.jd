@@ -1,6 +1,0 @@
-justification j {
-    conclusion c is "The system is correct"
-    strategy s is "Testing"
-    s supports c
-    evidence e is "Test results"
-}

@@ -1,0 +1,15 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// A template defines abstract support element(s)
+template t {
+    conclusion c is "A conclusion"
+    strategy s   is "A strategy"
+    @support abs is "An abstract support"
+
+    s   supports c
+    abs supports s
+}

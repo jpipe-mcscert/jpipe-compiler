@@ -1,3 +1,10 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+ // A justification with really long labels
 justification long_labels {
 
     conclusion c is "The system is correct and behaves as expected under all operational conditions"
@@ -11,8 +18,7 @@ justification long_labels {
     strategy s2 is "Aggregating component-level evidence through a structured review process"
 
     e1 supports s
-    s supports sc
+    s  supports sc
     sc supports s2
     s2 supports c
-
 }

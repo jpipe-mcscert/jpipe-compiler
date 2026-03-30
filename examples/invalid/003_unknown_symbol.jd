@@ -1,0 +1,25 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+justification unknown_suportee {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+
+    s supports c
+    e supports s
+    s supports unknown
+}
+
+justification unknown_suporter {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+
+    s       supports c
+    e       supports s
+    unknown supports c
+}

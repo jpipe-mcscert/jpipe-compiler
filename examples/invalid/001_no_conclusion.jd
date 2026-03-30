@@ -1,0 +1,23 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+ 
+// a justification must define a conclusion element
+justification j {
+    sub-conclusion sc is "A sub-conclusion"
+    strategy       s  is "A strategy"
+    evidence       e  is "an evidence"
+    s supports sc
+    e supports s
+}
+
+// a template must define a conclusion element
+template t {
+    sub-conclusion sc   is "A sub-conclusion"
+    strategy       s    is "A strategy"
+    @support       abs  is "an evidence"
+    s supports sc
+    abs supports s
+}
