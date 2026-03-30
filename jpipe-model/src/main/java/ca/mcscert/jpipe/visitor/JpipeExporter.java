@@ -133,9 +133,9 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 				.ifPresent(s -> appendRelation(s.id(), c.id())));
 		model.subConclusions().forEach(sc -> sc.getSupport()
 				.ifPresent(s -> appendRelation(s.id(), sc.id())));
-		model.strategies().forEach(s -> s.getSupports()
-				.forEach(leaf -> appendRelation(
-						((JustificationElement) leaf).id(), s.id())));
+		model.strategies().forEach(s -> s.getSupports().forEach(
+				leaf -> appendRelation(((JustificationElement) leaf).id(),
+						s.id())));
 	}
 
 	private void appendElement(String keyword, JustificationElement element) {
