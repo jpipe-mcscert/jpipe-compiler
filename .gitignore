@@ -15,3 +15,7 @@ jpipe-lang/src/main/java
 .DS_Store
 .java-version
 site/
+
+# Local agent instructions
+CLAUDE.md
+GEMINI.md
