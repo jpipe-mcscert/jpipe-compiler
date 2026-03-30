@@ -3,11 +3,14 @@ package ca.mcscert.jpipe.compiler.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ca.mcscert.jpipe.compiler.model.Diagnostic.Level;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@DisplayName("Diagnostic Model Tests")
 class DiagnosticTest {
 
 	@Test
+	@DisplayName("Warning diagnostics are not errors")
 	void warning_isNotAnError() {
 		Diagnostic d = Diagnostic.warning("file.jd", "heads up");
 		assertThat(d.level()).isEqualTo(Level.WARNING);
@@ -16,6 +19,7 @@ class DiagnosticTest {
 	}
 
 	@Test
+	@DisplayName("Error diagnostics are errors but not fatal")
 	void error_isAnErrorButNotFatal() {
 		Diagnostic d = Diagnostic.error("file.jd", "something wrong");
 		assertThat(d.level()).isEqualTo(Level.ERROR);
@@ -24,6 +28,7 @@ class DiagnosticTest {
 	}
 
 	@Test
+	@DisplayName("Fatal diagnostics are both errors and fatal")
 	void fatal_isAnErrorAndFatal() {
 		Diagnostic d = Diagnostic.fatal("file.jd", "unrecoverable");
 		assertThat(d.level()).isEqualTo(Level.FATAL);

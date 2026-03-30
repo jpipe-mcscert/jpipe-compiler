@@ -10,9 +10,11 @@ import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+@DisplayName("Justification Model")
 class JustificationModelTest {
 
 	// -------------------------------------------------------------------------
@@ -20,6 +22,7 @@ class JustificationModelTest {
 	// -------------------------------------------------------------------------
 
 	@Nested
+	@DisplayName("Base functionality (parent, findById, elementsOfType)")
 	class JustificationModelBase {
 
 		private Justification model;
@@ -33,11 +36,13 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("parent is absent by default")
 		void parentIsAbsentByDefault() {
 			assertThat(model.getParent()).isEmpty();
 		}
 
 		@Test
+		@DisplayName("setting and getting parent works (round-trip)")
 		void setParentRoundTrips() {
 			Template t = new Template("tmpl");
 			model.setParent(t);
@@ -45,29 +50,34 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("findById returns the conclusion if the ID matches")
 		void findByIdReturnsConclusionFromField() {
 			assertThat(model.findById("c1")).isPresent().get()
 					.isInstanceOf(Conclusion.class);
 		}
 
 		@Test
+		@DisplayName("findById returns an element from the internal list if the ID matches")
 		void findByIdReturnsElementFromList() {
 			assertThat(model.findById("s1")).isPresent().get()
 					.isInstanceOf(Strategy.class);
 		}
 
 		@Test
+		@DisplayName("findById returns empty when the ID is not found")
 		void findByIdReturnsEmptyWhenAbsent() {
 			assertThat(model.findById("unknown")).isEmpty();
 		}
 
 		@Test
+		@DisplayName("elementsOfType filters elements correctly by class")
 		void elementsOfTypeFiltersCorrectly() {
 			assertThat(model.elementsOfType(SubConclusion.class)).hasSize(1)
 					.extracting(SubConclusion::id).containsExactly("sc1");
 		}
 
 		@Test
+		@DisplayName("elementsOfType returns empty list when no elements match the type")
 		void elementsOfTypeReturnsEmptyWhenNoMatch() {
 			assertThat(model.elementsOfType(Evidence.class)).isEmpty();
 		}
@@ -78,6 +88,7 @@ class JustificationModelTest {
 	// -------------------------------------------------------------------------
 
 	@Nested
+	@DisplayName("Justification-specific typed filters")
 	class JustificationFilters {
 
 		private Justification j;
@@ -92,24 +103,28 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("conclusion() returns the primary conclusion")
 		void conclusionReturnsTheConclusion() {
 			assertThat(j.conclusion()).isPresent().get()
 					.extracting(Conclusion::id).isEqualTo("c1");
 		}
 
 		@Test
+		@DisplayName("subConclusions() returns only sub-conclusion elements")
 		void subConclusionsReturnsOnlySubConclusions() {
 			assertThat(j.subConclusions()).extracting(SubConclusion::id)
 					.containsExactly("sc1");
 		}
 
 		@Test
+		@DisplayName("strategies() returns only strategy elements")
 		void strategiesReturnsOnlyStrategies() {
 			assertThat(j.strategies()).extracting(Strategy::id)
 					.containsExactly("s1");
 		}
 
 		@Test
+		@DisplayName("evidence() returns only evidence elements")
 		void evidenceReturnsOnlyEvidence() {
 			assertThat(j.evidence()).extracting(Evidence::id)
 					.containsExactly("e1");
@@ -121,6 +136,7 @@ class JustificationModelTest {
 	// -------------------------------------------------------------------------
 
 	@Nested
+	@DisplayName("Template-specific typed filters")
 	class TemplateFilters {
 
 		private Template t;
@@ -136,30 +152,35 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("conclusion() returns the primary conclusion")
 		void conclusionReturnsTheConclusion() {
 			assertThat(t.conclusion()).isPresent().get()
 					.extracting(Conclusion::id).isEqualTo("c1");
 		}
 
 		@Test
+		@DisplayName("subConclusions() returns only sub-conclusion elements")
 		void subConclusionsReturnsOnlySubConclusions() {
 			assertThat(t.subConclusions()).extracting(SubConclusion::id)
 					.containsExactly("sc1");
 		}
 
 		@Test
+		@DisplayName("strategies() returns only strategy elements")
 		void strategiesReturnsOnlyStrategies() {
 			assertThat(t.strategies()).extracting(Strategy::id)
 					.containsExactly("s1");
 		}
 
 		@Test
+		@DisplayName("evidence() returns only evidence elements")
 		void evidenceReturnsOnlyEvidence() {
 			assertThat(t.evidence()).extracting(Evidence::id)
 					.containsExactly("e1");
 		}
 
 		@Test
+		@DisplayName("abstractSupports() returns only abstract support elements")
 		void abstractSupportsReturnsOnlyAbstractSupports() {
 			assertThat(t.abstractSupports()).extracting(AbstractSupport::id)
 					.containsExactly("as1");
@@ -171,6 +192,7 @@ class JustificationModelTest {
 	// -------------------------------------------------------------------------
 
 	@Nested
+	@DisplayName("Model validation (completeness and consistency)")
 	class JustificationValidate {
 
 		private Conclusion conclusion;
@@ -195,11 +217,13 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("validate() returns no violations for a complete model")
 		void validateReturnsNoViolationsForCompleteModel() {
 			assertThat(complete().validate()).isEmpty();
 		}
 
 		@Test
+		@DisplayName("validate() reports error when conclusion is missing")
 		void validateReportsMissingConclusion() {
 			Justification j = new Justification("j1");
 			assertThat(j.validate()).anySatisfy(
@@ -207,6 +231,7 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("validate() reports error when conclusion has no supports")
 		void validateReportsUnsupportedConclusion() {
 			Justification j = new Justification("j1");
 			j.setConclusion(conclusion);
@@ -215,6 +240,7 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("validate() reports error when a strategy has no supports")
 		void validateReportsUnsupportedStrategy() {
 			conclusion.addSupport(strategy);
 			Justification j = new Justification("j1");
@@ -225,6 +251,7 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("validate() reports error when a sub-conclusion has no supports")
 		void validateReportsUnsupportedSubConclusion() {
 			SubConclusion sc = new SubConclusion("sc1", "a sub-conclusion");
 			strategy.addSupport(sc);
@@ -238,6 +265,7 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("validate() accumulates multiple violations")
 		void validateAccumulatesAllViolations() {
 			Justification j = new Justification("j1");
 			j.setConclusion(conclusion);
@@ -247,6 +275,7 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("validate() reports cycle in 'implements' hierarchy")
 		void validateReportsImplementsCycle() {
 			Template t1 = new Template("t1");
 			Template t2 = new Template("t2");
@@ -258,6 +287,7 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("validate() reports error when an abstract support is not overridden in instance")
 		void validateReportsAbstractSupportNotOverridden() {
 			Template t = new Template("t");
 			Conclusion tc = new Conclusion("c", "template conclusion");
@@ -283,6 +313,7 @@ class JustificationModelTest {
 	// -------------------------------------------------------------------------
 
 	@Nested
+	@DisplayName("Unit-level queries (templates, retrieval)")
 	class UnitQueries {
 
 		private Unit unit;
@@ -295,12 +326,14 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("templates() returns only template units")
 		void templatesReturnsOnlyTemplates() {
 			assertThat(unit.templates()).hasSize(1)
 					.extracting(Template::getName).containsExactly("t1");
 		}
 
 		@Test
+		@DisplayName("get() throws exception for unknown element name")
 		void getThrowsForUnknownName() {
 			assertThatThrownBy(() -> unit.get("nonexistent"))
 					.isInstanceOf(NoSuchElementException.class)
