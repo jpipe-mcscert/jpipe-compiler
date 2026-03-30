@@ -137,7 +137,8 @@ class ImplementsTemplateTest {
 
 		/**
 		 * Builds a unit with template t (tc←ts←te) and justification j
-		 * implements t.
+		 * implements t. j declares no conclusion of its own — the template's
+		 * conclusion becomes j's conclusion with qualified id t:tc.
 		 */
 		private Unit buildUnit() {
 			ExecutionEngine engine = new ExecutionEngine();
@@ -150,15 +151,12 @@ class ImplementsTemplateTest {
 							new AddSupport("t", "tc", "ts"),
 							new AddSupport("t", "ts", "te"),
 							new CreateJustification("j"),
-							new CreateConclusion("j", "c", "My conclusion"),
 							new ImplementsTemplate("j", "t")));
 		}
 
 		@Test
 		void templateConclusionIsExpandedAsConclusion() {
 			Unit unit = buildUnit();
-			// Demotion check: inherited conclusion should still be a Conclusion
-			// in the implementor if it didn't have one.
 			assertThat(unit.get("j").findById("t:tc")).isPresent().get()
 					.isInstanceOf(Conclusion.class);
 		}
@@ -299,7 +297,6 @@ class ImplementsTemplateTest {
 					new AddSupport("parent", "ps", "as"),
 					new AddSupport("parent", "pc", "ps"),
 					new CreateTemplate("child"),
-					new CreateConclusion("child", "cc", "Child conclusion"),
 					new ImplementsTemplate("child", "parent")));
 
 			assertThat(unit.get("child").findById("parent:pc")).isPresent()
@@ -322,6 +319,38 @@ class ImplementsTemplateTest {
 
 			assertThat(unit.get("child").findById("parent:as")).isPresent()
 					.get().isInstanceOf(AbstractSupport.class);
+		}
+
+		@Test
+		void grandchildPreservesGrandparentQualifiedIds() {
+			// grandchild implements child implements parent
+			// grandparent elements (parent:pc, parent:as) must appear in
+			// grandchild
+			// with their original IDs, not double-qualified as child:parent:pc.
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src", List.of(
+					new CreateTemplate("parent"),
+					new CreateConclusion("parent", "pc", "Parent conclusion"),
+					new CreateStrategy("parent", "ps", "Parent strategy"),
+					new CreateAbstractSupport("parent", "as",
+							"Abstract support"),
+					new AddSupport("parent", "ps", "as"),
+					new AddSupport("parent", "pc", "ps"),
+					new CreateTemplate("child"),
+					new ImplementsTemplate("child", "parent"),
+					new CreateJustification("grandchild"),
+					new ImplementsTemplate("grandchild", "child"),
+					new OverrideAbstractSupport("grandchild", "parent:as",
+							"evidence", "Concrete evidence")));
+
+			assertThat(unit.get("grandchild").findById("parent:pc")).isPresent()
+					.get().isInstanceOf(Conclusion.class);
+			assertThat(unit.get("grandchild").findById("parent:ps")).isPresent()
+					.get().isInstanceOf(Strategy.class);
+			assertThat(unit.get("grandchild").findById("parent:as")).isPresent()
+					.get().isInstanceOf(Evidence.class);
+			assertThat(unit.get("grandchild").findById("child:parent:pc"))
+					.isEmpty();
 		}
 
 		@Test

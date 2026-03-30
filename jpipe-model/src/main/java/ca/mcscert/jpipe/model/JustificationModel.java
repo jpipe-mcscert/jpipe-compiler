@@ -269,10 +269,17 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		return colon >= 0 ? id.substring(colon + 1) : id;
 	}
 
-	/** Creates a copy of {@code elem} with id {@code prefix:originalId}. */
+	/**
+	 * Creates a copy of {@code elem}. If the element's id is already qualified
+	 * (contains {@code :}), the id is preserved as-is — it was inherited from a
+	 * grandparent template and must not be double-qualified. Plain ids are
+	 * prefixed with {@code prefix:}.
+	 */
 	protected static JustificationElement qualifiedCopy(
 			JustificationElement elem, String prefix) {
-		String qualifiedId = prefix + ":" + elem.id();
+		String qualifiedId = elem.id().contains(":")
+				? elem.id()
+				: prefix + ":" + elem.id();
 		return switch (elem) {
 			case Evidence e -> new Evidence(qualifiedId, e.label());
 			case Strategy s -> new Strategy(qualifiedId, s.label());

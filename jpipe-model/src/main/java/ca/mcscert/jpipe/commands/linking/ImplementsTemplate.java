@@ -50,13 +50,17 @@ public final class ImplementsTemplate extends RegularCommand {
 	private void propagateLocations(Unit context, Template template) {
 		template.conclusion().ifPresent(tc -> {
 			SourceLocation loc = context.locationOf(templateName, tc.id());
-			context.recordLocation(modelName, templateName + ":" + tc.id(),
-					loc);
+			String key = tc.id().contains(":")
+					? tc.id()
+					: templateName + ":" + tc.id();
+			context.recordLocation(modelName, key, loc);
 		});
 		for (JustificationElement elem : template.getElements()) {
 			SourceLocation loc = context.locationOf(templateName, elem.id());
-			context.recordLocation(modelName, templateName + ":" + elem.id(),
-					loc);
+			String key = elem.id().contains(":")
+					? elem.id()
+					: templateName + ":" + elem.id();
+			context.recordLocation(modelName, key, loc);
 		}
 	}
 

@@ -40,7 +40,7 @@ Code **must** pass `mvn spotless:apply` (Google Java Format) and `mvn verify` be
 | `jpipe-compiler` | Compilation pipeline: source → transform → check → sink |
 | `jpipe-cli` | PicoCLI entry point; fat JAR via Maven Shade |
 
-All packages use `org.jpipe` group ID (was `ca.mcscert.jpipe` before ADR-0002 rename — some files still use the old namespace).
+All packages use `ca.mcscert.jpipe` as the base namespace.
 
 ## Compiler Pipeline Architecture
 
@@ -100,6 +100,12 @@ Architecture decisions live in `docs/adr/`. Notable ones:
 - **ADR-0009** — Typed pipeline abstraction (most recent, 2026-03-26)
 
 Design rationale docs are in `docs/design/compiler.md` and `docs/design/model.md`.
+
+## Development Conventions
+
+- **Diagnostics:** Use `CompilationContext` to report `WARNING`, `ERROR`, or `FATAL` diagnostics. Avoid throwing raw exceptions; prefer wrapping in `CompilationException` via the pipeline's `fire()` method.
+- **Pipeline steps:** New compilation phases must be implemented as `Transformation<I,O>` or `Checker<I>` subclasses and placed under `ca.mcscert.jpipe.compiler.steps`.
+- **Testing:** New features must include Cucumber scenarios in `jpipe-compiler/src/test/resources/features` and JUnit Jupiter unit tests in the relevant module.
 
 ## Logging
 
