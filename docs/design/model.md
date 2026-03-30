@@ -13,10 +13,10 @@ Elements that appear in both justifications and templates implement `CommonEleme
 
 Support relationships are encoded directly via typed fields and one marker interface:
 
-- **`SupportLeaf`** — marker for elements that can act as direct supporters
+- **`SupportLeaf`** — marker for elements that can act as direct supporters of a strategy
   (`SubConclusion`, `Evidence`, `AbstractSupport`).
-- `Conclusion` and `SubConclusion` each hold a single `supporter : Strategy`; `Strategy`
-  holds a single `supporter : SupportLeaf`. Cardinality is enforced at assignment time.
+- `Conclusion` and `SubConclusion` each hold a single `supporter : Strategy`. Cardinality is enforced via `addSupport` which prevents multiple assignments.
+- `Strategy` holds a list of supporters (`List<SupportLeaf>`). Multiple elements can support a single strategy (e.g., shared evidence or convergence).
 
 `JustificationModel<E>` is the sealed base for `Justification` (accepts only
 `CommonElement`) and `Template` (accepts any `JustificationElement`). A `Unit`
@@ -59,9 +59,10 @@ package "model.elements" {
   class Strategy {
     - id : String
     - label : String
-    - supporter : SupportLeaf
+    - supporters : List<SupportLeaf>
     + addSupport(SupportLeaf) : void
-    + getSupport() : Optional<SupportLeaf>
+    + getSupports() : List<SupportLeaf>
+    + replaceSupport(SupportLeaf, SupportLeaf) : void
   }
 
   class Evidence <<record>> {
@@ -86,9 +87,9 @@ package "model.elements" {
   SupportLeaf <|.. Evidence
   SupportLeaf <|.. AbstractSupport
 
-  Conclusion    --> Strategy    : supporter
-  SubConclusion --> Strategy    : supporter
-  Strategy      --> SupportLeaf : supporter
+  Conclusion    --> "0..1" Strategy    : supporter
+  SubConclusion --> "0..1" Strategy    : supporter
+  Strategy      --> "*" SupportLeaf : supporters
 }
 
 package "model" {
@@ -111,13 +112,10 @@ package "model" {
     + strategies() : List<Strategy>
     + evidence() : List<Evidence>
     + accept(JustificationVisitor<R>) : R
+    + inline(Template, String) : void
   }
 
-  class Justification {
-    + isLocked() : boolean
-    + lock() : void
-  }
-
+  class Justification
   class Template {
     + abstractSupports() : List<AbstractSupport>
   }
@@ -125,14 +123,18 @@ package "model" {
   class Unit {
     - source : String
     - models : Map<String, JustificationModel>
+    - locations : Map<String, SourceLocation>
     + getSource() : String
     + add(JustificationModel) : void
     + getModels() : Collection<JustificationModel>
     + findModel(String) : Optional<JustificationModel>
     + get(String) : JustificationModel
     + addInto(String, JustificationElement) : void
+    + removeFrom(String, String) : void
     + justifications() : List<Justification>
     + templates() : List<Template>
+    + recordLocation(String, SourceLocation) : void
+    + locationOf(String) : SourceLocation
     + accept(JustificationVisitor<R>) : R
   }
 
@@ -152,7 +154,7 @@ package "model" {
 
 Model construction uses the Command pattern. `RegularCommand` is the base for all
 concrete commands. The `ExecutionEngine` handles deferred execution (commands whose
-condition is not yet met) and deadlock detection.
+condition is not yet met), macro expansion, and deadlock detection.
 
 ```plantuml
 @startuml commands
@@ -171,14 +173,22 @@ package "commands" {
     + execute(Unit) : void
   }
 
-  abstract class RegularCommand
+  abstract class RegularCommand {
+    # {abstract} doExecute(Unit) : void
+  }
+
+  interface MacroCommand {
+    + expand(Unit) : List<Command>
+  }
 
   class ExecutionEngine {
     + spawn(String, List<Command>) : Unit
     + enrich(Unit, List<Command>) : Unit
+    + totalDeferrals() : int
   }
 
   Command <|.. RegularCommand
+  Command <|.. MacroCommand
   ExecutionEngine ..> Command
   ExecutionEngine ..> Unit
 }
