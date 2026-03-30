@@ -36,10 +36,11 @@ public final class ExecutionEngine {
 		int deferCount = 0;
 		while (!commands.isEmpty()) {
 			if (deferCount >= commands.size()) {
-				logger.error("Execution deadlocked — {} command(s) stuck:",
-						commands.size());
-				commands.forEach(c -> logger.error("  stuck: {}", c));
-				return;
+				StringBuilder stuck = new StringBuilder(
+						"Execution deadlocked — " + commands.size()
+								+ " command(s) cannot execute:");
+				commands.forEach(c -> stuck.append("\n  stuck: ").append(c));
+				throw new IllegalStateException(stuck.toString());
 			}
 			Command command = commands.removeFirst();
 			if (!command.condition().test(unit)) {
@@ -48,22 +49,27 @@ public final class ExecutionEngine {
 				deferCount++;
 				totalDeferrals++;
 			} else if (command instanceof MacroCommand macro) {
+				List<Command> expanded;
 				try {
-					List<Command> expanded = macro.expand(unit);
-					logger.debug("Expanding macro [{}] into {} command(s)",
-							macro, expanded.size());
-					commands.addAll(0, expanded);
+					expanded = macro.expand(unit);
+				} catch (RuntimeException e) {
+					throw e;
 				} catch (Exception e) {
-					logger.error("Error expanding macro [{}]: {}", macro,
-							e.getMessage());
+					throw new IllegalStateException("Error expanding macro ["
+							+ macro + "]: " + e.getMessage(), e);
 				}
+				logger.debug("Expanding macro [{}] into {} command(s)", macro,
+						expanded.size());
+				commands.addAll(0, expanded);
 				deferCount = 0;
 			} else {
 				try {
 					command.execute(unit);
+				} catch (RuntimeException e) {
+					throw e;
 				} catch (Exception e) {
-					logger.error("Error executing command [{}]: {}", command,
-							e.getMessage());
+					throw new IllegalStateException("Error executing command ["
+							+ command + "]: " + e.getMessage(), e);
 				}
 				deferCount = 0;
 			}

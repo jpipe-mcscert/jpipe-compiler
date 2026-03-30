@@ -29,6 +29,10 @@ public final class Unit {
 	}
 
 	public void add(JustificationModel<?> model) {
+		if (models.containsKey(model.getName())) {
+			throw new IllegalStateException(
+					"Duplicate model name: '" + model.getName() + "'");
+		}
 		models.put(model.getName(), model);
 	}
 

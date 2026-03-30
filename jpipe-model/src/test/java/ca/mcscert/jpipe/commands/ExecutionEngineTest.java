@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.model.Unit;
@@ -114,7 +115,7 @@ class ExecutionEngineTest {
 	class DeadlockDetection {
 
 		@Test
-		void engineTerminatesWhenAllCommandsAreStuck() {
+		void engineThrowsWhenAllCommandsAreStuck() {
 			RegularCommand stuck1 = new RegularCommand() {
 				@Override
 				public Predicate<Unit> condition() {
@@ -136,30 +137,32 @@ class ExecutionEngineTest {
 				}
 			};
 
-			Unit unit = engine.spawn("src", List.of(stuck1, stuck2));
-			assertThat(unit.getModels()).isEmpty();
+			assertThatThrownBy(
+					() -> engine.spawn("src", List.of(stuck1, stuck2)))
+					.isInstanceOf(IllegalStateException.class)
+					.hasMessageContaining("deadlocked");
 		}
 	}
 
 	// -------------------------------------------------------------------------
-	// Error recovery
+	// Error propagation
 	// -------------------------------------------------------------------------
 
 	@Nested
-	class ErrorRecovery {
+	class ErrorPropagation {
 
 		@Test
-		void engineContinuesAfterExceptionInExecute() {
+		void enginePropagatesExceptionFromCommand() {
 			RegularCommand failing = new RegularCommand() {
 				@Override
-				public void doExecute(Unit context) throws Exception {
-					throw new RuntimeException("intentional failure");
+				public void doExecute(Unit context) {
+					throw new IllegalStateException("intentional failure");
 				}
 			};
 
-			Unit unit = engine.spawn("src",
-					List.of(failing, new CreateJustification("j1")));
-			assertThat(unit.findModel("j1")).isPresent();
+			assertThatThrownBy(() -> engine.spawn("src", List.of(failing)))
+					.isInstanceOf(IllegalStateException.class)
+					.hasMessageContaining("intentional failure");
 		}
 	}
 }
