@@ -13,11 +13,12 @@ import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
-import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Evidence;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
-import ca.mcscert.jpipe.model.elements.SubConclusion;
+import ca.mcscert.jpipe.model.elements.Conclusion;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.Nested;
@@ -154,10 +155,12 @@ class ImplementsTemplateTest {
 		}
 
 		@Test
-		void templateConclusionIsExpandedAsSubConclusion() {
+		void templateConclusionIsExpandedAsConclusion() {
 			Unit unit = buildUnit();
+			// Demotion check: inherited conclusion should still be a Conclusion
+			// in the implementor if it didn't have one.
 			assertThat(unit.get("j").findById("t:tc")).isPresent().get()
-					.isInstanceOf(SubConclusion.class);
+					.isInstanceOf(Conclusion.class);
 		}
 
 		@Test
@@ -185,7 +188,7 @@ class ImplementsTemplateTest {
 		@Test
 		void supportEdgeBetweenCopiedElementsIsRewired() {
 			Unit unit = buildUnit();
-			SubConclusion tc = (SubConclusion) unit.get("j").findById("t:tc")
+			Conclusion tc = (Conclusion) unit.get("j").findById("t:tc")
 					.orElseThrow();
 			assertThat(tc.getSupport()).isPresent().get()
 					.extracting(Strategy::id).isEqualTo("t:ts");
@@ -246,10 +249,9 @@ class ImplementsTemplateTest {
 			assertThat(j.findById("t:as")).isPresent().get()
 					.isInstanceOf(Evidence.class);
 			Strategy ts = (Strategy) j.findById("t:ts").orElseThrow();
-			assertThat(ts.getSupport()).isPresent().get().extracting(
-					sl -> ((ca.mcscert.jpipe.model.elements.JustificationElement) sl)
-							.id())
-					.isEqualTo("t:as");
+			assertThat(ts.getSupports())
+					.extracting(sl -> ((JustificationElement) sl).id())
+					.contains("t:as");
 		}
 
 		@Test
@@ -301,7 +303,7 @@ class ImplementsTemplateTest {
 					new ImplementsTemplate("child", "parent")));
 
 			assertThat(unit.get("child").findById("parent:pc")).isPresent()
-					.get().isInstanceOf(SubConclusion.class);
+					.get().isInstanceOf(Conclusion.class);
 			assertThat(unit.get("child").findById("parent:ps")).isPresent()
 					.get().isInstanceOf(Strategy.class);
 		}

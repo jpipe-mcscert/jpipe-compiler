@@ -239,24 +239,23 @@ public final class ActionListProvider
 		 */
 
 		/**
-		 * Returns true if the qualified {@code identifier}'s first segment
-		 * matches the parent template of the current model. Emits a
-		 * {@code [unresolved-override]} error and returns false otherwise.
+		 * Returns true if the qualified {@code identifier} is allowed in the
+		 * current model context.
 		 */
 		private boolean validOverridePrefix(String identifier,
 				SourceLocation loc) {
-			String prefix = identifier.substring(0, identifier.indexOf(':'));
 			String parent = buildContext.parentTemplateName;
-			if (parent == null || !prefix.equals(parent)) {
-				String hint = parent != null
-						? "; expected prefix '" + parent + "'"
-						: "";
+			if (parent == null) {
 				compilationCtx.error(loc.line(), loc.column(),
 						"[unresolved-override] '" + identifier
-								+ "' does not refer to any element in model '"
-								+ buildContext.justificationId + "'" + hint);
+								+ "' is qualified but model '"
+								+ buildContext.justificationId
+								+ "' implements no template");
 				return false;
 			}
+			// Permissive check: we only check if there is A parent.
+			// The actual resolution is deferred to command execution via
+			// findById.
 			return true;
 		}
 

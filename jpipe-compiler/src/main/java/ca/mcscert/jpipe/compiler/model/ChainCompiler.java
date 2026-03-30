@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.compiler.model;
 
 import ca.mcscert.jpipe.compiler.Compiler;
 import java.io.IOException;
+import java.io.PrintStream;
 
 /**
  * A fully assembled compilation pipeline: {@link Source} →
@@ -29,8 +30,24 @@ public final class ChainCompiler<I, O> implements Compiler {
 	public void compile(String sourceFile, String sinkFile) throws IOException {
 		CompilationContext ctx = new CompilationContext(sourceFile);
 		I input = source.provideFrom(sourceFile);
-		O output = chain.fire(input, ctx);
-		sink.pourInto(output);
+		try {
+			O output = chain.fire(input, ctx);
+			sink.pourInto(output);
+		} finally {
+			printDiagnostics(ctx, System.err);
+		}
+	}
+
+	private void printDiagnostics(CompilationContext ctx, PrintStream err) {
+		for (Diagnostic d : ctx.diagnostics()) {
+			if (d.isError()) {
+				String loc = d.hasLocation()
+						? d.source() + ":" + d.line() + ":" + d.column() + ": "
+						: d.source() + ": ";
+				err.println(loc + d.level().name().toLowerCase() + ": "
+						+ d.message());
+			}
+		}
 	}
 
 }

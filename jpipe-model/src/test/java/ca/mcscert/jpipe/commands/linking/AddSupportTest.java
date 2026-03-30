@@ -4,20 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.commands.ExecutionEngine;
+import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateEvidence;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
-import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Conclusion;
-import ca.mcscert.jpipe.model.elements.Evidence;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
-import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -74,9 +73,9 @@ class AddSupportTest {
 			new AddSupport("j1", "s1", "e1").execute(unit);
 
 			Strategy s = element(unit, "j1", "s1", Strategy.class);
-			assertThat(s.getSupport()).isPresent().get()
-					.isInstanceOf(Evidence.class)
-					.extracting(sl -> ((Evidence) sl).id()).isEqualTo("e1");
+			assertThat(s.getSupports())
+					.extracting(sl -> ((JustificationElement) sl).id())
+					.contains("e1");
 		}
 	}
 
@@ -92,10 +91,9 @@ class AddSupportTest {
 			new AddSupport("j1", "s1", "sc1").execute(unit);
 
 			Strategy s = element(unit, "j1", "s1", Strategy.class);
-			assertThat(s.getSupport()).isPresent().get()
-					.isInstanceOf(SubConclusion.class)
-					.extracting(sl -> ((SubConclusion) sl).id())
-					.isEqualTo("sc1");
+			assertThat(s.getSupports())
+					.extracting(sl -> ((JustificationElement) sl).id())
+					.contains("sc1");
 		}
 	}
 
@@ -112,10 +110,9 @@ class AddSupportTest {
 			new AddSupport("t1", "s1", "as1").execute(unit);
 
 			Strategy s = element(unit, "t1", "s1", Strategy.class);
-			assertThat(s.getSupport()).isPresent().get()
-					.isInstanceOf(AbstractSupport.class)
-					.extracting(sl -> ((AbstractSupport) sl).id())
-					.isEqualTo("as1");
+			assertThat(s.getSupports())
+					.extracting(sl -> ((JustificationElement) sl).id())
+					.contains("as1");
 		}
 	}
 

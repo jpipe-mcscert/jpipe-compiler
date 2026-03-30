@@ -111,8 +111,10 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * {@link Template} includes everything.
 	 *
 	 * <p>
-	 * The template's conclusion is always copied as a {@link SubConclusion},
-	 * becoming an intermediate goal rather than the top-level one.
+	 * The template's conclusion is always copied as a {@link Conclusion},
+	 * maintaining its top-level status. If this model already has a conclusion,
+	 * the template's conclusion is mapped to it for edge re-wiring but not
+	 * added as a second conclusion.
 	 */
 	public void inline(Template template, String templateName) {
 		setParent(template);
@@ -122,53 +124,59 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		Map<String, JustificationElement> copies = new LinkedHashMap<>();
 
 		template.conclusion().ifPresent(tc -> {
-			SubConclusion copy = new SubConclusion(templateName + ":" + tc.id(),
-					tc.label());
-			if (includeInExpansion(copy)) {
-				copies.put(tc.id(), copy);
+			Conclusion copy = (Conclusion) qualifiedCopy(tc, templateName);
+			if (this.conclusion == null) {
+				this.setConclusion(copy);
 			}
+			// In Step 2, we want edges supporting 'tc' to now support our
+			// conclusion
+			copies.put(tc.id(), this.conclusion);
 		});
 
-		for (JustificationElement elem : template.getElements()) {
+		template.getElements().forEach(elem -> {
 			JustificationElement copy = qualifiedCopy(elem, templateName);
 			if (includeInExpansion(copy)) {
 				copies.put(elem.id(), copy);
 			}
-		}
+		});
 
 		// Step 2: re-wire support edges between included copies only
 		template.conclusion().ifPresent(tc -> tc.getSupport().ifPresent(s -> {
 			if (copies.containsKey(tc.id()) && copies.containsKey(s.id())) {
-				((SubConclusion) copies.get(tc.id()))
+				JustificationElement copiedC = copies.get(tc.id());
+				Strategy copiedS = (Strategy) copies.get(s.id());
+				// copiedC is always a Conclusion or SubConclusion because tc
+				// was a Conclusion
+				if (copiedC instanceof Conclusion c) {
+					c.addSupport(copiedS);
+				} else if (copiedC instanceof SubConclusion sc) {
+					sc.addSupport(copiedS);
+				}
+			}
+		}));
+
+		template.subConclusions().forEach(sc -> sc.getSupport().ifPresent(s -> {
+			if (copies.containsKey(sc.id()) && copies.containsKey(s.id())) {
+				((SubConclusion) copies.get(sc.id()))
 						.addSupport((Strategy) copies.get(s.id()));
 			}
 		}));
 
-		for (SubConclusion sc : template.subConclusions()) {
-			sc.getSupport().ifPresent(s -> {
-				if (copies.containsKey(sc.id()) && copies.containsKey(s.id())) {
-					((SubConclusion) copies.get(sc.id()))
-							.addSupport((Strategy) copies.get(s.id()));
-				}
-			});
-		}
-
-		for (Strategy s : template.strategies()) {
-			s.getSupport().ifPresent(leaf -> {
-				String leafId = ((JustificationElement) leaf).id();
-				if (copies.containsKey(s.id()) && copies.containsKey(leafId)) {
-					((Strategy) copies.get(s.id()))
-							.addSupport((SupportLeaf) copies.get(leafId));
-				}
-			});
-		}
+		template.strategies().forEach(s -> s.getSupports().forEach(leaf -> {
+			String leafId = ((JustificationElement) leaf).id();
+			if (copies.containsKey(s.id()) && copies.containsKey(leafId)) {
+				((Strategy) copies.get(s.id()))
+						.addSupport((SupportLeaf) copies.get(leafId));
+			}
+		}));
 
 		// Step 3: add included copies to this model
-		for (JustificationElement copy : copies.values()) {
-			@SuppressWarnings("unchecked")
-			E typed = (E) copy;
-			addElement(typed);
-		}
+		copies.values().stream().filter(c -> !(c instanceof Conclusion))
+				.forEach(copy -> {
+					@SuppressWarnings("unchecked")
+					E typed = (E) copy;
+					addElement(typed);
+				});
 	}
 
 	/**
@@ -269,7 +277,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 			case Evidence e -> new Evidence(qualifiedId, e.label());
 			case Strategy s -> new Strategy(qualifiedId, s.label());
 			case SubConclusion sc -> new SubConclusion(qualifiedId, sc.label());
-			case Conclusion c -> new SubConclusion(qualifiedId, c.label());
+			case Conclusion c -> new Conclusion(qualifiedId, c.label());
 			case AbstractSupport as ->
 				new AbstractSupport(qualifiedId, as.label());
 		};

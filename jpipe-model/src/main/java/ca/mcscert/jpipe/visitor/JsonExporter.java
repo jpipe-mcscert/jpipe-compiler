@@ -137,8 +137,8 @@ public class JsonExporter implements JustificationVisitor<Void> {
 		model.subConclusions().forEach(sc -> sc.getSupport().ifPresent(
 				s -> appendRelation(qualify(s.id()), qualify(sc.id()))));
 		model.strategies()
-				.forEach(s -> s.getSupport()
-						.ifPresent(leaf -> appendRelation(
+				.forEach(s -> s.getSupports()
+						.forEach(leaf -> appendRelation(
 								qualify(((JustificationElement) leaf).id()),
 								qualify(s.id()))));
 	}

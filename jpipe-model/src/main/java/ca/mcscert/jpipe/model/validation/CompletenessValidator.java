@@ -54,9 +54,8 @@ public final class CompletenessValidator {
 	 */
 	public List<Violation> validate(Unit unit) {
 		List<Violation> violations = new ArrayList<>();
-		for (JustificationModel<?> model : unit.getModels()) {
-			violations.addAll(checkModel(model, unit));
-		}
+		unit.getModels()
+				.forEach(model -> violations.addAll(checkModel(model, unit)));
 		return violations;
 	}
 
@@ -91,7 +90,7 @@ public final class CompletenessValidator {
 		}
 
 		// strategy-supported
-		model.strategies().stream().filter(s -> s.getSupport().isEmpty())
+		model.strategies().stream().filter(s -> s.getSupports().isEmpty())
 				.forEach(s -> violations.add(new Violation("strategy-supported",
 						"Strategy '" + s.id() + "' in model '" + name
 								+ "' has no supporting element",

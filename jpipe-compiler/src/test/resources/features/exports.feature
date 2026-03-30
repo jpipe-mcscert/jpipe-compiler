@@ -1,22 +1,22 @@
 Feature: Exporting compiled models to various formats
 
   Scenario: DOT export qualifies node ids with the model name
-    Given the source file "simple_justification.jd"
+    Given the source file "000_minimal.jd"
     When I compile it into a unit
-    Then the unit contains a justification named "simple"
+    Then the unit contains a justification named "minimal"
     When I export the current model to DOT format
-    Then the DOT output contains a node with id "simple:c"
-      And the DOT output contains a node with id "simple:s"
-      And the DOT output contains a node with id "simple:e1"
+    Then the DOT output contains a node with id "minimal:c"
+      And the DOT output contains a node with id "minimal:s"
+      And the DOT output contains a node with id "minimal:e"
 
   Scenario: Python export produces snake_case methods with commented @jpipe_link
-    Given the source file "simple_justification.jd"
+    Given the source file "000_minimal.jd"
     When I compile it into a unit
-    Then the unit contains a justification named "simple"
+    Then the unit contains a justification named "minimal"
     When I export the current model to Python format
-    Then the Python output contains a method named "the_system_is_correct"
-      And the Python output contains a method named "testing"
-      And the Python output contains a method named "test_results"
-      And the Python output has @jpipe_link for id "simple:c" commented out
-      And the Python output has @jpipe_link for id "simple:s" commented out
-      And the Python output has @jpipe_link for id "simple:e1" commented out
+    Then the Python output contains a method named "a_conclusion"
+      And the Python output contains a method named "a_strategy"
+      And the Python output contains a method named "an_evidence"
+      And the Python output has @jpipe_link for id "minimal:c" commented out
+      And the Python output has @jpipe_link for id "minimal:s" commented out
+      And the Python output has @jpipe_link for id "minimal:e" commented out

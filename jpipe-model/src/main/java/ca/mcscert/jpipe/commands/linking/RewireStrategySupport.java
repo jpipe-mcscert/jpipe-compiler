@@ -16,21 +16,32 @@ public final class RewireStrategySupport extends RegularCommand {
 
 	private final String container;
 	private final String strategyId;
+	private final String oldSupporterId;
 	private final String newSupporterId;
 
 	public RewireStrategySupport(String container, String strategyId,
 			String newSupporterId) {
+		this(container, strategyId, null, newSupporterId);
+	}
+
+	public RewireStrategySupport(String container, String strategyId,
+			String oldSupporterId, String newSupporterId) {
 		this.container = container;
 		this.strategyId = strategyId;
+		this.oldSupporterId = oldSupporterId;
 		this.newSupporterId = newSupporterId;
 	}
 
 	@Override
 	public Predicate<Unit> condition() {
-		return unit -> unit.findModel(container)
-				.map(m -> m.findById(strategyId).isPresent()
-						&& m.findById(newSupporterId).isPresent())
-				.orElse(false);
+		return unit -> unit.findModel(container).map(m -> {
+			boolean base = m.findById(strategyId).isPresent()
+					&& m.findById(newSupporterId).isPresent();
+			if (oldSupporterId != null) {
+				return base && m.findById(oldSupporterId).isPresent();
+			}
+			return base;
+		}).orElse(false);
 	}
 
 	@Override
@@ -42,12 +53,29 @@ public final class RewireStrategySupport extends RegularCommand {
 		SupportLeaf newSupport = (SupportLeaf) model.findById(newSupporterId)
 				.orElseThrow(() -> new NoSuchElementException(
 						"No element with id: " + newSupporterId));
-		strategy.replaceSupport(newSupport);
+
+		if (oldSupporterId == null) {
+			// Legacy behavior: if no old ID is provided, we can't replace
+			// precisely.
+			// But RewireStrategySupport is only used by
+			// OverrideAbstractSupport now.
+			// We'll just add it if old is not found, or replace if we find
+			// something.
+			// Actually, for multiple supports, we should always know what we
+			// replace.
+			strategy.addSupport(newSupport);
+		} else {
+			SupportLeaf oldSupport = (SupportLeaf) model
+					.findById(oldSupporterId)
+					.orElseThrow(() -> new NoSuchElementException(
+							"No element with id: " + oldSupporterId));
+			strategy.replaceSupport(oldSupport, newSupport);
+		}
 	}
 
 	@Override
 	public String toString() {
 		return "rewire('" + container + "', '" + strategyId + "', '"
-				+ newSupporterId + "')";
+				+ oldSupporterId + "' -> '" + newSupporterId + "')";
 	}
 }

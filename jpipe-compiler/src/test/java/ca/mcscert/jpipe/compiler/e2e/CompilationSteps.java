@@ -15,6 +15,7 @@ import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
+import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.visitor.DotExporter;
 import ca.mcscert.jpipe.visitor.PythonExporter;
 import io.cucumber.java.en.Given;
@@ -96,6 +97,14 @@ public class CompilationSteps {
 				.contains(tuple(id, label));
 	}
 
+	@Then("it has a sub-conclusion with id {string} and label {string}")
+	public void itHasSubConclusion(String id, String label) {
+		assertThat(currentModel.subConclusions())
+				.extracting(JustificationElement::id,
+						JustificationElement::label)
+				.contains(tuple(id, label));
+	}
+
 	@Then("it has evidence with id {string} and label {string}")
 	public void itHasEvidence(String id, String label) {
 		assertThat(currentModel.evidence()).extracting(JustificationElement::id,
@@ -109,6 +118,16 @@ public class CompilationSteps {
 				.orElseThrow(() -> new AssertionError(
 						"No conclusion with id: " + conclusionId));
 		assertThat(conclusion.getSupport()).isPresent().hasValueSatisfying(
+				s -> assertThat(s.id()).isEqualTo(strategyId));
+	}
+
+	@Then("the strategy {string} supports the sub-conclusion {string}")
+	public void strategySupportsSubConclusion(String strategyId,
+			String subConclusionId) {
+		SubConclusion subConclusion = (SubConclusion) currentModel
+				.findById(subConclusionId).orElseThrow(() -> new AssertionError(
+						"No sub-conclusion with id: " + subConclusionId));
+		assertThat(subConclusion.getSupport()).isPresent().hasValueSatisfying(
 				s -> assertThat(s.id()).isEqualTo(strategyId));
 	}
 
@@ -126,9 +145,9 @@ public class CompilationSteps {
 		Strategy strategy = (Strategy) currentModel.findById(strategyId)
 				.orElseThrow(() -> new AssertionError(
 						"No strategy with id: " + strategyId));
-		assertThat(strategy.getSupport()).isPresent().hasValueSatisfying(
-				sl -> assertThat(((JustificationElement) sl).id())
-						.isEqualTo(abstractSupportId));
+		assertThat(strategy.getSupports())
+				.extracting(sl -> ((JustificationElement) sl).id())
+				.contains(abstractSupportId);
 	}
 
 	@Then("the evidence {string} supports the strategy {string}")
@@ -136,9 +155,20 @@ public class CompilationSteps {
 		Strategy strategy = (Strategy) currentModel.findById(strategyId)
 				.orElseThrow(() -> new AssertionError(
 						"No strategy with id: " + strategyId));
-		assertThat(strategy.getSupport()).isPresent().hasValueSatisfying(
-				sl -> assertThat(((JustificationElement) sl).id())
-						.isEqualTo(evidenceId));
+		assertThat(strategy.getSupports())
+				.extracting(sl -> ((JustificationElement) sl).id())
+				.contains(evidenceId);
+	}
+
+	@Then("the sub-conclusion {string} supports the strategy {string}")
+	public void subConclusionSupportsStrategy(String subConclusionId,
+			String strategyId) {
+		Strategy strategy = (Strategy) currentModel.findById(strategyId)
+				.orElseThrow(() -> new AssertionError(
+						"No strategy with id: " + strategyId));
+		assertThat(strategy.getSupports())
+				.extracting(sl -> ((JustificationElement) sl).id())
+				.contains(subConclusionId);
 	}
 
 	@Then("the model {string} is declared at line {int}")

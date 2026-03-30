@@ -77,27 +77,33 @@ public final class ConsistencyValidator {
 						location(unit, model.getName(), c.id())));
 			}
 		});
-		for (JustificationElement element : model.getElements()) {
+		model.getElements().forEach(element -> {
 			if (!seen.add(element.id())) {
 				violations.add(new Violation("no-duplicate-ids",
 						"Duplicate element id '" + element.id() + "' in model '"
 								+ model.getName() + "'",
 						location(unit, model.getName(), element.id())));
 			}
-		}
+		});
 		return violations;
 	}
 
 	private List<Violation> checkAcyclicSupport(JustificationModel<?> model,
 			Unit unit) {
-		// Build a support-edge map: id → id of the element it is supported by
-		Map<String, String> edges = new HashMap<>();
-		model.conclusion().ifPresent(
-				c -> c.getSupport().ifPresent(s -> edges.put(c.id(), s.id())));
+		// Build a support-edge map: id → list of ids of the elements it is
+		// supported by
+		Map<String, List<String>> edges = new HashMap<>();
+		model.conclusion().ifPresent(c -> c.getSupport().ifPresent(s -> edges
+				.computeIfAbsent(c.id(), k -> new ArrayList<>()).add(s.id())));
 		model.subConclusions().forEach(sc -> sc.getSupport()
-				.ifPresent(s -> edges.put(sc.id(), s.id())));
-		model.strategies().forEach(s -> s.getSupport().ifPresent(
-				leaf -> edges.put(s.id(), ((JustificationElement) leaf).id())));
+				.ifPresent(s -> edges
+						.computeIfAbsent(sc.id(), k -> new ArrayList<>())
+						.add(s.id())));
+		model.strategies()
+				.forEach(s -> s.getSupports()
+						.forEach(leaf -> edges
+								.computeIfAbsent(s.id(), k -> new ArrayList<>())
+								.add(((JustificationElement) leaf).id())));
 
 		List<Violation> violations = new ArrayList<>();
 		Set<String> globalVisited = new HashSet<>();
@@ -110,7 +116,7 @@ public final class ConsistencyValidator {
 		return violations;
 	}
 
-	private void detectCycle(String node, Map<String, String> edges,
+	private void detectCycle(String node, Map<String, List<String>> edges,
 			Set<String> globalVisited, Set<String> currentPath,
 			String modelName, Unit unit, List<Violation> violations) {
 		if (currentPath.contains(node)) {
@@ -125,11 +131,9 @@ public final class ConsistencyValidator {
 		}
 		globalVisited.add(node);
 		currentPath.add(node);
-		String next = edges.get(node);
-		if (next != null) {
-			detectCycle(next, edges, globalVisited, currentPath, modelName,
-					unit, violations);
-		}
+		List<String> nexts = edges.getOrDefault(node, List.of());
+		nexts.forEach(next -> detectCycle(next, edges, globalVisited,
+				currentPath, modelName, unit, violations));
 		currentPath.remove(node);
 	}
 

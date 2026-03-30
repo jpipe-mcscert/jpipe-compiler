@@ -59,10 +59,11 @@ public final class OverrideAbstractSupport implements MacroCommand {
 				.orElseThrow(() -> new NoSuchElementException(
 						"No abstract support with id: " + qualifiedId));
 
-		String strategyId = model.strategies().stream().filter(s -> s
-				.getSupport()
-				.filter(sl -> ((JustificationElement) sl).id().equals(old.id()))
-				.isPresent()).map(JustificationElement::id).findFirst()
+		String strategyId = model.strategies().stream()
+				.filter(s -> s.getSupports().stream()
+						.anyMatch(sl -> ((JustificationElement) sl).id()
+								.equals(old.id())))
+				.map(JustificationElement::id).findFirst()
 				.orElseThrow(() -> new IllegalStateException(
 						"No strategy supports abstract support: "
 								+ qualifiedId));
@@ -77,7 +78,8 @@ public final class OverrideAbstractSupport implements MacroCommand {
 		unit.recordLocation(container, qualifiedId, location);
 		return List.of(new RemoveElement(container, qualifiedId),
 				new AddElement(container, replacement),
-				new RewireStrategySupport(container, strategyId, qualifiedId));
+				new RewireStrategySupport(container, strategyId, qualifiedId,
+						qualifiedId));
 	}
 
 	@Override

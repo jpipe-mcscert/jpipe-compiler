@@ -183,8 +183,8 @@ public class DotExporter implements JustificationVisitor<Void> {
 		model.subConclusions().forEach(sc -> sc.getSupport()
 				.ifPresent(s -> appendEdge(qualify(s.id()), qualify(sc.id()))));
 		model.strategies()
-				.forEach(s -> s.getSupport()
-						.ifPresent(leaf -> appendEdge(
+				.forEach(s -> s.getSupports()
+						.forEach(leaf -> appendEdge(
 								qualify(((JustificationElement) leaf).id()),
 								qualify(s.id()))));
 	}
