@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
@@ -95,11 +94,16 @@ public final class ActionListProvider
 			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
 					ctx.id.getLine(), ctx.id.getCharPositionInLine());
 			result.add(new CreateJustification(ctx.id.getText(), loc));
+			// ImplementsTemplate must be enqueued before body commands so that
+			// inherited elements exist when override commands run.
+			if (ctx.parent != null) {
+				result.add(new ImplementsTemplate(ctx.id.getText(),
+						ctx.parent.getText()));
+			}
 		}
 
 		@Override
 		public void exitJustification(JPipeParser.JustificationContext ctx) {
-			closeJustificationModel(ctx.parent, ctx.id);
 			this.buildContext = buildContext.updateCurrentJustification(null,
 					null);
 		}
@@ -114,11 +118,16 @@ public final class ActionListProvider
 			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
 					ctx.id.getLine(), ctx.id.getCharPositionInLine());
 			result.add(new CreateTemplate(ctx.id.getText(), loc));
+			// ImplementsTemplate must be enqueued before body commands so that
+			// inherited elements exist when override commands run.
+			if (ctx.parent != null) {
+				result.add(new ImplementsTemplate(ctx.id.getText(),
+						ctx.parent.getText()));
+			}
 		}
 
 		@Override
 		public void exitTemplate(JPipeParser.TemplateContext ctx) {
-			closeJustificationModel(ctx.parent, ctx.id);
 			this.buildContext = buildContext.updateCurrentJustification(null,
 					null);
 		}
@@ -261,17 +270,6 @@ public final class ActionListProvider
 
 		private String strip(String s) {
 			return s.substring(1, s.length() - 1);
-		}
-
-		private void closeJustificationModel(Token parent, Token id) {
-			if (parent != null) {
-				result.add(
-						new ImplementsTemplate(id.getText(), parent.getText()));
-			}
-			// standalone models (no implements clause) have null parent by
-			// default;
-			// no command needed here — locking belongs to a downstream checker
-			// step
 		}
 	}
 }
