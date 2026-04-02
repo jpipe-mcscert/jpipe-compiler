@@ -43,9 +43,8 @@ public abstract class Checker<I> extends Transformation<I, I> {
 
 	/**
 	 * Perform the check. Must not modify {@code input}. Non-fatal issues should
-	 * be reported via {@code ctx.error()} or {@code ctx.warn()} rather than
-	 * thrown; throw (or call {@code ctx.fatal()}) only for unrecoverable
-	 * failures.
+	 * be reported via {@code ctx.error()} rather than thrown; throw (or call
+	 * {@code ctx.fatal()}) only for unrecoverable failures.
 	 *
 	 * @param input
 	 *            the value to inspect.

@@ -84,17 +84,21 @@ violations (all with `SourceLocation.UNKNOWN`).
 
 ### Pipeline placement
 
-Consistency is checked before completeness, separated by `HaltAndCatchFire`:
+> _The `HaltAndCatchFire` checkpoints between the checkers were removed by
+> ADR-0016. Consistency and completeness errors now accumulate without aborting
+> the pipeline. The pipeline placement below reflects the original decision; see
+> ADR-0016 for the current arrangement._
+
+Consistency is checked before completeness:
 
 ```
 ActionListInterpretation
-  → ConsistencyChecker  → HaltAndCatchFire
-  → CompletenessChecker → HaltAndCatchFire
+  → ConsistencyChecker
+  → CompletenessChecker
 ```
 
 Consistency first: a structurally broken model (cycles, duplicate IDs) can produce
-misleading completeness results. The `HaltAndCatchFire` checkpoint between the two
-checkers ensures completeness is not evaluated on an inconsistent model.
+misleading completeness results.
 
 ## Consistency rules
 

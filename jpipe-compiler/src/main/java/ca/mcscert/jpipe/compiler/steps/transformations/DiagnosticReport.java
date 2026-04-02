@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * <p>
  * The report has four sections:
  * <ol>
- * <li><b>Diagnostics</b> — warnings and errors from compilation.</li>
+ * <li><b>Diagnostics</b> — errors from compilation.</li>
  * <li><b>Action Statistics</b> — command counts and deferral count.</li>
  * <li><b>Model Summary</b> — per model: type, parent, element counts.</li>
  * <li><b>Symbol Table</b> — full location registry.</li>

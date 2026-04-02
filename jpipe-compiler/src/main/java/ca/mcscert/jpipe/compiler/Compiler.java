@@ -14,9 +14,11 @@ public interface Compiler {
 	 *            input file path.
 	 * @param sinkFile
 	 *            output file path.
+	 * @return {@code true} if at least one {@code ERROR} or {@code FATAL}
+	 *         diagnostic was reported; {@code false} if compilation was clean.
 	 * @throws IOException
 	 *             if an I/O error occurs.
 	 */
-	void compile(String sourceFile, String sinkFile) throws IOException;
+	boolean compile(String sourceFile, String sinkFile) throws IOException;
 
 }

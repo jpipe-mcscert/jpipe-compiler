@@ -27,7 +27,8 @@ public final class ChainCompiler<I, O> implements Compiler {
 	}
 
 	@Override
-	public void compile(String sourceFile, String sinkFile) throws IOException {
+	public boolean compile(String sourceFile, String sinkFile)
+			throws IOException {
 		CompilationContext ctx = new CompilationContext(sourceFile);
 		I input = source.provideFrom(sourceFile);
 		try {
@@ -36,6 +37,7 @@ public final class ChainCompiler<I, O> implements Compiler {
 		} finally {
 			printDiagnostics(ctx, System.err);
 		}
+		return ctx.hasErrors();
 	}
 
 	private void printDiagnostics(CompilationContext ctx, PrintStream err) {

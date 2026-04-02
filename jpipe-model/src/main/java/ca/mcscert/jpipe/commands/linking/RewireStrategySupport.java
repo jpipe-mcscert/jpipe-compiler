@@ -91,7 +91,7 @@ public final class RewireStrategySupport extends RegularCommand {
 		String newPart = newType != null
 				? "'" + newSupporterId + "'[" + newType + "]"
 				: "'" + newSupporterId + "'";
-		return "rewire('" + container + "', '" + strategyId + "', "
-				+ oldPart + " -> " + newPart + ")";
+		return "rewire('" + container + "', '" + strategyId + "', " + oldPart
+				+ " -> " + newPart + ")";
 	}
 }

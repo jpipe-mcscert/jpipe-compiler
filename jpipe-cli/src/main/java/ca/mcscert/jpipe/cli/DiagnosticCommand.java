@@ -37,8 +37,9 @@ class DiagnosticCommand implements Callable<Integer> {
 			OutputStream out = output.equals(CompilationConfig.STDOUT)
 					? System.out
 					: new FileOutputStream(output);
-			CompilerFactory.buildDiagnosticCompiler(out).compile(input, output);
-			return Main.EXIT_OK;
+			boolean hasErrors = CompilerFactory.buildDiagnosticCompiler(out)
+					.compile(input, output);
+			return hasErrors ? Main.EXIT_JPIPE_ERROR : Main.EXIT_OK;
 		} catch (CompilationException | UnsupportedOperationException e) {
 			System.err.println("error: " + e.getMessage());
 			return Main.EXIT_JPIPE_ERROR;

@@ -48,8 +48,9 @@ class ProcessCommand implements Callable<Integer> {
 					: new FileOutputStream(output);
 			CompilationConfig config = new CompilationConfig(input, output,
 					format, diagram);
-			CompilerFactory.build(config, out).compile(input, output);
-			return Main.EXIT_OK;
+			boolean hasErrors = CompilerFactory.build(config, out)
+					.compile(input, output);
+			return hasErrors ? Main.EXIT_JPIPE_ERROR : Main.EXIT_OK;
 		} catch (CompilationException | UnsupportedOperationException e) {
 			System.err.println("error: " + e.getMessage());
 			return Main.EXIT_JPIPE_ERROR;

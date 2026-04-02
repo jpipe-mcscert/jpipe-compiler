@@ -23,7 +23,7 @@ public record Diagnostic(Level level, String source, int line, int column,
 		String message) {
 
 	public enum Level {
-		WARNING, ERROR, FATAL
+		ERROR, FATAL
 	}
 
 	/** True if this diagnostic carries a known source location. */
@@ -32,10 +32,6 @@ public record Diagnostic(Level level, String source, int line, int column,
 	}
 
 	// ── without location ────────────────────────────────────────────────────
-
-	public static Diagnostic warning(String source, String message) {
-		return new Diagnostic(Level.WARNING, source, 0, 0, message);
-	}
 
 	public static Diagnostic error(String source, String message) {
 		return new Diagnostic(Level.ERROR, source, 0, 0, message);
@@ -46,11 +42,6 @@ public record Diagnostic(Level level, String source, int line, int column,
 	}
 
 	// ── with location ────────────────────────────────────────────────────────
-
-	public static Diagnostic warning(String source, int line, int column,
-			String message) {
-		return new Diagnostic(Level.WARNING, source, line, column, message);
-	}
 
 	public static Diagnostic error(String source, int line, int column,
 			String message) {

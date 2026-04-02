@@ -120,9 +120,7 @@ public final class CompilerFactory {
 	 */
 	public static Transformation<List<Command>, Unit> unitBuilder() {
 		return new ActionListInterpretation().andThen(new ConsistencyChecker())
-				.andThen(new HaltAndCatchFire<>())
-				.andThen(new CompletenessChecker())
-				.andThen(new HaltAndCatchFire<>());
+				.andThen(new CompletenessChecker());
 	}
 
 	// -------------------------------------------------------------------------

@@ -8,14 +8,6 @@ import org.junit.jupiter.api.Test;
 class DiagnosticTest {
 
 	@Test
-	void warning_isNotAnError() {
-		Diagnostic d = Diagnostic.warning("file.jd", "heads up");
-		assertThat(d.level()).isEqualTo(Level.WARNING);
-		assertThat(d.isError()).isFalse();
-		assertThat(d.isFatal()).isFalse();
-	}
-
-	@Test
 	void error_isAnErrorButNotFatal() {
 		Diagnostic d = Diagnostic.error("file.jd", "something wrong");
 		assertThat(d.level()).isEqualTo(Level.ERROR);
