@@ -18,10 +18,6 @@ the only type that callers outside the module need to reference.
 `compiler.model`. It is not instantiated directly — `ChainBuilder.andThen(Sink)`
 produces it as the final step of pipeline construction.
 
-`StubCompiler` is a placeholder that throws `UnsupportedOperationException`.
-It exists solely to keep the CLI compilable while the pipeline is being built
-out, and will be replaced once a `CompilerFactory` is wired up.
-
 ```plantuml
 @startuml compiler
 
@@ -32,21 +28,16 @@ hide empty members
 package "compiler" {
 
   interface Compiler {
-    + compile(sourceFile : String, sinkFile : String) : void
-  }
-
-  class StubCompiler <<placeholder>> {
-    + compile(String, String) : void
+    + compile(sourceFile : String, sinkFile : String) : boolean
   }
 
   class ChainCompiler<I, O> {
     - source : Source<I>
     - chain : Transformation<I, O>
     - sink : Sink<O>
-    + compile(String, String) : void
+    + compile(String, String) : boolean
   }
 
-  Compiler <|.. StubCompiler
   Compiler <|.. ChainCompiler
 }
 
@@ -92,10 +83,11 @@ larger ones.
 
 `ChainCompiler.compile` creates one `CompilationContext` per call and threads
 it through every `fire` and `run` invocation. The context carries the source
-file path and a `Diagnostic` bag. Steps report issues via `ctx.warn()`,
-`ctx.error()`, or `ctx.fatal()`; `fire` fast-fails before running a step if the
-context already holds a fatal diagnostic. `Diagnostic` is a record with three
-severity levels: `WARNING`, `ERROR`, and `FATAL`.
+file path and a `Diagnostic` bag. Steps report issues via `ctx.error()` or
+`ctx.fatal()`; `fire` fast-fails before running a step if the context already
+holds a fatal diagnostic. `Diagnostic` is a record with two severity levels:
+`ERROR` and `FATAL`. `compile` returns `true` when at least one `ERROR` or
+`FATAL` was reported (see ADR-0016).
 
 ```plantuml
 @startuml compiler-model
@@ -104,7 +96,6 @@ skinparam packageStyle rectangle
 skinparam classAttributeIconSize 0
 hide empty members
 
-' Stub
 interface Compiler
 
 package "compiler.model" {
@@ -138,14 +129,13 @@ package "compiler.model" {
   }
 
   class ChainCompiler<I, O> {
-    + compile(String, String) : void
+    + compile(String, String) : boolean
   }
 
   class CompilationContext {
     - sourcePath : String
     - diagnostics : List<Diagnostic>
     + sourcePath() : String
-    + warn(String) : void
     + error(String) : void
     + fatal(String) : void
     + report(Diagnostic) : void
@@ -163,7 +153,6 @@ package "compiler.model" {
   }
 
   enum Level {
-    WARNING
     ERROR
     FATAL
   }
