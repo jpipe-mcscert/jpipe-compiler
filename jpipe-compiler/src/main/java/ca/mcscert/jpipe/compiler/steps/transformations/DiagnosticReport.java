@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
+import ca.mcscert.jpipe.commands.ExecutedAction;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Diagnostic;
 import ca.mcscert.jpipe.compiler.model.Transformation;
@@ -36,6 +37,7 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 		appendActionStats(sb, ctx);
 		appendModelSummary(sb, input);
 		appendSymbolTable(sb, input);
+		appendActionList(sb, ctx);
 		return sb.toString();
 	}
 
@@ -128,6 +130,21 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 	private void count(List<String> parts, String label, int n) {
 		if (n > 0) {
 			parts.add(label + "(" + n + ")");
+		}
+	}
+
+	private void appendActionList(StringBuilder sb, CompilationContext ctx) {
+		List<ExecutedAction> actions = ctx.executedActions();
+		if (actions.isEmpty()) {
+			return;
+		}
+		sb.append("\n=== Executed Actions ===\n");
+		for (int i = 0; i < actions.size(); i++) {
+			ExecutedAction action = actions.get(i);
+			String indent = "  ".repeat(action.depth());
+			String label = action.isMacro() ? "[macro] " : "";
+			sb.append(String.format("%3d. %s%s%s%n", i + 1, indent, label,
+					action.command()));
 		}
 	}
 

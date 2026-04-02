@@ -28,6 +28,7 @@ public final class ActionListInterpretation
 		Unit unit = engine.spawn(ctx.sourcePath(), input);
 
 		ctx.recordStat("commands.deferrals", engine.totalDeferrals());
+		ctx.recordActions(engine.executedCommands());
 		return unit;
 	}
 }

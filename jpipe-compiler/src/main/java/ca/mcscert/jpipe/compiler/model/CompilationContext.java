@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.compiler.model;
 
+import ca.mcscert.jpipe.commands.ExecutedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -20,6 +21,7 @@ public final class CompilationContext {
 	private final String sourcePath;
 	private final List<Diagnostic> diagnostics = new ArrayList<>();
 	private final Map<String, Long> stats = new LinkedHashMap<>();
+	private List<ExecutedAction> executedActions = List.of();
 
 	public CompilationContext(String sourcePath) {
 		this.sourcePath = sourcePath;
@@ -90,6 +92,18 @@ public final class CompilationContext {
 	/** Unmodifiable view of all recorded statistics in insertion order. */
 	public Map<String, Long> stats() {
 		return Collections.unmodifiableMap(stats);
+	}
+
+	/**
+	 * Record the ordered list of actions that occurred during interpretation.
+	 */
+	public void recordActions(List<ExecutedAction> actions) {
+		this.executedActions = List.copyOf(actions);
+	}
+
+	/** Ordered list of actions that occurred during interpretation. */
+	public List<ExecutedAction> executedActions() {
+		return executedActions;
 	}
 
 }

@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.commands;
 
 import ca.mcscert.jpipe.model.Unit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,37 +16,51 @@ public final class ExecutionEngine {
 	private static final Logger logger = LogManager.getLogger();
 
 	private int totalDeferrals = 0;
+	private final List<ExecutedAction> history = new ArrayList<>();
+
+	private record QueueEntry(Command command, int depth) {
+	}
 
 	/** Total number of times a command was deferred across all executions. */
 	public int totalDeferrals() {
 		return totalDeferrals;
 	}
 
+	/** Ordered list of actions that occurred during execution, with depth. */
+	public List<ExecutedAction> executedCommands() {
+		return Collections.unmodifiableList(history);
+	}
+
 	public Unit spawn(String source, List<Command> commands) {
 		Unit unit = new Unit(source);
-		execute(new ArrayList<>(commands), unit);
+		execute(commands, unit);
 		return unit;
 	}
 
 	public Unit enrich(Unit context, List<Command> commands) {
-		execute(new ArrayList<>(commands), context);
+		execute(commands, context);
 		return context;
 	}
 
 	private void execute(List<Command> commands, Unit unit) {
+		List<QueueEntry> queue = new ArrayList<>();
+		commands.forEach(c -> queue.add(new QueueEntry(c, 0)));
 		int deferCount = 0;
-		while (!commands.isEmpty()) {
-			if (deferCount >= commands.size()) {
+		while (!queue.isEmpty()) {
+			if (deferCount >= queue.size()) {
 				StringBuilder stuck = new StringBuilder(
-						"Execution deadlocked — " + commands.size()
+						"Execution deadlocked — " + queue.size()
 								+ " command(s) cannot execute:");
-				commands.forEach(c -> stuck.append("\n  stuck: ").append(c));
+				queue.forEach(
+						e -> stuck.append("\n  stuck: ").append(e.command()));
 				throw new IllegalStateException(stuck.toString());
 			}
-			Command command = commands.removeFirst();
+			QueueEntry entry = queue.removeFirst();
+			Command command = entry.command();
+			int depth = entry.depth();
 			if (!command.condition().test(unit)) {
 				logger.trace("Deferring command [{}]", command);
-				commands.add(command);
+				queue.add(entry);
 				deferCount++;
 				totalDeferrals++;
 			} else if (command instanceof MacroCommand macro) {
@@ -60,11 +75,15 @@ public final class ExecutionEngine {
 				}
 				logger.debug("Expanding macro [{}] into {} command(s)", macro,
 						expanded.size());
-				commands.addAll(0, expanded);
+				history.add(new ExecutedAction(macro, depth));
+				List<QueueEntry> expandedEntries = expanded.stream()
+						.map(c -> new QueueEntry(c, depth + 1)).toList();
+				queue.addAll(0, expandedEntries);
 				deferCount = 0;
 			} else {
 				try {
 					command.execute(unit);
+					history.add(new ExecutedAction(command, depth));
 				} catch (RuntimeException e) {
 					throw e;
 				} catch (Exception e) {
