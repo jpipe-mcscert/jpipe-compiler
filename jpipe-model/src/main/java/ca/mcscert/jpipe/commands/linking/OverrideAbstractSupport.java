@@ -79,7 +79,8 @@ public final class OverrideAbstractSupport implements MacroCommand {
 		return List.of(new RemoveElement(container, qualifiedId),
 				new AddElement(container, replacement),
 				new RewireStrategySupport(container, strategyId, qualifiedId,
-						qualifiedId));
+						old.getClass().getSimpleName(), qualifiedId,
+						replacement.getClass().getSimpleName()));
 	}
 
 	@Override

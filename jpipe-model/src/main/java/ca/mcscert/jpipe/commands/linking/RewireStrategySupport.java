@@ -17,19 +17,29 @@ public final class RewireStrategySupport extends RegularCommand {
 	private final String container;
 	private final String strategyId;
 	private final String oldSupporterId;
+	private final String oldType;
 	private final String newSupporterId;
+	private final String newType;
 
 	public RewireStrategySupport(String container, String strategyId,
 			String newSupporterId) {
-		this(container, strategyId, null, newSupporterId);
+		this(container, strategyId, null, null, newSupporterId, null);
 	}
 
 	public RewireStrategySupport(String container, String strategyId,
 			String oldSupporterId, String newSupporterId) {
+		this(container, strategyId, oldSupporterId, null, newSupporterId, null);
+	}
+
+	public RewireStrategySupport(String container, String strategyId,
+			String oldSupporterId, String oldType, String newSupporterId,
+			String newType) {
 		this.container = container;
 		this.strategyId = strategyId;
 		this.oldSupporterId = oldSupporterId;
+		this.oldType = oldType;
 		this.newSupporterId = newSupporterId;
+		this.newType = newType;
 	}
 
 	@Override
@@ -75,7 +85,13 @@ public final class RewireStrategySupport extends RegularCommand {
 
 	@Override
 	public String toString() {
-		return "rewire('" + container + "', '" + strategyId + "', '"
-				+ oldSupporterId + "' -> '" + newSupporterId + "')";
+		String oldPart = oldType != null
+				? "'" + oldSupporterId + "'[" + oldType + "]"
+				: "'" + oldSupporterId + "'";
+		String newPart = newType != null
+				? "'" + newSupporterId + "'[" + newType + "]"
+				: "'" + newSupporterId + "'";
+		return "rewire('" + container + "', '" + strategyId + "', "
+				+ oldPart + " -> " + newPart + ")";
 	}
 }
