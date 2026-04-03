@@ -11,7 +11,9 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Serialises a single {@link JustificationModel} to Graphviz DOT text, ready to
@@ -83,6 +85,9 @@ public class DotExporter implements JustificationVisitor<Void> {
 			"filled", "#9ECAE1", null); // sky blue
 	private static final NodeStyle ABSTRACT_SUPPORT_STYLE = new NodeStyle(
 			"rect", "dotted", null, null);
+
+	/** DOT graph-level attributes applied to every template cluster. */
+	private static final String CLUSTER_ATTRS = "style=filled; fillcolor=lightyellow; color=grey;";
 
 	// -------------------------------------------------------------------------
 
@@ -171,8 +176,41 @@ public class DotExporter implements JustificationVisitor<Void> {
 		builder.append(INDENT).append("label=")
 				.append(wrapAndQuoteLabel(model.getName())).append(";")
 				.append(System.lineSeparator());
-		model.conclusion().ifPresent(c -> c.accept(this));
-		model.getElements().forEach(e -> e.accept(this));
+
+		Map<String, Class<? extends JustificationElement>> inherited = inheritedTypes(
+				model);
+
+		// Local elements — not from parent, or type changed (overridden
+		// abstract support)
+		model.conclusion().filter(c -> !isInherited(c, inherited))
+				.ifPresent(c -> c.accept(this));
+		model.getElements().stream().filter(e -> !isInherited(e, inherited))
+				.forEach(e -> e.accept(this));
+
+		// Inherited elements — one cluster named after the direct parent
+		if (!inherited.isEmpty()) {
+			String parentName = model.getParent().get().getName();
+			List<JustificationElement> clusterElements = new ArrayList<>();
+			model.conclusion().filter(c -> isInherited(c, inherited))
+					.ifPresent(clusterElements::add);
+			model.getElements().stream().filter(e -> isInherited(e, inherited))
+					.forEach(clusterElements::add);
+
+			if (!clusterElements.isEmpty()) {
+				builder.append(INDENT).append("subgraph cluster_")
+						.append(parentName).append(" {")
+						.append(System.lineSeparator());
+				builder.append(INDENT).append(INDENT).append(CLUSTER_ATTRS)
+						.append(System.lineSeparator());
+				builder.append(INDENT).append(INDENT).append("label=")
+						.append(wrapAndQuoteLabel(parentName)).append(";")
+						.append(System.lineSeparator());
+				clusterElements.forEach(e -> e.accept(this));
+				builder.append(INDENT).append("}")
+						.append(System.lineSeparator());
+			}
+		}
+
 		exportEdges(model);
 		builder.append("}").append(System.lineSeparator());
 	}
@@ -201,6 +239,54 @@ public class DotExporter implements JustificationVisitor<Void> {
 		builder.append(INDENT).append(quoted(fromId)).append(" -> ")
 				.append(quoted(toId)).append(";")
 				.append(System.lineSeparator());
+	}
+
+	/**
+	 * Builds a map from the qualified element ID (as it appears in
+	 * {@code model}) to the element's runtime type in the parent template. Uses
+	 * the parent reference rather than the ID naming convention so that
+	 * user-defined qualified IDs are never misclassified as inherited.
+	 *
+	 * <p>
+	 * The parent's element list is already fully materialised (it includes any
+	 * elements the parent itself inherited), so a single level of iteration is
+	 * sufficient.
+	 */
+	private static Map<String, Class<? extends JustificationElement>> inheritedTypes(
+			JustificationModel<?> model) {
+		if (model.getParent().isEmpty()) {
+			return Map.of();
+		}
+		Template parent = model.getParent().get();
+		Map<String, Class<? extends JustificationElement>> map = new HashMap<>();
+		parent.conclusion().ifPresent(c -> map
+				.put(qualifyForChild(c.id(), parent.getName()), c.getClass()));
+		parent.getElements().forEach(e -> map
+				.put(qualifyForChild(e.id(), parent.getName()), e.getClass()));
+		return map;
+	}
+
+	/**
+	 * Returns {@code true} when {@code element} was placed in the model by
+	 * {@code inline()} and has not been overridden. An element is considered
+	 * overridden when its runtime type differs from the type the parent
+	 * template defined for the same qualified id (e.g. an abstract support
+	 * replaced by a concrete evidence).
+	 */
+	private static boolean isInherited(JustificationElement element,
+			Map<String, Class<? extends JustificationElement>> inherited) {
+		Class<? extends JustificationElement> parentType = inherited
+				.get(element.id());
+		return parentType != null && parentType == element.getClass();
+	}
+
+	/**
+	 * Mirrors {@link JustificationModel#qualifiedCopy}: plain ids become
+	 * {@code prefix:id}; already-qualified ids (grandparent elements) are kept
+	 * as-is.
+	 */
+	private static String qualifyForChild(String id, String prefix) {
+		return id.contains(":") ? id : prefix + ":" + id;
 	}
 
 	private String qualify(String elementId) {

@@ -3,6 +3,8 @@ package ca.mcscert.jpipe.visitor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.Template;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
@@ -82,5 +84,100 @@ class DotExporterTest {
 		assertThat(dot).contains("id=\"j:t:c\"");
 		assertThat(dot).contains("id=\"j:t:s\"");
 		assertThat(dot).contains("id=\"j:t:e1\"");
+	}
+
+	@Test
+	void export_inheritedElementsAreWrappedInCluster() {
+		Template t = new Template("t");
+		t.setConclusion(new Conclusion("c", "System correct"));
+		t.addElement(new Strategy("s", "Testing"));
+		t.addElement(new AbstractSupport("as", "Abstract support"));
+
+		Justification j = new Justification("j");
+		j.addElement(new Evidence("e", "Local evidence"));
+		j.inline(t, "t");
+
+		String dot = new DotExporter().export(j);
+
+		assertThat(dot).contains("subgraph cluster_t");
+	}
+
+	@Test
+	void export_localElementsAreNotInCluster() {
+		Template t = new Template("t");
+		t.setConclusion(new Conclusion("c", "System correct"));
+		t.addElement(new Strategy("s", "Testing"));
+
+		Justification j = new Justification("j");
+		j.inline(t, "t");
+		j.addElement(new Evidence("e", "Local evidence"));
+
+		String dot = new DotExporter().export(j);
+
+		// Local evidence node must appear before any cluster block
+		int evidencePos = dot.indexOf("id=\"j:e\"");
+		int clusterPos = dot.indexOf("subgraph cluster_t");
+		assertThat(evidencePos).isLessThan(clusterPos);
+	}
+
+	@Test
+	void export_standaloneJustificationWithQualifiedIdHasNoCluster() {
+		// A user-defined qualified id must NOT produce a spurious cluster
+		Justification j = new Justification("j");
+		j.setConclusion(new Conclusion("c", "Top"));
+		j.addElement(new Evidence("my:id", "User-defined qualified id"));
+
+		String dot = new DotExporter().export(j);
+
+		assertThat(dot).doesNotContain("subgraph cluster_");
+	}
+
+	@Test
+	void export_overriddenAbstractSupportIsNotInCluster() {
+		// Mirrors 005_override.jd: a_template:abs is replaced by a concrete
+		// evidence, so it must appear as a local node, not inside the cluster.
+		Template t = new Template("a_template");
+		t.setConclusion(new Conclusion("c", "A conclusion"));
+		t.addElement(new Strategy("s", "A strategy"));
+		t.addElement(new AbstractSupport("abs", "An abstract support"));
+
+		Justification j = new Justification("immediate");
+		j.inline(t, "a_template");
+		// Simulate OverrideAbstractSupport: remove the inherited placeholder,
+		// then add the concrete element (same qualified id, different type)
+		j.removeElement("a_template:abs");
+		j.addElement(new Evidence("a_template:abs", "An immediate evidence"));
+
+		String dot = new DotExporter().export(j);
+
+		// The overriding evidence must not be inside the template cluster
+		int clusterStart = dot.indexOf("subgraph cluster_a_template");
+		int clusterEnd = dot.indexOf("}", clusterStart);
+		String clusterBlock = dot.substring(clusterStart, clusterEnd);
+		assertThat(clusterBlock)
+				.doesNotContain("id=\"immediate:a_template:abs\"");
+		// But it must still appear in the graph
+		assertThat(dot).contains("id=\"immediate:a_template:abs\"");
+	}
+
+	@Test
+	void export_multiLevelInheritanceProducesOneClusterNamedAfterDirectParent() {
+		// j implements t2 which implements t1:
+		// all inherited elements → cluster_t2 (direct parent), NOT cluster_t1
+		Template t1 = new Template("t1");
+		t1.setConclusion(new Conclusion("c", "Root conclusion"));
+		t1.addElement(new Strategy("s1", "Root strategy"));
+
+		Template t2 = new Template("t2");
+		t2.addElement(new Strategy("s2", "Mid strategy"));
+		t2.inline(t1, "t1");
+
+		Justification j = new Justification("j");
+		j.inline(t2, "t2");
+
+		String dot = new DotExporter().export(j);
+
+		assertThat(dot).contains("subgraph cluster_t2");
+		assertThat(dot).doesNotContain("subgraph cluster_t1");
 	}
 }
