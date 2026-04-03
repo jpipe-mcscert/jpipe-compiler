@@ -133,9 +133,11 @@ class DotExporterTest {
 	}
 
 	@Test
-	void export_overriddenAbstractSupportIsNotInCluster() {
+	void export_overriddenAbstractSupportAppearsInClusterConcreteElementInModel() {
 		// Mirrors 005_override.jd: a_template:abs is replaced by a concrete
-		// evidence, so it must appear as a local node, not inside the cluster.
+		// evidence. The abstract support must remain visible in the cluster
+		// (with @abstract suffix) while the concrete element is rendered in the
+		// model, connected by a dashed inv arrow.
 		Template t = new Template("a_template");
 		t.setConclusion(new Conclusion("c", "A conclusion"));
 		t.addElement(new Strategy("s", "A strategy"));
@@ -150,14 +152,14 @@ class DotExporterTest {
 
 		String dot = new DotExporter().export(j);
 
-		// The overriding evidence must not be inside the template cluster
-		int clusterStart = dot.indexOf("subgraph cluster_a_template");
-		int clusterEnd = dot.indexOf("}", clusterStart);
-		String clusterBlock = dot.substring(clusterStart, clusterEnd);
-		assertThat(clusterBlock)
-				.doesNotContain("id=\"immediate:a_template:abs\"");
-		// But it must still appear in the graph
+		// Abstract support in cluster, suffixed with @abstract
+		assertThat(dot).contains("\"immediate:a_template:abs@abstract\"");
+		// Concrete override exists in the graph
 		assertThat(dot).contains("id=\"immediate:a_template:abs\"");
+		// Dashed inv arrow connects the two
+		assertThat(dot).contains(
+				"\"immediate:a_template:abs\" -> \"immediate:a_template:abs@abstract\""
+						+ " [style=dashed, arrowhead=inv]");
 	}
 
 	@Test

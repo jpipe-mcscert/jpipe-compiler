@@ -12,8 +12,10 @@ import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Serialises a single {@link JustificationModel} to Graphviz DOT text, ready to
@@ -88,6 +90,13 @@ public class DotExporter implements JustificationVisitor<Void> {
 
 	/** DOT graph-level attributes applied to every template cluster. */
 	private static final String CLUSTER_ATTRS = "style=filled; fillcolor=lightyellow; color=grey;";
+
+	/**
+	 * Suffix appended to the DOT node id of an abstract support that was
+	 * overridden in the current model. Keeps the node distinct from the
+	 * concrete element that fulfils it.
+	 */
+	private static final String ABSTRACT_SUFFIX = "@abstract";
 
 	// -------------------------------------------------------------------------
 
@@ -187,28 +196,35 @@ public class DotExporter implements JustificationVisitor<Void> {
 		model.getElements().stream().filter(e -> !isInherited(e, inherited))
 				.forEach(e -> e.accept(this));
 
-		// Inherited elements — one cluster named after the direct parent
+		// Parent cluster: ALL parent elements; overridden abstract supports get
+		// the ABSTRACT_SUFFIX suffix so their node id does not clash with the
+		// concrete override element rendered above.
 		if (!inherited.isEmpty()) {
-			String parentName = model.getParent().get().getName();
-			List<JustificationElement> clusterElements = new ArrayList<>();
-			model.conclusion().filter(c -> isInherited(c, inherited))
-					.ifPresent(clusterElements::add);
-			model.getElements().stream().filter(e -> isInherited(e, inherited))
-					.forEach(clusterElements::add);
+			Template parent = model.getParent().get();
+			String parentName = parent.getName();
+			Set<String> overridden = overriddenAbstractIds(model, inherited);
 
-			if (!clusterElements.isEmpty()) {
-				builder.append(INDENT).append("subgraph cluster_")
-						.append(parentName).append(" {")
-						.append(System.lineSeparator());
-				builder.append(INDENT).append(INDENT).append(CLUSTER_ATTRS)
-						.append(System.lineSeparator());
-				builder.append(INDENT).append(INDENT).append("label=")
-						.append(wrapAndQuoteLabel(parentName)).append(";")
-						.append(System.lineSeparator());
-				clusterElements.forEach(e -> e.accept(this));
-				builder.append(INDENT).append("}")
-						.append(System.lineSeparator());
-			}
+			builder.append(INDENT).append("subgraph cluster_")
+					.append(parentName).append(" {")
+					.append(System.lineSeparator());
+			builder.append(INDENT).append(INDENT).append(CLUSTER_ATTRS)
+					.append(System.lineSeparator());
+			builder.append(INDENT).append(INDENT).append("label=")
+					.append(wrapAndQuoteLabel(parentName)).append(";")
+					.append(System.lineSeparator());
+			parent.conclusion()
+					.ifPresent(c -> appendClusterNode(
+							qualifyForChild(c.id(), parentName), c,
+							overridden));
+			parent.getElements()
+					.forEach(e -> appendClusterNode(
+							qualifyForChild(e.id(), parentName), e,
+							overridden));
+			builder.append(INDENT).append("}").append(System.lineSeparator());
+
+			// Dashed inv arrows: concrete override → abstract support in
+			// cluster
+			overridden.forEach(this::appendOverrideArrow);
 		}
 
 		exportEdges(model);
@@ -278,6 +294,71 @@ public class DotExporter implements JustificationVisitor<Void> {
 		Class<? extends JustificationElement> parentType = inherited
 				.get(element.id());
 		return parentType != null && parentType == element.getClass();
+	}
+
+	/**
+	 * Returns the set of qualified element ids (as they appear in
+	 * {@code model}) where the parent had an {@link AbstractSupport} but the
+	 * current model holds a concrete replacement. These are the slots that need
+	 * the {@link #ABSTRACT_SUFFIX} treatment in the cluster and a dashed
+	 * override arrow in the graph.
+	 */
+	private static Set<String> overriddenAbstractIds(
+			JustificationModel<?> model,
+			Map<String, Class<? extends JustificationElement>> inherited) {
+		Set<String> result = new HashSet<>();
+		model.getElements().stream()
+				.filter(e -> inherited.getOrDefault(e.id(),
+						null) == AbstractSupport.class
+						&& e.getClass() != AbstractSupport.class)
+				.map(JustificationElement::id).forEach(result::add);
+		return result;
+	}
+
+	/**
+	 * Appends a node declaration for a parent element inside a cluster. If the
+	 * element's qualified id is in {@code overridden} (it was an abstract
+	 * support that the current model replaced), the DOT node name receives
+	 * {@link #ABSTRACT_SUFFIX} so it does not clash with the concrete
+	 * replacement node rendered outside the cluster.
+	 */
+	private void appendClusterNode(String childQualifiedId,
+			JustificationElement element, Set<String> overridden) {
+		boolean isOverridden = overridden.contains(childQualifiedId);
+		String dotNodeId = qualify(childQualifiedId)
+				+ (isOverridden ? ABSTRACT_SUFFIX : "");
+		String semanticId = qualify(childQualifiedId);
+		String attrs = styleForElement(element).toAttrs();
+		builder.append(INDENT).append(quoted(dotNodeId)).append(" [label=")
+				.append(wrapAndQuoteLabel(element.label())).append(", id=")
+				.append(quoted(semanticId)).append(", ").append(attrs)
+				.append("];").append(System.lineSeparator());
+	}
+
+	/**
+	 * Appends a dashed {@code inv} arrow from the concrete override element to
+	 * the abstract support placeholder it replaces in the parent cluster.
+	 */
+	private void appendOverrideArrow(String childQualifiedId) {
+		String concreteId = qualify(childQualifiedId);
+		String abstractId = concreteId + ABSTRACT_SUFFIX;
+		builder.append(INDENT).append(quoted(concreteId)).append(" -> ")
+				.append(quoted(abstractId))
+				.append(" [style=dashed, arrowhead=inv];")
+				.append(System.lineSeparator());
+	}
+
+	/** Returns the {@link NodeStyle} for the given element type. */
+	private static NodeStyle styleForElement(JustificationElement element) {
+		if (element instanceof Conclusion)
+			return CONCLUSION_STYLE;
+		if (element instanceof SubConclusion)
+			return SUB_CONCLUSION_STYLE;
+		if (element instanceof Strategy)
+			return STRATEGY_STYLE;
+		if (element instanceof Evidence)
+			return EVIDENCE_STYLE;
+		return ABSTRACT_SUPPORT_STYLE; // AbstractSupport
 	}
 
 	/**
