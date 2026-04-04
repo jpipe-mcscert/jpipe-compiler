@@ -217,6 +217,87 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	}
 
 	/**
+	 * Returns {@code true} when the conclusion was defined directly in this
+	 * model, i.e. it was not inherited from a parent template via
+	 * {@link #inline}. Returns {@code false} when there is no conclusion yet or
+	 * when the conclusion was set by inlining a parent template.
+	 */
+	public boolean hasOwnConclusion() {
+		if (conclusion == null || parent == null) {
+			return conclusion != null;
+		}
+		return !ancestorTypes().containsKey(conclusion.id());
+	}
+
+	/**
+	 * Elements defined directly in this model — their id has no counterpart in
+	 * any ancestor template.
+	 */
+	public List<E> ownElements() {
+		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
+		return elements.stream().filter(e -> !pt.containsKey(e.id())).toList();
+	}
+
+	/**
+	 * Elements copied from an ancestor template whose runtime type is unchanged
+	 * (not overridden).
+	 */
+	public List<E> inheritedElements() {
+		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
+		return elements.stream().filter(e -> pt.get(e.id()) == e.getClass())
+				.toList();
+	}
+
+	/**
+	 * Elements that replaced an ancestor's {@link AbstractSupport} placeholder
+	 * — same qualified id, but a concrete type (e.g. {@link Evidence} or
+	 * {@link SubConclusion}).
+	 *
+	 * <p>
+	 * Together with {@link #ownElements()} and {@link #inheritedElements()},
+	 * these three lists partition {@link #getElements()}.
+	 */
+	public List<E> concreteOverrides() {
+		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
+		return elements.stream().filter(
+				e -> pt.containsKey(e.id()) && pt.get(e.id()) != e.getClass())
+				.toList();
+	}
+
+	/**
+	 * Builds a map from qualified element id to its runtime class for every
+	 * element (including the conclusion) in the direct parent template. Because
+	 * the parent's element list was already flattened by its own
+	 * {@link #inline} call, this map transitively covers all ancestors.
+	 *
+	 * <p>
+	 * Plain ids in the parent (e.g. {@code s}) are qualified to match how
+	 * {@link #inline} stored them in this model (e.g. {@code parent:s}).
+	 * Already-qualified ids (grandparent elements) are kept as-is.
+	 */
+	private Map<String, Class<? extends JustificationElement>> ancestorTypes() {
+		if (parent == null) {
+			return Map.of();
+		}
+		String parentName = parent.getName();
+		Map<String, Class<? extends JustificationElement>> map = new LinkedHashMap<>();
+		parent.conclusion().ifPresent(
+				c -> map.put(qualifiedId(c.id(), parentName), c.getClass()));
+		parent.getElements().forEach(
+				e -> map.put(qualifiedId(e.id(), parentName), e.getClass()));
+		return map;
+	}
+
+	/**
+	 * Returns {@code id} qualified with {@code prefix} when it is a plain id
+	 * (no colon), or returns {@code id} unchanged when it is already qualified.
+	 * Mirrors the id-preservation rule applied by {@link #qualifiedCopy}.
+	 */
+	private static String qualifiedId(String id, String prefix) {
+		return id.contains(":") ? id : prefix + ":" + id;
+	}
+
+	/**
 	 * Searches both the conclusion field and the elements list, so callers do
 	 * not need to know how the conclusion is stored.
 	 */

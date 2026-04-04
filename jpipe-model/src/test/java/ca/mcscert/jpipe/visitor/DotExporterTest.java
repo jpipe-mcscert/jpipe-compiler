@@ -156,16 +156,16 @@ class DotExporterTest {
 		assertThat(dot).contains("\"immediate:a_template:abs@abstract\"");
 		// Concrete override exists in the graph
 		assertThat(dot).contains("id=\"immediate:a_template:abs\"");
-		// Dashed inv arrow connects the two
+		// Dashed arrow: abstract ghost → concrete ("fulfilled by")
 		assertThat(dot).contains(
 				"\"immediate:a_template:abs\" -> \"immediate:a_template:abs@abstract\""
-						+ " [style=dashed, arrowhead=inv]");
+						+ " [arrowhead=empty, style=dotted]");
 	}
 
 	@Test
-	void export_multiLevelInheritanceProducesOneClusterNamedAfterDirectParent() {
+	void export_multiLevelInheritanceProducesFlatClustersForEachAncestor() {
 		// j implements t2 which implements t1:
-		// all inherited elements → cluster_t2 (direct parent), NOT cluster_t1
+		// t2's own elements → cluster_t2; t1's own elements → cluster_t1
 		Template t1 = new Template("t1");
 		t1.setConclusion(new Conclusion("c", "Root conclusion"));
 		t1.addElement(new Strategy("s1", "Root strategy"));
@@ -180,6 +180,10 @@ class DotExporterTest {
 		String dot = new DotExporter().export(j);
 
 		assertThat(dot).contains("subgraph cluster_t2");
-		assertThat(dot).doesNotContain("subgraph cluster_t1");
+		assertThat(dot).contains("subgraph cluster_t1");
+		// t2's own element (s2) is in cluster_t2; t1's own element (s1) in
+		// cluster_t1
+		assertThat(dot).contains("id=\"j:t2:s2\"");
+		assertThat(dot).contains("id=\"j:t1:s1\"");
 	}
 }

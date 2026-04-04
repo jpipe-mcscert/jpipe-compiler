@@ -309,6 +309,198 @@ class JustificationModelTest {
 	}
 
 	// -------------------------------------------------------------------------
+	// Element categorisation: ownElements / inheritedElements /
+	// concreteOverrides
+	// + hasOwnConclusion
+	// -------------------------------------------------------------------------
+
+	@Nested
+	@DisplayName("Element categorisation (own / inherited / overrides)")
+	class ElementCategorisation {
+
+		// ------------------------------------------------------------------
+		// Setup helpers — a template with conclusion c, strategy s, abstract
+		// support abs; and a justification that inlines it.
+		// ------------------------------------------------------------------
+
+		private Template template() {
+			Template t = new Template("t");
+			Conclusion tc = new Conclusion("c", "template conclusion");
+			t.setConclusion(tc);
+			Strategy ts = new Strategy("s", "template strategy");
+			t.addElement(ts);
+			AbstractSupport tabs = new AbstractSupport("abs",
+					"abstract support");
+			t.addElement(tabs);
+			ts.addSupport(tabs);
+			tc.addSupport(ts);
+			return t;
+		}
+
+		@Test
+		@DisplayName("no parent: ownElements() == getElements(), others empty")
+		void noParentAllElementsAreOwn() {
+			Justification j = new Justification("j");
+			j.setConclusion(new Conclusion("c", "conclusion"));
+			j.addElement(new Strategy("s", "strategy"));
+
+			assertThat(j.ownElements()).isEqualTo(j.getElements());
+			assertThat(j.inheritedElements()).isEmpty();
+			assertThat(j.concreteOverrides()).isEmpty();
+		}
+
+		@Test
+		@DisplayName("no parent: hasOwnConclusion() is true when conclusion is set")
+		void noParentHasOwnConclusionIsTrue() {
+			Justification j = new Justification("j");
+			j.setConclusion(new Conclusion("c", "conclusion"));
+			assertThat(j.hasOwnConclusion()).isTrue();
+		}
+
+		@Test
+		@DisplayName("no parent: hasOwnConclusion() is false when conclusion is absent")
+		void noParentHasOwnConclusionIsFalseWhenNoConclusionSet() {
+			Justification j = new Justification("j");
+			assertThat(j.hasOwnConclusion()).isFalse();
+		}
+
+		@Test
+		@DisplayName("after inline into Template: all copied elements are inherited")
+		void inlinedElementsAreInheritedInTemplate() {
+			Template parent = template();
+			Template child = new Template("child");
+			child.inline(parent, "t");
+
+			assertThat(child.ownElements()).isEmpty();
+			assertThat(child.inheritedElements()).extracting(e -> e.id())
+					.containsExactlyInAnyOrder("t:s", "t:abs");
+			assertThat(child.concreteOverrides()).isEmpty();
+		}
+
+		@Test
+		@DisplayName("after inline into Justification: CommonElement copies are inherited")
+		void inlinedCommonElementsAreInheritedInJustification() {
+			// Template with no AbstractSupport — safe to inline into
+			// Justification
+			Template t = new Template("t");
+			t.setConclusion(new Conclusion("c", "conclusion"));
+			Strategy ts = new Strategy("s", "strategy");
+			Evidence te = new Evidence("e", "evidence");
+			t.addElement(ts);
+			t.addElement(te);
+			ts.addSupport(te);
+			t.conclusion().ifPresent(c -> c.addSupport(ts));
+
+			Justification j = new Justification("j");
+			j.inline(t, "t");
+
+			assertThat(j.ownElements()).isEmpty();
+			assertThat(j.inheritedElements()).extracting(e -> e.id())
+					.containsExactlyInAnyOrder("t:s", "t:e");
+			assertThat(j.concreteOverrides()).isEmpty();
+		}
+
+		@Test
+		@DisplayName("after inline: conclusion is inherited, hasOwnConclusion() is false")
+		void inlinedConclusionIsNotOwn() {
+			Template t = template();
+			Justification j = new Justification("j");
+			j.inline(t, "t");
+
+			assertThat(j.hasOwnConclusion()).isFalse();
+		}
+
+		@Test
+		@DisplayName("own element added after inline into Template appears in ownElements() only")
+		void localElementAfterInlineIsOwn() {
+			Template parent = template();
+			Template child = new Template("child");
+			child.inline(parent, "t");
+			child.addElement(new Evidence("e_local", "local evidence"));
+
+			assertThat(child.ownElements()).extracting(e -> e.id())
+					.containsExactly("e_local");
+			assertThat(child.inheritedElements()).extracting(e -> e.id())
+					.containsExactlyInAnyOrder("t:s", "t:abs");
+		}
+
+		@Test
+		@DisplayName("overriding an abstract support moves it to concreteOverrides()")
+		void overriddenAbstractSupportIsInConcreteOverrides() {
+			Template t = template();
+			Justification j = new Justification("j");
+			j.inline(t, "t");
+			// Manually simulate the override: remove abstract, add concrete
+			// with
+			// same qualified id
+			j.removeElement("t:abs");
+			j.addElement(new Evidence("t:abs", "concrete evidence"));
+
+			assertThat(j.concreteOverrides()).extracting(e -> e.id())
+					.containsExactly("t:abs");
+			assertThat(j.inheritedElements()).extracting(e -> e.id())
+					.containsExactly("t:s");
+			assertThat(j.ownElements()).isEmpty();
+		}
+
+		@Test
+		@DisplayName("own + inherited + overrides partition getElements()")
+		void categoriesPartitionGetElements() {
+			Template t = template();
+			Justification j = new Justification("j");
+			j.inline(t, "t");
+			j.addElement(new Evidence("e_local", "local evidence"));
+			j.removeElement("t:abs");
+			j.addElement(new Evidence("t:abs", "concrete evidence"));
+
+			assertThat(j.ownElements().size() + j.inheritedElements().size()
+					+ j.concreteOverrides().size())
+					.isEqualTo(j.getElements().size());
+		}
+
+		@Test
+		@DisplayName("multi-level: grandparent elements are inherited in leaf model")
+		void multiLevelInheritanceGrandparentElementsAreInherited() {
+			// root template: conclusion c, strategy s, abstract supports abs1,
+			// abs2
+			Template root = new Template("root");
+			Conclusion rc = new Conclusion("c", "root conclusion");
+			root.setConclusion(rc);
+			Strategy rs = new Strategy("s", "root strategy");
+			root.addElement(rs);
+			AbstractSupport rabs1 = new AbstractSupport("abs1", "abstract 1");
+			AbstractSupport rabs2 = new AbstractSupport("abs2", "abstract 2");
+			root.addElement(rabs1);
+			root.addElement(rabs2);
+			rs.addSupport(rabs1);
+			rs.addSupport(rabs2);
+			rc.addSupport(rs);
+
+			// intermediate template implements root, overrides abs1
+			Template intermediate = new Template("inter");
+			intermediate.inline(root, "root");
+			intermediate.removeElement("root:abs1");
+			intermediate.addElement(new SubConclusion("root:abs1", "refined"));
+
+			// leaf justification implements intermediate, overrides root:abs2
+			Justification leaf = new Justification("leaf");
+			leaf.inline(intermediate, "inter");
+			leaf.removeElement("root:abs2");
+			leaf.addElement(new Evidence("root:abs2", "evidence for abs2"));
+
+			// root:abs2 was AbstractSupport in inter → now Evidence → override
+			assertThat(leaf.concreteOverrides()).extracting(e -> e.id())
+					.containsExactly("root:abs2");
+			// root:abs1 was SubConclusion in inter → still SubConclusion →
+			// inherited
+			// root:s (strategy) — id preserved by the no-re-qualify rule
+			assertThat(leaf.inheritedElements()).extracting(e -> e.id())
+					.containsExactlyInAnyOrder("root:abs1", "root:s");
+			assertThat(leaf.ownElements()).isEmpty();
+		}
+	}
+
+	// -------------------------------------------------------------------------
 	// Unit query methods
 	// -------------------------------------------------------------------------
 
