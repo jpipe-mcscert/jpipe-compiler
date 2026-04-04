@@ -36,10 +36,10 @@ nav:
       - adr/0011-cucumber-for-compiler-end-to-end-tests.md
       - adr/0012-qualified-ids-and-template-expansion.md
       - adr/0013-export-strategy-text-vs-library.md
-      - 0014-colorblind-safe-dot-palette.md
-      - 0015-consistency-and-completeness-validation.md
-      - 0016-error-management.md
-      - 0017-load-directive-as-compiler-step.md
+      - adr/0014-colorblind-safe-dot-palette.md
+      - adr/0015-consistency-and-completeness-validation.md
+      - adr/0016-error-management.md
+      - adr/0017-load-directive-as-compiler-step.md
 plugins:
   - search
 
