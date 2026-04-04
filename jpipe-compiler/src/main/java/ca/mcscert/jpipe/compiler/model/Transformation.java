@@ -102,7 +102,7 @@ public abstract class Transformation<I, O> {
 			throw new CompilationException(stepName(),
 					"pipeline aborted due to previous fatal errors");
 		}
-		logger.info("Firing transformation [{}]", stepName());
+		logger.debug("Firing transformation [{}]", stepName());
 		try {
 			O result = run(in, ctx);
 			return Objects.requireNonNull(result, "Transformation ["

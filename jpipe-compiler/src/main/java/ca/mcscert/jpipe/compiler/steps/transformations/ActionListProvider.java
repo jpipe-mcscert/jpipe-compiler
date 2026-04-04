@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
@@ -65,6 +66,18 @@ public final class ActionListProvider
 
 		public List<Command> collect() {
 			return result;
+		}
+
+		@Override
+		public void enterEveryRule(ParserRuleContext ctx) {
+			logger.debug("enter: {}",
+					JPipeParser.ruleNames[ctx.getRuleIndex()]);
+		}
+
+		@Override
+		public void exitEveryRule(ParserRuleContext ctx) {
+			logger.debug("exit:  {}",
+					JPipeParser.ruleNames[ctx.getRuleIndex()]);
 		}
 
 		/*

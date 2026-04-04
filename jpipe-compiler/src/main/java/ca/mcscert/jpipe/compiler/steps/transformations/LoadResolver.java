@@ -14,6 +14,8 @@ import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ca.mcscert.jpipe.compiler.steps.checkers.HaltAndCatchFire;
 import ca.mcscert.jpipe.model.Unit;
 import java.io.FileInputStream;
@@ -62,6 +64,8 @@ import org.antlr.v4.runtime.tree.ParseTree;
 public final class LoadResolver
 		extends
 			Transformation<List<Command>, List<Command>> {
+
+	private static final Logger logger = LogManager.getLogger();
 
 	/**
 	 * A compiler-internal directive produced by the {@code load} grammar rule.
@@ -123,10 +127,13 @@ public final class LoadResolver
 
 	private List<Command> expand(LoadDirective load, CompilationContext ctx,
 			Set<Path> visited) {
+		logger.debug("Expanding load [{}] as [{}]", load.path(),
+				load.namespace());
 		Path resolved = Paths.get(ctx.sourcePath()).toAbsolutePath().normalize()
 				.getParent().resolve(load.path()).normalize();
 
 		if (visited.contains(resolved)) {
+			logger.debug("Circular load detected: [{}], skipping", resolved);
 			ctx.fatal("Circular load detected: " + resolved);
 			return List.of();
 		}

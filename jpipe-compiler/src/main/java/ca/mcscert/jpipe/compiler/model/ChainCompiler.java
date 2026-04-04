@@ -3,6 +3,8 @@ package ca.mcscert.jpipe.compiler.model;
 import ca.mcscert.jpipe.compiler.Compiler;
 import java.io.IOException;
 import java.io.PrintStream;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * A fully assembled compilation pipeline: {@link Source} →
@@ -15,6 +17,8 @@ import java.io.PrintStream;
  *            type consumed by the sink.
  */
 public final class ChainCompiler<I, O> implements Compiler {
+
+	private static final Logger logger = LogManager.getLogger();
 
 	private final Source<I> source;
 	private final Transformation<I, O> chain;
@@ -29,6 +33,7 @@ public final class ChainCompiler<I, O> implements Compiler {
 	@Override
 	public boolean compile(String sourceFile, String sinkFile)
 			throws IOException {
+		logger.info("Compiling [{}]", sourceFile);
 		CompilationContext ctx = new CompilationContext(sourceFile);
 		I input = source.provideFrom(sourceFile);
 		try {
@@ -37,6 +42,7 @@ public final class ChainCompiler<I, O> implements Compiler {
 		} finally {
 			printDiagnostics(ctx, System.err);
 		}
+		logger.info("Compilation finished [{}]", sourceFile);
 		return ctx.hasErrors();
 	}
 

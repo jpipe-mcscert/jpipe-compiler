@@ -1,6 +1,9 @@
 package ca.mcscert.jpipe.cli;
 
+import java.util.Map;
 import java.util.Set;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -26,10 +29,18 @@ public class Main {
 			"diagnostic", "process");
 	private static final Set<String> HELP_FLAGS = Set.of("--help", "-h",
 			"--version", "-V");
-	private static final Set<String> PARENT_FLAGS = Set.of("--headless");
+	private static final Map<String, Integer> PARENT_FLAGS = Map
+			.of("--headless", 0, "--log-level", 1);
 
 	@Option(names = {"--headless"}, description = "Suppress logo output.")
 	boolean headless;
+
+	@Option(names = {
+			"--log-level"}, description = "Log verbosity: OFF, ERROR, WARN, INFO, DEBUG, TRACE (default: ERROR).")
+	void setLogLevel(String level) {
+		Configurator.setLevel("ca.mcscert.jpipe",
+				Level.toLevel(level, Level.ERROR));
+	}
 
 	/**
 	 * Inserts {@code "process"} into {@code args} when no subcommand name is
@@ -49,9 +60,10 @@ public class Main {
 			}
 		}
 		int insertAt = 0;
-		for (int i = 0; i < args.length; i++) {
-			if (PARENT_FLAGS.contains(args[i])) {
-				insertAt = i + 1;
+		for (int i = 0; i < args.length;) {
+			if (PARENT_FLAGS.containsKey(args[i])) {
+				i += 1 + PARENT_FLAGS.get(args[i]);
+				insertAt = i;
 			} else {
 				break;
 			}

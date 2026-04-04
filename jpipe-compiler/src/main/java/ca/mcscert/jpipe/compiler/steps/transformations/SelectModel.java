@@ -3,6 +3,8 @@ package ca.mcscert.jpipe.compiler.steps.transformations;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.Collection;
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
  * Use {@code -d} / {@code --diagram} on the CLI to supply the name.
  */
 public class SelectModel extends Transformation<Unit, JustificationModel<?>> {
+
+	private static final Logger logger = LogManager.getLogger();
 
 	private final String diagramName;
 
@@ -33,18 +37,23 @@ public class SelectModel extends Transformation<Unit, JustificationModel<?>> {
 	protected JustificationModel<?> run(Unit unit, CompilationContext ctx)
 			throws Exception {
 		if (diagramName != null) {
-			return unit.findModel(diagramName)
+			JustificationModel<?> model = unit.findModel(diagramName)
 					.orElseThrow(() -> new CompilationException("SelectModel",
 							"no model named '" + diagramName + "' in "
 									+ ctx.sourcePath()));
+			logger.debug("Selected model [{}]", diagramName);
+			return model;
 		}
 
 		Collection<JustificationModel<?>> models = unit.getModels();
 		if (models.size() == 1) {
-			return models.iterator().next();
+			JustificationModel<?> model = models.iterator().next();
+			logger.debug("Auto-selected model [{}]", model.getName());
+			return model;
 		}
 		String available = models.stream().map(JustificationModel::getName)
 				.collect(Collectors.joining(", "));
+		logger.debug("Ambiguous selection — available: [{}]", available);
 		throw new CompilationException("SelectModel",
 				"source defines multiple models — use -d to specify one: "
 						+ available);
