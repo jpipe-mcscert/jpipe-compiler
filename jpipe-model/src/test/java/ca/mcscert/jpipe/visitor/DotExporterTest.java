@@ -163,9 +163,9 @@ class DotExporterTest {
 	}
 
 	@Test
-	void export_multiLevelInheritanceProducesFlatClustersForEachAncestor() {
+	void export_multiLevelInheritanceProducesNestedClusters() {
 		// j implements t2 which implements t1:
-		// t2's own elements → cluster_t2; t1's own elements → cluster_t1
+		// cluster_t1 must be nested INSIDE cluster_t2
 		Template t1 = new Template("t1");
 		t1.setConclusion(new Conclusion("c", "Root conclusion"));
 		t1.addElement(new Strategy("s1", "Root strategy"));
@@ -185,5 +185,12 @@ class DotExporterTest {
 		// cluster_t1
 		assertThat(dot).contains("id=\"j:t2:s2\"");
 		assertThat(dot).contains("id=\"j:t1:s1\"");
+		// Nesting: cluster_t1 must appear after cluster_t2 opens and before
+		// cluster_t2 closes — no closing brace between the two headers
+		int t2Idx = dot.indexOf("subgraph cluster_t2");
+		int t1Idx = dot.indexOf("subgraph cluster_t1");
+		assertThat(t1Idx).isGreaterThan(t2Idx);
+		String between = dot.substring(t2Idx, t1Idx);
+		assertThat(between).doesNotContain("\n}");
 	}
 }

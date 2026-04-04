@@ -229,39 +229,9 @@ public class DotExporter implements JustificationVisitor<Void> {
 		model.ownElements().forEach(e -> e.accept(this));
 		model.concreteOverrides().forEach(e -> e.accept(this));
 
-		// One cluster per ancestor level. Each cluster contains that ancestor's
-		// own
-		// elements (defined directly in it, not inherited from its own
-		// parents),
-		// including AbstractSupport placeholders. Overridden abstract supports
-		// receive
-		// ABSTRACT_SUFFIX so their DOT node id does not clash with the concrete
-		// element.
-		JustificationModel<?> ancestor = model.getParent().orElse(null);
-		while (ancestor != null) {
-			final JustificationModel<?> anc = ancestor;
-			String ancName = anc.getName();
-
-			builder.append(INDENT).append("subgraph cluster_").append(ancName)
-					.append(" {").append(System.lineSeparator());
-			builder.append(INDENT).append(INDENT).append(CLUSTER_ATTRS)
-					.append(System.lineSeparator());
-			builder.append(INDENT).append(INDENT).append("label=")
-					.append(wrapAndQuoteLabel(displayLabel(anc))).append(";")
-					.append(System.lineSeparator());
-
-			if (anc.hasOwnConclusion()) {
-				anc.conclusion().ifPresent(c -> appendClusterNode(
-						qualifyForChild(c.id(), ancName), c));
-			}
-			anc.ownElements().forEach(e -> appendClusterNode(
-					qualifyForChild(e.id(), ancName), e));
-			anc.concreteOverrides().forEach(e -> appendClusterNode(
-					qualifyForChild(e.id(), ancName), e));
-
-			builder.append(INDENT).append("}").append(System.lineSeparator());
-			ancestor = anc.getParent().orElse(null);
-		}
+		// Ancestor clusters are nested: the direct parent's cluster wraps the
+		// grandparent's cluster, reflecting the actual inheritance hierarchy.
+		model.getParent().ifPresent(p -> appendAncestorCluster(p, INDENT));
 
 		// Override arrows: concrete → abstract ghost, across the full chain
 		allOverriddenIds.forEach(this::appendOverrideArrow);
@@ -340,19 +310,53 @@ public class DotExporter implements JustificationVisitor<Void> {
 	}
 
 	/**
+	 * Recursively appends a {@code subgraph cluster_<name>} block for
+	 * {@code ancestor}, then nests the grandparent's cluster inside it before
+	 * closing. This produces properly nested DOT clusters that mirror the
+	 * inheritance hierarchy.
+	 */
+	private void appendAncestorCluster(JustificationModel<?> ancestor,
+			String indent) {
+		String ancName = ancestor.getName();
+
+		builder.append(indent).append("subgraph cluster_").append(ancName)
+				.append(" {").append(System.lineSeparator());
+		builder.append(indent).append(INDENT).append(CLUSTER_ATTRS)
+				.append(System.lineSeparator());
+		builder.append(indent).append(INDENT).append("label=")
+				.append(wrapAndQuoteLabel(displayLabel(ancestor))).append(";")
+				.append(System.lineSeparator());
+
+		String inner = indent + INDENT;
+		if (ancestor.hasOwnConclusion()) {
+			ancestor.conclusion().ifPresent(c -> appendClusterNode(
+					qualifyForChild(c.id(), ancName), c, inner));
+		}
+		ancestor.ownElements().forEach(e -> appendClusterNode(
+				qualifyForChild(e.id(), ancName), e, inner));
+		ancestor.concreteOverrides().forEach(e -> appendClusterNode(
+				qualifyForChild(e.id(), ancName), e, inner));
+
+		// Recurse: grandparent cluster is nested inside this one
+		ancestor.getParent().ifPresent(gp -> appendAncestorCluster(gp, inner));
+
+		builder.append(indent).append("}").append(System.lineSeparator());
+	}
+
+	/**
 	 * Appends a node declaration for an ancestor element inside a cluster.
 	 * Overridden abstract supports receive {@link #ABSTRACT_SUFFIX} on their
 	 * DOT node name so they do not clash with the concrete replacement rendered
 	 * outside the cluster.
 	 */
 	private void appendClusterNode(String childQualifiedId,
-			JustificationElement element) {
+			JustificationElement element, String indent) {
 		boolean isGhost = element instanceof AbstractSupport
 				&& allOverriddenIds.contains(childQualifiedId);
 		String dotNodeId = qualify(childQualifiedId)
 				+ (isGhost ? ABSTRACT_SUFFIX : "");
 		String semanticId = qualify(childQualifiedId);
-		builder.append(INDENT).append(quoted(dotNodeId)).append(" [label=")
+		builder.append(indent).append(quoted(dotNodeId)).append(" [label=")
 				.append(wrapAndQuoteLabel(element.label())).append(", id=")
 				.append(quoted(semanticId)).append(", ")
 				.append(styleForElement(element).toAttrs()).append("];")
