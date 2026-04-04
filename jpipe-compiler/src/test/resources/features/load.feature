@@ -1,7 +1,7 @@
 Feature: Load directive
 
   Scenario: load a file under a namespace alias and implement its template
-    Given the source file "008_load_user.jd"
+    Given the source file "007_load_user.jd"
     When I compile it into a unit
     Then the compilation succeeds
       And the unit contains a template named "base:t"
@@ -12,7 +12,7 @@ Feature: Load directive
       And the strategy "base:t:s" supports the conclusion "base:t:c"
 
   Scenario: load a file without a namespace alias imports symbols flat
-    Given the source file "009_load_flat.jd"
+    Given the source file "008_load_flat.jd"
     When I compile it into a unit
     Then the compilation succeeds
       And the unit contains a template named "t"

@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import ca.mcscert.jpipe.commands.Command;
+import ca.mcscert.jpipe.commands.CommandExecutionException;
 import ca.mcscert.jpipe.commands.DeadlockException;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.MacroCommand;
@@ -43,11 +44,44 @@ public final class ActionListInterpretation
 			ctx.recordStat("commands.deferrals", engine.totalDeferrals());
 			ctx.recordActions(engine.executedCommands());
 			return ex.partialUnit();
+		} catch (CommandExecutionException ex) {
+			diagnoseExecutionFailure(ex.failedCommand(), ex.partialUnit(),
+					ex.getCause(), ctx);
+			ctx.recordStat("commands.deferrals", engine.totalDeferrals());
+			ctx.recordActions(engine.executedCommands());
+			return ex.partialUnit();
 		}
 
 		ctx.recordStat("commands.deferrals", engine.totalDeferrals());
 		ctx.recordActions(engine.executedCommands());
 		return unit;
+	}
+
+	private void diagnoseExecutionFailure(Command cmd, Unit unit,
+			Throwable cause, CompilationContext ctx) {
+		switch (cmd) {
+			case ImplementsTemplate c -> {
+				SourceLocation loc = c.location();
+				boolean modelHasParent = unit.findModel(c.modelName())
+						.flatMap(m -> m.getParent()).isPresent();
+				if (modelHasParent) {
+					error(ctx, loc, "[cyclic-implements] cycle detected: '"
+							+ c.modelName() + "' and '" + c.templateName()
+							+ "' mutually implement each other");
+				} else {
+					error(ctx, loc,
+							"[implements-error] cannot apply 'implements' for '"
+									+ c.modelName() + "' extends '"
+									+ c.templateName() + "': "
+									+ cause.getMessage());
+				}
+			}
+			case AddSupport c -> error(ctx, c.location(),
+					"[invalid-support] " + cause.getMessage());
+			default -> ctx.error(
+					"[execution-error] " + cmd + ": " + cause.getMessage());
+		}
+		ctx.error("model construction failed — see errors above");
 	}
 
 	private void diagnoseDeadlock(List<Command> stuck, Unit unit,

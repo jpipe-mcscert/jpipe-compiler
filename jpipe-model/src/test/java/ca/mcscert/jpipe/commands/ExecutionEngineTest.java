@@ -258,8 +258,14 @@ class ExecutionEngineTest {
 			};
 
 			assertThatThrownBy(() -> engine.spawn("src", List.of(failing)))
-					.isInstanceOf(IllegalStateException.class)
-					.hasMessageContaining("intentional failure");
+					.isInstanceOf(
+							ca.mcscert.jpipe.commands.CommandExecutionException.class)
+					.hasMessageContaining("intentional failure")
+					.satisfies(ex -> {
+						var cee = (ca.mcscert.jpipe.commands.CommandExecutionException) ex;
+						assertThat(cee.failedCommand()).isSameAs(failing);
+						assertThat(cee.partialUnit()).isNotNull();
+					});
 		}
 	}
 }

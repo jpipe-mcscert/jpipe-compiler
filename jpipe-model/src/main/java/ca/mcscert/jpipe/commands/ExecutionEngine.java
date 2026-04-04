@@ -67,10 +67,9 @@ public final class ExecutionEngine {
 				try {
 					expanded = macro.expand(unit);
 				} catch (RuntimeException e) {
-					throw e;
+					throw new CommandExecutionException(macro, unit, e);
 				} catch (Exception e) {
-					throw new IllegalStateException("Error expanding macro ["
-							+ macro + "]: " + e.getMessage(), e);
+					throw new CommandExecutionException(macro, unit, e);
 				}
 				logger.debug("Expanding macro [{}] into {} command(s)", macro,
 						expanded.size());
@@ -84,10 +83,9 @@ public final class ExecutionEngine {
 					command.execute(unit);
 					history.add(new ExecutedAction(command, depth));
 				} catch (RuntimeException e) {
-					throw e;
+					throw new CommandExecutionException(command, unit, e);
 				} catch (Exception e) {
-					throw new IllegalStateException("Error executing command ["
-							+ command + "]: " + e.getMessage(), e);
+					throw new CommandExecutionException(command, unit, e);
 				}
 				deferCount = 0;
 			}
