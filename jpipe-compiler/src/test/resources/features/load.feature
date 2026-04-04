@@ -22,7 +22,7 @@ Feature: Load directive
       And the evidence "t:abs" supports the strategy "t:s"
 
   Scenario: loading a missing file reports a fatal error
-    Given the source file "invalid/010_missing_load.jd"
+    Given the source file "invalid/011_missing_load.jd"
     When I compile it into a unit
     Then the compilation fails with a fatal error
       And a fatal error mentions "does_not_exist.jd"

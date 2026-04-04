@@ -227,10 +227,11 @@ public final class LoadResolver
 			case CreateAbstractSupport c ->
 				new CreateAbstractSupport(p(ns, c.container()), c.identifier(),
 						c.label(), c.location());
-			case ImplementsTemplate c -> new ImplementsTemplate(
-					p(ns, c.modelName()), p(ns, c.templateName()));
+			case ImplementsTemplate c ->
+				new ImplementsTemplate(p(ns, c.modelName()),
+						p(ns, c.templateName()), c.location());
 			case AddSupport c -> new AddSupport(p(ns, c.container()),
-					c.supportableId(), c.supporterId());
+					c.supportableId(), c.supporterId(), c.location());
 			case OverrideAbstractSupport c ->
 				new OverrideAbstractSupport(p(ns, c.container()),
 						c.qualifiedId(), c.newType(), c.label(), c.location());

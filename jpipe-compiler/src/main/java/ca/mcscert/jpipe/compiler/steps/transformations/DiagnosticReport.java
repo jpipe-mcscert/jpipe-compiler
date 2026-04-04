@@ -38,6 +38,7 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 		appendModelSummary(sb, input);
 		appendSymbolTable(sb, input);
 		appendActionList(sb, ctx);
+		ctx.markDiagnosticsRendered();
 		return sb.toString();
 	}
 

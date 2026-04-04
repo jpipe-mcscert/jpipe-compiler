@@ -22,6 +22,7 @@ public final class CompilationContext {
 	private final List<Diagnostic> diagnostics = new ArrayList<>();
 	private final Map<String, Long> stats = new LinkedHashMap<>();
 	private List<ExecutedAction> executedActions = List.of();
+	private boolean diagnosticsRendered = false;
 
 	public CompilationContext(String sourcePath) {
 		this.sourcePath = sourcePath;
@@ -94,6 +95,21 @@ public final class CompilationContext {
 	/** Ordered list of actions that occurred during interpretation. */
 	public List<ExecutedAction> executedActions() {
 		return executedActions;
+	}
+
+	/**
+	 * Signal that a pipeline step has already rendered the diagnostics (e.g.
+	 * {@code DiagnosticReport}), so
+	 * {@link ca.mcscert.jpipe.compiler.model.ChainCompiler} should not print
+	 * them a second time.
+	 */
+	public void markDiagnosticsRendered() {
+		this.diagnosticsRendered = true;
+	}
+
+	/** True when a step has already rendered the diagnostics. */
+	public boolean diagnosticsRendered() {
+		return diagnosticsRendered;
 	}
 
 }

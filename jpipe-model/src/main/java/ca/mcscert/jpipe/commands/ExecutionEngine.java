@@ -48,12 +48,11 @@ public final class ExecutionEngine {
 		int deferCount = 0;
 		while (!queue.isEmpty()) {
 			if (deferCount >= queue.size()) {
-				StringBuilder stuck = new StringBuilder(
-						"Execution deadlocked — " + queue.size()
-								+ " command(s) cannot execute:");
-				queue.forEach(
-						e -> stuck.append("\n  stuck: ").append(e.command()));
-				throw new IllegalStateException(stuck.toString());
+				List<Command> stuck = queue.stream().map(QueueEntry::command)
+						.toList();
+				throw new DeadlockException("Execution deadlocked — "
+						+ stuck.size() + " command(s) cannot execute", stuck,
+						unit);
 			}
 			QueueEntry entry = queue.removeFirst();
 			Command command = entry.command();

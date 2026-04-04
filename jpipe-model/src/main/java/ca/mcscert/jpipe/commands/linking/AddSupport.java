@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.commands.linking;
 
 import ca.mcscert.jpipe.commands.RegularCommand;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
@@ -34,12 +35,19 @@ public final class AddSupport extends RegularCommand {
 	private final String container;
 	private final String supportableId;
 	private final String supporterId;
+	private final SourceLocation location;
 
 	public AddSupport(String container, String supportableId,
 			String supporterId) {
+		this(container, supportableId, supporterId, SourceLocation.UNKNOWN);
+	}
+
+	public AddSupport(String container, String supportableId,
+			String supporterId, SourceLocation location) {
 		this.container = container;
 		this.supportableId = supportableId;
 		this.supporterId = supporterId;
+		this.location = location;
 	}
 
 	public String container() {
@@ -52,6 +60,10 @@ public final class AddSupport extends RegularCommand {
 
 	public String supporterId() {
 		return supporterId;
+	}
+
+	public SourceLocation location() {
+		return location;
 	}
 
 	@Override

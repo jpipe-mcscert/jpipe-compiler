@@ -129,8 +129,12 @@ public final class ActionListProvider
 			// ImplementsTemplate must be enqueued before body commands so that
 			// inherited elements exist when override commands run.
 			if (ctx.parent != null) {
+				SourceLocation parentLoc = new SourceLocation(
+						buildContext.unitFileName,
+						ctx.parent.getStart().getLine(),
+						ctx.parent.getStart().getCharPositionInLine());
 				result.add(new ImplementsTemplate(ctx.id.getText(),
-						ctx.parent.getText()));
+						ctx.parent.getText(), parentLoc));
 			}
 		}
 
@@ -153,8 +157,12 @@ public final class ActionListProvider
 			// ImplementsTemplate must be enqueued before body commands so that
 			// inherited elements exist when override commands run.
 			if (ctx.parent != null) {
+				SourceLocation parentLoc = new SourceLocation(
+						buildContext.unitFileName,
+						ctx.parent.getStart().getLine(),
+						ctx.parent.getStart().getCharPositionInLine());
 				result.add(new ImplementsTemplate(ctx.id.getText(),
-						ctx.parent.getText()));
+						ctx.parent.getText(), parentLoc));
 			}
 		}
 
@@ -261,7 +269,8 @@ public final class ActionListProvider
 			if (to.contains(":") && !validOverridePrefix(to, loc)) {
 				return;
 			}
-			result.add(new AddSupport(buildContext.justificationId, to, from));
+			result.add(new AddSupport(buildContext.justificationId, to, from,
+					loc));
 		}
 
 		/*

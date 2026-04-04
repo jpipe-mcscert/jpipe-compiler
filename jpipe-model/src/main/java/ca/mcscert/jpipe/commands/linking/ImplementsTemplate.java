@@ -19,10 +19,17 @@ public final class ImplementsTemplate extends RegularCommand {
 
 	private final String modelName;
 	private final String templateName;
+	private final SourceLocation location;
 
 	public ImplementsTemplate(String modelName, String templateName) {
+		this(modelName, templateName, SourceLocation.UNKNOWN);
+	}
+
+	public ImplementsTemplate(String modelName, String templateName,
+			SourceLocation location) {
 		this.modelName = modelName;
 		this.templateName = templateName;
+		this.location = location;
 	}
 
 	public String modelName() {
@@ -31,6 +38,10 @@ public final class ImplementsTemplate extends RegularCommand {
 
 	public String templateName() {
 		return templateName;
+	}
+
+	public SourceLocation location() {
+		return location;
 	}
 
 	@Override

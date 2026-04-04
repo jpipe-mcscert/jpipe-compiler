@@ -146,8 +146,13 @@ class ExecutionEngineTest {
 
 			assertThatThrownBy(
 					() -> engine.spawn("src", List.of(stuck1, stuck2)))
-					.isInstanceOf(IllegalStateException.class)
-					.hasMessageContaining("deadlocked");
+					.isInstanceOf(
+							ca.mcscert.jpipe.commands.DeadlockException.class)
+					.hasMessageContaining("deadlocked").satisfies(ex -> {
+						var deadlock = (ca.mcscert.jpipe.commands.DeadlockException) ex;
+						assertThat(deadlock.stuckCommands()).hasSize(2);
+						assertThat(deadlock.partialUnit()).isNotNull();
+					});
 		}
 	}
 
