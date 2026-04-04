@@ -11,7 +11,7 @@ template root {
     @support abs1 is "A root abstract support #1"
     @support abs2 is "A root abstract support #2"
 
-    s    supports c
+    s    supports cs
     abs1 supports s
     abs2 supports s
 }

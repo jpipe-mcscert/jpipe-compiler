@@ -11,7 +11,6 @@ justification j {
     strategy   s  is "A strategy"
     evidence   e  is "An evidence"
 
-    s supports c2
     s supports c1
     e supports s
 }
@@ -23,7 +22,6 @@ template t {
     strategy   s    is "A strategy"
     @support   abs  is "An evidence"
 
-    s   supports c2
     s   supports c1
     abs supports s
 }

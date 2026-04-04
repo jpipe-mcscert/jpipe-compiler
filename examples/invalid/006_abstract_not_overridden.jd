@@ -7,15 +7,15 @@
 template t {
     conclusion c is "A conclusion"
     strategy s   is "A strategy"
-    @support abs is "An abstract support"
+    @support abs1 is "An abstract support #1"
+    @support abs2 is "An abstract support #1"
 
-    s   supports c
-    abs supports s
+    s    supports c
+    abs1 supports s
+    abs2 supports s
 }
 
+// Abstract support t:abs2 is not overriden, so j is not a justification
 justification j implements t {
-    conclusion top is "The system is correct"
-    strategy js is "Via template"
-    js supports top
-    t:c supports js
+    evidence t:abs1 is "A concrete evidence overriding abs1"
 }
