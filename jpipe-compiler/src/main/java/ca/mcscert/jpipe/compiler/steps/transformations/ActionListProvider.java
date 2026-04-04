@@ -74,8 +74,13 @@ public final class ActionListProvider
 
 		@Override
 		public void enterLoad(JPipeParser.LoadContext ctx) {
-			throw new UnsupportedOperationException(
-					"load directive is not yet supported in the refactored pipeline");
+			String raw = ctx.path.getText();
+			// Strip surrounding quotes produced by the STRING lexer token
+			String path = raw.substring(1, raw.length() - 1);
+			String namespace = ctx.namespace != null
+					? ctx.namespace.getText()
+					: null;
+			result.add(new LoadResolver.LoadDirective(path, namespace));
 		}
 
 		/*

@@ -42,6 +42,18 @@ public final class AddSupport extends RegularCommand {
 		this.supporterId = supporterId;
 	}
 
+	public String container() {
+		return container;
+	}
+
+	public String supportableId() {
+		return supportableId;
+	}
+
+	public String supporterId() {
+		return supporterId;
+	}
+
 	@Override
 	public Predicate<Unit> condition() {
 		return unit -> unit.findModel(container)

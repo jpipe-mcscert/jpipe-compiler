@@ -20,6 +20,14 @@ public final class CreateJustification extends RegularCommand {
 		this.location = location;
 	}
 
+	public String identifier() {
+		return identifier;
+	}
+
+	public SourceLocation location() {
+		return location;
+	}
+
 	@Override
 	public void doExecute(Unit context) {
 		context.add(new Justification(identifier));

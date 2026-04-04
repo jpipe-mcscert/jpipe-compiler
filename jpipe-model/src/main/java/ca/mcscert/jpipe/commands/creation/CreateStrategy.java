@@ -25,6 +25,22 @@ public final class CreateStrategy extends RegularCommand {
 		this.location = location;
 	}
 
+	public String container() {
+		return container;
+	}
+
+	public String identifier() {
+		return identifier;
+	}
+
+	public String label() {
+		return label;
+	}
+
+	public SourceLocation location() {
+		return location;
+	}
+
 	@Override
 	public void doExecute(Unit context) {
 		context.addInto(container, new Strategy(identifier, label));

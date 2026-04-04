@@ -25,6 +25,14 @@ public final class ImplementsTemplate extends RegularCommand {
 		this.templateName = templateName;
 	}
 
+	public String modelName() {
+		return modelName;
+	}
+
+	public String templateName() {
+		return templateName;
+	}
+
 	@Override
 	public Predicate<Unit> condition() {
 		return unit -> unit.findModel(modelName).isPresent()

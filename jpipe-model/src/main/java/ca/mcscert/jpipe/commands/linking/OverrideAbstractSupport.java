@@ -44,6 +44,26 @@ public final class OverrideAbstractSupport implements MacroCommand {
 		this.location = location;
 	}
 
+	public String container() {
+		return container;
+	}
+
+	public String qualifiedId() {
+		return qualifiedId;
+	}
+
+	public String newType() {
+		return newType;
+	}
+
+	public String label() {
+		return label;
+	}
+
+	public SourceLocation location() {
+		return location;
+	}
+
 	@Override
 	public Predicate<Unit> condition() {
 		return unit -> unit.findModel(container)

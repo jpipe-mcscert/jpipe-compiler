@@ -54,6 +54,17 @@ public abstract class Transformation<I, O> {
 	}
 
 	/**
+	 * Human-readable name used in diagnostic messages. Named subclasses inherit
+	 * the default (their simple class name). Composed transformations produced
+	 * by {@link #andThen} override this to propagate the name of the leftmost
+	 * step so that "pipeline aborted" messages point to the first step that
+	 * would have done work.
+	 */
+	protected String stepName() {
+		return getClass().getSimpleName();
+	}
+
+	/**
 	 * Business logic of this step. Must not return {@code null}; may throw any
 	 * exception. Use {@code ctx} to report non-fatal diagnostics or inspect
 	 * previously accumulated errors.
@@ -88,10 +99,10 @@ public abstract class Transformation<I, O> {
 	 */
 	public final O fire(I in, CompilationContext ctx) {
 		if (ctx.hasFatalErrors()) {
-			throw new CompilationException(getClass().getSimpleName(),
+			throw new CompilationException(stepName(),
 					"pipeline aborted due to previous fatal errors");
 		}
-		logger.info("Firing transformation [{}]", getClass().getSimpleName());
+		logger.info("Firing transformation [{}]", stepName());
 		try {
 			O result = run(in, ctx);
 			return Objects.requireNonNull(result, "Transformation ["
@@ -125,6 +136,11 @@ public abstract class Transformation<I, O> {
 			@Override
 			protected R run(I input, CompilationContext ctx) throws Exception {
 				return next.fire(self.fire(input, ctx), ctx);
+			}
+
+			@Override
+			protected String stepName() {
+				return self.stepName();
 			}
 		};
 	}

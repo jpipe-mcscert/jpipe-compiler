@@ -219,6 +219,18 @@ public class CompilationSteps {
 		assertThat(ctx.hasErrors()).isTrue();
 	}
 
+	@Then("the compilation fails with a fatal error")
+	public void theCompilationFailsWithAFatalError() {
+		assertThat(ctx.hasFatalErrors()).isTrue();
+	}
+
+	@Then("a fatal error mentions {string}")
+	public void aFatalErrorMentions(String text) {
+		assertThat(ctx.diagnostics()).filteredOn(Diagnostic::isFatal)
+				.extracting(Diagnostic::message)
+				.anySatisfy(msg -> assertThat(msg).contains(text));
+	}
+
 	@Then("a validation error is reported for rule {string}")
 	public void aValidationErrorIsReportedForRule(String rule) {
 		assertThat(ctx.diagnostics()).filteredOn(Diagnostic::isError)

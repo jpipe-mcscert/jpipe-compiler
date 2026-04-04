@@ -11,6 +11,7 @@ import ca.mcscert.jpipe.compiler.steps.io.sinks.StringSink;
 import ca.mcscert.jpipe.compiler.steps.io.sources.FileSource;
 import ca.mcscert.jpipe.compiler.steps.transformations.ActionListInterpretation;
 import ca.mcscert.jpipe.compiler.steps.transformations.ActionListProvider;
+import ca.mcscert.jpipe.compiler.steps.transformations.LoadResolver;
 import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticReport;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToDot;
@@ -111,7 +112,7 @@ public final class CompilerFactory {
 		return new FileSource().andThen(new CharStreamProvider())
 				.andThen(new Lexer()).andThen(new Parser())
 				.andThen(new HaltAndCatchFire<ParseTree>())
-				.andThen(new ActionListProvider());
+				.andThen(new ActionListProvider()).andThen(new LoadResolver());
 	}
 
 	/**

@@ -11,17 +11,17 @@ unit            : (justification | template | load)+ EOF;
 qualified_id    : parts+=ID (COLON parts+=ID)*;
 
 // Declare a justification: either a direct body or the result of an operator call
-justification   : JUSTIFICATION id=ID (IMPLEMENTS parent=ID)?
+justification   : JUSTIFICATION id=ID (IMPLEMENTS parent=qualified_id)?
                   ( OPEN justif_body CLOSE | IS operator=qualified_id OPEN_P params_decl? CLOSE_P rule_config? );
 justif_body     : (evidence | sub_conclusion | strategy | relation | conclusion)+;
 
 // Declare a template: either a direct body or the result of an operator call
-template        : TEMPLATE id=ID (IMPLEMENTS parent=ID)?
+template        : TEMPLATE id=ID (IMPLEMENTS parent=qualified_id)?
                   ( OPEN template_body CLOSE | IS operator=qualified_id OPEN_P params_decl? CLOSE_P rule_config? );
 template_body   : (evidence | sub_conclusion | strategy | relation | conclusion | abstract)+;
 
-// load another file and bind its symbols under a namespace alias
-load            : LOAD path=STRING AS namespace=ID;
+// load another file and optionally bind its symbols under a namespace alias
+load            : LOAD path=STRING (AS namespace=ID)?;
 
 // Body of a justification/template content
 // element id is a qualified_id to allow override syntax (e.g. evidence t:abs is "...")
