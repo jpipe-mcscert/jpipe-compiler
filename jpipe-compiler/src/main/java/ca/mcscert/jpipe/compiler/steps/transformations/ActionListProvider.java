@@ -70,14 +70,28 @@ public final class ActionListProvider
 
 		@Override
 		public void enterEveryRule(ParserRuleContext ctx) {
-			logger.debug("enter: {}",
-					JPipeParser.ruleNames[ctx.getRuleIndex()]);
+			String rule = JPipeParser.ruleNames[ctx.getRuleIndex()];
+			int line = ctx.start.getLine();
+			int col = ctx.start.getCharPositionInLine();
+			String model = buildContext.justificationId();
+			if (model != null) {
+				logger.debug("enter: {} @ {}:{} [{}]", rule, line, col, model);
+			} else {
+				logger.debug("enter: {} @ {}:{}", rule, line, col);
+			}
 		}
 
 		@Override
 		public void exitEveryRule(ParserRuleContext ctx) {
-			logger.debug("exit:  {}",
-					JPipeParser.ruleNames[ctx.getRuleIndex()]);
+			String rule = JPipeParser.ruleNames[ctx.getRuleIndex()];
+			int line = ctx.start.getLine();
+			int col = ctx.start.getCharPositionInLine();
+			String model = buildContext.justificationId();
+			if (model != null) {
+				logger.debug("exit:  {} @ {}:{} [{}]", rule, line, col, model);
+			} else {
+				logger.debug("exit:  {} @ {}:{}", rule, line, col);
+			}
 		}
 
 		/*

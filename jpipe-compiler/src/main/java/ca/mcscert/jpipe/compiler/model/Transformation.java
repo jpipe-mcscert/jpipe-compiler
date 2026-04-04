@@ -50,6 +50,11 @@ public abstract class Transformation<I, O> {
 			protected O run(I input, CompilationContext ctx) throws Exception {
 				return step.apply(input, ctx);
 			}
+
+			@Override
+			protected boolean shouldLog() {
+				return false;
+			}
 		};
 	}
 
@@ -62,6 +67,17 @@ public abstract class Transformation<I, O> {
 	 */
 	protected String stepName() {
 		return getClass().getSimpleName();
+	}
+
+	/**
+	 * Whether {@link #fire} should emit a DEBUG log entry for this step.
+	 * Returns {@code true} for all named (concrete) steps. Overridden to
+	 * {@code false} in the anonymous composition wrappers produced by
+	 * {@link #andThen}, so that only real pipeline steps appear in the log —
+	 * not the N intermediate wrappers created by composition.
+	 */
+	protected boolean shouldLog() {
+		return true;
 	}
 
 	/**
@@ -102,7 +118,9 @@ public abstract class Transformation<I, O> {
 			throw new CompilationException(stepName(),
 					"pipeline aborted due to previous fatal errors");
 		}
-		logger.debug("Firing transformation [{}]", stepName());
+		if (shouldLog()) {
+			logger.debug("Firing transformation [{}]", stepName());
+		}
 		try {
 			O result = run(in, ctx);
 			return Objects.requireNonNull(result, "Transformation ["
@@ -141,6 +159,11 @@ public abstract class Transformation<I, O> {
 			@Override
 			protected String stepName() {
 				return self.stepName();
+			}
+
+			@Override
+			protected boolean shouldLog() {
+				return false;
 			}
 		};
 	}
