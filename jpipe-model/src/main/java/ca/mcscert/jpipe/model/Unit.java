@@ -19,6 +19,7 @@ public final class Unit {
 	private final String source;
 	private final Map<String, JustificationModel<?>> models = new LinkedHashMap<>();
 	private final Map<String, SourceLocation> locations = new LinkedHashMap<>();
+	private final Map<String, String> aliases = new LinkedHashMap<>();
 
 	public Unit(String source) {
 		this.source = source;
@@ -104,6 +105,22 @@ public final class Unit {
 	public SourceLocation locationOf(String modelName, String elementId) {
 		return locations.getOrDefault(modelName + "/" + elementId,
 				SourceLocation.UNKNOWN);
+	}
+
+	/**
+	 * Records that {@code oldId} in model {@code modelName} was merged into
+	 * {@code newId}.
+	 */
+	public void recordAlias(String modelName, String oldId, String newId) {
+		aliases.put(modelName + "/" + oldId, newId);
+	}
+
+	/**
+	 * Returns the id that {@code id} resolves to in {@code modelName}, or
+	 * {@code id} itself if no alias was registered.
+	 */
+	public String resolveAlias(String modelName, String id) {
+		return aliases.getOrDefault(modelName + "/" + id, id);
 	}
 
 	public <R> R accept(JustificationVisitor<R> visitor) {

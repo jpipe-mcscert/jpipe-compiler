@@ -16,9 +16,14 @@ import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.lang.JPipeBaseListener;
 import ca.mcscert.jpipe.lang.JPipeParser;
 import ca.mcscert.jpipe.model.SourceLocation;
+import ca.mcscert.jpipe.operators.ApplyOperator;
+import ca.mcscert.jpipe.operators.OperatorRegistry;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -31,10 +36,16 @@ public final class ActionListProvider
 		extends
 			Transformation<ParseTree, List<Command>> {
 
+	private final OperatorRegistry operators;
+
+	public ActionListProvider(OperatorRegistry operators) {
+		this.operators = operators;
+	}
+
 	@Override
 	protected List<Command> run(ParseTree input, CompilationContext ctx)
 			throws Exception {
-		ActionBuilder ab = new ActionBuilder(ctx.sourcePath(), ctx);
+		ActionBuilder ab = new ActionBuilder(ctx.sourcePath(), ctx, operators);
 		ParseTreeWalker.DEFAULT.walk(ab, input);
 		logger.debug(ab.collect());
 		return ab.collect();
@@ -56,12 +67,15 @@ public final class ActionListProvider
 		private final List<Command> result;
 		private Context buildContext;
 		private final CompilationContext compilationCtx;
+		private final OperatorRegistry operators;
 		private final Set<String> seenConclusionModels = new HashSet<>();
 
-		public ActionBuilder(String name, CompilationContext compilationCtx) {
+		public ActionBuilder(String name, CompilationContext compilationCtx,
+				OperatorRegistry operators) {
 			this.result = new ArrayList<>();
 			this.buildContext = new Context(name, null, null);
 			this.compilationCtx = compilationCtx;
+			this.operators = operators;
 		}
 
 		public List<Command> collect() {
@@ -118,13 +132,23 @@ public final class ActionListProvider
 
 		@Override
 		public void enterJustification(JPipeParser.JustificationContext ctx) {
+			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
+					ctx.id.getLine(), ctx.id.getCharPositionInLine());
+			if (ctx.operator != null) {
+				List<String> sources = ctx.params_decl() != null
+						? ctx.params_decl().id.stream().map(t -> t.getText())
+								.toList()
+						: List.of();
+				result.add(new ApplyOperator(ctx.id.getText(),
+						ctx.operator.getText(), sources,
+						collectConfig(ctx.rule_config()), operators, loc));
+				return;
+			}
 			String parentName = ctx.parent != null
 					? ctx.parent.getText()
 					: null;
 			this.buildContext = buildContext
 					.updateCurrentJustification(ctx.id.getText(), parentName);
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.id.getLine(), ctx.id.getCharPositionInLine());
 			result.add(new CreateJustification(ctx.id.getText(), loc));
 			// ImplementsTemplate must be enqueued before body commands so that
 			// inherited elements exist when override commands run.
@@ -146,13 +170,23 @@ public final class ActionListProvider
 
 		@Override
 		public void enterTemplate(JPipeParser.TemplateContext ctx) {
+			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
+					ctx.id.getLine(), ctx.id.getCharPositionInLine());
+			if (ctx.operator != null) {
+				List<String> sources = ctx.params_decl() != null
+						? ctx.params_decl().id.stream().map(t -> t.getText())
+								.toList()
+						: List.of();
+				result.add(new ApplyOperator(ctx.id.getText(),
+						ctx.operator.getText(), sources,
+						collectConfig(ctx.rule_config()), operators, loc));
+				return;
+			}
 			String parentName = ctx.parent != null
 					? ctx.parent.getText()
 					: null;
 			this.buildContext = buildContext
 					.updateCurrentJustification(ctx.id.getText(), parentName);
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.id.getLine(), ctx.id.getCharPositionInLine());
 			result.add(new CreateTemplate(ctx.id.getText(), loc));
 			// ImplementsTemplate must be enqueued before body commands so that
 			// inherited elements exist when override commands run.
@@ -280,8 +314,20 @@ public final class ActionListProvider
 
 		@Override
 		public void enterRule_config(JPipeParser.Rule_configContext ctx) {
-			throw new UnsupportedOperationException(
-					"composition operators are not yet supported in the refactored pipeline");
+			// No-op: config key-value pairs are consumed eagerly in
+			// enterJustification / enterTemplate.
+		}
+
+		private static Map<String, String> collectConfig(
+				JPipeParser.Rule_configContext ctx) {
+			if (ctx == null) {
+				return Map.of();
+			}
+			Map<String, String> map = new LinkedHashMap<>();
+			for (var kv : ctx.key_val_decl()) {
+				map.put(kv.key.getText(), strip(kv.value.getText()));
+			}
+			return Collections.unmodifiableMap(map);
 		}
 
 		/*
@@ -309,7 +355,7 @@ public final class ActionListProvider
 			return true;
 		}
 
-		private String strip(String s) {
+		private static String strip(String s) {
 			return s.substring(1, s.length() - 1);
 		}
 	}

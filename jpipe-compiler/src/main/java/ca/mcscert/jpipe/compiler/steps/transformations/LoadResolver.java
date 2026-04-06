@@ -14,6 +14,7 @@ import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
+import ca.mcscert.jpipe.operators.OperatorRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ca.mcscert.jpipe.compiler.steps.checkers.HaltAndCatchFire;
@@ -66,6 +67,12 @@ public final class LoadResolver
 			Transformation<List<Command>, List<Command>> {
 
 	private static final Logger logger = LogManager.getLogger();
+
+	private final OperatorRegistry operators;
+
+	public LoadResolver(OperatorRegistry operators) {
+		this.operators = operators;
+	}
 
 	/**
 	 * A compiler-internal directive produced by the {@code load} grammar rule.
@@ -169,12 +176,12 @@ public final class LoadResolver
 	 * Nested loads in the sub-file are handled by the recursive
 	 * {@link #resolve} call after this method returns.
 	 */
-	private static List<Command> parseFile(Path path, CompilationContext subCtx)
+	private List<Command> parseFile(Path path, CompilationContext subCtx)
 			throws IOException {
 		Transformation<InputStream, List<Command>> chain = new CharStreamProvider()
 				.andThen(new Lexer()).andThen(new Parser())
 				.andThen(new HaltAndCatchFire<ParseTree>())
-				.andThen(new ActionListProvider());
+				.andThen(new ActionListProvider(operators));
 		try (FileInputStream fis = new FileInputStream(path.toFile())) {
 			return chain.fire(fis, subCtx);
 		}

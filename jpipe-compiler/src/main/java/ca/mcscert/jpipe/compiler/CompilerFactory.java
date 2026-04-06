@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.compiler;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
+import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.compiler.steps.checkers.CompletenessChecker;
 import ca.mcscert.jpipe.compiler.steps.checkers.ConsistencyChecker;
@@ -109,10 +110,19 @@ public final class CompilerFactory {
 	 * action list. Aborts on any syntax error via {@link HaltAndCatchFire}.
 	 */
 	public static ChainBuilder<InputStream, List<Command>> parsingChain() {
+		OperatorRegistry operators = builtInOperators();
 		return new FileSource().andThen(new CharStreamProvider())
 				.andThen(new Lexer()).andThen(new Parser())
 				.andThen(new HaltAndCatchFire<ParseTree>())
-				.andThen(new ActionListProvider()).andThen(new LoadResolver());
+				.andThen(new ActionListProvider(operators))
+				.andThen(new LoadResolver(operators));
+	}
+
+	private static OperatorRegistry builtInOperators() {
+		OperatorRegistry operators = new OperatorRegistry();
+		// Built-in operators registered here; extend when new operators are
+		// added.
+		return operators;
 	}
 
 	/**
