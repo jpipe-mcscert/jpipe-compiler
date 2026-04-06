@@ -40,6 +40,7 @@ nav:
       - adr/0015-consistency-and-completeness-validation.md
       - adr/0016-error-management.md
       - adr/0017-load-directive-as-compiler-step.md
+      - adr/0018-composition-operators.md 
 plugins:
   - search
 
