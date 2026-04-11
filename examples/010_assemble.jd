@@ -1,0 +1,108 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// First claim
+justification a_claim {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+
+    s supports c
+    e supports s
+}
+
+// Second claim
+justification another_claim {
+    conclusion c is "Another conclusion"
+    strategy   s is "Another strategy"
+    evidence   e is "Another evidence"
+
+    s supports c
+    e supports s
+}
+
+// third claim
+justification a_third_claim {
+    conclusion c is "A third conclusion"
+    strategy   s is "A third strategy"
+    evidence   e is "A third evidence"
+
+    s supports c
+    e supports s
+}
+
+// Assmebling 2 strategies together
+justification assembled_2 is assemble(a_claim, another_claim) {
+    conclusionLabel:    "A global conclusion"
+    strategyLabel:      "An aggregating strategy"
+}
+
+// Assembling 3 strategies together
+justification assembled_3 is assemble(a_claim, another_claim, a_third_claim) {
+    conclusionLabel:    "A global conclusion"
+    strategyLabel:      "An aggregating strategy"
+}
+
+// expected_2 is equivalent to assembled_2
+justification expected_2 {
+    // elements (from a_claim)
+    strategy   a_claim_s is "A strategy"
+    evidence   a_claim_e is "An evidence"
+    // relations (from a_claim)
+    a_claim_e supports a_claim_s
+
+    // elements (from another_claim)
+    strategy   another_claim_s is "Another strategy"
+    evidence   another_claim_e is "Another evidence"
+    // relations (from another_claim)
+    another_claim_e supports another_claim_s
+
+    // Elements created while composing (rewritten)
+    sub-conclusion anonymous1 is "A conclusion"
+    sub-conclusion anonymous2 is "Another conclusion"
+    strategy anonymous3 is "An aggregating strategy"
+    conclusion anonymous4 is "A global conclusion"
+    a_claim_s supports anonymous1
+    anonymous1 supports anonymous3
+    another_claim_s supports anonymous2
+    anonymous2 supports anonymous3
+    anonymous3 supports anonymous4
+}
+
+// expected_3 is equivalent to assembled_3
+justification expected_3 {
+    // elements (from a_claim)
+    strategy   a_claim_s is "A strategy"
+    evidence   a_claim_e is "An evidence"
+    // relations (from a_claim)
+    a_claim_e supports a_claim_s
+
+    // elements (from another_claim)
+    strategy   another_claim_s is "Another strategy"
+    evidence   another_claim_e is "Another evidence"
+    // relations (from another_claim)
+    another_claim_e supports another_claim_s
+
+    // elements (from a_third_claim)
+    strategy   a_third_claim_s is "Another strategy"
+    evidence   a_third_claim_e is "Another evidence"
+    // relations (from a_third_claim)
+    a_third_claim_e supports a_third_claim_s
+
+    // Elements created while composing (rewritten)
+    sub-conclusion anonymous1 is "A conclusion"
+    sub-conclusion anonymous2 is "Another conclusion"
+    sub-conclusion anonymous3 is "A third conclusion"
+    strategy anonymous4 is "An aggregating strategy"
+    conclusion anonymous5 is "A global conclusion"
+    a_claim_s supports anonymous1
+    anonymous1 supports anonymous4
+    another_claim_s supports anonymous2
+    anonymous2 supports anonymous4
+    a_third_claim_s supports anonymous3
+    anonymous3 supports anonymous4
+    anonymous4 supports anonymous5
+}

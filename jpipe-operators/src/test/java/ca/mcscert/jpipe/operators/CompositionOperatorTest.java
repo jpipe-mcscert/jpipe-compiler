@@ -82,7 +82,8 @@ class CompositionOperatorTest {
 
 		@Override
 		protected Command createResultModel(String name,
-				SourceLocation location, Map<String, String> arguments) {
+				SourceLocation location, List<JustificationModel<?>> sources,
+				Map<String, String> arguments) {
 			return new CreateJustification(name);
 		}
 
@@ -120,7 +121,8 @@ class CompositionOperatorTest {
 
 		@Override
 		protected Command createResultModel(String name,
-				SourceLocation location, Map<String, String> arguments) {
+				SourceLocation location, List<JustificationModel<?>> sources,
+				Map<String, String> arguments) {
 			return new CreateJustification(name);
 		}
 	}

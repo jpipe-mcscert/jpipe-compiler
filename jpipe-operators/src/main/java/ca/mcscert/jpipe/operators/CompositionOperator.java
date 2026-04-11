@@ -69,9 +69,25 @@ public abstract class CompositionOperator {
 	 *            the source location of the operator call; forwarded to the
 	 *            creation command so the result model appears in the symbol
 	 *            table.
+	 * @param sources
+	 *            the source models being composed; provided so operators can
+	 *            choose the result model type (e.g. {@code Template} vs
+	 *            {@code Justification}) based on the source types.
 	 */
 	protected abstract Command createResultModel(String name,
-			SourceLocation location, Map<String, String> arguments);
+			SourceLocation location, List<JustificationModel<?>> sources,
+			Map<String, String> arguments);
+
+	/**
+	 * Returns additional commands to append after Phase 2 edge reconstruction.
+	 * Override to inject synthesized elements and their edges that have no
+	 * counterpart in any source model. Default: empty.
+	 */
+	protected List<Command> additionalCommands(String resultName,
+			List<JustificationModel<?>> sources, AliasRegistry aliases,
+			Map<String, String> args) {
+		return List.of();
+	}
 
 	// ── Template Method
 	// ────────────────────────────────────────────────────────
@@ -166,7 +182,7 @@ public abstract class CompositionOperator {
 		// Phase 1: element creation — merge function populates alias registry
 		AliasRegistry aliases = new AliasRegistry();
 		List<Command> commands = new ArrayList<>();
-		commands.add(createResultModel(resultName, location, args));
+		commands.add(createResultModel(resultName, location, sources, args));
 		MergeFunction merge = mergeFunction(sources, args);
 		for (ElementGroup group : groups) {
 			logger.debug("Merging group of {} member(s)",
@@ -202,6 +218,9 @@ public abstract class CompositionOperator {
 						s.id(), leafId);
 			}));
 		}
+
+		// Phase 3: operator-specific synthesized elements and edges
+		commands.addAll(additionalCommands(resultName, sources, aliases, args));
 
 		return List.copyOf(commands);
 	}

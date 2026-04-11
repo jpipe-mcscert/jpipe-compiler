@@ -55,6 +55,7 @@ public final class RefineOperator extends CompositionOperator {
 
 	@Override
 	protected Command createResultModel(String name, SourceLocation location,
+			List<JustificationModel<?>> sources,
 			Map<String, String> arguments) {
 		return new CreateJustification(name, location);
 	}

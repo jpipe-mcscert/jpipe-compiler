@@ -122,6 +122,8 @@ public final class CompilerFactory {
 		OperatorRegistry operators = new OperatorRegistry();
 		operators.register("refine",
 				new ca.mcscert.jpipe.operators.builtin.RefineOperator());
+		operators.register("assemble",
+				new ca.mcscert.jpipe.operators.builtin.AssembleOperator());
 		return operators;
 	}
 
