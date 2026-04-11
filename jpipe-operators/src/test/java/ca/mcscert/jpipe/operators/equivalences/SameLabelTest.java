@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.operators.equivalences;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.operators.SourcedElement;
@@ -16,34 +17,38 @@ class SameLabelTest {
 	@Test
 	void equivalentWhenLabelsMatch() {
 		SourcedElement a = new SourcedElement(
-				new Evidence("a:e1", "my evidence"), model);
+				new Evidence("a:e1", "my evidence"), model,
+				SourceLocation.UNKNOWN);
 		SourcedElement b = new SourcedElement(
-				new Evidence("b:e1", "my evidence"), model);
+				new Evidence("b:e1", "my evidence"), model,
+				SourceLocation.UNKNOWN);
 		assertThat(relation.areEquivalent(a, b)).isTrue();
 	}
 
 	@Test
 	void notEquivalentWhenLabelsDiffer() {
 		SourcedElement a = new SourcedElement(
-				new Evidence("a:e1", "evidence A"), model);
+				new Evidence("a:e1", "evidence A"), model,
+				SourceLocation.UNKNOWN);
 		SourcedElement b = new SourcedElement(
-				new Evidence("b:e1", "evidence B"), model);
+				new Evidence("b:e1", "evidence B"), model,
+				SourceLocation.UNKNOWN);
 		assertThat(relation.areEquivalent(a, b)).isFalse();
 	}
 
 	@Test
 	void reflexive() {
 		SourcedElement a = new SourcedElement(new Strategy("s1", "a strategy"),
-				model);
+				model, SourceLocation.UNKNOWN);
 		assertThat(relation.areEquivalent(a, a)).isTrue();
 	}
 
 	@Test
 	void symmetric() {
 		SourcedElement a = new SourcedElement(new Evidence("a:e", "shared"),
-				model);
+				model, SourceLocation.UNKNOWN);
 		SourcedElement b = new SourcedElement(new Evidence("b:e", "shared"),
-				model);
+				model, SourceLocation.UNKNOWN);
 		assertThat(relation.areEquivalent(a, b))
 				.isEqualTo(relation.areEquivalent(b, a));
 	}
@@ -51,9 +56,9 @@ class SameLabelTest {
 	@Test
 	void differentTypesWithSameLabelAreEquivalent() {
 		SourcedElement a = new SourcedElement(new Evidence("e1", "same label"),
-				model);
+				model, SourceLocation.UNKNOWN);
 		SourcedElement b = new SourcedElement(new Strategy("s1", "same label"),
-				model);
+				model, SourceLocation.UNKNOWN);
 		assertThat(relation.areEquivalent(a, b)).isTrue();
 	}
 }

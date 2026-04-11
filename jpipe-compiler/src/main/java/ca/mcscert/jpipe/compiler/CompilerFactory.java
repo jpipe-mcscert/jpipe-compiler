@@ -120,8 +120,8 @@ public final class CompilerFactory {
 
 	private static OperatorRegistry builtInOperators() {
 		OperatorRegistry operators = new OperatorRegistry();
-		// Built-in operators registered here; extend when new operators are
-		// added.
+		operators.register("refine",
+				new ca.mcscert.jpipe.operators.builtin.RefineOperator());
 		return operators;
 	}
 

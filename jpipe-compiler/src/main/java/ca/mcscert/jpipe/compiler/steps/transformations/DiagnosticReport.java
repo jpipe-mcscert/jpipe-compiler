@@ -9,6 +9,7 @@ import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -151,52 +152,71 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 
 	private void appendSymbolTable(StringBuilder sb, Unit unit) {
 		sb.append("\n=== Symbol Table ===\n");
-		Map<String, SourceLocation> locs = unit.locations();
-		if (locs.isEmpty()) {
+		if (unit.getModels().isEmpty()) {
 			sb.append("(empty)\n");
 			return;
 		}
 
-		// Group element entries by model name, preserving insertion order.
-		// Keys are either "model" (model-level) or "model/element"
-		// (element-level).
-		Map<String, Map<String, SourceLocation>> byModel = new LinkedHashMap<>();
-		locs.forEach((key, loc) -> {
+		// Pre-group aliases by model name for O(1) lookup per model.
+		Map<String, Map<String, String>> aliasesByModel = new LinkedHashMap<>();
+		unit.aliases().forEach((key, newId) -> {
 			int slash = key.indexOf('/');
-			if (slash < 0) {
-				byModel.computeIfAbsent(key, k -> new LinkedHashMap<>());
-			} else {
-				String model = key.substring(0, slash);
-				String element = key.substring(slash + 1);
-				byModel.computeIfAbsent(model, k -> new LinkedHashMap<>())
-						.put(element, loc);
+			if (slash >= 0) {
+				aliasesByModel
+						.computeIfAbsent(key.substring(0, slash),
+								k -> new LinkedHashMap<>())
+						.put(key.substring(slash + 1), newId);
 			}
 		});
 
-		byModel.forEach((modelName, elements) -> {
-			SourceLocation modelLoc = locs.getOrDefault(modelName,
-					SourceLocation.UNKNOWN);
-			JustificationModel<?> model = unit.findModel(modelName)
-					.orElse(null);
+		for (JustificationModel<?> model : unit.getModels()) {
+			String modelName = model.getName();
+			SourceLocation modelLoc = unit.locationOf(modelName);
 			String kind = (model instanceof Template)
 					? "template"
 					: "justification";
 			sb.append(String.format("%s \"%s\"  [%s]%n", kind, modelName,
 					modelLoc));
 
+			// Collect all elements in a stable order.
+			List<JustificationElement> elements = new ArrayList<>();
+			model.conclusion().ifPresent(elements::add);
+			elements.addAll(model.subConclusions());
+			elements.addAll(model.strategies());
+			elements.addAll(model.evidence());
+			elements.addAll(model.elementsOfType(AbstractSupport.class));
+
 			if (!elements.isEmpty()) {
-				int maxLen = elements.keySet().stream().mapToInt(String::length)
+				int maxLen = elements.stream().mapToInt(e -> e.id().length())
 						.max().orElse(0);
 				String modelSource = modelLoc.source();
-				elements.forEach((elemId, elemLoc) -> {
-					String locStr = (modelSource != null
-							&& modelSource.equals(elemLoc.source()))
-									? elemLoc.line() + ":" + elemLoc.column()
-									: elemLoc.toString();
-					sb.append(String.format("  %-" + maxLen + "s  %s%n", elemId,
+				for (JustificationElement e : elements) {
+					SourceLocation elemLoc = unit.locationOf(modelName, e.id());
+					String locStr;
+					if (elemLoc.isKnown()) {
+						locStr = (modelSource != null
+								&& modelSource.equals(elemLoc.source()))
+										? elemLoc.line() + ":"
+												+ elemLoc.column()
+										: elemLoc.toString();
+					} else {
+						locStr = "[synthesized]";
+					}
+					sb.append(String.format("  %-" + maxLen + "s  %s%n", e.id(),
 							locStr));
-				});
+				}
 			}
-		});
+
+			Map<String, String> modelAliases = aliasesByModel
+					.getOrDefault(modelName, Map.of());
+			if (!modelAliases.isEmpty()) {
+				int maxLen = modelAliases.keySet().stream()
+						.mapToInt(String::length).max().orElse(0);
+				modelAliases.forEach((oldId,
+						newId) -> sb.append(String.format(
+								"  %-" + maxLen + "s  \u2192 %s  [alias]%n",
+								oldId, newId)));
+			}
+		}
 	}
 }

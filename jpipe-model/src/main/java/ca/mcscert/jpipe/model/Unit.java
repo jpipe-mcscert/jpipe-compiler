@@ -75,6 +75,14 @@ public final class Unit {
 		return Collections.unmodifiableMap(locations);
 	}
 
+	/**
+	 * Unmodifiable view of all recorded aliases. Keys are
+	 * {@code "modelName/oldId"}; values are the new (merged) id.
+	 */
+	public Map<String, String> aliases() {
+		return Collections.unmodifiableMap(aliases);
+	}
+
 	/** Records where a model (justification or template) was declared. */
 	public void recordLocation(String modelName, SourceLocation loc) {
 		if (loc.isKnown()) {

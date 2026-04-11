@@ -12,6 +12,8 @@ import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.RegisterAlias;
 import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
@@ -45,20 +47,25 @@ class CompositionOperatorTest {
 
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
+				List<JustificationModel<?>> sources,
 				Map<String, String> arguments) {
 			return new SameShortId();
 		}
 
 		@Override
-		protected MergeFunction mergeFunction(Map<String, String> arguments) {
+		protected MergeFunction mergeFunction(
+				List<JustificationModel<?>> sources,
+				Map<String, String> arguments) {
 			return (resultName, group, aliases) -> {
 				// Use the first member's label and derive id from first
-				// member's
-				// short id
+				// member's short id
 				var first = group.members().get(0).element();
 				String newId = shortId(first.id());
+				// Register qualified old ids so Phase 2 qualified lookup works
 				aliases.register(newId,
-						group.elements().stream().map(e -> e.id()).toList());
+						group.members().stream().map(
+								se -> qualId(se.source(), se.element().id()))
+								.toList());
 				return switch (first) {
 					case ca.mcscert.jpipe.model.elements.Conclusion c ->
 						List.of(new CreateConclusion(resultName, newId,
@@ -75,13 +82,17 @@ class CompositionOperatorTest {
 
 		@Override
 		protected Command createResultModel(String name,
-				Map<String, String> arguments) {
+				SourceLocation location, Map<String, String> arguments) {
 			return new CreateJustification(name);
 		}
 
 		private static String shortId(String id) {
 			int colon = id.lastIndexOf(':');
 			return colon >= 0 ? id.substring(colon + 1) : id;
+		}
+
+		private static String qualId(JustificationModel<?> source, String id) {
+			return id.contains(":") ? id : source.getName() + ":" + id;
 		}
 	}
 
@@ -95,18 +106,21 @@ class CompositionOperatorTest {
 
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
+				List<JustificationModel<?>> sources,
 				Map<String, String> arguments) {
 			return (a, b) -> false;
 		}
 
 		@Override
-		protected MergeFunction mergeFunction(Map<String, String> arguments) {
+		protected MergeFunction mergeFunction(
+				List<JustificationModel<?>> sources,
+				Map<String, String> arguments) {
 			return (r, g, a) -> List.of();
 		}
 
 		@Override
 		protected Command createResultModel(String name,
-				Map<String, String> arguments) {
+				SourceLocation location, Map<String, String> arguments) {
 			return new CreateJustification(name);
 		}
 	}

@@ -80,7 +80,8 @@ public final class ApplyOperator implements MacroCommand {
 						+ operatorName + "' at " + location));
 		List<JustificationModel<?>> sources = sourceNames.stream()
 				.<JustificationModel<?>>map(context::get).toList();
-		return op.apply(resultName, sources, arguments);
+		return op.apply(resultName, sources, arguments, location,
+				context.locations());
 	}
 
 	@Override

@@ -10,7 +10,7 @@ two or more existing models via a *composition operator*:
 
 ```
 justification refined is refine(minimal, refinement) {
-    hook: "justification/e"
+    hook: "minimal/e"
 }
 ```
 
@@ -39,15 +39,34 @@ an abstract `CompositionOperator` class (Template Method pattern):
   creates the merged element via `Command` objects.  It must register old ids →
   new id in the supplied `AliasRegistry` and must not emit `AddSupport` commands
   (edge reconstruction is automatic).
-- **`CompositionOperator.apply()`** — the sealed template method:
+- **`SourcedElement`** — a 3-component record `(element, source, location)`
+  pairing a `JustificationElement` with the `JustificationModel` it was taken
+  from and its original `SourceLocation`.  The location is looked up from the
+  compilation unit's location registry when `apply()` builds the sourced-element
+  list, so `MergeFunction` implementations can forward it to creation commands
+  and have it recorded in the result model's symbol-table entry.
+- **`CompositionOperator.apply()`** — the sealed template method.  Four overloads
+  are provided for call-site convenience; all delegate to the full 5-argument
+  form:
+  - `apply(resultName, sources, arguments)` — no location information (unit tests).
+  - `apply(resultName, sources, arguments, location)` — attaches a `SourceLocation`
+    to the result model declaration but supplies no element locations.
+  - `apply(resultName, sources, arguments, location, knownLocations)` — the
+    canonical form; `knownLocations` is a `Map<String, SourceLocation>` keyed
+    on `"modelName/elementId"` (the same format used by `Unit.locations()`).
+    `ApplyOperator.expand()` passes `context.locations()` here so that copied
+    elements carry their source file positions into the result model.
   - Phase 1: creates elements, populates `AliasRegistry`, emits `RegisterAlias`
     commands to persist aliases in the `Unit`.
   - Phase 2: reconstructs support edges by translating original endpoints through
     the registry, with set-based deduplication to prevent duplicate edges when
     multiple source models share the same edge.
-  - Subclasses provide `equivalenceRelation()`, `mergeFunction()`,
-    `createResultModel()`, and optionally `requiredArguments()` (missing required
-    keys throw `InvalidOperatorCallException`).
+  - Subclasses provide `equivalenceRelation(sources, arguments)`,
+    `mergeFunction(sources, arguments)`, `createResultModel(name, location, arguments)`,
+    and optionally `requiredArguments()` (missing required keys throw
+    `InvalidOperatorCallException`).  Both hook methods receive the full
+    `sources` list so that operators can distinguish elements by their origin
+    model without breaking the sealed `apply()`.
 - **`ModelReplicator`** — a stateless utility that generates commands to copy a
   model's elements and edges non-destructively, following the same qualified-id
   convention as `JustificationModel.inline()`.
@@ -55,10 +74,12 @@ an abstract `CompositionOperator` class (Template Method pattern):
   compiler startup.  Currently populated with hardcoded built-in operators in
   `CompilerFactory.builtInOperators()`; a service-loader extension point is
   deferred to a later ADR.
-- **Aliases in `Unit`** — `Unit` gains `recordAlias(model, oldId, newId)` and
-  `resolveAlias(model, id)` backed by a flat `Map<String, String>` keyed on
-  `model/oldId`.  A new `RegisterAlias` command writes alias entries so the
-  mapping survives in the compiled unit.
+- **Aliases in `Unit`** — `Unit` gains `recordAlias(model, oldId, newId)`,
+  `resolveAlias(model, id)`, and `aliases()` (an unmodifiable view of the full
+  alias map, keyed on `"model/oldId"`), backed by a flat `Map<String, String>`.
+  A new `RegisterAlias` command writes alias entries so the mapping survives in
+  the compiled unit.  `aliases()` is used by `DiagnosticReport` to include
+  alias entries in the symbol table.
 
 ### 2. `ApplyOperator implements MacroCommand` (`jpipe-operators`)
 
@@ -71,7 +92,9 @@ for deferred expansion:
 
 - `condition()` — defers until all source model names are present in the `Unit`.
 - `expand(Unit)` — looks up the operator by name in the `OperatorRegistry`,
-  gathers source models from the unit, and delegates to `operator.apply()`.
+  gathers source models from the unit, and delegates to the 5-argument
+  `operator.apply()`, passing the stored `SourceLocation` and `context.locations()`
+  so that element locations are threaded through to the result model.
   Returns the resulting `List<Command>` for the engine to splice at the front
   of the queue.
 
@@ -87,6 +110,19 @@ for deferred expansion:
 - `enterRule_config` becomes a no-op (config was consumed in the parent callback).
 - `CompilerFactory.parsingChain()` passes `builtInOperators()` to
   `ActionListProvider`.
+
+### 4. Symbol table for operator-created models
+
+`DiagnosticReport` builds the symbol table by iterating `unit.getModels()`
+directly rather than only the recorded-location registry.  For each element:
+
+- If `unit.locationOf(modelName, elementId)` returns a known location (threaded
+  from the source model via `knownLocations`), that location is displayed.
+- Otherwise the element is marked `[synthesized]` — indicating it was created by
+  the operator with no corresponding source position (e.g. a merged SubConclusion).
+
+Aliases are shown after the element list for each model, formatted as
+`oldId → newId  [alias]`.
 
 ## Rationale
 
@@ -104,6 +140,12 @@ for deferred expansion:
 - Persisting aliases to `Unit` via `RegisterAlias` commands keeps the alias data
   in the same place as all other compiled model state, consistent with how
   `recordLocation` / `locationOf` track source positions.
+- Passing `knownLocations` as a `Map<String, SourceLocation>` (rather than `Unit`
+  itself) to `apply()` keeps the operator framework decoupled from the full
+  compilation unit and limits the operator's read access to location data only.
+- Building the symbol table from `unit.getModels()` rather than from
+  `unit.locations()` ensures that operator-created models — which may have no
+  element-level location entries — still appear with their complete element list.
 
 ## Consequences
 
@@ -119,3 +161,7 @@ for deferred expansion:
 - An operator call with an unknown operator name causes `expand()` to throw
   `InvalidOperatorCallException`.  The engine wraps this in a `CompilationException`
   via the standard `fire()` / exception-wrapping mechanism.
+- Elements copied from source models appear in the result model's symbol table
+  with their original source positions.  Truly synthesized elements (e.g. a
+  merged SubConclusion produced by the `refine` operator) appear as
+  `[synthesized]`.  Aliases (old id → merged id) are shown separately per model.

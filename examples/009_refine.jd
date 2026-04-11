@@ -28,7 +28,7 @@ justification refinement {
 
 // Calling the composition operator
 justification refined is refine(minimal, refinement) {
-    hook: "justification/e"
+    hook: "minimal/e"
 } 
 
 
