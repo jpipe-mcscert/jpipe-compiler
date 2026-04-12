@@ -62,11 +62,19 @@ an abstract `CompositionOperator` class (Template Method pattern):
     the registry, with set-based deduplication to prevent duplicate edges when
     multiple source models share the same edge.
   - Subclasses provide `equivalenceRelation(sources, arguments)`,
-    `mergeFunction(sources, arguments)`, `createResultModel(name, location, arguments)`,
-    and optionally `requiredArguments()` (missing required keys throw
-    `InvalidOperatorCallException`).  Both hook methods receive the full
-    `sources` list so that operators can distinguish elements by their origin
-    model without breaking the sealed `apply()`.
+    `mergeFunction(sources, arguments)`,
+    `createResultModel(name, location, sources, arguments)`, and optionally
+    `requiredArguments()` (missing required keys throw
+    `InvalidOperatorCallException`).  All hook methods receive the full
+    `sources` list so that operators can inspect source types and distinguish
+    elements by their origin model without breaking the sealed `apply()`.
+- **`additionalCommands(resultName, sources, aliases, args)`** — optional hook
+    called after Phase 2 is complete. The default implementation returns
+    `List.of()`. Override to inject synthesized elements (e.g. a new
+    aggregating strategy and conclusion) and cross-model edges that have no
+    counterpart in any source model. Because it runs after Phase 2, all
+    source-derived elements and edges are already present; the returned
+    commands are appended at the end.
 - **`ModelReplicator`** — a stateless utility that generates commands to copy a
   model's elements and edges non-destructively, following the same qualified-id
   convention as `JustificationModel.inline()`.
@@ -149,6 +157,16 @@ Aliases are shown after the element list for each model, formatted as
 
 ## Consequences
 
+- Two built-in operators ship with the framework:
+  - **`refine(base, refinement)`** — merges a hook element from `base` with the
+    conclusion of `refinement` into a single `SubConclusion`; requires a `hook`
+    argument in `"modelName/elementId"` form.
+  - **`assemble(src₁, …, srcₙ)`** — demotes each source's conclusion to a
+    `SubConclusion`, wires all demoted conclusions through a synthesized
+    aggregating `Strategy`, and tops them with a synthesized global
+    `Conclusion`; requires `conclusionLabel` and `strategyLabel` arguments.
+    Result is a `Template` if any source is a `Template`, otherwise a
+    `Justification`.
 - Adding a new built-in operator requires only implementing `CompositionOperator`
   and registering it in `CompilerFactory.builtInOperators()`.
 - `ApplyOperator` is the only command that holds a reference to `OperatorRegistry`;
