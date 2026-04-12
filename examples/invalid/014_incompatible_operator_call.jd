@@ -1,0 +1,33 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+
+// Original justification
+justification minimal {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+
+    s supports c
+    e supports s
+}
+
+// Refinment
+justification refinement {
+    conclusion c is "an evidence is true"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+
+    s supports c
+    e supports s
+}
+
+
+// refining 2 justification produces a justification => cannot be a template
+template refined is refine(minimal, refinement) {
+    hook: "minimal/e"
+} 
+

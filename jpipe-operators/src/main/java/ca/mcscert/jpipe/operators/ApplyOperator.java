@@ -28,23 +28,33 @@ public final class ApplyOperator implements MacroCommand {
 	private final Map<String, String> arguments;
 	private final OperatorRegistry operators;
 	private final SourceLocation location;
+	private final ModelKind declaredKind;
 
 	public ApplyOperator(String resultName, String operatorName,
 			List<String> sourceNames, Map<String, String> arguments,
 			OperatorRegistry operators) {
 		this(resultName, operatorName, sourceNames, arguments, operators,
-				SourceLocation.UNKNOWN);
+				SourceLocation.UNKNOWN, ModelKind.JUSTIFICATION);
 	}
 
 	public ApplyOperator(String resultName, String operatorName,
 			List<String> sourceNames, Map<String, String> arguments,
 			OperatorRegistry operators, SourceLocation location) {
+		this(resultName, operatorName, sourceNames, arguments, operators,
+				location, ModelKind.JUSTIFICATION);
+	}
+
+	public ApplyOperator(String resultName, String operatorName,
+			List<String> sourceNames, Map<String, String> arguments,
+			OperatorRegistry operators, SourceLocation location,
+			ModelKind declaredKind) {
 		this.resultName = resultName;
 		this.operatorName = operatorName;
 		this.sourceNames = List.copyOf(sourceNames);
 		this.arguments = Map.copyOf(arguments);
 		this.operators = operators;
 		this.location = location;
+		this.declaredKind = declaredKind;
 	}
 
 	public String resultName() {
@@ -78,6 +88,14 @@ public final class ApplyOperator implements MacroCommand {
 		CompositionOperator op = operators.find(operatorName).orElseThrow(
 				() -> new InvalidOperatorCallException("Unknown operator: '"
 						+ operatorName + "' at " + location));
+		if (op.resultKind() != declaredKind) {
+			throw new InvalidOperatorCallException(
+					"[execution-error] operator '" + operatorName
+							+ "' produces a "
+							+ op.resultKind().name().toLowerCase()
+							+ " but was declared as '"
+							+ declaredKind.name().toLowerCase() + "'");
+		}
 		List<JustificationModel<?>> sources = sourceNames.stream()
 				.<JustificationModel<?>>map(context::get).toList();
 		return op.apply(resultName, sources, arguments, location,

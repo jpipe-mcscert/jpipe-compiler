@@ -48,6 +48,15 @@ public abstract class CompositionOperator {
 	}
 
 	/**
+	 * Returns the {@link ModelKind} of the model produced by this operator.
+	 * Defaults to {@link ModelKind#JUSTIFICATION}. Override in subclasses that
+	 * produce a {@code Template}.
+	 */
+	public ModelKind resultKind() {
+		return ModelKind.JUSTIFICATION;
+	}
+
+	/**
 	 * Returns the equivalence relation to use for partitioning elements from
 	 * {@code sources} and {@code arguments}.
 	 */

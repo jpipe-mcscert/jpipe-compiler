@@ -18,7 +18,10 @@ Feature: Load directive
       And the unit contains a template named "t"
       And the unit contains a justification named "flat_justification"
     Then the unit contains a justification named "flat_justification"
+      And it has a conclusion with id "t:c" and label "A conclusion"
+      And it has a strategy with id "t:s" and label "A strategy"
       And it has evidence with id "t:abs" and label "A flat-loaded evidence"
+      And the strategy "t:s" supports the conclusion "t:c"
       And the evidence "t:abs" supports the strategy "t:s"
 
   Scenario: loading a missing file reports a fatal error

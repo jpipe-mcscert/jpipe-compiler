@@ -17,6 +17,7 @@ import ca.mcscert.jpipe.lang.JPipeBaseListener;
 import ca.mcscert.jpipe.lang.JPipeParser;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.operators.ApplyOperator;
+import ca.mcscert.jpipe.operators.ModelKind;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -141,7 +142,8 @@ public final class ActionListProvider
 						: List.of();
 				result.add(new ApplyOperator(ctx.id.getText(),
 						ctx.operator.getText(), sources,
-						collectConfig(ctx.rule_config()), operators, loc));
+						collectConfig(ctx.rule_config()), operators, loc,
+						ModelKind.JUSTIFICATION));
 				return;
 			}
 			String parentName = ctx.parent != null
@@ -179,7 +181,8 @@ public final class ActionListProvider
 						: List.of();
 				result.add(new ApplyOperator(ctx.id.getText(),
 						ctx.operator.getText(), sources,
-						collectConfig(ctx.rule_config()), operators, loc));
+						collectConfig(ctx.rule_config()), operators, loc,
+						ModelKind.TEMPLATE));
 				return;
 			}
 			String parentName = ctx.parent != null
