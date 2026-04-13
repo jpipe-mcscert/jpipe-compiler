@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.operators;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.InstanceOfAssertFactories.LIST;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
@@ -213,7 +214,7 @@ class UnifierTest {
 			assertThat(result.strategies()).first()
 					.extracting(str -> str.getSupports().stream()
 							.map(l -> ((JustificationElement) l).id()).toList())
-					.asList().containsExactly("unified_0");
+					.asInstanceOf(LIST).containsExactly("unified_0");
 		}
 	}
 
