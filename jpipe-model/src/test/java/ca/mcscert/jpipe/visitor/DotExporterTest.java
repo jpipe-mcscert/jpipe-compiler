@@ -14,12 +14,8 @@ class DotExporterTest {
 
 	@Test
 	void export_nodeIdsAreQualifiedWithModelName() {
-		Justification j = new Justification("j");
-		j.setConclusion(new Conclusion("c", "System correct"));
-		j.addElement(new Strategy("s", "Testing"));
-		j.addElement(new Evidence("e1", "Test results"));
-
-		String dot = new DotExporter().export(j);
+		String dot = new DotExporter()
+				.export(ModelFixtures.simpleJustification());
 
 		assertThat(dot).contains("id=\"j:c\"");
 		assertThat(dot).contains("id=\"j:s\"");

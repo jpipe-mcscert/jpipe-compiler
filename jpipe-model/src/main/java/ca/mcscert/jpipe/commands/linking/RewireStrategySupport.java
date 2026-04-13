@@ -22,16 +22,6 @@ public final class RewireStrategySupport extends RegularCommand {
 	private final String newType;
 
 	public RewireStrategySupport(String container, String strategyId,
-			String newSupporterId) {
-		this(container, strategyId, null, null, newSupporterId, null);
-	}
-
-	public RewireStrategySupport(String container, String strategyId,
-			String oldSupporterId, String newSupporterId) {
-		this(container, strategyId, oldSupporterId, null, newSupporterId, null);
-	}
-
-	public RewireStrategySupport(String container, String strategyId,
 			String oldSupporterId, String oldType, String newSupporterId,
 			String newType) {
 		this.container = container;
@@ -44,14 +34,11 @@ public final class RewireStrategySupport extends RegularCommand {
 
 	@Override
 	public Predicate<Unit> condition() {
-		return unit -> unit.findModel(container).map(m -> {
-			boolean base = m.findById(strategyId).isPresent()
-					&& m.findById(newSupporterId).isPresent();
-			if (oldSupporterId != null) {
-				return base && m.findById(oldSupporterId).isPresent();
-			}
-			return base;
-		}).orElse(false);
+		return unit -> unit.findModel(container)
+				.map(m -> m.findById(strategyId).isPresent()
+						&& m.findById(oldSupporterId).isPresent()
+						&& m.findById(newSupporterId).isPresent())
+				.orElse(false);
 	}
 
 	@Override
@@ -60,38 +47,19 @@ public final class RewireStrategySupport extends RegularCommand {
 		Strategy strategy = (Strategy) model.findById(strategyId)
 				.orElseThrow(() -> new NoSuchElementException(
 						"No strategy with id: " + strategyId));
+		SupportLeaf oldSupport = (SupportLeaf) model.findById(oldSupporterId)
+				.orElseThrow(() -> new NoSuchElementException(
+						"No element with id: " + oldSupporterId));
 		SupportLeaf newSupport = (SupportLeaf) model.findById(newSupporterId)
 				.orElseThrow(() -> new NoSuchElementException(
 						"No element with id: " + newSupporterId));
-
-		if (oldSupporterId == null) {
-			// Legacy behavior: if no old ID is provided, we can't replace
-			// precisely.
-			// But RewireStrategySupport is only used by
-			// OverrideAbstractSupport now.
-			// We'll just add it if old is not found, or replace if we find
-			// something.
-			// Actually, for multiple supports, we should always know what we
-			// replace.
-			strategy.addSupport(newSupport);
-		} else {
-			SupportLeaf oldSupport = (SupportLeaf) model
-					.findById(oldSupporterId)
-					.orElseThrow(() -> new NoSuchElementException(
-							"No element with id: " + oldSupporterId));
-			strategy.replaceSupport(oldSupport, newSupport);
-		}
+		strategy.replaceSupport(oldSupport, newSupport);
 	}
 
 	@Override
 	public String toString() {
-		String oldPart = oldType != null
-				? "'" + oldSupporterId + "'[" + oldType + "]"
-				: "'" + oldSupporterId + "'";
-		String newPart = newType != null
-				? "'" + newSupporterId + "'[" + newType + "]"
-				: "'" + newSupporterId + "'";
-		return "rewire('" + container + "', '" + strategyId + "', " + oldPart
-				+ " -> " + newPart + ")";
+		return "rewire('" + container + "', '" + strategyId + "', '"
+				+ oldSupporterId + "'[" + oldType + "] -> '" + newSupporterId
+				+ "'[" + newType + "])";
 	}
 }
