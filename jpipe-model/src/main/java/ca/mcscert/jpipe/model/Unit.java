@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.model;
 
+import ca.mcscert.jpipe.model.elements.CommonElement;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.Collection;
@@ -50,10 +51,18 @@ public final class Unit {
 				() -> new NoSuchElementException("Unknown model: " + name));
 	}
 
-	@SuppressWarnings("unchecked")
 	public void addInto(String modelName, JustificationElement element) {
-		((JustificationModel<JustificationElement>) get(modelName))
-				.addElement(element);
+		switch (get(modelName)) {
+			case Justification j -> {
+				if (!(element instanceof CommonElement ce)) {
+					throw new IllegalArgumentException("Justification '"
+							+ modelName + "' only accepts CommonElement; got "
+							+ element.getClass().getSimpleName());
+				}
+				j.addElement(ce);
+			}
+			case Template t -> t.addElement(element);
+		}
 	}
 
 	public void removeFrom(String modelName, String elementId) {

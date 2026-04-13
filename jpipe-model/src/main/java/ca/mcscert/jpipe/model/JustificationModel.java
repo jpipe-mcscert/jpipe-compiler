@@ -301,23 +301,22 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Searches both the conclusion field and the elements list, so callers do
 	 * not need to know how the conclusion is stored.
 	 */
-	public Optional<E> findById(String id) {
+	public Optional<JustificationElement> findById(String id) {
 		if (conclusion != null && conclusion.id().equals(id)) {
-			@SuppressWarnings("unchecked")
-			E c = (E) conclusion;
-			return Optional.of(c);
+			return Optional.of(conclusion);
 		}
-		Optional<E> exact = elements.stream().filter(e -> e.id().equals(id))
-				.findFirst();
+		Optional<JustificationElement> exact = elements.stream()
+				.filter(e -> e.id().equals(id))
+				.map(e -> (JustificationElement) e).findFirst();
 		if (exact.isPresent()) {
 			return exact;
 		}
 		// Short-name suffix fallback: resolves a plain id to an inherited
-		// qualified
-		// element (e.g. "s" resolves to "t:s" after template expansion).
+		// qualified element (e.g. "s" resolves to "t:s" after template
+		// expansion).
 		String suffix = ":" + id;
 		return elements.stream().filter(e -> e.id().endsWith(suffix))
-				.findFirst();
+				.map(e -> (JustificationElement) e).findFirst();
 	}
 
 	public <T extends JustificationElement> List<T> elementsOfType(

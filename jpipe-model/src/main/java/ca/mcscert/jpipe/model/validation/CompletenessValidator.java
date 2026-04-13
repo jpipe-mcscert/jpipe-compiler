@@ -2,7 +2,6 @@ package ca.mcscert.jpipe.model.validation;
 
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
-import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.Violation;
@@ -53,9 +52,10 @@ public final class CompletenessValidator {
 	 * resolved from the unit's location registry.
 	 */
 	public List<Violation> validate(Unit unit) {
+		ValidationContext ctx = ValidationContext.of(unit);
 		List<Violation> violations = new ArrayList<>();
 		unit.getModels()
-				.forEach(model -> violations.addAll(checkModel(model, unit)));
+				.forEach(model -> violations.addAll(checkModel(model, ctx)));
 		return violations;
 	}
 
@@ -64,12 +64,13 @@ public final class CompletenessValidator {
 	 * {@link SourceLocation#UNKNOWN}.
 	 */
 	public List<Violation> validateModel(JustificationModel<?> model) {
-		return checkModel(model, null);
+		return checkModel(model, ValidationContext.STANDALONE);
 	}
 
 	// -------------------------------------------------------------------------
 
-	private List<Violation> checkModel(JustificationModel<?> model, Unit unit) {
+	private List<Violation> checkModel(JustificationModel<?> model,
+			ValidationContext ctx) {
 		List<Violation> violations = new ArrayList<>();
 		String name = model.getName();
 
@@ -77,7 +78,7 @@ public final class CompletenessValidator {
 		if (model.conclusion().isEmpty()) {
 			violations.add(new Violation("conclusion-present",
 					"Model '" + name + "' has no conclusion",
-					modelLocation(unit, name)));
+					ctx.locationOf(name)));
 		} else {
 			// conclusion-supported (only meaningful when conclusion exists)
 			if (model.conclusion().get().getSupport().isEmpty()) {
@@ -85,7 +86,7 @@ public final class CompletenessValidator {
 				violations.add(new Violation("conclusion-supported",
 						"Conclusion '" + cId + "' in model '" + name
 								+ "' has no supporting strategy",
-						elementLocation(unit, name, cId)));
+						ctx.locationOf(name, cId)));
 			}
 		}
 
@@ -94,7 +95,7 @@ public final class CompletenessValidator {
 				.forEach(s -> violations.add(new Violation("strategy-supported",
 						"Strategy '" + s.id() + "' in model '" + name
 								+ "' has no supporting element",
-						elementLocation(unit, name, s.id()))));
+						ctx.locationOf(name, s.id()))));
 
 		// sub-conclusion-supported
 		model.subConclusions().stream().filter(sc -> sc.getSupport().isEmpty())
@@ -102,20 +103,20 @@ public final class CompletenessValidator {
 						.add(new Violation("sub-conclusion-supported",
 								"Sub-conclusion '" + sc.id() + "' in model '"
 										+ name + "' has no supporting strategy",
-								elementLocation(unit, name, sc.id()))));
+								ctx.locationOf(name, sc.id()))));
 
 		// model-type-specific rules
 		switch (model) {
 			case Justification j ->
-				checkJustification(j, name, unit, violations);
-			case Template t -> checkTemplate(t, name, unit, violations);
+				checkJustification(j, name, ctx, violations);
+			case Template t -> checkTemplate(t, name, ctx, violations);
 		}
 
 		return violations;
 	}
 
 	private void checkJustification(Justification justification, String name,
-			Unit unit, List<Violation> violations) {
+			ValidationContext ctx, List<Violation> violations) {
 		// no-abstract-support: AbstractSupports must have been replaced by
 		// override commands before the completeness check runs.
 		// Note: elementsOfType() accesses the raw elements list from within
@@ -126,32 +127,17 @@ public final class CompletenessValidator {
 				as -> violations.add(new Violation("no-abstract-support",
 						"Abstract support '" + as.id() + "' in justification '"
 								+ name + "' was not overridden",
-						elementLocation(unit, name, as.id()))));
+						ctx.locationOf(name, as.id()))));
 	}
 
-	private void checkTemplate(Template template, String name, Unit unit,
-			List<Violation> violations) {
+	private void checkTemplate(Template template, String name,
+			ValidationContext ctx, List<Violation> violations) {
 		// has-abstract-support: a template with no abstract supports is a
 		// justification in disguise.
 		if (template.abstractSupports().isEmpty()) {
 			violations.add(new Violation("has-abstract-support",
 					"Template '" + name + "' declares no abstract supports",
-					modelLocation(unit, name)));
+					ctx.locationOf(name)));
 		}
-	}
-
-	private SourceLocation modelLocation(Unit unit, String modelName) {
-		if (unit == null) {
-			return SourceLocation.UNKNOWN;
-		}
-		return unit.locationOf(modelName);
-	}
-
-	private SourceLocation elementLocation(Unit unit, String modelName,
-			String elementId) {
-		if (unit == null) {
-			return SourceLocation.UNKNOWN;
-		}
-		return unit.locationOf(modelName, elementId);
 	}
 }

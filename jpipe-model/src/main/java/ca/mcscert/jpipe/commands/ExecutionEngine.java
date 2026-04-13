@@ -66,8 +66,6 @@ public final class ExecutionEngine {
 				List<Command> expanded;
 				try {
 					expanded = macro.expand(unit);
-				} catch (RuntimeException e) {
-					throw new CommandExecutionException(macro, unit, e);
 				} catch (Exception e) {
 					throw new CommandExecutionException(macro, unit, e);
 				}
@@ -82,8 +80,6 @@ public final class ExecutionEngine {
 				try {
 					command.execute(unit);
 					history.add(new ExecutedAction(command, depth));
-				} catch (RuntimeException e) {
-					throw new CommandExecutionException(command, unit, e);
 				} catch (Exception e) {
 					throw new CommandExecutionException(command, unit, e);
 				}

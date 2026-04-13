@@ -42,12 +42,13 @@ public final class ConsistencyValidator {
 	 * resolved from the unit's location registry.
 	 */
 	public List<Violation> validate(Unit unit) {
+		ValidationContext ctx = ValidationContext.of(unit);
 		List<Violation> violations = new ArrayList<>();
 		for (JustificationModel<?> model : unit.getModels()) {
-			violations.addAll(checkNoDuplicateIds(model, unit));
-			violations.addAll(checkAcyclicSupport(model, unit));
+			violations.addAll(checkNoDuplicateIds(model, ctx));
+			violations.addAll(checkAcyclicSupport(model, ctx));
 		}
-		violations.addAll(checkAcyclicImplements(unit));
+		violations.addAll(checkAcyclicImplements(unit, ctx));
 		return violations;
 	}
 
@@ -56,9 +57,10 @@ public final class ConsistencyValidator {
 	 * {@link SourceLocation#UNKNOWN}.
 	 */
 	public List<Violation> validateModel(JustificationModel<?> model) {
+		ValidationContext ctx = ValidationContext.STANDALONE;
 		List<Violation> violations = new ArrayList<>();
-		violations.addAll(checkNoDuplicateIds(model, null));
-		violations.addAll(checkAcyclicSupport(model, null));
+		violations.addAll(checkNoDuplicateIds(model, ctx));
+		violations.addAll(checkAcyclicSupport(model, ctx));
 		violations.addAll(checkAcyclicImplements(model));
 		return violations;
 	}
@@ -66,7 +68,7 @@ public final class ConsistencyValidator {
 	// -------------------------------------------------------------------------
 
 	private List<Violation> checkNoDuplicateIds(JustificationModel<?> model,
-			Unit unit) {
+			ValidationContext ctx) {
 		List<Violation> violations = new ArrayList<>();
 		Set<String> seen = new HashSet<>();
 		model.conclusion().ifPresent(c -> {
@@ -74,7 +76,7 @@ public final class ConsistencyValidator {
 				violations.add(new Violation("no-duplicate-ids",
 						"Duplicate element id '" + c.id() + "' in model '"
 								+ model.getName() + "'",
-						location(unit, model.getName(), c.id())));
+						ctx.locationOf(model.getName(), c.id())));
 			}
 		});
 		model.getElements().forEach(element -> {
@@ -82,14 +84,14 @@ public final class ConsistencyValidator {
 				violations.add(new Violation("no-duplicate-ids",
 						"Duplicate element id '" + element.id() + "' in model '"
 								+ model.getName() + "'",
-						location(unit, model.getName(), element.id())));
+						ctx.locationOf(model.getName(), element.id())));
 			}
 		});
 		return violations;
 	}
 
 	private List<Violation> checkAcyclicSupport(JustificationModel<?> model,
-			Unit unit) {
+			ValidationContext ctx) {
 		// Build a support-edge map: id → list of ids of the elements it is
 		// supported by
 		Map<String, List<String>> edges = new HashMap<>();
@@ -110,7 +112,7 @@ public final class ConsistencyValidator {
 		for (String start : edges.keySet()) {
 			if (!globalVisited.contains(start)) {
 				detectCycle(start, edges, globalVisited, new HashSet<>(),
-						model.getName(), unit, violations);
+						model.getName(), ctx, violations);
 			}
 		}
 		return violations;
@@ -118,12 +120,13 @@ public final class ConsistencyValidator {
 
 	private void detectCycle(String node, Map<String, List<String>> edges,
 			Set<String> globalVisited, Set<String> currentPath,
-			String modelName, Unit unit, List<Violation> violations) {
+			String modelName, ValidationContext ctx,
+			List<Violation> violations) {
 		if (currentPath.contains(node)) {
 			violations.add(new Violation("acyclic-support",
 					"Cycle in support graph at element '" + node
 							+ "' in model '" + modelName + "'",
-					location(unit, modelName, node)));
+					ctx.locationOf(modelName, node)));
 			return;
 		}
 		if (globalVisited.contains(node)) {
@@ -133,16 +136,17 @@ public final class ConsistencyValidator {
 		currentPath.add(node);
 		List<String> nexts = edges.getOrDefault(node, List.of());
 		nexts.forEach(next -> detectCycle(next, edges, globalVisited,
-				currentPath, modelName, unit, violations));
+				currentPath, modelName, ctx, violations));
 		currentPath.remove(node);
 	}
 
-	private List<Violation> checkAcyclicImplements(Unit unit) {
+	private List<Violation> checkAcyclicImplements(Unit unit,
+			ValidationContext ctx) {
 		List<Violation> violations = new ArrayList<>();
 		Set<String> globalVisited = new HashSet<>();
 		for (JustificationModel<?> model : unit.getModels()) {
 			if (!globalVisited.contains(model.getName())) {
-				walkImplementsChain(model, globalVisited, new HashSet<>(), unit,
+				walkImplementsChain(model, globalVisited, new HashSet<>(), ctx,
 						violations);
 			}
 		}
@@ -150,13 +154,13 @@ public final class ConsistencyValidator {
 	}
 
 	private void walkImplementsChain(JustificationModel<?> model,
-			Set<String> globalVisited, Set<String> currentChain, Unit unit,
-			List<Violation> violations) {
+			Set<String> globalVisited, Set<String> currentChain,
+			ValidationContext ctx, List<Violation> violations) {
 		String name = model.getName();
 		if (currentChain.contains(name)) {
 			violations.add(new Violation("acyclic-implements",
 					"Cycle in implements chain at model '" + name + "'",
-					unit.locationOf(name)));
+					ctx.locationOf(name)));
 			return;
 		}
 		if (globalVisited.contains(name)) {
@@ -165,7 +169,7 @@ public final class ConsistencyValidator {
 		globalVisited.add(name);
 		currentChain.add(name);
 		model.getParent().ifPresent(parent -> walkImplementsChain(parent,
-				globalVisited, currentChain, unit, violations));
+				globalVisited, currentChain, ctx, violations));
 		currentChain.remove(name);
 	}
 
@@ -183,13 +187,5 @@ public final class ConsistencyValidator {
 			current = current.getParent().orElse(null);
 		}
 		return List.of();
-	}
-
-	private SourceLocation location(Unit unit, String modelName,
-			String elementId) {
-		if (unit == null) {
-			return SourceLocation.UNKNOWN;
-		}
-		return unit.locationOf(modelName, elementId);
 	}
 }
