@@ -1,4 +1,5 @@
 .vscode
+.code-review-graph 
 .idea
 .claude
 .antlr
