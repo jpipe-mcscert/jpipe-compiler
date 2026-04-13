@@ -1,5 +1,7 @@
 package ca.mcscert.jpipe.visitor;
 
+import static java.util.stream.Collectors.toSet;
+
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
@@ -10,9 +12,6 @@ import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
-import static java.util.stream.Collectors.toSet;
-
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,62 +32,14 @@ import java.util.Set;
  * labelled subgraph cluster (including {@code AbstractSupport} placeholders).
  * Concrete elements that override an abstract support are rendered outside the
  * cluster, connected to their placeholder by a dashed inv/inv arrow.
+ *
+ * <p>
+ * Node visual styles are defined in {@link DotNodeStyle}. Label escaping and
+ * word-wrapping utilities live in {@link DotLabel}.
  */
 public class DotExporter extends AbstractModelExporter {
 
 	private static final String INDENT = "  ";
-	private static final int WRAP_WIDTH = 40;
-
-	// -------------------------------------------------------------------------
-	// Node visual styles — change shapes and colours here
-	// -------------------------------------------------------------------------
-
-	/**
-	 * Visual properties of a single node type. {@code dotStyle} is the DOT
-	 * {@code style=} value (e.g. {@code "filled"} or {@code "filled,rounded"});
-	 * {@code fillColor} maps to {@code fillcolor=}; {@code borderColor} maps to
-	 * {@code color=}. Any field may be {@code null} to omit that attribute. Hex
-	 * color values (e.g. {@code "#0072B2"}) are quoted automatically.
-	 */
-	private record NodeStyle(String shape, String dotStyle, String fillColor,
-			String borderColor) {
-
-		/** Renders this style as a DOT attribute fragment. */
-		String toAttrs() {
-			StringBuilder sb = new StringBuilder("shape=").append(shape);
-			if (dotStyle != null) {
-				sb.append(", style=");
-				if (dotStyle.contains(","))
-					sb.append('"').append(dotStyle).append('"');
-				else
-					sb.append(dotStyle);
-			}
-			if (fillColor != null)
-				sb.append(", fillcolor=").append(dotColor(fillColor));
-			if (borderColor != null)
-				sb.append(", color=").append(dotColor(borderColor));
-			return sb.toString();
-		}
-
-		/** Wraps hex color values in quotes; leaves X11 named colors as-is. */
-		private static String dotColor(String color) {
-			return color.startsWith("#") ? "\"" + color + "\"" : color;
-		}
-	}
-
-	// Palette derived from Okabe-Ito (2008) — safe for deuteranopia,
-	// protanopia, and tritanopia. Fills use lightened versions of the
-	// base hues so that black text remains readable (WCAG AA).
-	private static final NodeStyle CONCLUSION_STYLE = new NodeStyle("rect",
-			"filled,rounded", "lightgrey", null);
-	private static final NodeStyle SUB_CONCLUSION_STYLE = new NodeStyle("rect",
-			null, null, "#0072B2"); // Okabe-Ito blue
-	private static final NodeStyle STRATEGY_STYLE = new NodeStyle("hexagon",
-			"filled", "#F0C27F", null); // amber — replaces green
-	private static final NodeStyle EVIDENCE_STYLE = new NodeStyle("note",
-			"filled", "#9ECAE1", null); // sky blue
-	private static final NodeStyle ABSTRACT_SUPPORT_STYLE = new NodeStyle(
-			"rect", "dotted", null, null);
 
 	/** DOT graph-level attributes applied to every template cluster. */
 	private static final String CLUSTER_ATTRS = "style=filled; fillcolor=lightyellow; color=grey;";
@@ -100,6 +51,8 @@ public class DotExporter extends AbstractModelExporter {
 	 */
 	private static final String ABSTRACT_SUFFIX = "@abstract";
 
+	// -------------------------------------------------------------------------
+	// Per-export state (reset by exportModel)
 	// -------------------------------------------------------------------------
 
 	/**
@@ -123,6 +76,8 @@ public class DotExporter extends AbstractModelExporter {
 	 */
 	private Set<String> inheritedIds;
 
+	// -------------------------------------------------------------------------
+
 	/**
 	 * Serialise {@code model} to DOT text.
 	 *
@@ -136,47 +91,43 @@ public class DotExporter extends AbstractModelExporter {
 		return builder.toString();
 	}
 
-	// ---------------------------------------------------------------------------
-	// Unit and model visit methods
-	// ---------------------------------------------------------------------------
-
-	// ---------------------------------------------------------------------------
-	// Element visit methods (for elements rendered outside clusters)
-	// ---------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Element visit methods
+	// -------------------------------------------------------------------------
 
 	@Override
 	public Void visit(Conclusion conclusion) {
-		appendNode(conclusion, CONCLUSION_STYLE.toAttrs());
+		appendNode(conclusion, DotNodeStyle.CONCLUSION.toAttrs());
 		return null;
 	}
 
 	@Override
 	public Void visit(SubConclusion subConclusion) {
-		appendNode(subConclusion, SUB_CONCLUSION_STYLE.toAttrs());
+		appendNode(subConclusion, DotNodeStyle.SUB_CONCLUSION.toAttrs());
 		return null;
 	}
 
 	@Override
 	public Void visit(Strategy strategy) {
-		appendNode(strategy, STRATEGY_STYLE.toAttrs());
+		appendNode(strategy, DotNodeStyle.STRATEGY.toAttrs());
 		return null;
 	}
 
 	@Override
 	public Void visit(Evidence evidence) {
-		appendNode(evidence, EVIDENCE_STYLE.toAttrs());
+		appendNode(evidence, DotNodeStyle.EVIDENCE.toAttrs());
 		return null;
 	}
 
 	@Override
 	public Void visit(AbstractSupport abstractSupport) {
-		appendNode(abstractSupport, ABSTRACT_SUPPORT_STYLE.toAttrs());
+		appendNode(abstractSupport, DotNodeStyle.ABSTRACT_SUPPORT.toAttrs());
 		return null;
 	}
 
-	// ---------------------------------------------------------------------------
-	// Core export logic
-	// ---------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Core export logic (AbstractModelExporter)
+	// -------------------------------------------------------------------------
 
 	@Override
 	protected void exportModel(JustificationModel<?> model) {
@@ -193,24 +144,23 @@ public class DotExporter extends AbstractModelExporter {
 			cursor = cursor.getParent().orElse(null);
 		}
 
-		builder.append("digraph ").append(quoted(model.getName())).append(" {")
-				.append(System.lineSeparator());
+		builder.append("digraph ").append(DotLabel.quoted(model.getName()))
+				.append(" {").append(System.lineSeparator());
 		builder.append(INDENT).append("rankdir=BT;")
 				.append(System.lineSeparator());
 		builder.append(INDENT).append("label=")
-				.append(wrapAndQuoteLabel(displayLabel(model))).append(";")
-				.append(System.lineSeparator());
+				.append(DotLabel.wrapAndQuote(DotLabel.display(model)))
+				.append(";").append(System.lineSeparator());
 
-		// Own conclusion, own elements, and concrete overrides — rendered
-		// outside clusters
+		// Own conclusion, own elements, and concrete overrides — outside
+		// clusters
 		if (model.hasOwnConclusion()) {
 			model.conclusion().ifPresent(c -> c.accept(this));
 		}
 		model.ownElements().forEach(e -> e.accept(this));
 		model.concreteOverrides().forEach(e -> e.accept(this));
 
-		// Ancestor clusters are nested: the direct parent's cluster wraps the
-		// grandparent's cluster, reflecting the actual inheritance hierarchy.
+		// Ancestor clusters nested to mirror the inheritance hierarchy
 		model.getParent().ifPresent(p -> appendAncestorCluster(p, INDENT));
 
 		// Override arrows: concrete → abstract ghost, across the full chain
@@ -219,6 +169,10 @@ public class DotExporter extends AbstractModelExporter {
 		exportEdges(model);
 		builder.append("}").append(System.lineSeparator());
 	}
+
+	// -------------------------------------------------------------------------
+	// Edge rendering
+	// -------------------------------------------------------------------------
 
 	private void exportEdges(JustificationModel<?> model) {
 		model.conclusion().ifPresent(c -> c.getSupport()
@@ -277,17 +231,9 @@ public class DotExporter extends AbstractModelExporter {
 		}).orElse(List.of());
 	}
 
-	// ---------------------------------------------------------------------------
-	// Private helpers
-	// ---------------------------------------------------------------------------
-
-	private void appendNode(JustificationElement element, String attrs) {
-		String qid = qualify(element.id());
-		builder.append(INDENT).append(quoted(qid)).append(" [label=")
-				.append(wrapAndQuoteLabel(element.label())).append(", id=")
-				.append(quoted(qid)).append(", ").append(attrs).append("];")
-				.append(System.lineSeparator());
-	}
+	// -------------------------------------------------------------------------
+	// Cluster rendering
+	// -------------------------------------------------------------------------
 
 	/**
 	 * Recursively appends a {@code subgraph cluster_<name>} block for
@@ -304,8 +250,8 @@ public class DotExporter extends AbstractModelExporter {
 		builder.append(indent).append(INDENT).append(CLUSTER_ATTRS)
 				.append(System.lineSeparator());
 		builder.append(indent).append(INDENT).append("label=")
-				.append(wrapAndQuoteLabel(displayLabel(ancestor))).append(";")
-				.append(System.lineSeparator());
+				.append(DotLabel.wrapAndQuote(DotLabel.display(ancestor)))
+				.append(";").append(System.lineSeparator());
 
 		String inner = indent + INDENT;
 		if (ancestor.hasOwnConclusion()) {
@@ -336,16 +282,29 @@ public class DotExporter extends AbstractModelExporter {
 		String dotNodeId = qualify(childQualifiedId)
 				+ (isGhost ? ABSTRACT_SUFFIX : "");
 		String semanticId = qualify(childQualifiedId);
-		builder.append(indent).append(quoted(dotNodeId)).append(" [label=")
-				.append(wrapAndQuoteLabel(element.label())).append(", id=")
-				.append(quoted(semanticId)).append(", ")
-				.append(styleForElement(element).toAttrs()).append("];")
+		builder.append(indent).append(DotLabel.quoted(dotNodeId))
+				.append(" [label=")
+				.append(DotLabel.wrapAndQuote(element.label())).append(", id=")
+				.append(DotLabel.quoted(semanticId)).append(", ")
+				.append(DotNodeStyle.of(element).toAttrs()).append("];")
 				.append(System.lineSeparator());
 	}
 
+	// -------------------------------------------------------------------------
+	// Node and edge primitives
+	// -------------------------------------------------------------------------
+
+	private void appendNode(JustificationElement element, String attrs) {
+		String qid = qualify(element.id());
+		builder.append(INDENT).append(DotLabel.quoted(qid)).append(" [label=")
+				.append(DotLabel.wrapAndQuote(element.label())).append(", id=")
+				.append(DotLabel.quoted(qid)).append(", ").append(attrs)
+				.append("];").append(System.lineSeparator());
+	}
+
 	private void appendEdge(String fromId, String toId) {
-		builder.append(INDENT).append(quoted(fromId)).append(" -> ")
-				.append(quoted(toId)).append(";")
+		builder.append(INDENT).append(DotLabel.quoted(fromId)).append(" -> ")
+				.append(DotLabel.quoted(toId)).append(";")
 				.append(System.lineSeparator());
 	}
 
@@ -357,33 +316,15 @@ public class DotExporter extends AbstractModelExporter {
 	private void appendOverrideArrow(String elementId) {
 		String concreteId = qualify(elementId);
 		String abstractId = concreteId + ABSTRACT_SUFFIX;
-		builder.append(INDENT).append(quoted(concreteId)).append(" -> ")
-				.append(quoted(abstractId))
+		builder.append(INDENT).append(DotLabel.quoted(concreteId))
+				.append(" -> ").append(DotLabel.quoted(abstractId))
 				.append(" [arrowhead=empty, style=dotted];")
 				.append(System.lineSeparator());
 	}
 
-	/** Returns the {@link NodeStyle} for the given element type. */
-	private static NodeStyle styleForElement(JustificationElement element) {
-		return switch (element) {
-			case Conclusion _ -> CONCLUSION_STYLE;
-			case SubConclusion _ -> SUB_CONCLUSION_STYLE;
-			case Strategy _ -> STRATEGY_STYLE;
-			case Evidence _ -> EVIDENCE_STYLE;
-			case AbstractSupport _ -> ABSTRACT_SUPPORT_STYLE;
-		};
-	}
-
-	/**
-	 * Returns the display label for {@code model}: template models are prefixed
-	 * with {@code <<template>>} to distinguish them from concrete
-	 * justifications.
-	 */
-	private static String displayLabel(JustificationModel<?> model) {
-		return model instanceof Template
-				? "<<template>> " + model.getName()
-				: model.getName();
-	}
+	// -------------------------------------------------------------------------
+	// ID helpers
+	// -------------------------------------------------------------------------
 
 	/**
 	 * Strips the parent model name prefix from a qualified element id. E.g.,
@@ -397,48 +338,11 @@ public class DotExporter extends AbstractModelExporter {
 	}
 
 	/**
-	 * Mirrors {@link JustificationModel#qualifiedCopy}: plain ids become
-	 * {@code prefix:id}; already-qualified ids (grandparent elements) are kept
-	 * as-is.
+	 * Mirrors {@link ca.mcscert.jpipe.model.JustificationModel#qualifiedCopy}:
+	 * plain ids become {@code prefix:id}; already-qualified ids (grandparent
+	 * elements) are kept as-is.
 	 */
 	private static String qualifyForChild(String id, String prefix) {
 		return id.contains(":") ? id : prefix + ":" + id;
-	}
-
-	private static String quoted(String value) {
-		return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
-	}
-
-	/**
-	 * Wraps {@code label} at word boundaries so that no line exceeds
-	 * {@link #WRAP_WIDTH} characters, then returns the result as a DOT-quoted
-	 * string. Lines are separated by {@code \n}, which Graphviz renders as a
-	 * centred newline inside a node label.
-	 *
-	 * <p>
-	 * Each word is escaped for backslashes and double-quotes before measuring
-	 * and joining, so the wrap decision is based on the characters that will
-	 * actually appear in the rendered label.
-	 */
-	private static String wrapAndQuoteLabel(String label) {
-		String[] words = label.trim().split("\\s+");
-		List<String> lines = new ArrayList<>();
-		StringBuilder current = new StringBuilder();
-		for (String word : words) {
-			String escaped = word.replace("\\", "\\\\").replace("\"", "\\\"")
-					.replace("_", "\\_");
-			if (current.length() > 0
-					&& current.length() + 1 + escaped.length() > WRAP_WIDTH) {
-				lines.add(current.toString());
-				current = new StringBuilder(escaped);
-			} else {
-				if (current.length() > 0)
-					current.append(' ');
-				current.append(escaped);
-			}
-		}
-		if (current.length() > 0)
-			lines.add(current.toString());
-		return "\"" + String.join("\\n", lines) + "\"";
 	}
 }

@@ -107,6 +107,28 @@ Design rationale docs are in `docs/design/compiler.md` and `docs/design/model.md
 - **Pipeline steps:** New compilation phases must be implemented as `Transformation<I,O>` or `Checker<I>` subclasses and placed under `ca.mcscert.jpipe.compiler.steps`.
 - **Testing:** New features must include Cucumber scenarios in `jpipe-compiler/src/test/resources/features` and JUnit Jupiter unit tests in the relevant module.
 
+## Naming Conventions
+
+### Element IDs and qualified ids
+Element ids follow the qualified-id scheme documented in ADR-0012. A plain id (`s`) is the form
+used in source `.jd` files. The compiler qualifies it with the owning model or namespace at
+expansion time (`templateName:s`, `ns:model:s`). `JustificationModel.findById` resolves both
+forms — callers should pass the plain id when possible and let the model handle qualification.
+
+### Class naming
+| Kind | Pattern | Examples |
+|------|---------|---------|
+| Model construction command | `Create<X>`, `Add<X>`, `Rewire<X>`, `Override<X>` | `CreateConclusion`, `AddSupport`, `RewireStrategySupport` |
+| Compiler pipeline step | noun phrase for the step's role | `HaltAndCatchFire`, `SelectModel`, `LoadResolver` |
+| Visitor / exporter | `<Format>Exporter`, `<Purpose>Visitor` | `DotExporter`, `PythonExporter`, `JsonExporter` |
+| Validator | `<Concern>Validator` | `ConsistencyValidator`, `CompletenessValidator` |
+| Test class | mirrors the class under test + `Test` suffix | `DotExporterTest`, `AddSupportTest` |
+
+### Method naming in commands and pipeline steps
+- Command execution entry point: `doExecute(Unit)` (called by `RegularCommand.execute`).
+- Pipeline entry point: `run(I, CompilationContext)` (called by `Transformation.fire`).
+- Visitor entry points: `visit(<Type>)` — one overload per node type in the hierarchy.
+
 ## Logging
 
 Follow ADR-0006 logging conventions. Log4j 2 is the logging framework.
