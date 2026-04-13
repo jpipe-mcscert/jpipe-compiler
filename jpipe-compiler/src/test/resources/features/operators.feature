@@ -8,8 +8,8 @@ Feature: Composition operators
     And it has a conclusion with id "minimal:c" and label "A conclusion"
     And it has a sub-conclusion with id "hook" and label "an evidence is true"
     And it has a strategy with id "minimal:s" and label "A strategy"
-    And it has a strategy with id "refinement:s" and label "A strategy"
-    And it has evidence with id "refinement:e" and label "An evidence"
+    And it has a strategy with id "refinement:s" and label "A refined strategy"
+    And it has evidence with id "refinement:e" and label "A refined evidence"
     And the strategy "minimal:s" supports the conclusion "minimal:c"
     And the sub-conclusion "hook" supports the strategy "minimal:s"
     And the strategy "refinement:s" supports the sub-conclusion "hook"
@@ -56,6 +56,29 @@ Feature: Composition operators
     And the sub-conclusion "a_claim:c" supports the strategy "assembleStrategy"
     And the sub-conclusion "another_claim:c" supports the strategy "assembleStrategy"
     And the sub-conclusion "a_third_claim:c" supports the strategy "assembleStrategy"
+
+  Scenario: assemble unifies elements with the same label across sources
+    Given the source file "011_unifying_while_compising.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+    And the unit contains a justification named "assembled_2"
+    And it has a conclusion with id "assembleConclusion" and label "A global conclusion"
+    And it has a strategy with id "assembleStrategy" and label "An aggregating strategy"
+    And it has a sub-conclusion with id "a_claim:c" and label "A conclusion"
+    And it has a sub-conclusion with id "another_claim:c" and label "Another conclusion"
+    And it has a strategy with id "a_claim:s" and label "A strategy"
+    And it has evidence with id "a_claim:e" and label "An evidence"
+    And it has a strategy with id "another_claim:s" and label "Another strategy"
+    And it has evidence with id "another_claim:e" and label "Another evidence"
+    And it has evidence with id "unified_0" and label "A shared evidence"
+    And the evidence "unified_0" supports the strategy "a_claim:s"
+    And the evidence "unified_0" supports the strategy "another_claim:s"
+
+  Scenario: unknown unification method reports an execution error
+    Given the source file "invalid/015_unknown_unification_method.jd"
+    When I compile it into a unit
+    Then the compilation has validation errors
+    And a validation error is reported for rule "execution-error"
 
   Scenario: unknown operator name reports an execution error
     Given the source file "invalid/012_unknown_operator.jd"

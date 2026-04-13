@@ -18,8 +18,8 @@ justification minimal {
 // Refinment
 justification refinement {
     conclusion c is "an evidence is true"
-    strategy   s is "A strategy"
-    evidence   e is "An evidence"
+    strategy   s is "A refined strategy"
+    evidence   e is "A refined evidence"
 
     s supports c
     e supports s

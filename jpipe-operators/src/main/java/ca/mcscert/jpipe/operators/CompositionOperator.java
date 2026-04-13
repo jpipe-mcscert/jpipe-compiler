@@ -256,22 +256,6 @@ public abstract class CompositionOperator {
 
 	private static List<ElementGroup> partition(List<SourcedElement> elements,
 			EquivalenceRelation rel) {
-		List<List<SourcedElement>> partitions = new ArrayList<>();
-		for (SourcedElement candidate : elements) {
-			boolean placed = false;
-			for (List<SourcedElement> partition : partitions) {
-				if (rel.areEquivalent(partition.get(0), candidate)) {
-					partition.add(candidate);
-					placed = true;
-					break;
-				}
-			}
-			if (!placed) {
-				List<SourcedElement> fresh = new ArrayList<>();
-				fresh.add(candidate);
-				partitions.add(fresh);
-			}
-		}
-		return partitions.stream().map(ElementGroup::new).toList();
+		return Partitions.partition(elements, rel);
 	}
 }

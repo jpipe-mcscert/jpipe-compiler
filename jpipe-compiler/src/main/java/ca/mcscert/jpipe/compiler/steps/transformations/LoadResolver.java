@@ -15,6 +15,7 @@ import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
+import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ca.mcscert.jpipe.compiler.steps.checkers.HaltAndCatchFire;
@@ -69,9 +70,12 @@ public final class LoadResolver
 	private static final Logger logger = LogManager.getLogger();
 
 	private final OperatorRegistry operators;
+	private final UnificationEquivalenceRegistry unificationEquivalences;
 
-	public LoadResolver(OperatorRegistry operators) {
+	public LoadResolver(OperatorRegistry operators,
+			UnificationEquivalenceRegistry unificationEquivalences) {
 		this.operators = operators;
+		this.unificationEquivalences = unificationEquivalences;
 	}
 
 	/**
@@ -181,7 +185,8 @@ public final class LoadResolver
 		Transformation<InputStream, List<Command>> chain = new CharStreamProvider()
 				.andThen(new Lexer()).andThen(new Parser())
 				.andThen(new HaltAndCatchFire<ParseTree>())
-				.andThen(new ActionListProvider(operators));
+				.andThen(new ActionListProvider(operators,
+						unificationEquivalences));
 		try (FileInputStream fis = new FileInputStream(path.toFile())) {
 			return chain.fire(fis, subCtx);
 		}

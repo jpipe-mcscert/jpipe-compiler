@@ -22,6 +22,14 @@ import java.util.function.Predicate;
  */
 public final class ApplyOperator implements MacroCommand {
 
+	private static final UnificationEquivalenceRegistry DEFAULT_UNIFICATION;
+
+	static {
+		DEFAULT_UNIFICATION = new UnificationEquivalenceRegistry();
+		DEFAULT_UNIFICATION.register(Unifier.DEFAULT_UNIFY_BY,
+				new ca.mcscert.jpipe.operators.equivalences.SameLabel());
+	}
+
 	private final String resultName;
 	private final String operatorName;
 	private final List<String> sourceNames;
@@ -29,25 +37,36 @@ public final class ApplyOperator implements MacroCommand {
 	private final OperatorRegistry operators;
 	private final SourceLocation location;
 	private final ModelKind declaredKind;
+	private final UnificationEquivalenceRegistry unificationEquivalences;
 
 	public ApplyOperator(String resultName, String operatorName,
 			List<String> sourceNames, Map<String, String> arguments,
 			OperatorRegistry operators) {
 		this(resultName, operatorName, sourceNames, arguments, operators,
-				SourceLocation.UNKNOWN, ModelKind.JUSTIFICATION);
+				SourceLocation.UNKNOWN, ModelKind.JUSTIFICATION,
+				DEFAULT_UNIFICATION);
 	}
 
 	public ApplyOperator(String resultName, String operatorName,
 			List<String> sourceNames, Map<String, String> arguments,
 			OperatorRegistry operators, SourceLocation location) {
 		this(resultName, operatorName, sourceNames, arguments, operators,
-				location, ModelKind.JUSTIFICATION);
+				location, ModelKind.JUSTIFICATION, DEFAULT_UNIFICATION);
 	}
 
 	public ApplyOperator(String resultName, String operatorName,
 			List<String> sourceNames, Map<String, String> arguments,
 			OperatorRegistry operators, SourceLocation location,
 			ModelKind declaredKind) {
+		this(resultName, operatorName, sourceNames, arguments, operators,
+				location, declaredKind, DEFAULT_UNIFICATION);
+	}
+
+	public ApplyOperator(String resultName, String operatorName,
+			List<String> sourceNames, Map<String, String> arguments,
+			OperatorRegistry operators, SourceLocation location,
+			ModelKind declaredKind,
+			UnificationEquivalenceRegistry unificationEquivalences) {
 		this.resultName = resultName;
 		this.operatorName = operatorName;
 		this.sourceNames = List.copyOf(sourceNames);
@@ -55,6 +74,7 @@ public final class ApplyOperator implements MacroCommand {
 		this.operators = operators;
 		this.location = location;
 		this.declaredKind = declaredKind;
+		this.unificationEquivalences = unificationEquivalences;
 	}
 
 	public String resultName() {
@@ -98,8 +118,10 @@ public final class ApplyOperator implements MacroCommand {
 		}
 		List<JustificationModel<?>> sources = sourceNames.stream()
 				.<JustificationModel<?>>map(context::get).toList();
-		return op.apply(resultName, sources, arguments, location,
-				context.locations());
+		List<Command> composed = op.apply(resultName, sources, arguments,
+				location, context.locations());
+		return new Unifier(unificationEquivalences).unify(resultName, composed,
+				arguments);
 	}
 
 	@Override

@@ -75,6 +75,10 @@ an abstract `CompositionOperator` class (Template Method pattern):
     counterpart in any source model. Because it runs after Phase 2, all
     source-derived elements and edges are already present; the returned
     commands are appended at the end.
+- **Phase 4 — automatic unification** runs in `ApplyOperator.expand()` after
+    `apply()` returns, via `Unifier.unify()`. It is not part of the sealed
+    `apply()` template but is always applied to the command list before the
+    engine sees it. See §5 below.
 - **`ModelReplicator`** — a stateless utility that generates commands to copy a
   model's elements and edges non-destructively, following the same qualified-id
   convention as `JustificationModel.inline()`.
@@ -89,7 +93,42 @@ an abstract `CompositionOperator` class (Template Method pattern):
   the compiled unit.  `aliases()` is used by `DiagnosticReport` to include
   alias entries in the symbol table.
 
-### 2. `ApplyOperator implements MacroCommand` (`jpipe-operators`)
+### 2. Automatic post-composition unification (`jpipe-operators`)
+
+`ApplyOperator.expand()` passes the command list returned by `apply()` through
+a `Unifier` instance before returning it to the engine. The `Unifier` performs
+a Phase 4 transformation on the command list:
+
+- **Algorithm** — scans the list for element-creation commands (`CreateConclusion`,
+  `CreateStrategy`, `CreateEvidence`, `CreateSubConclusion`,
+  `CreateAbstractSupport`), partitions them into equivalence classes using an
+  `EquivalenceRelation` looked up in `UnificationEquivalenceRegistry`, and for
+  each class with more than one member:
+  1. Creates a new synthesized element with id `"unified_N"` (N = 0-based
+     counter per merged group, incremented per group within one `unify()` call).
+  2. Removes all original `Create*` commands for the group members.
+  3. Rewrites all `AddSupport` commands referencing removed ids to use the new
+     `"unified_N"` id, deduplicating edge re-writes.
+  4. Appends `RegisterAlias(resultName, oldId, "unified_N")` for every removed
+     id so the alias map in `Unit` remains consistent.
+- **Config parameters** (read from the operator's `rule_config` map):
+  - `unifyBy` — name of the equivalence relation (default: `"sameLabel"`).
+    Throws `InvalidOperatorCallException` if the name is not registered.
+  - `unifyExclude` — comma-separated list of result-model element ids that must
+    not participate in unification (default: empty). Excluded elements remain
+    as-is and do not block other elements from merging.
+- **`UnificationEquivalenceRegistry`** — a name-to-`EquivalenceRelation` map
+  populated at compiler startup, following the same pattern as
+  `OperatorRegistry`. Currently registers `"sameLabel"` → `SameLabel`.
+  `SameShortId` is intentionally absent — it is reserved for Phase 1 operator
+  equivalence only. New equivalence relations (e.g. Levenshtein distance) can
+  be added by registering them in `CompilerFactory.builtInUnificationEquivalences()`.
+- **`Partitions`** — a package-private utility class extracted from
+  `CompositionOperator` so that both `CompositionOperator` (Phase 1) and
+  `Unifier` (Phase 4) share the same O(n²) representative-based partition
+  algorithm without duplication.
+
+### 4. `ApplyOperator implements MacroCommand` (`jpipe-operators`)
 
 When the parser produces a justification or template with `ctx.operator != null`,
 `ActionListProvider` emits an `ApplyOperator` command instead of
@@ -106,7 +145,7 @@ for deferred expansion:
   Returns the resulting `List<Command>` for the engine to splice at the front
   of the queue.
 
-### 3. Compiler integration (`jpipe-compiler`)
+### 5. Compiler integration (`jpipe-compiler`)
 
 - `ActionListProvider` receives an `OperatorRegistry` at construction
   (field named `operators`).
@@ -119,7 +158,7 @@ for deferred expansion:
 - `CompilerFactory.parsingChain()` passes `builtInOperators()` to
   `ActionListProvider`.
 
-### 4. Symbol table for operator-created models
+### 6. Symbol table for operator-created models
 
 `DiagnosticReport` builds the symbol table by iterating `unit.getModels()`
 directly rather than only the recorded-location registry.  For each element:
@@ -167,6 +206,16 @@ Aliases are shown after the element list for each model, formatted as
     `Conclusion`; requires `conclusionLabel` and `strategyLabel` arguments.
     Result is a `Template` if any source is a `Template`, otherwise a
     `Justification`.
+- Post-composition unification always runs after every operator call. By default
+  (`unifyBy: "sameLabel"`) any two result-model elements with identical labels
+  are merged into a single synthesized element with id `"unified_N"` (N = 0-based
+  counter per group). Both original ids are registered as aliases. Set
+  `unifyExclude` to a comma-separated id list to protect specific elements from
+  unification. Specify `unifyBy` to use an alternative equivalence relation
+  registered in `UnificationEquivalenceRegistry`.
+- Adding a new built-in unification equivalence requires only implementing
+  `EquivalenceRelation` and registering it in
+  `CompilerFactory.builtInUnificationEquivalences()`.
 - Adding a new built-in operator requires only implementing `CompositionOperator`
   and registering it in `CompilerFactory.builtInOperators()`.
 - `ApplyOperator` is the only command that holds a reference to `OperatorRegistry`;

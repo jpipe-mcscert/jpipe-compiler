@@ -19,6 +19,7 @@ import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.operators.ApplyOperator;
 import ca.mcscert.jpipe.operators.ModelKind;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
+import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -38,15 +39,19 @@ public final class ActionListProvider
 			Transformation<ParseTree, List<Command>> {
 
 	private final OperatorRegistry operators;
+	private final UnificationEquivalenceRegistry unificationEquivalences;
 
-	public ActionListProvider(OperatorRegistry operators) {
+	public ActionListProvider(OperatorRegistry operators,
+			UnificationEquivalenceRegistry unificationEquivalences) {
 		this.operators = operators;
+		this.unificationEquivalences = unificationEquivalences;
 	}
 
 	@Override
 	protected List<Command> run(ParseTree input, CompilationContext ctx)
 			throws Exception {
-		ActionBuilder ab = new ActionBuilder(ctx.sourcePath(), ctx, operators);
+		ActionBuilder ab = new ActionBuilder(ctx.sourcePath(), ctx, operators,
+				unificationEquivalences);
 		ParseTreeWalker.DEFAULT.walk(ab, input);
 		logger.debug(ab.collect());
 		return ab.collect();
@@ -69,14 +74,17 @@ public final class ActionListProvider
 		private Context buildContext;
 		private final CompilationContext compilationCtx;
 		private final OperatorRegistry operators;
+		private final UnificationEquivalenceRegistry unificationEquivalences;
 		private final Set<String> seenConclusionModels = new HashSet<>();
 
 		public ActionBuilder(String name, CompilationContext compilationCtx,
-				OperatorRegistry operators) {
+				OperatorRegistry operators,
+				UnificationEquivalenceRegistry unificationEquivalences) {
 			this.result = new ArrayList<>();
 			this.buildContext = new Context(name, null, null);
 			this.compilationCtx = compilationCtx;
 			this.operators = operators;
+			this.unificationEquivalences = unificationEquivalences;
 		}
 
 		public List<Command> collect() {
@@ -143,7 +151,7 @@ public final class ActionListProvider
 				result.add(new ApplyOperator(ctx.id.getText(),
 						ctx.operator.getText(), sources,
 						collectConfig(ctx.rule_config()), operators, loc,
-						ModelKind.JUSTIFICATION));
+						ModelKind.JUSTIFICATION, unificationEquivalences));
 				return;
 			}
 			String parentName = ctx.parent != null
@@ -182,7 +190,7 @@ public final class ActionListProvider
 				result.add(new ApplyOperator(ctx.id.getText(),
 						ctx.operator.getText(), sources,
 						collectConfig(ctx.rule_config()), operators, loc,
-						ModelKind.TEMPLATE));
+						ModelKind.TEMPLATE, unificationEquivalences));
 				return;
 			}
 			String parentName = ctx.parent != null

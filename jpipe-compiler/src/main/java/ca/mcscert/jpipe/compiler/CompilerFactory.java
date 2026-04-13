@@ -3,6 +3,8 @@ package ca.mcscert.jpipe.compiler;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
+import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
+import ca.mcscert.jpipe.operators.equivalences.SameLabel;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.compiler.steps.checkers.CompletenessChecker;
 import ca.mcscert.jpipe.compiler.steps.checkers.ConsistencyChecker;
@@ -111,11 +113,12 @@ public final class CompilerFactory {
 	 */
 	public static ChainBuilder<InputStream, List<Command>> parsingChain() {
 		OperatorRegistry operators = builtInOperators();
+		UnificationEquivalenceRegistry unification = builtInUnificationEquivalences();
 		return new FileSource().andThen(new CharStreamProvider())
 				.andThen(new Lexer()).andThen(new Parser())
 				.andThen(new HaltAndCatchFire<ParseTree>())
-				.andThen(new ActionListProvider(operators))
-				.andThen(new LoadResolver(operators));
+				.andThen(new ActionListProvider(operators, unification))
+				.andThen(new LoadResolver(operators, unification));
 	}
 
 	private static OperatorRegistry builtInOperators() {
@@ -125,6 +128,12 @@ public final class CompilerFactory {
 		operators.register("assemble",
 				new ca.mcscert.jpipe.operators.builtin.AssembleOperator());
 		return operators;
+	}
+
+	private static UnificationEquivalenceRegistry builtInUnificationEquivalences() {
+		UnificationEquivalenceRegistry registry = new UnificationEquivalenceRegistry();
+		registry.register("sameLabel", new SameLabel());
+		return registry;
 	}
 
 	/**

@@ -1,0 +1,246 @@
+package ca.mcscert.jpipe.operators;
+
+import ca.mcscert.jpipe.commands.Command;
+import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
+import ca.mcscert.jpipe.commands.creation.CreateConclusion;
+import ca.mcscert.jpipe.commands.creation.CreateEvidence;
+import ca.mcscert.jpipe.commands.creation.CreateStrategy;
+import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
+import ca.mcscert.jpipe.commands.linking.AddSupport;
+import ca.mcscert.jpipe.commands.linking.RegisterAlias;
+import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.SourceLocation;
+import ca.mcscert.jpipe.model.elements.Evidence;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Phase 4 post-processor for composition operators.
+ *
+ * <p>
+ * After {@link CompositionOperator#apply} returns its command list, this class
+ * inspects the element-creation commands, groups equivalent ones according to a
+ * named {@link EquivalenceRelation} looked up in a
+ * {@link UnificationEquivalenceRegistry}, and rewrites the command list so that
+ * each equivalence class is represented by a single synthesized element whose
+ * id is {@code "unified_N"} (N = 0-based counter per merged group). All
+ * original member ids are aliased to the new id via {@link RegisterAlias}
+ * commands, and {@link AddSupport} commands referencing removed ids are
+ * rewritten accordingly.
+ *
+ * <p>
+ * Controlled by two optional config parameters:
+ * <ul>
+ * <li>{@code unifyBy} — name of the equivalence relation to use (default:
+ * {@code "sameLabel"})</li>
+ * <li>{@code unifyExclude} — comma-separated list of result-model element ids
+ * that must NOT participate in unification (default: empty)</li>
+ * </ul>
+ *
+ * <p>
+ * If no merged groups are found the original command list is returned
+ * unchanged.
+ */
+public final class Unifier {
+
+	static final String UNIFIED_PREFIX = "unified_";
+	static final String UNIFY_BY_KEY = "unifyBy";
+	static final String UNIFY_EXCLUDE_KEY = "unifyExclude";
+	static final String DEFAULT_UNIFY_BY = "sameLabel";
+
+	private static final Justification DUMMY_SOURCE = new Justification(
+			"__unifier__");
+
+	private final UnificationEquivalenceRegistry registry;
+
+	public Unifier(UnificationEquivalenceRegistry registry) {
+		this.registry = registry;
+	}
+
+	/**
+	 * Applies Phase 4 unification to {@code commands}.
+	 *
+	 * @param resultName
+	 *            the name of the result model (used in {@link RegisterAlias}
+	 *            commands)
+	 * @param commands
+	 *            the command list produced by Phases 1–3 of
+	 *            {@link CompositionOperator#apply}
+	 * @param args
+	 *            the operator config map; {@code unifyBy} and
+	 *            {@code unifyExclude} are consumed here
+	 * @return a new, unmodifiable command list with merged elements and
+	 *         rewritten edges, or {@code commands} itself if nothing was merged
+	 * @throws InvalidOperatorCallException
+	 *             if {@code unifyBy} names an unknown equivalence relation
+	 */
+	public List<Command> unify(String resultName, List<Command> commands,
+			Map<String, String> args) {
+
+		String equivName = args.getOrDefault(UNIFY_BY_KEY, DEFAULT_UNIFY_BY);
+		EquivalenceRelation equiv = registry.find(equivName)
+				.orElseThrow(() -> new InvalidOperatorCallException(
+						"[execution-error] unknown unification method '"
+								+ equivName + "'; registered: "
+								+ registry.registeredNames()));
+
+		Set<String> excluded = parseExcludeList(
+				args.getOrDefault(UNIFY_EXCLUDE_KEY, ""));
+
+		// Collect element (non-model) creation commands
+		List<Command> elementCmds = commands.stream().filter(Unifier::isElement)
+				.toList();
+
+		// Build SourcedElement wrappers for non-excluded elements
+		List<SourcedElement> candidates = elementCmds.stream()
+				.filter(cmd -> !excluded.contains(idOf(cmd)))
+				.map(Unifier::toSourcedElement).toList();
+
+		// Partition by equivalence relation
+		List<ElementGroup> groups = Partitions.partition(candidates, equiv);
+
+		// Build phase4Aliases: oldId → unified_N for every group with >1 member
+		Map<String, String> phase4Aliases = new LinkedHashMap<>();
+		int counter = 0;
+		for (ElementGroup group : groups) {
+			if (group.members().size() > 1) {
+				String unifiedId = UNIFIED_PREFIX + counter++;
+				for (SourcedElement se : group.members()) {
+					phase4Aliases.put(se.element().id(), unifiedId);
+				}
+			}
+		}
+
+		if (phase4Aliases.isEmpty()) {
+			return List.copyOf(commands);
+		}
+
+		// Rebuild command list
+		List<Command> result = new ArrayList<>();
+		Set<String> insertedUnified = new LinkedHashSet<>();
+		Set<String> seenEdges = new LinkedHashSet<>();
+
+		for (Command cmd : commands) {
+			if (isElement(cmd)) {
+				String id = idOf(cmd);
+				if (phase4Aliases.containsKey(id)) {
+					// Replace the FIRST occurrence with the synthesized element
+					String unifiedId = phase4Aliases.get(id);
+					if (insertedUnified.add(unifiedId)) {
+						result.add(synthesized(cmd, unifiedId));
+					}
+					// All subsequent occurrences (other group members) are
+					// dropped
+				} else {
+					result.add(cmd);
+				}
+			} else if (cmd instanceof AddSupport as) {
+				String newSupportable = resolve(as.supportableId(),
+						phase4Aliases);
+				String newSupporter = resolve(as.supporterId(), phase4Aliases);
+				String key = newSupportable + "->" + newSupporter;
+				if (seenEdges.add(key)) {
+					result.add(new AddSupport(resultName, newSupportable,
+							newSupporter));
+				}
+			} else {
+				result.add(cmd);
+			}
+		}
+
+		// Append RegisterAlias commands for all phase4 merges
+		phase4Aliases.forEach((oldId, newId) -> result
+				.add(new RegisterAlias(resultName, oldId, newId)));
+
+		return List.copyOf(result);
+	}
+
+	// ── Helpers
+	// ─────────────────────────────────────────────────────────────────
+
+	private static Set<String> parseExcludeList(String raw) {
+		if (raw.isBlank()) {
+			return Set.of();
+		}
+		return Set.of(raw.split(",")).stream().map(String::trim)
+				.collect(Collectors.toUnmodifiableSet());
+	}
+
+	/**
+	 * Returns true for Create* commands that create model elements (not
+	 * models).
+	 */
+	static boolean isElement(Command cmd) {
+		return cmd instanceof CreateConclusion || cmd instanceof CreateStrategy
+				|| cmd instanceof CreateEvidence
+				|| cmd instanceof CreateSubConclusion
+				|| cmd instanceof CreateAbstractSupport;
+	}
+
+	/** Extracts the element id from a Create* element command. */
+	static String idOf(Command cmd) {
+		return switch (cmd) {
+			case CreateConclusion c -> c.identifier();
+			case CreateStrategy s -> s.identifier();
+			case CreateEvidence e -> e.identifier();
+			case CreateSubConclusion sc -> sc.identifier();
+			case CreateAbstractSupport as -> as.identifier();
+			default -> throw new IllegalArgumentException(
+					"Not an element command: " + cmd);
+		};
+	}
+
+	/** Extracts the label from a Create* element command. */
+	static String labelOf(Command cmd) {
+		return switch (cmd) {
+			case CreateConclusion c -> c.label();
+			case CreateStrategy s -> s.label();
+			case CreateEvidence e -> e.label();
+			case CreateSubConclusion sc -> sc.label();
+			case CreateAbstractSupport as -> as.label();
+			default -> throw new IllegalArgumentException(
+					"Not an element command: " + cmd);
+		};
+	}
+
+	/**
+	 * Wraps a Create* command in a synthetic {@link SourcedElement} for
+	 * equivalence checking. Uses a shared dummy source and a minimal
+	 * {@link Evidence} element (only id and label matter for label-based
+	 * relations).
+	 */
+	private static SourcedElement toSourcedElement(Command cmd) {
+		return new SourcedElement(new Evidence(idOf(cmd), labelOf(cmd)),
+				DUMMY_SOURCE, SourceLocation.UNKNOWN);
+	}
+
+	/**
+	 * Creates the synthesized Create* command for a merged group, reusing the
+	 * type and label of the first member's command but assigning {@code newId}.
+	 */
+	private static Command synthesized(Command original, String newId) {
+		return switch (original) {
+			case CreateConclusion c ->
+				new CreateConclusion(c.container(), newId, c.label());
+			case CreateStrategy s ->
+				new CreateStrategy(s.container(), newId, s.label());
+			case CreateEvidence e ->
+				new CreateEvidence(e.container(), newId, e.label());
+			case CreateSubConclusion sc ->
+				new CreateSubConclusion(sc.container(), newId, sc.label());
+			case CreateAbstractSupport as ->
+				new CreateAbstractSupport(as.container(), newId, as.label());
+			default -> throw new IllegalArgumentException(
+					"Not an element command: " + original);
+		};
+	}
+
+	private static String resolve(String id, Map<String, String> aliases) {
+		return aliases.getOrDefault(id, id);
+	}
+}
