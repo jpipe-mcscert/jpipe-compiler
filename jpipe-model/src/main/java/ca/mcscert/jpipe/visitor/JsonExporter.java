@@ -2,8 +2,6 @@ package ca.mcscert.jpipe.visitor;
 
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
-import ca.mcscert.jpipe.model.Template;
-import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
@@ -34,9 +32,8 @@ import org.json.JSONObject;
  * }
  * }</pre>
  */
-public class JsonExporter implements JustificationVisitor<Void> {
+public class JsonExporter extends AbstractModelExporter {
 
-	private String currentModelName;
 	private JSONObject result;
 	private JSONArray elements;
 	private JSONArray relations;
@@ -52,29 +49,6 @@ public class JsonExporter implements JustificationVisitor<Void> {
 		result = null;
 		model.accept(this);
 		return result.toString(2);
-	}
-
-	// -------------------------------------------------------------------------
-	// Unit and model visit methods
-	// -------------------------------------------------------------------------
-
-	@Override
-	public Void visit(Unit unit) {
-		throw new UnsupportedOperationException(
-				"JsonExporter operates on a single model"
-						+ " — use SelectModel to extract one from a Unit");
-	}
-
-	@Override
-	public Void visit(Justification justification) {
-		exportModelBody(justification, "justification");
-		return null;
-	}
-
-	@Override
-	public Void visit(Template template) {
-		exportModelBody(template, "template");
-		return null;
 	}
 
 	// -------------------------------------------------------------------------
@@ -112,10 +86,14 @@ public class JsonExporter implements JustificationVisitor<Void> {
 	}
 
 	// -------------------------------------------------------------------------
-	// Private helpers
+	// AbstractModelExporter
 	// -------------------------------------------------------------------------
 
-	private void exportModelBody(JustificationModel<?> model, String type) {
+	@Override
+	protected void exportModel(JustificationModel<?> model) {
+		String type = model instanceof Justification
+				? "justification"
+				: "template";
 		currentModelName = model.getName();
 		elements = new JSONArray();
 		relations = new JSONArray();
@@ -130,6 +108,10 @@ public class JsonExporter implements JustificationVisitor<Void> {
 		result.put("elements", elements);
 		result.put("relations", relations);
 	}
+
+	// -------------------------------------------------------------------------
+	// Private helpers
+	// -------------------------------------------------------------------------
 
 	private void exportRelations(JustificationModel<?> model) {
 		model.conclusion().ifPresent(c -> c.getSupport().ifPresent(
@@ -157,9 +139,5 @@ public class JsonExporter implements JustificationVisitor<Void> {
 		obj.put("source", source);
 		obj.put("target", target);
 		relations.put(obj);
-	}
-
-	private String qualify(String elementId) {
-		return currentModelName + ":" + elementId;
 	}
 }

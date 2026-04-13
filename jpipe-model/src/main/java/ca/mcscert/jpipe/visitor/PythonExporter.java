@@ -1,9 +1,6 @@
 package ca.mcscert.jpipe.visitor;
 
-import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
-import ca.mcscert.jpipe.model.Template;
-import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
@@ -35,10 +32,7 @@ import java.time.Instant;
  * compilation pipeline to extract the desired model from a {@link Unit} before
  * invoking this exporter.
  */
-public class PythonExporter implements JustificationVisitor<Void> {
-
-	private String currentModelName;
-	private final StringBuilder builder = new StringBuilder();
+public class PythonExporter extends AbstractModelExporter {
 
 	/**
 	 * Serialise {@code model} to Python source text without a file header.
@@ -70,29 +64,6 @@ public class PythonExporter implements JustificationVisitor<Void> {
 		appendPreamble();
 		model.accept(this);
 		return builder.toString();
-	}
-
-	// -------------------------------------------------------------------------
-	// Unit and model visit methods
-	// -------------------------------------------------------------------------
-
-	@Override
-	public Void visit(Unit unit) {
-		throw new UnsupportedOperationException(
-				"PythonExporter operates on a single model"
-						+ " — use SelectModel to extract one from a Unit");
-	}
-
-	@Override
-	public Void visit(Justification justification) {
-		exportModelBody(justification);
-		return null;
-	}
-
-	@Override
-	public Void visit(Template template) {
-		exportModelBody(template);
-		return null;
 	}
 
 	// -------------------------------------------------------------------------
@@ -130,6 +101,17 @@ public class PythonExporter implements JustificationVisitor<Void> {
 	}
 
 	// -------------------------------------------------------------------------
+	// AbstractModelExporter
+	// -------------------------------------------------------------------------
+
+	@Override
+	protected void exportModel(JustificationModel<?> model) {
+		currentModelName = model.getName();
+		model.conclusion().ifPresent(c -> c.accept(this));
+		model.getElements().forEach(e -> e.accept(this));
+	}
+
+	// -------------------------------------------------------------------------
 	// Private helpers
 	// -------------------------------------------------------------------------
 
@@ -149,12 +131,6 @@ public class PythonExporter implements JustificationVisitor<Void> {
 		builder.append("\n");
 		builder.append("JpipeProduce = Callable[[str, Any], None]\n");
 		builder.append("\n\n");
-	}
-
-	private void exportModelBody(JustificationModel<?> model) {
-		currentModelName = model.getName();
-		model.conclusion().ifPresent(c -> c.accept(this));
-		model.getElements().forEach(e -> e.accept(this));
 	}
 
 	private void appendMethod(JustificationElement element) {
@@ -182,33 +158,21 @@ public class PythonExporter implements JustificationVisitor<Void> {
 	}
 
 	private static String elementTypeName(JustificationElement element) {
-		if (element instanceof Conclusion) {
-			return "conclusion";
-		}
-		if (element instanceof SubConclusion) {
-			return "sub-conclusion";
-		}
-		if (element instanceof Strategy) {
-			return "strategy";
-		}
-		if (element instanceof Evidence) {
-			return "evidence";
-		}
-		return "abstract-support";
+		return switch (element) {
+			case Conclusion _ -> "conclusion";
+			case SubConclusion _ -> "sub-conclusion";
+			case Strategy _ -> "strategy";
+			case Evidence _ -> "evidence";
+			case AbstractSupport _ -> "abstract-support";
+		};
 	}
 
 	private static String jpipeDecoratorArgs(JustificationElement element) {
-		if (element instanceof Conclusion) {
-			return "consume=[]";
-		}
-		if (element instanceof Evidence || element instanceof AbstractSupport) {
-			return "produce=[]";
-		}
-		return "produce=[], consume=[]";
-	}
-
-	private String qualify(String elementId) {
-		return currentModelName + ":" + elementId;
+		return switch (element) {
+			case Conclusion _ -> "consume=[]";
+			case Evidence _,AbstractSupport _ -> "produce=[]";
+			case Strategy _,SubConclusion _ -> "produce=[], consume=[]";
+		};
 	}
 
 	private static String escapeDocstring(String label) {

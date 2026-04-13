@@ -34,7 +34,7 @@ import java.util.Set;
  * Concrete elements that override an abstract support are rendered outside the
  * cluster, connected to their placeholder by a dashed inv/inv arrow.
  */
-public class DotExporter implements JustificationVisitor<Void> {
+public class DotExporter extends AbstractModelExporter {
 
 	private static final String INDENT = "  ";
 	private static final int WRAP_WIDTH = 40;
@@ -102,9 +102,6 @@ public class DotExporter implements JustificationVisitor<Void> {
 
 	// -------------------------------------------------------------------------
 
-	private final StringBuilder builder = new StringBuilder();
-	private String currentModelName;
-
 	/**
 	 * Ids overridden by the current model itself ({@code concreteOverrides()}).
 	 * Used for leaf-edge ghost routing in the direct-supports path.
@@ -142,24 +139,6 @@ public class DotExporter implements JustificationVisitor<Void> {
 	// ---------------------------------------------------------------------------
 	// Unit and model visit methods
 	// ---------------------------------------------------------------------------
-
-	@Override
-	public Void visit(Unit unit) {
-		throw new UnsupportedOperationException(
-				"DotExporter operates on a single model — use SelectModel to extract one from a Unit");
-	}
-
-	@Override
-	public Void visit(Justification justification) {
-		exportModelBody(justification);
-		return null;
-	}
-
-	@Override
-	public Void visit(Template template) {
-		exportModelBody(template);
-		return null;
-	}
 
 	// ---------------------------------------------------------------------------
 	// Element visit methods (for elements rendered outside clusters)
@@ -199,7 +178,8 @@ public class DotExporter implements JustificationVisitor<Void> {
 	// Core export logic
 	// ---------------------------------------------------------------------------
 
-	private void exportModelBody(JustificationModel<?> model) {
+	@Override
+	protected void exportModel(JustificationModel<?> model) {
 		currentModelName = model.getName();
 		overriddenIds = model.concreteOverrides().stream()
 				.map(JustificationElement::id).collect(toSet());
@@ -385,15 +365,13 @@ public class DotExporter implements JustificationVisitor<Void> {
 
 	/** Returns the {@link NodeStyle} for the given element type. */
 	private static NodeStyle styleForElement(JustificationElement element) {
-		if (element instanceof Conclusion)
-			return CONCLUSION_STYLE;
-		if (element instanceof SubConclusion)
-			return SUB_CONCLUSION_STYLE;
-		if (element instanceof Strategy)
-			return STRATEGY_STYLE;
-		if (element instanceof Evidence)
-			return EVIDENCE_STYLE;
-		return ABSTRACT_SUPPORT_STYLE; // AbstractSupport
+		return switch (element) {
+			case Conclusion _ -> CONCLUSION_STYLE;
+			case SubConclusion _ -> SUB_CONCLUSION_STYLE;
+			case Strategy _ -> STRATEGY_STYLE;
+			case Evidence _ -> EVIDENCE_STYLE;
+			case AbstractSupport _ -> ABSTRACT_SUPPORT_STYLE;
+		};
 	}
 
 	/**
@@ -425,10 +403,6 @@ public class DotExporter implements JustificationVisitor<Void> {
 	 */
 	private static String qualifyForChild(String id, String prefix) {
 		return id.contains(":") ? id : prefix + ":" + id;
-	}
-
-	private String qualify(String elementId) {
-		return currentModelName + ":" + elementId;
 	}
 
 	private static String quoted(String value) {
