@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Checks structural invariants of justification models.
@@ -107,85 +108,50 @@ public final class ConsistencyValidator {
 								.computeIfAbsent(s.id(), k -> new ArrayList<>())
 								.add(((JustificationElement) leaf).id())));
 
+		String modelName = model.getName();
 		List<Violation> violations = new ArrayList<>();
-		Set<String> globalVisited = new HashSet<>();
-		for (String start : edges.keySet()) {
-			if (!globalVisited.contains(start)) {
-				detectCycle(start, edges, globalVisited, new HashSet<>(),
-						model.getName(), ctx, violations);
-			}
-		}
+		GraphCycles.detect(edges.keySet(), Function.identity(),
+				node -> edges.getOrDefault(node, List.of()), new HashSet<>(),
+				node -> violations.add(new Violation("acyclic-support",
+						"Cycle in support graph at element '" + node
+								+ "' in model '" + modelName + "'",
+						ctx.locationOf(modelName, node))));
 		return violations;
-	}
-
-	private void detectCycle(String node, Map<String, List<String>> edges,
-			Set<String> globalVisited, Set<String> currentPath,
-			String modelName, ValidationContext ctx,
-			List<Violation> violations) {
-		if (currentPath.contains(node)) {
-			violations.add(new Violation("acyclic-support",
-					"Cycle in support graph at element '" + node
-							+ "' in model '" + modelName + "'",
-					ctx.locationOf(modelName, node)));
-			return;
-		}
-		if (globalVisited.contains(node)) {
-			return;
-		}
-		globalVisited.add(node);
-		currentPath.add(node);
-		List<String> nexts = edges.getOrDefault(node, List.of());
-		nexts.forEach(next -> detectCycle(next, edges, globalVisited,
-				currentPath, modelName, ctx, violations));
-		currentPath.remove(node);
 	}
 
 	private List<Violation> checkAcyclicImplements(Unit unit,
 			ValidationContext ctx) {
 		List<Violation> violations = new ArrayList<>();
-		Set<String> globalVisited = new HashSet<>();
-		for (JustificationModel<?> model : unit.getModels()) {
-			if (!globalVisited.contains(model.getName())) {
-				walkImplementsChain(model, globalVisited, new HashSet<>(), ctx,
-						violations);
-			}
-		}
+		GraphCycles
+				.detect(unit.getModels(), JustificationModel::getName,
+						ConsistencyValidator::parentsOf, new HashSet<>(),
+						m -> violations.add(new Violation("acyclic-implements",
+								"Cycle in implements chain at model '"
+										+ m.getName() + "'",
+								ctx.locationOf(m.getName()))));
 		return violations;
-	}
-
-	private void walkImplementsChain(JustificationModel<?> model,
-			Set<String> globalVisited, Set<String> currentChain,
-			ValidationContext ctx, List<Violation> violations) {
-		String name = model.getName();
-		if (currentChain.contains(name)) {
-			violations.add(new Violation("acyclic-implements",
-					"Cycle in implements chain at model '" + name + "'",
-					ctx.locationOf(name)));
-			return;
-		}
-		if (globalVisited.contains(name)) {
-			return;
-		}
-		globalVisited.add(name);
-		currentChain.add(name);
-		model.getParent().ifPresent(parent -> walkImplementsChain(parent,
-				globalVisited, currentChain, ctx, violations));
-		currentChain.remove(name);
 	}
 
 	private List<Violation> checkAcyclicImplements(
 			JustificationModel<?> model) {
-		Set<String> seen = new HashSet<>();
-		JustificationModel<?> current = model;
-		while (current != null) {
-			if (!seen.add(current.getName())) {
-				return List.of(new Violation("acyclic-implements",
-						"Cycle in implements chain at model '"
-								+ current.getName() + "'",
-						SourceLocation.UNKNOWN));
-			}
-			current = current.getParent().orElse(null);
-		}
-		return List.of();
+		List<Violation> violations = new ArrayList<>();
+		GraphCycles
+				.detect(List.of(model), JustificationModel::getName,
+						ConsistencyValidator::parentsOf, new HashSet<>(),
+						m -> violations.add(new Violation("acyclic-implements",
+								"Cycle in implements chain at model '"
+										+ m.getName() + "'",
+								SourceLocation.UNKNOWN)));
+		return violations;
+	}
+
+	/**
+	 * Returns the direct parent of {@code model} as a singleton list, or empty.
+	 */
+	private static List<JustificationModel<?>> parentsOf(
+			JustificationModel<?> model) {
+		List<JustificationModel<?>> result = new ArrayList<>(1);
+		model.getParent().ifPresent(result::add);
+		return result;
 	}
 }
