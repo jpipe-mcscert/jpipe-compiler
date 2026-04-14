@@ -18,6 +18,19 @@ import java.util.Map;
  */
 public final class CompilationContext {
 
+	// ---- stat keys ----------------------------------------------------------
+	// Written by ActionListInterpretation via recordStat(); read by
+	// DiagnosticReport via stats(). Both sides must use the same key string.
+
+	/** Total number of commands in the action list. */
+	public static final String STAT_COMMANDS_TOTAL = "commands.total";
+
+	/** Number of macro commands in the action list. */
+	public static final String STAT_COMMANDS_MACROS = "commands.macros";
+
+	/** Total number of execution-engine deferral rounds. */
+	public static final String STAT_COMMANDS_DEFERRALS = "commands.deferrals";
+
 	private final String sourcePath;
 	private final List<Diagnostic> diagnostics = new ArrayList<>();
 	private final Map<String, Long> stats = new LinkedHashMap<>();

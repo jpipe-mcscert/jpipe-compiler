@@ -2,6 +2,9 @@ package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import ca.mcscert.jpipe.commands.ExecutedAction;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
+import static ca.mcscert.jpipe.compiler.model.CompilationContext.STAT_COMMANDS_DEFERRALS;
+import static ca.mcscert.jpipe.compiler.model.CompilationContext.STAT_COMMANDS_MACROS;
+import static ca.mcscert.jpipe.compiler.model.CompilationContext.STAT_COMMANDS_TOTAL;
 import ca.mcscert.jpipe.compiler.model.Diagnostic;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.JustificationModel;
@@ -31,6 +34,14 @@ import java.util.stream.Collectors;
  */
 public final class DiagnosticReport extends Transformation<Unit, String> {
 
+	private static final String HDR_DIAGNOSTICS = "=== Diagnostics ===\n";
+	private static final String HDR_ACTION_STATS = "\n=== Action Statistics ===\n";
+	private static final String HDR_MODEL_SUMMARY = "\n=== Model Summary ===\n";
+	private static final String HDR_EXECUTED_ACTIONS = "\n=== Executed Actions ===\n";
+	private static final String HDR_SYMBOL_TABLE = "\n=== Symbol Table ===\n";
+	private static final String INDENT = "  ";
+	private static final String ARROW = "\u2192";
+
 	@Override
 	protected String run(Unit input, CompilationContext ctx) {
 		StringBuilder sb = new StringBuilder();
@@ -44,7 +55,7 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 	}
 
 	private void appendDiagnostics(StringBuilder sb, CompilationContext ctx) {
-		sb.append("=== Diagnostics ===\n");
+		sb.append(HDR_DIAGNOSTICS);
 		if (ctx.diagnostics().isEmpty()) {
 			sb.append("(none)\n");
 		} else {
@@ -65,17 +76,17 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 		if (stats.isEmpty()) {
 			return;
 		}
-		sb.append("\n=== Action Statistics ===\n");
-		long total = stats.getOrDefault("commands.total", 0L);
-		long macros = stats.getOrDefault("commands.macros", 0L);
-		long deferrals = stats.getOrDefault("commands.deferrals", 0L);
+		sb.append(HDR_ACTION_STATS);
+		long total = stats.getOrDefault(STAT_COMMANDS_TOTAL, 0L);
+		long macros = stats.getOrDefault(STAT_COMMANDS_MACROS, 0L);
+		long deferrals = stats.getOrDefault(STAT_COMMANDS_DEFERRALS, 0L);
 		sb.append(String.format("commands: %d total (%d macro)%n", total,
 				macros));
 		sb.append(String.format("deferrals: %d%n", deferrals));
 	}
 
 	private void appendModelSummary(StringBuilder sb, Unit unit) {
-		sb.append("\n=== Model Summary ===\n");
+		sb.append(HDR_MODEL_SUMMARY);
 		Map<String, List<String>> implementors = new LinkedHashMap<>();
 		for (JustificationModel<?> model : unit.getModels()) {
 			model.getParent()
@@ -140,10 +151,10 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 		if (actions.isEmpty()) {
 			return;
 		}
-		sb.append("\n=== Executed Actions ===\n");
+		sb.append(HDR_EXECUTED_ACTIONS);
 		for (int i = 0; i < actions.size(); i++) {
 			ExecutedAction action = actions.get(i);
-			String indent = "  ".repeat(action.depth());
+			String indent = INDENT.repeat(action.depth());
 			String label = action.isMacro() ? "[macro] " : "";
 			sb.append(String.format("%3d. %s%s%s%n", i + 1, indent, label,
 					action.command()));
@@ -151,7 +162,7 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 	}
 
 	private void appendSymbolTable(StringBuilder sb, Unit unit) {
-		sb.append("\n=== Symbol Table ===\n");
+		sb.append(HDR_SYMBOL_TABLE);
 		if (unit.getModels().isEmpty()) {
 			sb.append("(empty)\n");
 			return;
@@ -212,10 +223,12 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 			if (!modelAliases.isEmpty()) {
 				int maxLen = modelAliases.keySet().stream()
 						.mapToInt(String::length).max().orElse(0);
-				modelAliases.forEach((oldId,
-						newId) -> sb.append(String.format(
-								"  %-" + maxLen + "s  \u2192 %s  [alias]%n",
-								oldId, newId)));
+				modelAliases
+						.forEach((oldId,
+								newId) -> sb.append(String.format(
+										"  %-" + maxLen + "s  " + ARROW
+												+ " %s  [alias]%n",
+										oldId, newId)));
 			}
 		}
 	}

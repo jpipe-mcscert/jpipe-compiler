@@ -12,6 +12,7 @@ import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
+import ca.mcscert.jpipe.compiler.model.DiagnosticCodes;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.lang.JPipeBaseListener;
 import ca.mcscert.jpipe.lang.JPipeParser;
@@ -125,8 +126,7 @@ public final class ActionListProvider
 		@Override
 		public void enterLoad(JPipeParser.LoadContext ctx) {
 			String raw = ctx.path.getText();
-			// Strip surrounding quotes produced by the STRING lexer token
-			String path = raw.substring(1, raw.length() - 1);
+			String path = strip(raw);
 			String namespace = ctx.namespace != null
 					? ctx.namespace.getText()
 					: null;
@@ -271,7 +271,7 @@ public final class ActionListProvider
 			String modelId = buildContext.justificationId;
 			if (!seenConclusionModels.add(modelId)) {
 				compilationCtx.error(loc.line(), loc.column(),
-						"[single-conclusion] Model '" + modelId
+						DiagnosticCodes.SINGLE_CONCLUSION + " Model '" + modelId
 								+ "' declares multiple conclusions");
 				return;
 			}
@@ -354,7 +354,7 @@ public final class ActionListProvider
 			String parent = buildContext.parentTemplateName;
 			if (parent == null) {
 				compilationCtx.error(loc.line(), loc.column(),
-						"[unresolved-override] '" + identifier
+						DiagnosticCodes.UNRESOLVED_OVERRIDE + " '" + identifier
 								+ "' is qualified but model '"
 								+ buildContext.justificationId
 								+ "' implements no template");
@@ -366,7 +366,21 @@ public final class ActionListProvider
 			return true;
 		}
 
+		/**
+		 * Removes the surrounding double-quote characters from a STRING lexer
+		 * token. The grammar guarantees that every label and path token is
+		 * quoted, so receiving an unquoted string here indicates a
+		 * grammar/parser mismatch.
+		 *
+		 * @throws IllegalArgumentException
+		 *             if {@code s} is not a properly quoted string literal.
+		 */
 		private static String strip(String s) {
+			if (s.length() < 2 || s.charAt(0) != '"'
+					|| s.charAt(s.length() - 1) != '"') {
+				throw new IllegalArgumentException(
+						"Expected a quoted string literal, got: " + s);
+			}
 			return s.substring(1, s.length() - 1);
 		}
 	}
