@@ -5,13 +5,8 @@ import ca.mcscert.jpipe.commands.CommandExecutionException;
 import ca.mcscert.jpipe.commands.DeadlockException;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.MacroCommand;
-import ca.mcscert.jpipe.commands.linking.AddSupport;
-import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
-import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
-import ca.mcscert.jpipe.compiler.model.DiagnosticCodes;
 import ca.mcscert.jpipe.compiler.model.Transformation;
-import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.List;
 
@@ -41,14 +36,15 @@ public final class ActionListInterpretation
 		try {
 			unit = engine.spawn(ctx.sourcePath(), input);
 		} catch (DeadlockException ex) {
-			diagnoseDeadlock(ex.stuckCommands(), ex.partialUnit(), ctx);
+			ExecutionFailureDiagnostics.diagnoseDeadlock(ex.stuckCommands(),
+					ex.partialUnit(), ctx);
 			ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,
 					engine.totalDeferrals());
 			ctx.recordActions(engine.executedCommands());
 			return ex.partialUnit();
 		} catch (CommandExecutionException ex) {
-			diagnoseExecutionFailure(ex.failedCommand(), ex.partialUnit(),
-					ex.getCause(), ctx);
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(
+					ex.failedCommand(), ex.partialUnit(), ex.getCause(), ctx);
 			ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,
 					engine.totalDeferrals());
 			ctx.recordActions(engine.executedCommands());
@@ -59,112 +55,5 @@ public final class ActionListInterpretation
 				engine.totalDeferrals());
 		ctx.recordActions(engine.executedCommands());
 		return unit;
-	}
-
-	private void diagnoseExecutionFailure(Command cmd, Unit unit,
-			Throwable cause, CompilationContext ctx) {
-		switch (cmd) {
-			case ImplementsTemplate c -> {
-				SourceLocation loc = c.location();
-				boolean modelHasParent = unit.findModel(c.modelName())
-						.flatMap(m -> m.getParent()).isPresent();
-				if (modelHasParent) {
-					error(ctx, loc,
-							DiagnosticCodes.CYCLIC_IMPLEMENTS
-									+ " cycle detected: '" + c.modelName()
-									+ "' and '" + c.templateName()
-									+ "' mutually implement each other");
-				} else {
-					error(ctx, loc, DiagnosticCodes.IMPLEMENTS_ERROR
-							+ " cannot apply 'implements' for '" + c.modelName()
-							+ "' extends '" + c.templateName() + "': "
-							+ cause.getMessage());
-				}
-			}
-			case AddSupport c -> error(ctx, c.location(),
-					DiagnosticCodes.INVALID_SUPPORT + " " + cause.getMessage());
-			default -> ctx.error(DiagnosticCodes.EXECUTION_ERROR + " " + cmd
-					+ ": " + cause.getMessage());
-		}
-		ctx.error("model construction failed — see errors above");
-	}
-
-	private void diagnoseDeadlock(List<Command> stuck, Unit unit,
-			CompilationContext ctx) {
-		for (Command cmd : stuck) {
-			switch (cmd) {
-				case AddSupport c -> diagnoseAddSupport(c, unit, ctx);
-				case ImplementsTemplate c ->
-					diagnoseImplementsTemplate(c, unit, ctx);
-				case OverrideAbstractSupport c ->
-					diagnoseOverrideAbstractSupport(c, unit, ctx);
-				default -> ctx.error(DiagnosticCodes.UNRESOLVED_SYMBOL
-						+ " cannot execute: " + cmd);
-			}
-		}
-		ctx.error("unresolved symbol(s) — model cannot be built");
-	}
-
-	private void diagnoseAddSupport(AddSupport c, Unit unit,
-			CompilationContext ctx) {
-		SourceLocation loc = c.location();
-		if (unit.findModel(c.container()).isEmpty()) {
-			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + " unknown model '"
-					+ c.container() + "'");
-			return;
-		}
-		var model = unit.findModel(c.container()).get();
-		if (model.findById(c.supportableId()).isEmpty()) {
-			error(ctx, loc,
-					DiagnosticCodes.UNKNOWN_ELEMENT + " unknown element '"
-							+ c.supportableId() + "' in model '" + c.container()
-							+ "'");
-		}
-		if (model.findById(c.supporterId()).isEmpty()) {
-			error(ctx, loc,
-					DiagnosticCodes.UNKNOWN_ELEMENT + " unknown element '"
-							+ c.supporterId() + "' in model '" + c.container()
-							+ "'");
-		}
-	}
-
-	private void diagnoseImplementsTemplate(ImplementsTemplate c, Unit unit,
-			CompilationContext ctx) {
-		SourceLocation loc = c.location();
-		if (unit.findModel(c.modelName()).isEmpty()) {
-			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + " unknown model '"
-					+ c.modelName() + "'");
-			return;
-		}
-		if (unit.findModel(c.templateName()).isEmpty()) {
-			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + " unknown model '"
-					+ c.templateName() + "'");
-		}
-	}
-
-	private void diagnoseOverrideAbstractSupport(OverrideAbstractSupport c,
-			Unit unit, CompilationContext ctx) {
-		SourceLocation loc = c.location();
-		if (unit.findModel(c.container()).isEmpty()) {
-			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + " unknown model '"
-					+ c.container() + "'");
-			return;
-		}
-		var model = unit.findModel(c.container()).get();
-		if (model.findById(c.qualifiedId()).isEmpty()) {
-			error(ctx, loc,
-					DiagnosticCodes.UNKNOWN_ELEMENT + " unknown element '"
-							+ c.qualifiedId() + "' in model '" + c.container()
-							+ "'");
-		}
-	}
-
-	private static void error(CompilationContext ctx, SourceLocation loc,
-			String message) {
-		if (loc.isKnown()) {
-			ctx.error(loc.line(), loc.column(), message);
-		} else {
-			ctx.error(message);
-		}
 	}
 }

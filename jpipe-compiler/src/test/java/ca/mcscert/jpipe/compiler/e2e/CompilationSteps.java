@@ -27,6 +27,8 @@ import java.io.InputStream;
 /** Step definitions for end-to-end compilation scenarios. */
 public class CompilationSteps {
 
+	private static final String EXAMPLES_DIR = "examples.dir";
+
 	private String sourcePath;
 	private CompilationContext ctx;
 	private Unit unit;
@@ -37,7 +39,7 @@ public class CompilationSteps {
 
 	@Given("the source file {string}")
 	public void theSourceFile(String filename) {
-		sourcePath = System.getProperty("examples.dir") + "/" + filename;
+		sourcePath = System.getProperty(EXAMPLES_DIR) + "/" + filename;
 	}
 
 	@When("I compile it into a unit")
@@ -142,33 +144,27 @@ public class CompilationSteps {
 	@Then("the abstract support {string} supports the strategy {string}")
 	public void abstractSupportSupportsStrategy(String abstractSupportId,
 			String strategyId) {
-		Strategy strategy = (Strategy) currentModel.findById(strategyId)
-				.orElseThrow(() -> new AssertionError(
-						"No strategy with id: " + strategyId));
-		assertThat(strategy.getSupports())
-				.extracting(sl -> ((JustificationElement) sl).id())
-				.contains(abstractSupportId);
+		assertSupportsStrategy(abstractSupportId, strategyId);
 	}
 
 	@Then("the evidence {string} supports the strategy {string}")
 	public void evidenceSupportsStrategy(String evidenceId, String strategyId) {
-		Strategy strategy = (Strategy) currentModel.findById(strategyId)
-				.orElseThrow(() -> new AssertionError(
-						"No strategy with id: " + strategyId));
-		assertThat(strategy.getSupports())
-				.extracting(sl -> ((JustificationElement) sl).id())
-				.contains(evidenceId);
+		assertSupportsStrategy(evidenceId, strategyId);
 	}
 
 	@Then("the sub-conclusion {string} supports the strategy {string}")
 	public void subConclusionSupportsStrategy(String subConclusionId,
 			String strategyId) {
+		assertSupportsStrategy(subConclusionId, strategyId);
+	}
+
+	private void assertSupportsStrategy(String supporterId, String strategyId) {
 		Strategy strategy = (Strategy) currentModel.findById(strategyId)
 				.orElseThrow(() -> new AssertionError(
 						"No strategy with id: " + strategyId));
 		assertThat(strategy.getSupports())
 				.extracting(sl -> ((JustificationElement) sl).id())
-				.contains(subConclusionId);
+				.contains(supporterId);
 	}
 
 	@Then("the model {string} is declared at line {int}")

@@ -168,17 +168,8 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 			return;
 		}
 
-		// Pre-group aliases by model name for O(1) lookup per model.
-		Map<String, Map<String, String>> aliasesByModel = new LinkedHashMap<>();
-		unit.aliases().forEach((key, newId) -> {
-			int slash = key.indexOf('/');
-			if (slash >= 0) {
-				aliasesByModel
-						.computeIfAbsent(key.substring(0, slash),
-								k -> new LinkedHashMap<>())
-						.put(key.substring(slash + 1), newId);
-			}
-		});
+		Map<String, Map<String, String>> aliasesByModel = groupAliasesByModel(
+				unit);
 
 		for (JustificationModel<?> model : unit.getModels()) {
 			String modelName = model.getName();
@@ -189,14 +180,7 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 			sb.append(String.format("%s \"%s\"  [%s]%n", kind, modelName,
 					modelLoc));
 
-			// Collect all elements in a stable order.
-			List<JustificationElement> elements = new ArrayList<>();
-			model.conclusion().ifPresent(elements::add);
-			elements.addAll(model.subConclusions());
-			elements.addAll(model.strategies());
-			elements.addAll(model.evidence());
-			elements.addAll(model.elementsOfType(AbstractSupport.class));
-
+			List<JustificationElement> elements = collectElements(model);
 			if (!elements.isEmpty()) {
 				int maxLen = elements.stream().mapToInt(e -> e.id().length())
 						.max().orElse(0);
@@ -231,5 +215,41 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 										oldId, newId)));
 			}
 		}
+	}
+
+	/**
+	 * Pre-groups the unit's alias map by model name for O(1) lookup per model.
+	 *
+	 * <p>
+	 * Alias keys use the convention {@code "modelName/elementId"}; the slash
+	 * separates the model scope from the element id within it.
+	 */
+	private static Map<String, Map<String, String>> groupAliasesByModel(
+			Unit unit) {
+		Map<String, Map<String, String>> byModel = new LinkedHashMap<>();
+		unit.aliases().forEach((key, newId) -> {
+			int slash = key.indexOf('/');
+			if (slash >= 0) {
+				byModel.computeIfAbsent(key.substring(0, slash),
+						k -> new LinkedHashMap<>())
+						.put(key.substring(slash + 1), newId);
+			}
+		});
+		return byModel;
+	}
+
+	/**
+	 * Collects all elements of {@code model} in stable display order:
+	 * conclusion, sub-conclusions, strategies, evidence, abstract supports.
+	 */
+	private static List<JustificationElement> collectElements(
+			JustificationModel<?> model) {
+		List<JustificationElement> elements = new ArrayList<>();
+		model.conclusion().ifPresent(elements::add);
+		elements.addAll(model.subConclusions());
+		elements.addAll(model.strategies());
+		elements.addAll(model.evidence());
+		elements.addAll(model.elementsOfType(AbstractSupport.class));
+		return elements;
 	}
 }
