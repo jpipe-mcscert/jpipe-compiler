@@ -44,23 +44,37 @@ public class RenderWithDot extends Transformation<String, byte[]> {
 					e);
 		}
 
+		// Write dot source in a virtual thread to avoid deadlock when the
+		// process pipe buffer is smaller than the input.
 		Thread writer = Thread.ofVirtual().start(() -> {
 			try (OutputStream stdin = process.getOutputStream()) {
 				stdin.write(dotSource.getBytes(StandardCharsets.UTF_8));
 			} catch (IOException ignored) {
+				// Process was destroyed before we finished writing; safe to
+				// ignore.
 			}
 		});
 
-		byte[] result = process.getInputStream().readAllBytes();
-		writer.join();
-		int exitCode = process.waitFor();
-
-		if (exitCode != 0) {
-			String error = new String(process.getErrorStream().readAllBytes(),
-					StandardCharsets.UTF_8);
-			throw new IOException(
-					"dot exited with code " + exitCode + ": " + error.strip());
+		try {
+			byte[] result = process.getInputStream().readAllBytes();
+			writer.join();
+			int exitCode = process.waitFor();
+			if (exitCode != 0) {
+				String error = new String(
+						process.getErrorStream().readAllBytes(),
+						StandardCharsets.UTF_8);
+				throw new IOException("dot exited with code " + exitCode + ": "
+						+ error.strip());
+			}
+			return result;
+		} finally {
+			// If readAllBytes(), join(), or waitFor() threw, kill the process.
+			// destroyForcibly() is a no-op when the process has already exited.
+			// The writer thread self-terminates once the broken pipe raises
+			// IOException, so no explicit join is needed on the error path.
+			if (process.isAlive()) {
+				process.destroyForcibly();
+			}
 		}
-		return result;
 	}
 }
