@@ -216,36 +216,38 @@ public final class LoadResolver
 		return result;
 	}
 
-	private static String p(String ns, String name) {
+	private static String qualify(String ns, String name) {
 		return ns + ":" + name;
 	}
 
 	private static Command rewrite(String ns, Command cmd) {
 		return switch (cmd) {
-			case CreateJustification c ->
-				new CreateJustification(p(ns, c.identifier()), c.location());
+			case CreateJustification c -> new CreateJustification(
+					qualify(ns, c.identifier()), c.location());
 			case CreateTemplate c ->
-				new CreateTemplate(p(ns, c.identifier()), c.location());
+				new CreateTemplate(qualify(ns, c.identifier()), c.location());
 			case CreateConclusion c ->
-				new CreateConclusion(p(ns, c.container()), c.identifier(),
+				new CreateConclusion(qualify(ns, c.container()), c.identifier(),
 						c.label(), c.location());
-			case CreateEvidence c -> new CreateEvidence(p(ns, c.container()),
-					c.identifier(), c.label(), c.location());
-			case CreateStrategy c -> new CreateStrategy(p(ns, c.container()),
-					c.identifier(), c.label(), c.location());
+			case CreateEvidence c ->
+				new CreateEvidence(qualify(ns, c.container()), c.identifier(),
+						c.label(), c.location());
+			case CreateStrategy c ->
+				new CreateStrategy(qualify(ns, c.container()), c.identifier(),
+						c.label(), c.location());
 			case CreateSubConclusion c ->
-				new CreateSubConclusion(p(ns, c.container()), c.identifier(),
-						c.label(), c.location());
+				new CreateSubConclusion(qualify(ns, c.container()),
+						c.identifier(), c.label(), c.location());
 			case CreateAbstractSupport c ->
-				new CreateAbstractSupport(p(ns, c.container()), c.identifier(),
-						c.label(), c.location());
+				new CreateAbstractSupport(qualify(ns, c.container()),
+						c.identifier(), c.label(), c.location());
 			case ImplementsTemplate c ->
-				new ImplementsTemplate(p(ns, c.modelName()),
-						p(ns, c.templateName()), c.location());
-			case AddSupport c -> new AddSupport(p(ns, c.container()),
+				new ImplementsTemplate(qualify(ns, c.modelName()),
+						qualify(ns, c.templateName()), c.location());
+			case AddSupport c -> new AddSupport(qualify(ns, c.container()),
 					c.supportableId(), c.supporterId(), c.location());
 			case OverrideAbstractSupport c ->
-				new OverrideAbstractSupport(p(ns, c.container()),
+				new OverrideAbstractSupport(qualify(ns, c.container()),
 						c.qualifiedId(), c.newType(), c.label(), c.location());
 			default -> cmd;
 		};

@@ -123,12 +123,12 @@ public abstract class Transformation<I, O> {
 		}
 		try {
 			O result = run(in, ctx);
-			return Objects.requireNonNull(result, "Transformation ["
-					+ getClass().getSimpleName() + "] returned null");
+			return Objects.requireNonNull(result,
+					"Transformation [" + stepName() + "] returned null");
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new CompilationException(getClass().getSimpleName(), e);
+			throw new CompilationException(stepName(), e);
 		}
 	}
 

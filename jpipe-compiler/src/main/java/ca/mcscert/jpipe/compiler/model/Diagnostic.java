@@ -22,23 +22,31 @@ package ca.mcscert.jpipe.compiler.model;
 public record Diagnostic(Level level, String source, int line, int column,
 		String message) {
 
+	/**
+	 * Sentinel value for {@code line} and {@code column} when no location is
+	 * known.
+	 */
+	public static final int UNKNOWN_LOCATION = 0;
+
 	public enum Level {
 		ERROR, FATAL
 	}
 
 	/** True if this diagnostic carries a known source location. */
 	public boolean hasLocation() {
-		return line > 0;
+		return line > UNKNOWN_LOCATION;
 	}
 
 	// ── without location ────────────────────────────────────────────────────
 
 	public static Diagnostic error(String source, String message) {
-		return new Diagnostic(Level.ERROR, source, 0, 0, message);
+		return new Diagnostic(Level.ERROR, source, UNKNOWN_LOCATION,
+				UNKNOWN_LOCATION, message);
 	}
 
 	public static Diagnostic fatal(String source, String message) {
-		return new Diagnostic(Level.FATAL, source, 0, 0, message);
+		return new Diagnostic(Level.FATAL, source, UNKNOWN_LOCATION,
+				UNKNOWN_LOCATION, message);
 	}
 
 	// ── with location ────────────────────────────────────────────────────────
