@@ -18,6 +18,7 @@ import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
+import ca.mcscert.jpipe.operators.ModelKind;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -95,6 +96,22 @@ class AssembleOperatorTest {
 			List<Command> cmds = assemble.apply("result", List.of(j, t), ARGS);
 			Unit unit = engine.spawn("out", cmds);
 			assertThat(unit.get("result")).isInstanceOf(Template.class);
+		}
+
+		@Test
+		void resultKindIsJustificationWhenAllSourcesAreJustifications() {
+			var a = buildJustification("a", "C", "S", "E");
+			var b = buildJustification("b", "C", "S", "E");
+			assertThat(assemble.resultKind(List.of(a, b), ARGS))
+					.isEqualTo(ModelKind.JUSTIFICATION);
+		}
+
+		@Test
+		void resultKindIsTemplateWhenAnySourceIsTemplate() {
+			var j = buildJustification("j", "C", "S", "E");
+			var t = buildTemplate("t");
+			assertThat(assemble.resultKind(List.of(j, t), ARGS))
+					.isEqualTo(ModelKind.TEMPLATE);
 		}
 	}
 

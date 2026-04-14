@@ -87,6 +87,12 @@ class CompositionOperatorTest {
 			return new CreateJustification(name);
 		}
 
+		@Override
+		public ModelKind resultKind(List<JustificationModel<?>> sources,
+				Map<String, String> args) {
+			return ModelKind.JUSTIFICATION;
+		}
+
 		private static String shortId(String id) {
 			int colon = id.lastIndexOf(':');
 			return colon >= 0 ? id.substring(colon + 1) : id;

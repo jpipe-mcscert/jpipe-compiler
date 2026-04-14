@@ -48,11 +48,14 @@ public abstract class CompositionOperator {
 	}
 
 	/**
-	 * Returns the {@link ModelKind} of the model produced by this operator.
-	 * Defaults to {@link ModelKind#JUSTIFICATION}. Override in subclasses that
-	 * produce a {@code Template}.
+	 * Returns the {@link ModelKind} of the model produced by this operator for
+	 * the given {@code sources} and {@code args}. Defaults to
+	 * {@link ModelKind#JUSTIFICATION}. Override in subclasses whose result kind
+	 * depends on the input models (e.g. an operator that produces a
+	 * {@code Template} when any source is a {@code Template}).
 	 */
-	public ModelKind resultKind() {
+	public ModelKind resultKind(List<JustificationModel<?>> sources,
+			Map<String, String> args) {
 		return ModelKind.JUSTIFICATION;
 	}
 

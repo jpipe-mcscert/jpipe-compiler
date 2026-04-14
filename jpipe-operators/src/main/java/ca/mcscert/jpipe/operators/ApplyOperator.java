@@ -108,16 +108,16 @@ public final class ApplyOperator implements MacroCommand {
 		CompositionOperator op = operators.find(operatorName).orElseThrow(
 				() -> new InvalidOperatorCallException("Unknown operator: '"
 						+ operatorName + "' at " + location));
-		if (op.resultKind() != declaredKind) {
+		List<JustificationModel<?>> sources = sourceNames.stream()
+				.<JustificationModel<?>>map(context::get).toList();
+		ModelKind actualKind = op.resultKind(sources, arguments);
+		if (actualKind != declaredKind) {
 			throw new InvalidOperatorCallException(
 					"[execution-error] operator '" + operatorName
-							+ "' produces a "
-							+ op.resultKind().name().toLowerCase()
+							+ "' produces a " + actualKind.name().toLowerCase()
 							+ " but was declared as '"
 							+ declaredKind.name().toLowerCase() + "'");
 		}
-		List<JustificationModel<?>> sources = sourceNames.stream()
-				.<JustificationModel<?>>map(context::get).toList();
 		List<Command> composed = op.apply(resultName, sources, arguments,
 				location, context.locations());
 		return new Unifier(unificationEquivalences).unify(resultName, composed,

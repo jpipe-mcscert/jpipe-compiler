@@ -22,6 +22,7 @@ import ca.mcscert.jpipe.operators.AliasRegistry;
 import ca.mcscert.jpipe.operators.CompositionOperator;
 import ca.mcscert.jpipe.operators.EquivalenceRelation;
 import ca.mcscert.jpipe.operators.MergeFunction;
+import ca.mcscert.jpipe.operators.ModelKind;
 import ca.mcscert.jpipe.operators.SourcedElement;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +61,14 @@ public final class AssembleOperator extends CompositionOperator {
 
 	/** Id of the synthesized global conclusion in the result model. */
 	public static final String CONCLUSION_ID = "assembleConclusion";
+
+	@Override
+	public ModelKind resultKind(List<JustificationModel<?>> sources,
+			Map<String, String> args) {
+		return sources.stream().anyMatch(Template.class::isInstance)
+				? ModelKind.TEMPLATE
+				: ModelKind.JUSTIFICATION;
+	}
 
 	@Override
 	protected Set<String> requiredArguments() {
