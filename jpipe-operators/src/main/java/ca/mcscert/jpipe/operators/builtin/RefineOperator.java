@@ -76,14 +76,10 @@ public final class RefineOperator extends CompositionOperator {
 				.filter(s -> s != hookSource).findFirst().orElseThrow();
 
 		return (a,
-				b) -> (a.source() == hookSource
-						&& a.element().id().equals(hookElementId)
-						&& b.source() == refinementSource
-						&& b.element() instanceof Conclusion)
-						|| (b.source() == hookSource
-								&& b.element().id().equals(hookElementId)
-								&& a.source() == refinementSource
-								&& a.element() instanceof Conclusion);
+				b) -> isHookPair(a, b, hookSource, hookElementId,
+						refinementSource)
+						|| isHookPair(b, a, hookSource, hookElementId,
+								refinementSource);
 	}
 
 	@Override
@@ -122,6 +118,19 @@ public final class RefineOperator extends CompositionOperator {
 
 	// ── Helpers
 	// ───────────────────────────────────────────────────────────────
+
+	/**
+	 * Returns {@code true} if {@code hook} is the designated hook element and
+	 * {@code refinement} is the conclusion of the refinement source.
+	 */
+	private static boolean isHookPair(SourcedElement hook,
+			SourcedElement refinement, JustificationModel<?> hookSource,
+			String hookElementId, JustificationModel<?> refinementSource) {
+		return hook.source() == hookSource
+				&& hook.element().id().equals(hookElementId)
+				&& refinement.source() == refinementSource
+				&& refinement.element() instanceof Conclusion;
+	}
 
 	/**
 	 * Parses {@code "model/elementId"} into {@code ["model", "elementId"]}.
