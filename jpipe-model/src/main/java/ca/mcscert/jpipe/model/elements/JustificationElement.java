@@ -7,10 +7,8 @@ import ca.mcscert.jpipe.visitor.JustificationVisitor;
  * {@link AbstractSupport}, ensuring exhaustive pattern matching over all
  * element types.
  */
-public sealed interface JustificationElement
+public sealed interface JustificationElement extends ElementView
 		permits CommonElement, AbstractSupport {
-	String id();
-	String label();
 
 	default <R> R accept(JustificationVisitor<R> visitor) {
 		return switch (this) {

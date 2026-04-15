@@ -75,11 +75,16 @@ public final class RefineOperator extends CompositionOperator {
 		JustificationModel<?> refinementSource = sources.stream()
 				.filter(s -> s != hookSource).findFirst().orElseThrow();
 
-		return (a,
-				b) -> isHookPair(a, b, hookSource, hookElementId,
+		// Phase 1 always passes SourcedElement; the pattern match is always
+		// true.
+		// The guard keeps the lambda signature aligned with
+		// EquivalenceRelation.
+		return (a, b) -> a instanceof SourcedElement sa
+				&& b instanceof SourcedElement sb
+				&& (isHookPair(sa, sb, hookSource, hookElementId,
 						refinementSource)
-						|| isHookPair(b, a, hookSource, hookElementId,
-								refinementSource);
+						|| isHookPair(sb, sa, hookSource, hookElementId,
+								refinementSource));
 	}
 
 	@Override

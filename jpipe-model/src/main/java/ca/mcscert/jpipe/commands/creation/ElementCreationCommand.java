@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.commands.creation;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.model.SourceLocation;
+import ca.mcscert.jpipe.model.elements.ElementView;
 
 /**
  * Sealed interface common to all element-creation commands.
@@ -13,8 +14,13 @@ import ca.mcscert.jpipe.model.SourceLocation;
  * This eliminates repetitive {@code instanceof} chains in code that processes
  * creation commands generically (e.g.
  * {@link ca.mcscert.jpipe.operators.Unifier}).
+ *
+ * <p>
+ * Also implements {@link ElementView} so that equivalence relations and
+ * partition utilities can operate on commands directly, without wrapping them
+ * in live model objects.
  */
-public sealed interface ElementCreationCommand extends Command
+public sealed interface ElementCreationCommand extends Command, ElementView
 		permits CreateConclusion, CreateStrategy, CreateEvidence,
 		CreateSubConclusion, CreateAbstractSupport {
 
@@ -23,6 +29,18 @@ public sealed interface ElementCreationCommand extends Command
 
 	/** Id assigned to the new element. */
 	String identifier();
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>
+	 * Delegates to {@link #identifier()} so that {@link ElementView} callers
+	 * see the same value as domain code that uses {@code identifier()}.
+	 */
+	@Override
+	default String id() {
+		return identifier();
+	}
 
 	/** Display label of the new element. */
 	String label();

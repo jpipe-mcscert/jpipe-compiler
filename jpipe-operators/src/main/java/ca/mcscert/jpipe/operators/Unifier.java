@@ -4,9 +4,6 @@ import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.RegisterAlias;
-import ca.mcscert.jpipe.model.Justification;
-import ca.mcscert.jpipe.model.SourceLocation;
-import ca.mcscert.jpipe.model.elements.Evidence;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -49,9 +46,6 @@ public final class Unifier {
 	static final String UNIFY_EXCLUDE_KEY = "unifyExclude";
 	static final String DEFAULT_UNIFY_BY = "sameLabel";
 
-	private static final Justification DUMMY_SOURCE = new Justification(
-			"__unifier__");
-
 	private final UnificationEquivalenceRegistry registry;
 
 	public Unifier(UnificationEquivalenceRegistry registry) {
@@ -92,22 +86,23 @@ public final class Unifier {
 		List<Command> elementCmds = commands.stream().filter(Unifier::isElement)
 				.toList();
 
-		// Build SourcedElement wrappers for non-excluded elements
-		List<SourcedElement> candidates = elementCmds.stream()
+		// Gather non-excluded element commands — no wrapping needed
+		List<ElementCreationCommand> candidates = elementCmds.stream()
 				.filter(cmd -> !excluded.contains(idOf(cmd)))
-				.map(Unifier::toSourcedElement).toList();
+				.map(cmd -> (ElementCreationCommand) cmd).toList();
 
 		// Partition by equivalence relation
-		List<ElementGroup> groups = Partitions.partition(candidates, equiv);
+		List<List<ElementCreationCommand>> groups = Partitions
+				.partitionBy(candidates, equiv);
 
 		// Build phase4Aliases: oldId → unified_N for every group with >1 member
 		Map<String, String> phase4Aliases = new LinkedHashMap<>();
 		int counter = 0;
-		for (ElementGroup group : groups) {
-			if (group.members().size() > 1) {
+		for (List<ElementCreationCommand> group : groups) {
+			if (group.size() > 1) {
 				String unifiedId = UNIFIED_PREFIX + counter++;
-				for (SourcedElement se : group.members()) {
-					phase4Aliases.put(se.element().id(), unifiedId);
+				for (ElementCreationCommand ecc : group) {
+					phase4Aliases.put(ecc.identifier(), unifiedId);
 				}
 			}
 		}
@@ -183,18 +178,6 @@ public final class Unifier {
 	/** Extracts the label from an element-creation command. */
 	static String labelOf(Command cmd) {
 		return ((ElementCreationCommand) cmd).label();
-	}
-
-	/**
-	 * Wraps an element-creation command in a {@link SourcedElement} for
-	 * equivalence checking. Uses a shared dummy source and a minimal
-	 * {@link Evidence} element (only id and label matter for label-based
-	 * relations).
-	 */
-	private static SourcedElement toSourcedElement(Command cmd) {
-		ElementCreationCommand ecc = (ElementCreationCommand) cmd;
-		return new SourcedElement(new Evidence(ecc.identifier(), ecc.label()),
-				DUMMY_SOURCE, SourceLocation.UNKNOWN);
 	}
 
 	/**
