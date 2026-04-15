@@ -1,11 +1,7 @@
 package ca.mcscert.jpipe.operators;
 
 import ca.mcscert.jpipe.commands.Command;
-import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
-import ca.mcscert.jpipe.commands.creation.CreateConclusion;
-import ca.mcscert.jpipe.commands.creation.CreateEvidence;
-import ca.mcscert.jpipe.commands.creation.CreateStrategy;
-import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
+import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.RegisterAlias;
 import ca.mcscert.jpipe.model.Justification;
@@ -172,72 +168,41 @@ public final class Unifier {
 	}
 
 	/**
-	 * Returns true for Create* commands that create model elements (not
-	 * models).
+	 * Returns true for commands that create a model element (not a model
+	 * itself).
 	 */
 	static boolean isElement(Command cmd) {
-		return cmd instanceof CreateConclusion || cmd instanceof CreateStrategy
-				|| cmd instanceof CreateEvidence
-				|| cmd instanceof CreateSubConclusion
-				|| cmd instanceof CreateAbstractSupport;
+		return cmd instanceof ElementCreationCommand;
 	}
 
-	/** Extracts the element id from a Create* element command. */
+	/** Extracts the element id from an element-creation command. */
 	static String idOf(Command cmd) {
-		return switch (cmd) {
-			case CreateConclusion c -> c.identifier();
-			case CreateStrategy s -> s.identifier();
-			case CreateEvidence e -> e.identifier();
-			case CreateSubConclusion sc -> sc.identifier();
-			case CreateAbstractSupport as -> as.identifier();
-			default -> throw new IllegalArgumentException(
-					"Not an element command: " + cmd);
-		};
+		return ((ElementCreationCommand) cmd).identifier();
 	}
 
-	/** Extracts the label from a Create* element command. */
+	/** Extracts the label from an element-creation command. */
 	static String labelOf(Command cmd) {
-		return switch (cmd) {
-			case CreateConclusion c -> c.label();
-			case CreateStrategy s -> s.label();
-			case CreateEvidence e -> e.label();
-			case CreateSubConclusion sc -> sc.label();
-			case CreateAbstractSupport as -> as.label();
-			default -> throw new IllegalArgumentException(
-					"Not an element command: " + cmd);
-		};
+		return ((ElementCreationCommand) cmd).label();
 	}
 
 	/**
-	 * Wraps a Create* command in a synthetic {@link SourcedElement} for
+	 * Wraps an element-creation command in a {@link SourcedElement} for
 	 * equivalence checking. Uses a shared dummy source and a minimal
 	 * {@link Evidence} element (only id and label matter for label-based
 	 * relations).
 	 */
 	private static SourcedElement toSourcedElement(Command cmd) {
-		return new SourcedElement(new Evidence(idOf(cmd), labelOf(cmd)),
+		ElementCreationCommand ecc = (ElementCreationCommand) cmd;
+		return new SourcedElement(new Evidence(ecc.identifier(), ecc.label()),
 				DUMMY_SOURCE, SourceLocation.UNKNOWN);
 	}
 
 	/**
-	 * Creates the synthesized Create* command for a merged group, reusing the
-	 * type and label of the first member's command but assigning {@code newId}.
+	 * Returns a copy of {@code original} with {@code newId} as the element
+	 * identifier, preserving the command type, container, label, and location.
 	 */
 	private static Command synthesized(Command original, String newId) {
-		return switch (original) {
-			case CreateConclusion c ->
-				new CreateConclusion(c.container(), newId, c.label());
-			case CreateStrategy s ->
-				new CreateStrategy(s.container(), newId, s.label());
-			case CreateEvidence e ->
-				new CreateEvidence(e.container(), newId, e.label());
-			case CreateSubConclusion sc ->
-				new CreateSubConclusion(sc.container(), newId, sc.label());
-			case CreateAbstractSupport as ->
-				new CreateAbstractSupport(as.container(), newId, as.label());
-			default -> throw new IllegalArgumentException(
-					"Not an element command: " + original);
-		};
+		return ((ElementCreationCommand) original).withId(newId);
 	}
 
 	private static String resolve(String id, Map<String, String> aliases) {

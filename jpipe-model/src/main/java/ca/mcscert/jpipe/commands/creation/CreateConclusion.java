@@ -6,7 +6,9 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 
 /** Creates a {@link Conclusion} inside a justification or template. */
-public final class CreateConclusion extends RegularCommand {
+public final class CreateConclusion extends RegularCommand
+		implements
+			ElementCreationCommand {
 
 	private final String container;
 	private final String identifier;
@@ -39,6 +41,11 @@ public final class CreateConclusion extends RegularCommand {
 
 	public SourceLocation location() {
 		return location;
+	}
+
+	@Override
+	public ElementCreationCommand withId(String newId) {
+		return new CreateConclusion(container, newId, label, location);
 	}
 
 	@Override

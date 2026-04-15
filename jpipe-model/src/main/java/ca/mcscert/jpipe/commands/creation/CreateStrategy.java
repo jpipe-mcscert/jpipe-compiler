@@ -6,7 +6,9 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Strategy;
 
 /** Creates a {@link Strategy} inside a justification. */
-public final class CreateStrategy extends RegularCommand {
+public final class CreateStrategy extends RegularCommand
+		implements
+			ElementCreationCommand {
 
 	private final String container;
 	private final String identifier;
@@ -39,6 +41,11 @@ public final class CreateStrategy extends RegularCommand {
 
 	public SourceLocation location() {
 		return location;
+	}
+
+	@Override
+	public ElementCreationCommand withId(String newId) {
+		return new CreateStrategy(container, newId, label, location);
 	}
 
 	@Override

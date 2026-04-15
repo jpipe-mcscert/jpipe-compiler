@@ -6,7 +6,9 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 
 /** Creates a {@link SubConclusion} inside a justification. */
-public final class CreateSubConclusion extends RegularCommand {
+public final class CreateSubConclusion extends RegularCommand
+		implements
+			ElementCreationCommand {
 
 	private final String container;
 	private final String identifier;
@@ -40,6 +42,11 @@ public final class CreateSubConclusion extends RegularCommand {
 
 	public SourceLocation location() {
 		return location;
+	}
+
+	@Override
+	public ElementCreationCommand withId(String newId) {
+		return new CreateSubConclusion(container, newId, label, location);
 	}
 
 	@Override

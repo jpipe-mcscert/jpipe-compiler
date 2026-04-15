@@ -6,7 +6,9 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Evidence;
 
 /** Creates an {@link Evidence} inside a justification. */
-public final class CreateEvidence extends RegularCommand {
+public final class CreateEvidence extends RegularCommand
+		implements
+			ElementCreationCommand {
 
 	private final String container;
 	private final String identifier;
@@ -39,6 +41,11 @@ public final class CreateEvidence extends RegularCommand {
 
 	public SourceLocation location() {
 		return location;
+	}
+
+	@Override
+	public ElementCreationCommand withId(String newId) {
+		return new CreateEvidence(container, newId, label, location);
 	}
 
 	@Override

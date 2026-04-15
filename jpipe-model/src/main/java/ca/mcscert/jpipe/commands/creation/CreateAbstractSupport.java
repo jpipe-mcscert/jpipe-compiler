@@ -6,7 +6,9 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 
 /** Creates an {@link AbstractSupport} inside a template. */
-public final class CreateAbstractSupport extends RegularCommand {
+public final class CreateAbstractSupport extends RegularCommand
+		implements
+			ElementCreationCommand {
 
 	private final String container;
 	private final String identifier;
@@ -40,6 +42,11 @@ public final class CreateAbstractSupport extends RegularCommand {
 
 	public SourceLocation location() {
 		return location;
+	}
+
+	@Override
+	public ElementCreationCommand withId(String newId) {
+		return new CreateAbstractSupport(container, newId, label, location);
 	}
 
 	@Override
