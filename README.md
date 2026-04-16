@@ -72,6 +72,78 @@ The fat JAR build (`jpipe-cli`) merges many dependencies and would normally emit
 mvn package -Dorg.slf4j.simpleLogger.log.org.apache.maven.plugins.shade.DefaultShader=warn
 ```
 
+## Usage
+
+### Running the compiler
+
+After building, the fat JAR is at `jpipe-cli/target/jpipe-cli-*.jar`. The
+`process` subcommand is the default, so these two invocations are equivalent:
+
+```bash
+java -jar jpipe-cli/target/jpipe-cli-*.jar -i my.jd -d MyModel -f dot
+java -jar jpipe-cli/target/jpipe-cli-*.jar process -i my.jd -d MyModel -f dot
+```
+
+### Common flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--input FILE` | `-i` | Input `.jd` source file (default: stdin) |
+| `--output FILE` | `-o` | Output file (default: stdout) |
+| `--diagram NAME` | `-d` | Name of the model to export (required) |
+| `--format FORMAT` | `-f` | Output format — see table below (default: `JPIPE`) |
+| `--headless` | | Suppress the logo banner |
+| `--log-level LEVEL` | | Log verbosity: `OFF` `ERROR` `WARN` `INFO` `DEBUG` `TRACE` |
+
+### Output formats
+
+| Format | Description | Requires Graphviz |
+|--------|-------------|:-----------------:|
+| `JPIPE` | Canonical jPipe source (round-trip) | No |
+| `DOT` | Graphviz DOT source | No |
+| `PNG` | Rendered PNG image | Yes |
+| `JPEG` | Rendered JPEG image | Yes |
+| `SVG` | Rendered SVG image | Yes |
+| `JSON` | JSON model dump | No |
+| `PYTHON` | Python object model | No |
+
+Install [Graphviz](https://graphviz.org/) and run `jpipe doctor` to verify that
+the `dot` binary is on your `PATH` before using image formats.
+
+### Other subcommands
+
+```bash
+# Parse and validate without exporting — prints diagnostics, statistics, and the symbol table
+java -jar jpipe-cli/target/jpipe-cli-*.jar diagnostic -i my.jd
+
+# Check runtime dependencies (Graphviz)
+java -jar jpipe-cli/target/jpipe-cli-*.jar doctor
+```
+
+### Minimal `.jd` example
+
+```
+justification MyModel {
+    conclusion  c  is "Our claim"
+    strategy    s  is "Argument"
+    evidence    e1 is "Evidence A"
+    evidence    e2 is "Evidence B"
+
+    s  supports c
+    e1 supports s
+    e2 supports s
+}
+```
+
+Compile it to a DOT diagram:
+
+```bash
+java -jar jpipe-cli/target/jpipe-cli-*.jar -i my.jd -d MyModel -f dot -o my.dot
+dot -Tpng my.dot -o my.png
+```
+
+More examples are in the [`examples/`](examples/) directory.
+
 ## How to cite?
 
 ```bibtex

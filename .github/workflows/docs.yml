@@ -30,6 +30,12 @@ jobs:
       - name: Install MkDocs
         run: pip install mkdocs-material plantuml-markdown
 
+      - name: Generate railroad diagrams
+        run: |
+          pip install pipenv
+          cd jpipe-lang && pipenv install --deploy
+          pipenv run python3 gen_railroad.py
+
       - name: Generate Javadoc
         run: mvn javadoc:aggregate -q
 

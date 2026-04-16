@@ -20,8 +20,12 @@ nav:
   - Home: index.md
   - API Reference: api-reference.md
   - Design:
+      - design/language.md
       - design/model.md
       - design/compiler.md
+      - design/steps.md
+      - design/operators.md
+      - design/cli.md
   - Architecture Decisions:
       - adr/0001-semver-versioning.md
       - adr/0002-multi-module-structure.md
