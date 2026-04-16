@@ -33,16 +33,17 @@ jobs:
 
       # Locate the shaded fat JAR (exclude the *-original.jar that Shade leaves behind)
       - name: Locate fat JAR
+        id: locate
         run: |
           JAR=$(find jpipe-cli/target -name "jpipe-cli-*.jar" ! -name "*-original.jar" -type f)
-          echo "FAT_JAR=$JAR" >> "$GITHUB_ENV"
+          echo "path=$JAR" >> "$GITHUB_OUTPUT"
 
       # Always upload the fat JAR as a per-run artifact (available on the Actions run page)
       - name: Upload fat JAR artifact
         uses: actions/upload-artifact@v7
         with:
           name: jpipe-cli-${{ github.sha }}
-          path: ${{ env.FAT_JAR }}
+          path: ${{ steps.locate.outputs.path }}
           archive: false
           if-no-files-found: error
 
@@ -52,6 +53,7 @@ jobs:
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
+          FAT_JAR: ${{ steps.locate.outputs.path }}
         run: |
           cp "$FAT_JAR" jpipe-cli.jar
 
