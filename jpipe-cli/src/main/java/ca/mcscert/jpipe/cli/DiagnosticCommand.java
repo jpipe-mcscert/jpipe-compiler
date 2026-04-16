@@ -33,10 +33,10 @@ class DiagnosticCommand implements Callable<Integer> {
 		if (!parent.headless) {
 			Logo.sout();
 		}
-		try {
-			OutputStream out = output.equals(CompilationConfig.STDOUT)
-					? System.out
-					: new FileOutputStream(output);
+		try (FileOutputStream fileOut = output.equals(CompilationConfig.STDOUT)
+				? null
+				: new FileOutputStream(output)) {
+			OutputStream out = fileOut != null ? fileOut : System.out;
 			boolean hasErrors = CompilerFactory.buildDiagnosticCompiler(out)
 					.compile(input, output);
 			return hasErrors ? Main.EXIT_JPIPE_ERROR : Main.EXIT_OK;

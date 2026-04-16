@@ -42,10 +42,10 @@ class ProcessCommand implements Callable<Integer> {
 		if (!parent.headless) {
 			Logo.sout();
 		}
-		try {
-			OutputStream out = output.equals(CompilationConfig.STDOUT)
-					? System.out
-					: new FileOutputStream(output);
+		try (FileOutputStream fileOut = output.equals(CompilationConfig.STDOUT)
+				? null
+				: new FileOutputStream(output)) {
+			OutputStream out = fileOut != null ? fileOut : System.out;
 			CompilationConfig config = new CompilationConfig(input, output,
 					format, diagram);
 			boolean hasErrors = CompilerFactory.build(config, out)
