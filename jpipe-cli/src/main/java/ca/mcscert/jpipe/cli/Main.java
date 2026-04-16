@@ -1,11 +1,14 @@
 package ca.mcscert.jpipe.cli;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.Option;
 
 /**
@@ -25,13 +28,6 @@ public class Main {
 	static final int EXIT_JPIPE_ERROR = 1;
 	static final int EXIT_SYSTEM_ERROR = 42;
 
-	private static final Set<String> SUBCOMMAND_NAMES = Set.of("doctor",
-			"diagnostic", "process");
-	private static final Set<String> HELP_FLAGS = Set.of("--help", "-h",
-			"--version", "-V");
-	private static final Map<String, Integer> PARENT_FLAGS = Map
-			.of("--headless", 0, "--log-level", 1);
-
 	@Option(names = {"--headless"}, description = "Suppress logo output.")
 	boolean headless;
 
@@ -48,26 +44,44 @@ public class Main {
 	 *
 	 * <p>
 	 * Picocli 4.x has no built-in default-subcommand API, so we pre-process the
-	 * argument list. Help/version flags are left untouched so that
-	 * {@code jpipe --help} still shows top-level help. The insertion point is
-	 * placed after any parent-level flags ({@code --headless}) so that picocli
-	 * attributes them to the parent command correctly.
+	 * argument list. Subcommand names, help, and version flags are derived from
+	 * {@code cmd} at call time, so this method stays correct when subcommands
+	 * or parent options are added. The insertion point is placed after any
+	 * parent-level flags so that picocli attributes them to the parent command
+	 * correctly.
 	 */
-	static String[] withDefaultSubcommand(String[] args) {
+	static String[] withDefaultSubcommand(String[] args, CommandLine cmd) {
+		Set<String> shortCircuit = new HashSet<>(cmd.getSubcommands().keySet());
+		Map<String, Integer> parentFlags = new HashMap<>();
+		for (OptionSpec opt : cmd.getCommandSpec().options()) {
+			if (opt.usageHelp() || opt.versionHelp()) {
+				for (String name : opt.names()) {
+					shortCircuit.add(name);
+				}
+			} else {
+				int arity = opt.arity().max();
+				for (String name : opt.names()) {
+					parentFlags.put(name, arity);
+				}
+			}
+		}
+
 		for (String arg : args) {
-			if (SUBCOMMAND_NAMES.contains(arg) || HELP_FLAGS.contains(arg)) {
+			if (shortCircuit.contains(arg)) {
 				return args;
 			}
 		}
+
 		int insertAt = 0;
 		for (int i = 0; i < args.length;) {
-			if (PARENT_FLAGS.containsKey(args[i])) {
-				i += 1 + PARENT_FLAGS.get(args[i]);
+			if (parentFlags.containsKey(args[i])) {
+				i += 1 + parentFlags.get(args[i]);
 				insertAt = i;
 			} else {
 				break;
 			}
 		}
+
 		String[] adjusted = new String[args.length + 1];
 		System.arraycopy(args, 0, adjusted, 0, insertAt);
 		adjusted[insertAt] = "process";
@@ -77,8 +91,8 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
-		System.exit(new CommandLine(new Main())
-				.setCaseInsensitiveEnumValuesAllowed(true)
-				.execute(withDefaultSubcommand(args)));
+		CommandLine cmd = new CommandLine(new Main())
+				.setCaseInsensitiveEnumValuesAllowed(true);
+		System.exit(cmd.execute(withDefaultSubcommand(args, cmd)));
 	}
 }

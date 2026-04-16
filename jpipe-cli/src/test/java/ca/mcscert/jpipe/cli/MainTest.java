@@ -7,9 +7,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import picocli.CommandLine;
 
-/** Unit tests for {@link Main#withDefaultSubcommand(String[])}. */
+/** Unit tests for {@link Main#withDefaultSubcommand(String[], CommandLine)}. */
 class MainTest {
+
+	private static final CommandLine CMD = new CommandLine(new Main());
 
 	// ---------------------------------------------------------------------------
 	// Cases where no insertion should happen
@@ -28,7 +31,7 @@ class MainTest {
 	@MethodSource("subcommandAlreadyPresent")
 	void withDefaultSubcommand_returnsUnchanged_whenSubcommandPresent(
 			String[] args) {
-		assertThat(Main.withDefaultSubcommand(args)).isSameAs(args);
+		assertThat(Main.withDefaultSubcommand(args, CMD)).isSameAs(args);
 	}
 
 	static Stream<Arguments> helpOrVersionFlags() {
@@ -42,7 +45,7 @@ class MainTest {
 	@MethodSource("helpOrVersionFlags")
 	void withDefaultSubcommand_returnsUnchanged_whenHelpOrVersionFlag(
 			String[] args) {
-		assertThat(Main.withDefaultSubcommand(args)).isSameAs(args);
+		assertThat(Main.withDefaultSubcommand(args, CMD)).isSameAs(args);
 	}
 
 	// ---------------------------------------------------------------------------
@@ -51,28 +54,28 @@ class MainTest {
 
 	@Test
 	void withDefaultSubcommand_insertsProcess_whenArgsEmpty() {
-		assertThat(Main.withDefaultSubcommand(new String[]{}))
+		assertThat(Main.withDefaultSubcommand(new String[]{}, CMD))
 				.containsExactly("process");
 	}
 
 	@Test
 	void withDefaultSubcommand_insertsProcessAtFront_whenNoParentFlags() {
 		assertThat(Main.withDefaultSubcommand(
-				new String[]{"-i", "foo.jd", "-d", "myDiagram"}))
+				new String[]{"-i", "foo.jd", "-d", "myDiagram"}, CMD))
 				.containsExactly("process", "-i", "foo.jd", "-d", "myDiagram");
 	}
 
 	@Test
 	void withDefaultSubcommand_insertsProcessAfterHeadless() {
 		assertThat(Main.withDefaultSubcommand(
-				new String[]{"--headless", "-i", "foo.jd"}))
+				new String[]{"--headless", "-i", "foo.jd"}, CMD))
 				.containsExactly("--headless", "process", "-i", "foo.jd");
 	}
 
 	@Test
 	void withDefaultSubcommand_insertsProcessAfterLogLevel() {
 		assertThat(Main.withDefaultSubcommand(
-				new String[]{"--log-level", "DEBUG", "-i", "foo.jd"}))
+				new String[]{"--log-level", "DEBUG", "-i", "foo.jd"}, CMD))
 				.containsExactly("--log-level", "DEBUG", "process", "-i",
 						"foo.jd");
 	}
@@ -80,7 +83,7 @@ class MainTest {
 	@Test
 	void withDefaultSubcommand_insertsProcessAfterAllParentFlags() {
 		assertThat(Main.withDefaultSubcommand(new String[]{"--headless",
-				"--log-level", "DEBUG", "-i", "foo.jd"}))
+				"--log-level", "DEBUG", "-i", "foo.jd"}, CMD))
 				.containsExactly("--headless", "--log-level", "DEBUG",
 						"process", "-i", "foo.jd");
 	}
