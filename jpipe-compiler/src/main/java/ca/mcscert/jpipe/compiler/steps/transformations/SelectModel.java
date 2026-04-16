@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
  * given.
  *
  * <p>
- * Use {@code -d} / {@code --diagram} on the CLI to supply the name.
+ * Use {@code -m} / {@code --model} on the CLI to supply the name.
  */
 public class SelectModel extends Transformation<Unit, JustificationModel<?>> {
 

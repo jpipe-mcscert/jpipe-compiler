@@ -18,14 +18,14 @@ class ProcessCommand extends InputOutputCommand {
 			"--format"}, description = "Output format: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).", defaultValue = "JPIPE")
 	private Format format;
 
-	@Option(names = {"-d",
-			"--diagram"}, description = "Name of the model to export.", required = true)
-	private String diagram;
+	@Option(names = {"-m",
+			"--model"}, description = "Name of the model to export.", required = true)
+	private String model;
 
 	@Override
 	protected Integer doCall(OutputStream out) throws Exception {
 		CompilationConfig config = new CompilationConfig(input, output, format,
-				diagram);
+				model);
 		boolean hasErrors = CompilerFactory.build(config, out).compile(input,
 				output);
 		return hasErrors ? Main.EXIT_JPIPE_ERROR : Main.EXIT_OK;

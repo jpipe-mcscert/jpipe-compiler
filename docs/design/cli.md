@@ -32,7 +32,7 @@ package "cli" {
 
   class ProcessCommand <<@Command name="process">> {
     - format : Format
-    - diagram : String
+    - model : String
     # doCall(OutputStream) : Integer
   }
 
@@ -41,6 +41,7 @@ package "cli" {
   }
 
   class DoctorCommand <<@Command name="doctor">> {
+    - spec : CommandSpec
     + call() : Integer
   }
 
@@ -75,14 +76,14 @@ format. This is the default subcommand: invoking `jpipe` without a subcommand
 name is equivalent to `jpipe process`.
 
 ```
-jpipe process -i <file> -d <model> [-f <format>] [-o <output>]
+jpipe process -i <file> -m <model> [-f <format>] [-o <output>]
 ```
 
 | Option | Short | Required | Default | Description |
 |--------|-------|:--------:|---------|-------------|
 | `--input` | `-i` | No | stdin | Input `.jd` source file |
 | `--output` | `-o` | No | stdout | Output file |
-| `--diagram` | `-d` | **Yes** | — | Name of the model to export |
+| `--model` | `-m` | **Yes** | — | Name of the model to export |
 | `--format` | `-f` | No | `JPIPE` | Output format (see table below) |
 
 Delegates to `CompilerFactory.build(config, out)`. Returns exit code `0` on
@@ -125,7 +126,7 @@ Delegates to `CompilerFactory.buildDiagnosticCompiler(out)`.
 ### `doctor`
 
 Checks that external tools required by jPipe are available on `PATH` and
-prints a status line for each.
+prints a status line for each. Also prints the jPipe version number.
 
 ```
 jpipe doctor
