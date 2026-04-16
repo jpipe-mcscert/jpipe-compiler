@@ -54,7 +54,10 @@ final class Doctor {
 			p.getInputStream().transferTo(OutputStream.nullOutputStream());
 			p.waitFor();
 			return true;
-		} catch (IOException | InterruptedException e) {
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return false;
+		} catch (IOException e) {
 			return false;
 		}
 	}
