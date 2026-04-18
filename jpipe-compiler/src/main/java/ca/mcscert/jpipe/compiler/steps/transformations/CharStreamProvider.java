@@ -4,6 +4,7 @@ import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 
@@ -18,6 +19,6 @@ public final class CharStreamProvider
 	@Override
 	protected CharStream run(InputStream input, CompilationContext ctx)
 			throws IOException {
-		return CharStreams.fromStream(input);
+		return CharStreams.fromStream(input, StandardCharsets.UTF_8);
 	}
 }

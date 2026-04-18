@@ -55,7 +55,7 @@ public class SelectModel extends Transformation<Unit, JustificationModel<?>> {
 				.collect(Collectors.joining(", "));
 		logger.debug("Ambiguous selection — available: [{}]", available);
 		throw new CompilationException("SelectModel",
-				"source defines multiple models — use -d to specify one: "
+				"source defines multiple models — use -m/--model to specify one: "
 						+ available);
 	}
 }

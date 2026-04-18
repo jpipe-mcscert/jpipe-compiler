@@ -5,6 +5,7 @@ import ca.mcscert.jpipe.compiler.model.Transformation;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Compilation step that renders DOT text to a binary image format by invoking
@@ -55,16 +56,28 @@ public class RenderWithDot extends Transformation<String, byte[]> {
 			}
 		});
 
+		// Drain stderr in a virtual thread to prevent the stderr pipe buffer
+		// from filling and blocking the process before it can close stdout.
+		AtomicReference<String> stderrCapture = new AtomicReference<>("");
+		Thread stderrReader = Thread.ofVirtual().start(() -> {
+			try {
+				stderrCapture
+						.set(new String(process.getErrorStream().readAllBytes(),
+								StandardCharsets.UTF_8));
+			} catch (IOException _) {
+				// Process was destroyed before stderr was fully read; safe to
+				// ignore.
+			}
+		});
+
 		try {
 			byte[] result = process.getInputStream().readAllBytes();
 			writer.join();
+			stderrReader.join();
 			int exitCode = process.waitFor();
 			if (exitCode != 0) {
-				String error = new String(
-						process.getErrorStream().readAllBytes(),
-						StandardCharsets.UTF_8);
 				throw new IOException("dot exited with code " + exitCode + ": "
-						+ error.strip());
+						+ stderrCapture.get().strip());
 			}
 			return result;
 		} finally {

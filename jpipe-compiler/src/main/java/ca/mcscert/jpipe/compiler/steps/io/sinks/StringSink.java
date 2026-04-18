@@ -21,5 +21,6 @@ public final class StringSink implements Sink<String> {
 	@Override
 	public void pourInto(String output) throws IOException {
 		out.print(output);
+		out.flush();
 	}
 }

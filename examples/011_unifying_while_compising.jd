@@ -28,7 +28,7 @@ justification another_claim {
     s2 supports s
 }
 
-// Assmebling the 2 strategies together
+// Assembling the 2 strategies together
 justification assembled_2 is assemble(a_claim, another_claim) {
     conclusionLabel:    "A global conclusion"
     strategyLabel:      "An aggregating strategy"
