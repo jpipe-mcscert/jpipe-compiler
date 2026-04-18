@@ -42,7 +42,7 @@ public final class LabelEscaper {
 		String ascii = Normalizer.normalize(label, Normalizer.Form.NFD)
 				.replaceAll("\\p{M}", "");
 		String snake = ascii.toLowerCase().replaceAll("[^a-z0-9]+", "_")
-				.replaceAll("^_+|_+$", "");
+				.replaceAll("(^_+)|(_+$)", "");
 		return snake.isEmpty() || Character.isDigit(snake.charAt(0))
 				? "_" + snake
 				: snake;

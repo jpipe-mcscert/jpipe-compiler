@@ -75,14 +75,16 @@ public final class CompletenessValidator {
 		String name = model.getName();
 
 		// conclusion-present
-		if (model.conclusion().isEmpty()) {
+		var conclusionOpt = model.conclusion();
+		if (conclusionOpt.isEmpty()) {
 			violations.add(new Violation("conclusion-present",
 					"Model '" + name + "' has no conclusion",
 					ctx.locationOf(name)));
 		} else {
 			// conclusion-supported (only meaningful when conclusion exists)
-			if (model.conclusion().get().getSupport().isEmpty()) {
-				String cId = model.conclusion().get().id();
+			var conclusion = conclusionOpt.get();
+			if (conclusion.getSupport().isEmpty()) {
+				String cId = conclusion.id();
 				violations.add(new Violation("conclusion-supported",
 						"Conclusion '" + cId + "' in model '" + name
 								+ "' has no supporting strategy",

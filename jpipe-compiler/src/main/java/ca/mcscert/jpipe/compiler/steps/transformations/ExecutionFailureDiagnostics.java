@@ -85,12 +85,13 @@ final class ExecutionFailureDiagnostics {
 	private static void diagnoseAddSupport(AddSupport c, Unit unit,
 			CompilationContext ctx) {
 		SourceLocation loc = c.location();
-		if (unit.findModel(c.container()).isEmpty()) {
+		var modelOpt = unit.findModel(c.container());
+		if (modelOpt.isEmpty()) {
 			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + " unknown model '"
 					+ c.container() + "'");
 			return;
 		}
-		var model = unit.findModel(c.container()).get();
+		var model = modelOpt.get();
 		if (model.findById(c.supportableId()).isEmpty()) {
 			error(ctx, loc,
 					DiagnosticCodes.UNKNOWN_ELEMENT + " unknown element '"
@@ -122,12 +123,13 @@ final class ExecutionFailureDiagnostics {
 	private static void diagnoseOverrideAbstractSupport(
 			OverrideAbstractSupport c, Unit unit, CompilationContext ctx) {
 		SourceLocation loc = c.location();
-		if (unit.findModel(c.container()).isEmpty()) {
+		var modelOpt = unit.findModel(c.container());
+		if (modelOpt.isEmpty()) {
 			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + " unknown model '"
 					+ c.container() + "'");
 			return;
 		}
-		var model = unit.findModel(c.container()).get();
+		var model = modelOpt.get();
 		if (model.findById(c.qualifiedId()).isEmpty()) {
 			error(ctx, loc,
 					DiagnosticCodes.UNKNOWN_ELEMENT + " unknown element '"
