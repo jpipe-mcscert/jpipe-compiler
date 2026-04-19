@@ -54,6 +54,8 @@ public abstract class CompositionOperator {
 	 * depends on the input models (e.g. an operator that produces a
 	 * {@code Template} when any source is a {@code Template}).
 	 */
+	@SuppressWarnings("java:S1172") // params unused in default but required by
+									// overrides
 	public ModelKind resultKind(List<JustificationModel<?>> sources,
 			Map<String, String> args) {
 		return ModelKind.JUSTIFICATION;
@@ -95,6 +97,8 @@ public abstract class CompositionOperator {
 	 * Override to inject synthesized elements and their edges that have no
 	 * counterpart in any source model. Default: empty.
 	 */
+	@SuppressWarnings("java:S1172") // params unused in default but required by
+									// overrides
 	protected List<Command> additionalCommands(String resultName,
 			List<JustificationModel<?>> sources, AliasRegistry aliases,
 			Map<String, String> args) {

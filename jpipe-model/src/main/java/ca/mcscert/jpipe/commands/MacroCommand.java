@@ -25,7 +25,7 @@ public interface MacroCommand extends Command {
 	 * @throws Exception
 	 *             if expansion fails due to an unexpected model state.
 	 */
-	List<Command> expand(Unit context) throws Exception;
+	List<Command> expand(Unit context);
 
 	@Override
 	default void execute(Unit context) {

@@ -29,6 +29,7 @@ public abstract class Transformation<I, O> {
 	 */
 	@FunctionalInterface
 	public interface Step<I, O> {
+		@SuppressWarnings("java:S112")
 		O apply(I input, CompilationContext ctx) throws Exception;
 	}
 
@@ -94,6 +95,7 @@ public abstract class Transformation<I, O> {
 	 * @throws Exception
 	 *             if anything goes wrong.
 	 */
+	@SuppressWarnings("java:S112")
 	protected abstract O run(I input, CompilationContext ctx) throws Exception;
 
 	/**
@@ -119,7 +121,8 @@ public abstract class Transformation<I, O> {
 					"pipeline aborted due to previous fatal errors");
 		}
 		if (shouldLog()) {
-			logger.debug("Firing transformation [{}]", stepName());
+			String name = stepName();
+			logger.debug("Firing transformation [{}]", name);
 		}
 		try {
 			O result = run(in, ctx);

@@ -31,6 +31,8 @@ public final class ApplyOperator implements MacroCommand {
 	private final ModelKind declaredKind;
 	private final UnificationEquivalenceRegistry unificationEquivalences;
 
+	@SuppressWarnings("java:S107") // all 8 params are required to describe an
+									// operator call
 	public ApplyOperator(String resultName, String operatorName,
 			List<String> sourceNames, Map<String, String> arguments,
 			OperatorRegistry operators, SourceLocation location,
@@ -73,7 +75,7 @@ public final class ApplyOperator implements MacroCommand {
 	}
 
 	@Override
-	public List<Command> expand(Unit context) throws Exception {
+	public List<Command> expand(Unit context) {
 		CompositionOperator op = operators.find(operatorName).orElseThrow(
 				() -> new InvalidOperatorCallException("Unknown operator: '"
 						+ operatorName + "' at " + location));

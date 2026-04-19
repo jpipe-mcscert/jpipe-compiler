@@ -21,6 +21,7 @@ public abstract class Checker<I> extends Transformation<I, I> {
 	/** Functional interface for the {@link #of} factory. */
 	@FunctionalInterface
 	public interface Check<I> {
+		@SuppressWarnings("java:S112")
 		void apply(I input, CompilationContext ctx) throws Exception;
 	}
 
@@ -53,6 +54,7 @@ public abstract class Checker<I> extends Transformation<I, I> {
 	 * @throws Exception
 	 *             if the check encounters an unrecoverable failure.
 	 */
+	@SuppressWarnings("java:S112")
 	protected abstract void check(I input, CompilationContext ctx)
 			throws Exception;
 

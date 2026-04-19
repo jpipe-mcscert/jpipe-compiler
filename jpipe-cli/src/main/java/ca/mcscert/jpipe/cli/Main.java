@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.cli;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -55,9 +56,7 @@ public class Main {
 		Map<String, Integer> parentFlags = new HashMap<>();
 		for (OptionSpec opt : cmd.getCommandSpec().options()) {
 			if (opt.usageHelp() || opt.versionHelp()) {
-				for (String name : opt.names()) {
-					shortCircuit.add(name);
-				}
+				Collections.addAll(shortCircuit, opt.names());
 			} else {
 				int arity = opt.arity().max();
 				for (String name : opt.names()) {
@@ -73,13 +72,10 @@ public class Main {
 		}
 
 		int insertAt = 0;
-		for (int i = 0; i < args.length;) {
-			if (parentFlags.containsKey(args[i])) {
-				i += 1 + parentFlags.get(args[i]);
-				insertAt = i;
-			} else {
-				break;
-			}
+		int i = 0;
+		while (i < args.length && parentFlags.containsKey(args[i])) {
+			i += 1 + parentFlags.get(args[i]);
+			insertAt = i;
 		}
 
 		String[] adjusted = new String[args.length + 1];

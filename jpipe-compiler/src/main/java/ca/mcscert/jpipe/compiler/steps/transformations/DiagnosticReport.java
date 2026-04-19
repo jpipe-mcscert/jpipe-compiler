@@ -197,8 +197,8 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 					} else {
 						locStr = "[synthesized]";
 					}
-					sb.append(String.format("  %-" + maxLen + "s  %s%n", e.id(),
-							locStr));
+					sb.append(String.format("  %s  %s%n",
+							padEnd(e.id(), maxLen), locStr));
 				}
 			}
 
@@ -207,14 +207,19 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 			if (!modelAliases.isEmpty()) {
 				int maxLen = modelAliases.keySet().stream()
 						.mapToInt(String::length).max().orElse(0);
-				modelAliases
-						.forEach((oldId,
-								newId) -> sb.append(String.format(
-										"  %-" + maxLen + "s  " + ARROW
-												+ " %s  [alias]%n",
-										oldId, newId)));
+				modelAliases.forEach((oldId, newId) -> sb
+						.append(String.format("  %s  %s %s  [alias]%n",
+								padEnd(oldId, maxLen), ARROW, newId)));
 			}
 		}
+	}
+
+	private static String padEnd(String text, int width) {
+		StringBuilder sb = new StringBuilder(text);
+		while (sb.length() < width) {
+			sb.append(' ');
+		}
+		return sb.toString();
 	}
 
 	/**

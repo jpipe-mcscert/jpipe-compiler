@@ -63,5 +63,7 @@ abstract class InputOutputCommand implements Callable<Integer> {
 	 *             any compilation or I/O failure; caught and reported by
 	 *             {@link #call()}.
 	 */
+	@SuppressWarnings("java:S112") // subclasses may throw checked exceptions
+									// beyond IOException
 	protected abstract Integer doCall(OutputStream out) throws Exception;
 }
