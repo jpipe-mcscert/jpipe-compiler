@@ -11,8 +11,8 @@ class JsonExporterTest {
 		String json = new JsonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(json).contains("\"name\": \"j\"");
-		assertThat(json).contains("\"type\": \"justification\"");
+		assertThat(json).contains("\"name\": \"j\"",
+				"\"type\": \"justification\"");
 	}
 
 	@Test
@@ -20,9 +20,7 @@ class JsonExporterTest {
 		String json = new JsonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(json).contains("\"j:c\"");
-		assertThat(json).contains("\"j:s\"");
-		assertThat(json).contains("\"j:e1\"");
+		assertThat(json).contains("\"j:c\"", "\"j:s\"", "\"j:e1\"");
 	}
 
 	@Test
@@ -30,9 +28,7 @@ class JsonExporterTest {
 		String json = new JsonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(json).contains("\"relations\"");
-		assertThat(json).contains("\"source\"");
-		assertThat(json).contains("\"target\"");
+		assertThat(json).contains("\"relations\"", "\"source\"", "\"target\"");
 	}
 
 	@Test
@@ -46,7 +42,6 @@ class JsonExporterTest {
 	void export_template_contains_abstract_support_element() {
 		String json = new JsonExporter().export(ModelFixtures.simpleTemplate());
 
-		assertThat(json).contains("\"abstract-support\"");
-		assertThat(json).contains("\"t:abs\"");
+		assertThat(json).contains("\"abstract-support\"", "\"t:abs\"");
 	}
 }

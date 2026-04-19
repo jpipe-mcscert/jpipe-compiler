@@ -17,9 +17,7 @@ class DotExporterTest {
 		String dot = new DotExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(dot).contains("id=\"j:c\"");
-		assertThat(dot).contains("id=\"j:s\"");
-		assertThat(dot).contains("id=\"j:e1\"");
+		assertThat(dot).contains("id=\"j:c\"", "id=\"j:s\"", "id=\"j:e1\"");
 	}
 
 	@Test
@@ -52,10 +50,7 @@ class DotExporterTest {
 
 		String dot = new DotExporter().export(j);
 
-		assertThat(dot).contains("label=\"s\\_s\\_s\"");
-		// node ID must NOT be escaped — underscores are valid in DOT
-		// identifiers
-		assertThat(dot).contains("id=\"j:c\"");
+		assertThat(dot).contains("label=\"s\\_s\\_s\"", "id=\"j:c\"");
 	}
 
 	@Test
@@ -77,9 +72,8 @@ class DotExporterTest {
 
 		String dot = new DotExporter().export(j);
 
-		assertThat(dot).contains("id=\"j:t:c\"");
-		assertThat(dot).contains("id=\"j:t:s\"");
-		assertThat(dot).contains("id=\"j:t:e1\"");
+		assertThat(dot).contains("id=\"j:t:c\"", "id=\"j:t:s\"",
+				"id=\"j:t:e1\"");
 	}
 
 	@Test
@@ -175,12 +169,8 @@ class DotExporterTest {
 
 		String dot = new DotExporter().export(j);
 
-		assertThat(dot).contains("subgraph cluster_t2");
-		assertThat(dot).contains("subgraph cluster_t1");
-		// t2's own element (s2) is in cluster_t2; t1's own element (s1) in
-		// cluster_t1
-		assertThat(dot).contains("id=\"j:t2:s2\"");
-		assertThat(dot).contains("id=\"j:t1:s1\"");
+		assertThat(dot).contains("subgraph cluster_t2", "subgraph cluster_t1",
+				"id=\"j:t2:s2\"", "id=\"j:t1:s1\"");
 		// Nesting: cluster_t1 must appear after cluster_t2 opens and before
 		// cluster_t2 closes — no closing brace between the two headers
 		int t2Idx = dot.indexOf("subgraph cluster_t2");

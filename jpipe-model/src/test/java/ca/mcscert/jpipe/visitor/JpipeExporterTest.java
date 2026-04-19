@@ -20,9 +20,7 @@ class JpipeExporterTest {
 		String jd = new JpipeExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(jd).contains("conclusion c");
-		assertThat(jd).contains("strategy s");
-		assertThat(jd).contains("evidence e1");
+		assertThat(jd).contains("conclusion c", "strategy s", "evidence e1");
 	}
 
 	@Test
@@ -37,8 +35,7 @@ class JpipeExporterTest {
 	void export_template_contains_template_keyword() {
 		String jd = new JpipeExporter().export(ModelFixtures.simpleTemplate());
 
-		assertThat(jd).contains("template t");
-		assertThat(jd).contains("@support abs");
+		assertThat(jd).contains("template t", "@support abs");
 	}
 
 	@Test
@@ -49,7 +46,6 @@ class JpipeExporterTest {
 
 		String jd = new JpipeExporter().export(unit);
 
-		assertThat(jd).contains("justification j");
-		assertThat(jd).contains("template t");
+		assertThat(jd).contains("justification j", "template t");
 	}
 }
