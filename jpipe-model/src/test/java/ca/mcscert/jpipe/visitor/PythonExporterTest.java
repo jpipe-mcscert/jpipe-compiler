@@ -8,33 +8,20 @@ import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class PythonExporterTest {
 
-	@Test
-	void export_methodNamesAreSnakeCaseOfLabels() {
-		String py = new PythonExporter()
-				.export(ModelFixtures.simpleJustification());
-
-		assertThat(py).contains("def the_system_is_correct(", "def testing(",
-				"def test_results(");
-	}
-
-	@Test
-	void export_conclusionHasNoProduceParam() {
-		String py = new PythonExporter()
-				.export(ModelFixtures.simpleJustification());
-
-		assertThat(py).contains("def the_system_is_correct() -> bool:");
-	}
-
-	@Test
-	void export_nonConclusionElementsHaveProduceParam() {
-		String py = new PythonExporter()
-				.export(ModelFixtures.simpleJustification());
-
-		assertThat(py).contains("def testing(produce: JpipeProduce) -> bool:",
-				"def test_results(produce: JpipeProduce) -> bool:");
+	@ParameterizedTest
+	@ValueSource(strings = {"def the_system_is_correct(", "def testing(",
+			"def test_results(", "def the_system_is_correct() -> bool:",
+			"def testing(produce: JpipeProduce) -> bool:",
+			"def test_results(produce: JpipeProduce) -> bool:"})
+	void export_simpleJustificationMethodSignaturesArePresent(String expected) {
+		assertThat(new PythonExporter()
+				.export(ModelFixtures.simpleJustification()))
+				.contains(expected);
 	}
 
 	@Test
@@ -42,9 +29,10 @@ class PythonExporterTest {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(py).contains("# @jpipe_link(\"j:c\")",
-				"# @jpipe_link(\"j:s\")", "# @jpipe_link(\"j:e1\")");
-		assertThat(py).doesNotContain("\n@jpipe_link(");
+		assertThat(py)
+				.contains("# @jpipe_link(\"j:c\")", "# @jpipe_link(\"j:s\")",
+						"# @jpipe_link(\"j:e1\")")
+				.doesNotContain("\n@jpipe_link(");
 	}
 
 	@Test
@@ -101,9 +89,10 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(t);
 
-		assertThat(py).contains("raise NotImplementedError(\"t:abs is abstract"
-				+ " and must be overridden before execution\")");
-		assertThat(py).doesNotContain("def abstract_step():\n    pass");
+		assertThat(py)
+				.contains("raise NotImplementedError(\"t:abs is abstract"
+						+ " and must be overridden before execution\")")
+				.doesNotContain("def abstract_step():\n    pass");
 	}
 
 	@Test

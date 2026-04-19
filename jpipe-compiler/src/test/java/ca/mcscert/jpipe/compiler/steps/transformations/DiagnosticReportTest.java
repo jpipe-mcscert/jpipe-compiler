@@ -18,9 +18,13 @@ import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class DiagnosticReportTest {
 
@@ -48,20 +52,12 @@ class DiagnosticReportTest {
 			assertThat(report).doesNotContain("Executed Actions");
 		}
 
-		@Test
-		void sectionAppearsWhenActionsArePresent() {
+		@ParameterizedTest
+		@MethodSource("singleActionReportExpectations")
+		void singleAction_reportContains(int depth, String expected) {
 			ctx.recordActions(
-					List.of(action(new CreateJustification("j1"), 0)));
-			String report = step.run(unit, ctx);
-			assertThat(report).contains("=== Executed Actions ===");
-		}
-
-		@Test
-		void regularActionIsNumberedAtBaseIndent() {
-			ctx.recordActions(
-					List.of(action(new CreateJustification("j1"), 0)));
-			String report = step.run(unit, ctx);
-			assertThat(report).contains("  1. create_justification('j1').");
+					List.of(action(new CreateJustification("j1"), depth)));
+			assertThat(step.run(unit, ctx)).contains(expected);
 		}
 
 		@Test
@@ -80,14 +76,6 @@ class DiagnosticReportTest {
 		}
 
 		@Test
-		void depth1ActionIsIndentedBeyondBaseLevel() {
-			ctx.recordActions(
-					List.of(action(new CreateJustification("j1"), 1)));
-			String report = step.run(unit, ctx);
-			assertThat(report).contains("  1.   create_justification('j1').");
-		}
-
-		@Test
 		void depth2ActionIsIndentedMoreThanDepth1() {
 			ctx.recordActions(List.of(action(new CreateJustification("j1"), 1),
 					action(new CreateJustification("j2"), 2)));
@@ -95,6 +83,12 @@ class DiagnosticReportTest {
 			assertThat(report).containsSubsequence(
 					"  1.   create_justification('j1').",
 					"  2.     create_justification('j2').");
+		}
+
+		static Stream<Arguments> singleActionReportExpectations() {
+			return Stream.of(Arguments.of(0, "=== Executed Actions ==="),
+					Arguments.of(0, "  1. create_justification('j1')."),
+					Arguments.of(1, "  1.   create_justification('j1')."));
 		}
 	}
 

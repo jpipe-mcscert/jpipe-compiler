@@ -8,7 +8,11 @@ import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class DotExporterTest {
 
@@ -20,47 +24,22 @@ class DotExporterTest {
 		assertThat(dot).contains("id=\"j:c\"", "id=\"j:s\"", "id=\"j:e1\"");
 	}
 
-	@Test
-	void export_shortLabelIsNotWrapped() {
+	@ParameterizedTest
+	@MethodSource("labelFormats")
+	void export_labelIsFormatted(String input, String expected) {
 		Justification j = new Justification("j");
-		j.setConclusion(new Conclusion("c", "System correct"));
-
-		String dot = new DotExporter().export(j);
-
-		assertThat(dot).contains("label=\"System correct\"");
+		j.setConclusion(new Conclusion("c", input));
+		assertThat(new DotExporter().export(j)).contains(expected);
 	}
 
-	@Test
-	void export_longLabelIsWrappedAtWordBoundary() {
-		Justification j = new Justification("j");
-		// 46 chars — exceeds the 40-char wrap width
-		j.setConclusion(new Conclusion("c",
-				"The system is fully correct and validated"));
-
-		String dot = new DotExporter().export(j);
-
-		assertThat(dot).contains(
-				"label=\"The system is fully correct and\\nvalidated\"");
-	}
-
-	@Test
-	void export_underscoresInLabelAreEscapedForMarkdown() {
-		Justification j = new Justification("j");
-		j.setConclusion(new Conclusion("c", "s_s_s"));
-
-		String dot = new DotExporter().export(j);
-
-		assertThat(dot).contains("label=\"s\\_s\\_s\"", "id=\"j:c\"");
-	}
-
-	@Test
-	void export_labelSpecialCharsAreEscapedBeforeWrapping() {
-		Justification j = new Justification("j");
-		j.setConclusion(new Conclusion("c", "A \"quoted\" label"));
-
-		String dot = new DotExporter().export(j);
-
-		assertThat(dot).contains("label=\"A \\\"quoted\\\" label\"");
+	static Stream<Arguments> labelFormats() {
+		return Stream.of(
+				Arguments.of("System correct", "label=\"System correct\""),
+				Arguments.of("The system is fully correct and validated",
+						"label=\"The system is fully correct and\\nvalidated\""),
+				Arguments.of("s_s_s", "label=\"s\\_s\\_s\""),
+				Arguments.of("A \"quoted\" label",
+						"label=\"A \\\"quoted\\\" label\""));
 	}
 
 	@Test
