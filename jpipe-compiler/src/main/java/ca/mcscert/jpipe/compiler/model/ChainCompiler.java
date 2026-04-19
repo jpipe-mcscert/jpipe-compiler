@@ -2,7 +2,6 @@ package ca.mcscert.jpipe.compiler.model;
 
 import ca.mcscert.jpipe.compiler.Compiler;
 import java.io.IOException;
-import java.io.PrintStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -41,21 +40,22 @@ public final class ChainCompiler<I, O> implements Compiler {
 			sink.pourInto(output);
 		} finally {
 			if (!ctx.diagnosticsRendered()) {
-				printDiagnostics(ctx, System.err);
+				printDiagnostics(ctx);
 			}
 		}
 		logger.info("Compilation finished [{}]", sourceFile);
 		return ctx.hasErrors();
 	}
 
-	private void printDiagnostics(CompilationContext ctx, PrintStream err) {
+	private void printDiagnostics(CompilationContext ctx) {
 		for (Diagnostic d : ctx.diagnostics()) {
 			if (d.isError()) {
 				String loc = d.hasLocation()
 						? d.source() + ":" + d.line() + ":" + d.column() + ": "
 						: d.source() + ": ";
-				err.println(loc + d.level().name().toLowerCase() + ": "
-						+ d.message());
+				String level = d.level().name().toLowerCase();
+				String msg = d.message();
+				logger.error("{}{}: {}", loc, level, msg);
 			}
 		}
 	}

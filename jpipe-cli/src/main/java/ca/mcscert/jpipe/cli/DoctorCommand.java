@@ -19,6 +19,7 @@ class DoctorCommand implements Callable<Integer> {
 	private Main parent;
 
 	@Override
+	@SuppressWarnings("java:S106") // intentional: doctor output goes to stdout
 	public Integer call() {
 		if (!parent.headless) {
 			Logo.sout();

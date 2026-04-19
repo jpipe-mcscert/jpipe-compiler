@@ -31,6 +31,8 @@ abstract class InputOutputCommand implements Callable<Integer> {
 	protected String output;
 
 	@Override
+	@SuppressWarnings("java:S106") // intentional: output stream and CLI error
+									// messages target stdout/stderr
 	public final Integer call() {
 		if (!parent.headless) {
 			Logo.sout();
