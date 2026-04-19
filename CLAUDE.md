@@ -205,3 +205,41 @@ should pass the plain id when possible.
 - Command execution entry point: `doExecute(Unit)` (called by `RegularCommand.execute`).
 - Pipeline entry point: `run(I, CompilationContext)` (called by `Transformation.fire`).
 - Visitor entry points: `visit(<Type>)` — one overload per node type.
+
+---
+
+## Code Quality Conventions
+
+### Test code (AssertJ / JUnit 5)
+
+- **Chain assertions**: use one `assertThat(x)` chain with multiple matchers — never
+  split into separate `assertThat(x).contains(a)` + `assertThat(x).contains(b)` (S5853)
+- **assertThatThrownBy**: the lambda must contain exactly the one throwing call — extract
+  all setup outside the lambda (S5778)
+- **hasToString**: prefer `assertThat(x).hasToString("…")` over
+  `assertThat(x.toString()).isEqualTo("…")` (S5838)
+- **Parameterized tests**: when 3+ test methods share identical structure with different
+  inputs, use `@ParameterizedTest` + `@ValueSource` / `@CsvSource` (S5976)
+- **No empty test bodies**: if a test intentionally does nothing, add
+  `// intentionally empty` comment (S1186)
+- **Unnamed catch variables**: use `_` instead of `e` / `ignored` when the variable is
+  not read (S7467, Java 22+)
+
+### Production code
+
+- **No System.out/err**: use Log4j 2 (`private static final Logger logger =
+  LogManager.getLogger(…)`) everywhere in production classes; add
+  `@SuppressWarnings("java:S106")` only when stdout output is intentional by design (S106)
+- **No raw `throws Exception`**: declare specific checked exception(s) or use the
+  `RuntimeException` hierarchy (S112)
+- **String constants**: if a literal appears 3+ times, extract
+  `private static final String FOO = "…"` (S1192)
+- **Lazy logger args**: pass expensive arguments as lambdas →
+  `logger.debug("msg {}", () -> expensive)` (S2629)
+- **StringBuilder.isEmpty()**: use `sb.isEmpty()` instead of `sb.length() > 0` (S7158,
+  Java 15+)
+- **Method references**: prefer `Foo::bar` over `x -> Foo.bar(x)` (S1612)
+- **No unnecessary casts**: remove casts when the type is already compatible (S1905)
+- **Cognitive complexity ≤ 15**: extract private helpers rather than nesting conditions;
+  SonarQube flags methods that exceed this threshold (S3776)
+- **No commented-out code**: delete dead code — git history preserves it (S125)

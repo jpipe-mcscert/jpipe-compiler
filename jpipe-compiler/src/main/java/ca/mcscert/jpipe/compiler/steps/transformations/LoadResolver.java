@@ -165,7 +165,7 @@ public final class LoadResolver
 			subCtx.fatal("Cannot open loaded file '" + resolved + "': "
 					+ e.getMessage());
 			return List.of();
-		} catch (CompilationException e) {
+		} catch (CompilationException _) {
 			// sub-pipeline already recorded its diagnostics in subCtx
 			return List.of();
 		} finally {

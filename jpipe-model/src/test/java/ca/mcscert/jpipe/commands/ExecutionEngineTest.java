@@ -131,6 +131,7 @@ class ExecutionEngineTest {
 
 				@Override
 				public void doExecute(Unit context) {
+					// intentionally empty
 				}
 			};
 			RegularCommand stuck2 = new RegularCommand() {
@@ -141,6 +142,7 @@ class ExecutionEngineTest {
 
 				@Override
 				public void doExecute(Unit context) {
+					// intentionally empty
 				}
 			};
 

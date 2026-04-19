@@ -18,12 +18,12 @@ class SourceLocationTest {
 
 	@Test
 	void toStringForKnownLocation() {
-		assertThat(new SourceLocation(3, 5).toString()).isEqualTo("3:5");
+		assertThat(new SourceLocation(3, 5)).hasToString("3:5");
 	}
 
 	@Test
 	void toStringForUnknown() {
-		assertThat(SourceLocation.UNKNOWN.toString()).isEqualTo("<unknown>");
+		assertThat(SourceLocation.UNKNOWN).hasToString("<unknown>");
 	}
 
 	@Test
@@ -40,13 +40,13 @@ class SourceLocationTest {
 
 	@Test
 	void toStringIncludesSourceWhenPresent() {
-		assertThat(new SourceLocation("foo.jd", 3, 5).toString())
-				.isEqualTo("foo.jd:3:5");
+		assertThat(new SourceLocation("foo.jd", 3, 5))
+				.hasToString("foo.jd:3:5");
 	}
 
 	@Test
 	void toStringWithoutSourceOmitsFilename() {
-		assertThat(new SourceLocation(3, 5).toString()).isEqualTo("3:5");
+		assertThat(new SourceLocation(3, 5)).hasToString("3:5");
 	}
 
 	@Test

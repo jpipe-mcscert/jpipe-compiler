@@ -50,7 +50,7 @@ public class RenderWithDot extends Transformation<String, byte[]> {
 		Thread writer = Thread.ofVirtual().start(() -> {
 			try (OutputStream stdin = process.getOutputStream()) {
 				stdin.write(dotSource.getBytes(StandardCharsets.UTF_8));
-			} catch (IOException ignored) {
+			} catch (IOException _) {
 				// Process was destroyed before we finished writing; safe to
 				// ignore.
 			}

@@ -89,7 +89,7 @@ public final class Unifier {
 		// Gather non-excluded element commands — no wrapping needed
 		List<ElementCreationCommand> candidates = elementCmds.stream()
 				.filter(cmd -> !excluded.contains(idOf(cmd)))
-				.map(cmd -> (ElementCreationCommand) cmd).toList();
+				.map(ElementCreationCommand.class::cast).toList();
 
 		// Partition by equivalence relation
 		List<List<ElementCreationCommand>> groups = Partitions

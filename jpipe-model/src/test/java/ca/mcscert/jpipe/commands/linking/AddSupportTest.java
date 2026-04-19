@@ -187,8 +187,8 @@ class AddSupportTest {
 
 	@Test
 	void toStringIsPrologFact() {
-		assertThat(new AddSupport("j1", "c1", "s1").toString())
-				.isEqualTo("support('j1', 'c1', 's1').");
+		assertThat(new AddSupport("j1", "c1", "s1"))
+				.hasToString("support('j1', 'c1', 's1').");
 	}
 
 	// -------------------------------------------------------------------------

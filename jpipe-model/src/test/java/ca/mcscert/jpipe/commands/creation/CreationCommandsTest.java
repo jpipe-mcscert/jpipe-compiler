@@ -27,6 +27,7 @@ class CreationCommandsTest {
 		private final RegularCommand cmd = new RegularCommand() {
 			@Override
 			public void doExecute(Unit context) {
+				// intentionally empty
 			}
 		};
 

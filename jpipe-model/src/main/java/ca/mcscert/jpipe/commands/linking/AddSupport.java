@@ -78,11 +78,9 @@ public final class AddSupport extends RegularCommand {
 	public void doExecute(Unit context) {
 		var model = context.get(container);
 		JustificationElement supportable = model.findById(supportableId)
-				.map(e -> (JustificationElement) e)
 				.orElseThrow(() -> new NoSuchElementException(
 						"No element with id: " + supportableId));
 		JustificationElement supporter = model.findById(supporterId)
-				.map(e -> (JustificationElement) e)
 				.orElseThrow(() -> new NoSuchElementException(
 						"No element with id: " + supporterId));
 

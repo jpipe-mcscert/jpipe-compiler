@@ -11,7 +11,7 @@ class StringSinkTest {
 	void pourInto_writes_string_to_stream() throws Exception {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		new StringSink(out).pourInto("hello, world");
-		assertThat(out.toString()).isEqualTo("hello, world");
+		assertThat(out).hasToString("hello, world");
 	}
 
 	@Test

@@ -45,17 +45,17 @@ final class DotLabel {
 		for (String word : words) {
 			String escaped = word.replace("\\", "\\\\").replace("\"", "\\\"")
 					.replace("_", "\\_");
-			if (current.length() > 0
+			if (!current.isEmpty()
 					&& current.length() + 1 + escaped.length() > WRAP_WIDTH) {
 				lines.add(current.toString());
 				current = new StringBuilder(escaped);
 			} else {
-				if (current.length() > 0)
+				if (!current.isEmpty())
 					current.append(' ');
 				current.append(escaped);
 			}
 		}
-		if (current.length() > 0)
+		if (!current.isEmpty())
 			lines.add(current.toString());
 		return "\"" + String.join("\\n", lines) + "\"";
 	}

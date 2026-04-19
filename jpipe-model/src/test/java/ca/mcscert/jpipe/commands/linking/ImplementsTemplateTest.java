@@ -434,7 +434,7 @@ class ImplementsTemplateTest {
 
 	@Test
 	void toStringIsPrologFact() {
-		assertThat(new ImplementsTemplate("j1", "t1").toString())
-				.isEqualTo("implements('j1', 't1').");
+		assertThat(new ImplementsTemplate("j1", "t1"))
+				.hasToString("implements('j1', 't1').");
 	}
 }

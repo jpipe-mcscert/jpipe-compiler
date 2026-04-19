@@ -18,7 +18,7 @@ class ChainCompilerTest {
 	/** Sink that captures whatever it receives. */
 	private static <O> AtomicReference<O> capturingSink(Sink<O>[] holder) {
 		AtomicReference<O> captured = new AtomicReference<>();
-		holder[0] = output -> captured.set(output);
+		holder[0] = captured::set;
 		return captured;
 	}
 
