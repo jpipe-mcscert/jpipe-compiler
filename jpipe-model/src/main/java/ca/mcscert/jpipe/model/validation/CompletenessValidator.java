@@ -47,6 +47,8 @@ import java.util.List;
  */
 public final class CompletenessValidator {
 
+	private static final String IN_MODEL = "' in model '";
+
 	/**
 	 * Validates all models in the unit. Violations carry source locations
 	 * resolved from the unit's location registry.
@@ -86,7 +88,7 @@ public final class CompletenessValidator {
 			if (conclusion.getSupport().isEmpty()) {
 				String cId = conclusion.id();
 				violations.add(new Violation("conclusion-supported",
-						"Conclusion '" + cId + "' in model '" + name
+						"Conclusion '" + cId + IN_MODEL + name
 								+ "' has no supporting strategy",
 						ctx.locationOf(name, cId)));
 			}
@@ -95,7 +97,7 @@ public final class CompletenessValidator {
 		// strategy-supported
 		model.strategies().stream().filter(s -> s.getSupports().isEmpty())
 				.forEach(s -> violations.add(new Violation("strategy-supported",
-						"Strategy '" + s.id() + "' in model '" + name
+						"Strategy '" + s.id() + IN_MODEL + name
 								+ "' has no supporting element",
 						ctx.locationOf(name, s.id()))));
 
@@ -103,8 +105,8 @@ public final class CompletenessValidator {
 		model.subConclusions().stream().filter(sc -> sc.getSupport().isEmpty())
 				.forEach(sc -> violations
 						.add(new Violation("sub-conclusion-supported",
-								"Sub-conclusion '" + sc.id() + "' in model '"
-										+ name + "' has no supporting strategy",
+								"Sub-conclusion '" + sc.id() + IN_MODEL + name
+										+ "' has no supporting strategy",
 								ctx.locationOf(name, sc.id()))));
 
 		// model-type-specific rules

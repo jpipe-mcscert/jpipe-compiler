@@ -38,6 +38,8 @@ import java.util.function.Function;
  */
 public final class ConsistencyValidator {
 
+	private static final String IN_MODEL = "' in model '";
+
 	/**
 	 * Validates all models in the unit. Violations carry source locations
 	 * resolved from the unit's location registry.
@@ -75,7 +77,7 @@ public final class ConsistencyValidator {
 		model.conclusion().ifPresent(c -> {
 			if (!seen.add(c.id())) {
 				violations.add(new Violation("no-duplicate-ids",
-						"Duplicate element id '" + c.id() + "' in model '"
+						"Duplicate element id '" + c.id() + IN_MODEL
 								+ model.getName() + "'",
 						ctx.locationOf(model.getName(), c.id())));
 			}
@@ -83,7 +85,7 @@ public final class ConsistencyValidator {
 		model.getElements().forEach(element -> {
 			if (!seen.add(element.id())) {
 				violations.add(new Violation("no-duplicate-ids",
-						"Duplicate element id '" + element.id() + "' in model '"
+						"Duplicate element id '" + element.id() + IN_MODEL
 								+ model.getName() + "'",
 						ctx.locationOf(model.getName(), element.id())));
 			}
@@ -113,8 +115,8 @@ public final class ConsistencyValidator {
 		GraphCycles.detect(edges.keySet(), Function.identity(),
 				node -> edges.getOrDefault(node, List.of()), new HashSet<>(),
 				node -> violations.add(new Violation("acyclic-support",
-						"Cycle in support graph at element '" + node
-								+ "' in model '" + modelName + "'",
+						"Cycle in support graph at element '" + node + IN_MODEL
+								+ modelName + "'",
 						ctx.locationOf(modelName, node))));
 		return violations;
 	}

@@ -206,12 +206,7 @@ public abstract class CompositionOperator {
 		aliases.aliases().forEach((oldId, newId) -> commands
 				.add(new RegisterAlias(resultName, oldId, newId)));
 
-		// Phase 2: link reconstruction — translate original edges through
-		// aliases using qualified ids (source.getName():element.id()).
-		// Non-merged elements resolve to their source-prefixed id unchanged;
-		// merged elements resolve through the registry to their new id.
-		// Deduplication via seenEdges prevents duplicate AddSupport when
-		// multiple source models share the same (post-alias) edge.
+		// Phase 2: link reconstruction
 		Set<String> seenEdges = new LinkedHashSet<>();
 		for (JustificationModel<?> source : sources) {
 			source.conclusion()

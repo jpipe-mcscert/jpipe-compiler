@@ -46,6 +46,7 @@ public final class Unit {
 		return Optional.ofNullable(models.get(name));
 	}
 
+	@SuppressWarnings("java:S1452")
 	public JustificationModel<?> get(String name) {
 		return findModel(name).orElseThrow(
 				() -> new NoSuchElementException("Unknown model: " + name));

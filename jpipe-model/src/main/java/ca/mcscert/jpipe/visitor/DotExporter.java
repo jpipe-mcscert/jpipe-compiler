@@ -56,12 +56,6 @@ public class DotExporter extends AbstractModelExporter {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Ids overridden by the current model itself ({@code concreteOverrides()}).
-	 * Used for leaf-edge ghost routing in the direct-supports path.
-	 */
-	private Set<String> overriddenIds;
-
-	/**
 	 * Union of {@code concreteOverrides()} ids across the full ancestor chain
 	 * (current model + all ancestor templates). An {@link AbstractSupport} node
 	 * in any cluster gets {@link #ABSTRACT_SUFFIX} iff its child-qualified id
@@ -132,7 +126,7 @@ public class DotExporter extends AbstractModelExporter {
 	@Override
 	protected void exportModel(JustificationModel<?> model) {
 		currentModelName = model.getName();
-		overriddenIds = model.concreteOverrides().stream()
+		Set<String> overriddenIds = model.concreteOverrides().stream()
 				.map(JustificationElement::id).collect(toSet());
 		inheritedIds = model.inheritedElements().stream()
 				.map(JustificationElement::id).collect(toSet());

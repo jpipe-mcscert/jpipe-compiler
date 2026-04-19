@@ -23,6 +23,10 @@ import java.util.List;
  */
 final class ExecutionFailureDiagnostics {
 
+	private static final String UNKNOWN_MODEL_MSG = " unknown model '";
+	private static final String UNKNOWN_ELEMENT_MSG = " unknown element '";
+	private static final String IN_MODEL = "' in model '";
+
 	private ExecutionFailureDiagnostics() {
 	}
 
@@ -87,22 +91,21 @@ final class ExecutionFailureDiagnostics {
 		SourceLocation loc = c.location();
 		var modelOpt = unit.findModel(c.container());
 		if (modelOpt.isEmpty()) {
-			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + " unknown model '"
+			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + UNKNOWN_MODEL_MSG
 					+ c.container() + "'");
 			return;
 		}
 		var model = modelOpt.get();
 		if (model.findById(c.supportableId()).isEmpty()) {
 			error(ctx, loc,
-					DiagnosticCodes.UNKNOWN_ELEMENT + " unknown element '"
-							+ c.supportableId() + "' in model '" + c.container()
+					DiagnosticCodes.UNKNOWN_ELEMENT + UNKNOWN_ELEMENT_MSG
+							+ c.supportableId() + IN_MODEL + c.container()
 							+ "'");
 		}
 		if (model.findById(c.supporterId()).isEmpty()) {
 			error(ctx, loc,
-					DiagnosticCodes.UNKNOWN_ELEMENT + " unknown element '"
-							+ c.supporterId() + "' in model '" + c.container()
-							+ "'");
+					DiagnosticCodes.UNKNOWN_ELEMENT + UNKNOWN_ELEMENT_MSG
+							+ c.supporterId() + IN_MODEL + c.container() + "'");
 		}
 	}
 
@@ -110,12 +113,12 @@ final class ExecutionFailureDiagnostics {
 			Unit unit, CompilationContext ctx) {
 		SourceLocation loc = c.location();
 		if (unit.findModel(c.modelName()).isEmpty()) {
-			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + " unknown model '"
+			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + UNKNOWN_MODEL_MSG
 					+ c.modelName() + "'");
 			return;
 		}
 		if (unit.findModel(c.templateName()).isEmpty()) {
-			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + " unknown model '"
+			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + UNKNOWN_MODEL_MSG
 					+ c.templateName() + "'");
 		}
 	}
@@ -125,16 +128,15 @@ final class ExecutionFailureDiagnostics {
 		SourceLocation loc = c.location();
 		var modelOpt = unit.findModel(c.container());
 		if (modelOpt.isEmpty()) {
-			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + " unknown model '"
+			error(ctx, loc, DiagnosticCodes.UNKNOWN_MODEL + UNKNOWN_MODEL_MSG
 					+ c.container() + "'");
 			return;
 		}
 		var model = modelOpt.get();
 		if (model.findById(c.qualifiedId()).isEmpty()) {
 			error(ctx, loc,
-					DiagnosticCodes.UNKNOWN_ELEMENT + " unknown element '"
-							+ c.qualifiedId() + "' in model '" + c.container()
-							+ "'");
+					DiagnosticCodes.UNKNOWN_ELEMENT + UNKNOWN_ELEMENT_MSG
+							+ c.qualifiedId() + IN_MODEL + c.container() + "'");
 		}
 	}
 
