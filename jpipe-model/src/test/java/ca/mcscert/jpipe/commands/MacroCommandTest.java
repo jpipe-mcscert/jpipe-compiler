@@ -13,7 +13,8 @@ class MacroCommandTest {
 	@Test
 	void execute_throws_unsupported_operation() {
 		MacroCommand macro = unit -> List.of();
-		assertThatThrownBy(() -> macro.execute(new Unit("src")))
+		Unit unit = new Unit("src");
+		assertThatThrownBy(() -> macro.execute(unit))
 				.isInstanceOf(UnsupportedOperationException.class);
 	}
 

@@ -259,9 +259,9 @@ class ExecutionEngineTest {
 				}
 			};
 
-			assertThatThrownBy(() -> engine.spawn("src", List.of(failing)))
-					.isInstanceOf(
-							ca.mcscert.jpipe.commands.CommandExecutionException.class)
+			List<Command> cmds = List.of(failing);
+			assertThatThrownBy(() -> engine.spawn("src", cmds)).isInstanceOf(
+					ca.mcscert.jpipe.commands.CommandExecutionException.class)
 					.hasMessageContaining("intentional failure")
 					.satisfies(ex -> {
 						var cee = (ca.mcscert.jpipe.commands.CommandExecutionException) ex;

@@ -66,8 +66,8 @@ class ImplementsTemplateTest {
 		new CreateJustification("j1").execute(unit);
 		new CreateJustification("j2").execute(unit);
 
-		assertThatThrownBy(
-				() -> new ImplementsTemplate("j1", "j2").execute(unit))
+		var cmd = new ImplementsTemplate("j1", "j2");
+		assertThatThrownBy(() -> cmd.execute(unit))
 				.isInstanceOf(NoSuchElementException.class);
 	}
 

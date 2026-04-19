@@ -50,8 +50,9 @@ class CompilationContextTest {
 
 	@Test
 	void diagnostics_isUnmodifiable() {
-		assertThatThrownBy(
-				() -> ctx.diagnostics().add(Diagnostic.error("x", "y")))
+		var diagnostics = ctx.diagnostics();
+		var entry = Diagnostic.error("x", "y");
+		assertThatThrownBy(() -> diagnostics.add(entry))
 				.isInstanceOf(UnsupportedOperationException.class);
 	}
 

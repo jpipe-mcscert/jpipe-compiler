@@ -12,6 +12,7 @@ import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Conclusion;
@@ -257,8 +258,9 @@ class AssembleOperatorTest {
 		@Test
 		void throwsWhenConclusionLabelMissing() {
 			var a = buildJustification("a", "C", "S", "E");
-			assertThatThrownBy(() -> assemble.apply("r", List.of(a),
-					Map.of("strategyLabel", "s")))
+			List<JustificationModel<?>> sources = List.of(a);
+			var args = Map.of("strategyLabel", "s");
+			assertThatThrownBy(() -> assemble.apply("r", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("conclusionLabel");
 		}
@@ -266,8 +268,9 @@ class AssembleOperatorTest {
 		@Test
 		void throwsWhenStrategyLabelMissing() {
 			var a = buildJustification("a", "C", "S", "E");
-			assertThatThrownBy(() -> assemble.apply("r", List.of(a),
-					Map.of("conclusionLabel", "c")))
+			List<JustificationModel<?>> sources = List.of(a);
+			var args = Map.of("conclusionLabel", "c");
+			assertThatThrownBy(() -> assemble.apply("r", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("strategyLabel");
 		}

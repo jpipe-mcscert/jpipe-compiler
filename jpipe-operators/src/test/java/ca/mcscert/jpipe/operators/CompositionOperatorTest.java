@@ -257,8 +257,10 @@ class CompositionOperatorTest {
 		void throwsWhenRequiredKeyMissing() {
 			Justification j = buildJustification("j",
 					List.of(new CreateConclusion("j", "c", "C")));
-			assertThatThrownBy(() -> new RequiresArgOperator().apply("result",
-					List.of(j), Map.of()))
+			var op = new RequiresArgOperator();
+			List<JustificationModel<?>> sources = List.of(j);
+			Map<String, String> args = Map.of();
+			assertThatThrownBy(() -> op.apply("result", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("mode");
 		}

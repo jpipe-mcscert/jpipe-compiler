@@ -60,7 +60,8 @@ class CheckerTest {
 		Transformation<String, Integer> next = Transformation
 				.of((input, c) -> input.length());
 
-		assertThatThrownBy(() -> markFatal.andThen(next).fire("hello", ctx))
+		var chain = markFatal.andThen(next);
+		assertThatThrownBy(() -> chain.fire("hello", ctx))
 				.isInstanceOf(CompilationException.class)
 				.hasMessageContaining("fatal");
 	}

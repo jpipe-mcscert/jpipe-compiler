@@ -263,8 +263,8 @@ class UnifierTest {
 		@Test
 		void unknownUnifyByThrowsInvalidOperatorCallException() {
 			List<Command> cmds = List.of(new CreateJustification("m"));
-			assertThatThrownBy(
-					() -> unifier.unify("m", cmds, Map.of("unifyBy", "bogus")))
+			Map<String, String> args = Map.of("unifyBy", "bogus");
+			assertThatThrownBy(() -> unifier.unify("m", cmds, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("bogus");
 		}

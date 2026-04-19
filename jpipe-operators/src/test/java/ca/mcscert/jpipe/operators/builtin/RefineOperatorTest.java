@@ -11,6 +11,7 @@ import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Strategy;
@@ -175,39 +176,39 @@ class RefineOperatorTest {
 
 		@Test
 		void throwsWhenHookArgumentMissing() {
-			var minimal = buildMinimal();
-			var refinement = buildRefinement();
-			assertThatThrownBy(() -> refine.apply("refined",
-					List.of(minimal, refinement), Map.of()))
+			List<JustificationModel<?>> sources = List.of(buildMinimal(),
+					buildRefinement());
+			Map<String, String> args = Map.of();
+			assertThatThrownBy(() -> refine.apply("refined", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("hook");
 		}
 
 		@Test
 		void throwsWhenHookFormatHasNoSlash() {
-			var minimal = buildMinimal();
-			var refinement = buildRefinement();
-			assertThatThrownBy(() -> refine.apply("refined",
-					List.of(minimal, refinement), Map.of("hook", "e")))
+			List<JustificationModel<?>> sources = List.of(buildMinimal(),
+					buildRefinement());
+			Map<String, String> args = Map.of("hook", "e");
+			assertThatThrownBy(() -> refine.apply("refined", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("modelName/elementId");
 		}
 
 		@Test
 		void throwsWhenHookModelNotAmongSources() {
-			var minimal = buildMinimal();
-			var refinement = buildRefinement();
-			assertThatThrownBy(() -> refine.apply("refined",
-					List.of(minimal, refinement), Map.of("hook", "unknown/e")))
+			List<JustificationModel<?>> sources = List.of(buildMinimal(),
+					buildRefinement());
+			Map<String, String> args = Map.of("hook", "unknown/e");
+			assertThatThrownBy(() -> refine.apply("refined", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("unknown");
 		}
 
 		@Test
 		void throwsWhenSourceCountIsNotTwo() {
-			var minimal = buildMinimal();
-			assertThatThrownBy(() -> refine.apply("refined", List.of(minimal),
-					Map.of("hook", "minimal/e")))
+			List<JustificationModel<?>> sources = List.of(buildMinimal());
+			Map<String, String> args = Map.of("hook", "minimal/e");
+			assertThatThrownBy(() -> refine.apply("refined", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("2 sources");
 		}

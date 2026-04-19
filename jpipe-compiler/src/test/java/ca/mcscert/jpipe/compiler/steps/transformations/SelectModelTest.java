@@ -35,8 +35,9 @@ class SelectModelTest {
 	void named_selection_unknown_model_throws_compilation_exception() {
 		Unit unit = new Unit("src");
 		unit.add(new Justification("j"));
+		SelectModel step = new SelectModel("missing");
 
-		assertThatThrownBy(() -> new SelectModel("missing").fire(unit, ctx))
+		assertThatThrownBy(() -> step.fire(unit, ctx))
 				.isInstanceOf(CompilationException.class);
 	}
 
@@ -56,8 +57,9 @@ class SelectModelTest {
 		Unit unit = new Unit("src");
 		unit.add(new Justification("j1"));
 		unit.add(new Justification("j2"));
+		SelectModel step = new SelectModel(null);
 
-		assertThatThrownBy(() -> new SelectModel(null).fire(unit, ctx))
+		assertThatThrownBy(() -> step.fire(unit, ctx))
 				.isInstanceOf(CompilationException.class);
 	}
 }

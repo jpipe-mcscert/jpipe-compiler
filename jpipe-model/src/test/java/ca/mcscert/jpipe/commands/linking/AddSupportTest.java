@@ -129,8 +129,8 @@ class AddSupportTest {
 			new CreateEvidence("j1", "e1", "evidence").execute(unit);
 			new CreateStrategy("j1", "s1", "strategy").execute(unit);
 
-			assertThatThrownBy(
-					() -> new AddSupport("j1", "e1", "s1").execute(unit))
+			var cmd = new AddSupport("j1", "e1", "s1");
+			assertThatThrownBy(() -> cmd.execute(unit))
 					.isInstanceOf(IllegalArgumentException.class);
 		}
 	}
