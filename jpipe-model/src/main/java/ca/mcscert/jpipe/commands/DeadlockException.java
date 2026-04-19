@@ -13,8 +13,8 @@ import java.util.List;
  */
 public final class DeadlockException extends RuntimeException {
 
-	private final List<Command> stuckCommands;
-	private final Unit partialUnit;
+	private final transient List<Command> stuckCommands;
+	private final transient Unit partialUnit;
 
 	public DeadlockException(String message, List<Command> stuckCommands,
 			Unit partialUnit) {

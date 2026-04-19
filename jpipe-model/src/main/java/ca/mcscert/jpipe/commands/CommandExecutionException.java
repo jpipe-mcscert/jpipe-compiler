@@ -13,8 +13,8 @@ import ca.mcscert.jpipe.model.Unit;
  */
 public final class CommandExecutionException extends RuntimeException {
 
-	private final Command failedCommand;
-	private final Unit partialUnit;
+	private final transient Command failedCommand;
+	private final transient Unit partialUnit;
 
 	public CommandExecutionException(Command failedCommand, Unit partialUnit,
 			Throwable cause) {
