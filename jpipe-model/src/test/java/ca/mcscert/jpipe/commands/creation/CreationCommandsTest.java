@@ -38,6 +38,27 @@ class CreationCommandsTest {
 	}
 
 	// -------------------------------------------------------------------------
+	// ElementCreationCommand shared accessor contract
+	// -------------------------------------------------------------------------
+
+	@Nested
+	class ElementCreationCommandContractTest {
+		private final SourceLocation loc = new SourceLocation(1, 0);
+		private final ElementCreationCommand cmd = new CreateConclusion(
+				"myContainer", "myId", "myLabel", loc);
+
+		@Test
+		void accessorsReturnConstructorArguments() {
+			assertThat(cmd)
+					.extracting(ElementCreationCommand::container,
+							ElementCreationCommand::identifier,
+							ElementCreationCommand::label,
+							ElementCreationCommand::location)
+					.containsExactly("myContainer", "myId", "myLabel", loc);
+		}
+	}
+
+	// -------------------------------------------------------------------------
 	// Unit-level creation commands
 	// -------------------------------------------------------------------------
 
