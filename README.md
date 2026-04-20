@@ -30,7 +30,8 @@ The jPipe environment supports the definition of justification to support softwa
 - `jpipe-compiler`: compiler pipeline (parsing, model building, validation, export)
 - `jpipe-cli`: command-line interface and fat JAR entry point
 - `docs`: technical documentation and architecture decision records
-- `templates`: templates used for distributing the compiler with Homebrew and apt
+- `homebrew`: launcher script template for the Homebrew formula
+- `debian`: Debian source packaging metadata for the Ubuntu PPA
 
 ### Developer Setup
 
@@ -55,6 +56,54 @@ mvn package
 ```
 
 The fat JAR is produced in `jpipe-cli/target/`.
+
+#### Releasing a new version
+
+Releases are triggered by pushing a `v*.*.*` tag to `main`. The pipeline
+creates a GitHub Release, updates the Homebrew formula, and uploads a Debian
+source package to the Ubuntu PPA.
+
+**Prerequisites:** The following secrets must be configured in the GitHub
+repository settings:
+
+| Secret | Purpose |
+|--------|---------|
+| `HOMEBREW_TAP_TOKEN` | PAT with write access to `jpipe-mcscert/homebrew-mcscert` |
+| `GPG_PRIVATE_KEY` | ASCII-armored GPG key registered on Launchpad |
+| `GPG_KEY_ID` | Fingerprint of the signing key |
+| `GPG_PASSPHRASE` | Passphrase for the signing key |
+
+**Steps:**
+
+```bash
+# 1. Update pom.xml to the release version (remove -SNAPSHOT)
+mvn -B versions:set -DnewVersion=X.Y.Z -DgenerateBackupPoms=false
+mvn spotless:apply && mvn verify
+
+# 2. Commit, tag, and push — the pipeline fires automatically
+git commit -am "chore: release vX.Y.Z"
+git tag vX.Y.Z
+git push origin main --tags
+```
+
+**What happens automatically:**
+
+1. The fat JAR is built with `Implementation-Version: X.Y.Z` in its manifest.
+2. A GitHub Release is created with the fat JAR and a Homebrew tarball.
+3. `jpipe.rb` in the Homebrew tap is updated with the new URL and SHA256.
+4. A signed Debian source package is uploaded to `ppa:mcscert/ppa`.
+
+**Verifying the release** (~30 min after the pipeline completes):
+
+```bash
+# macOS
+brew tap jpipe-mcscert/mcscert
+brew install jpipe
+
+# Ubuntu
+sudo add-apt-repository ppa:mcscert/ppa
+sudo apt update && sudo apt install jpipe
+```
 
 #### Code style
 
