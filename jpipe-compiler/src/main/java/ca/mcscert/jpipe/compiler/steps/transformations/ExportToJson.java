@@ -13,8 +13,7 @@ public class ExportToJson
 			Transformation<JustificationModel<?>, String> {
 
 	@Override
-	protected String run(JustificationModel<?> input, CompilationContext ctx)
-			throws Exception {
+	protected String run(JustificationModel<?> input, CompilationContext ctx) {
 		return new JsonExporter().export(input);
 	}
 }

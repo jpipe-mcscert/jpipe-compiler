@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.cli;
 import ca.mcscert.jpipe.compiler.CompilationConfig;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Option;
@@ -45,7 +46,7 @@ abstract class InputOutputCommand implements Callable<Integer> {
 		} catch (CompilationException | UnsupportedOperationException e) {
 			System.err.println("error: " + e.getMessage());
 			return Main.EXIT_JPIPE_ERROR;
-		} catch (Exception e) {
+		} catch (IOException e) {
 			System.err.println("unexpected error: " + e.getMessage());
 			return Main.EXIT_SYSTEM_ERROR;
 		}
@@ -59,11 +60,8 @@ abstract class InputOutputCommand implements Callable<Integer> {
 	 *            {@code System.out}).
 	 * @return exit code ({@link Main#EXIT_OK} or
 	 *         {@link Main#EXIT_JPIPE_ERROR}).
-	 * @throws Exception
-	 *             any compilation or I/O failure; caught and reported by
-	 *             {@link #call()}.
+	 * @throws IOException
+	 *             any I/O failure; caught and reported by {@link #call()}.
 	 */
-	@SuppressWarnings("java:S112") // subclasses may throw checked exceptions
-									// beyond IOException
-	protected abstract Integer doCall(OutputStream out) throws Exception;
+	protected abstract Integer doCall(OutputStream out) throws IOException;
 }

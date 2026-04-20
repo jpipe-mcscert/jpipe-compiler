@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.cli;
 import ca.mcscert.jpipe.compiler.CompilationConfig;
 import ca.mcscert.jpipe.compiler.CompilerFactory;
 import ca.mcscert.jpipe.compiler.Format;
+import java.io.IOException;
 import java.io.OutputStream;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -23,7 +24,7 @@ class ProcessCommand extends InputOutputCommand {
 	private String model;
 
 	@Override
-	protected Integer doCall(OutputStream out) throws Exception {
+	protected Integer doCall(OutputStream out) throws IOException {
 		CompilationConfig config = new CompilationConfig(input, output, format,
 				model);
 		boolean hasErrors = CompilerFactory.build(config, out).compile(input,

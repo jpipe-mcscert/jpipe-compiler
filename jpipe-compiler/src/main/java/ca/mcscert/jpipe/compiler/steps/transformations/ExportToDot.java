@@ -12,8 +12,7 @@ import ca.mcscert.jpipe.visitor.DotExporter;
 public class ExportToDot extends Transformation<JustificationModel<?>, String> {
 
 	@Override
-	protected String run(JustificationModel<?> input, CompilationContext ctx)
-			throws Exception {
+	protected String run(JustificationModel<?> input, CompilationContext ctx) {
 		return new DotExporter().export(input);
 	}
 }

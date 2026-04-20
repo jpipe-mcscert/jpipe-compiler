@@ -34,8 +34,7 @@ public class SelectModel extends Transformation<Unit, JustificationModel<?>> {
 	}
 
 	@Override
-	protected JustificationModel<?> run(Unit unit, CompilationContext ctx)
-			throws Exception {
+	protected JustificationModel<?> run(Unit unit, CompilationContext ctx) {
 		if (diagramName != null) {
 			JustificationModel<?> model = unit.findModel(diagramName)
 					.orElseThrow(() -> new CompilationException("SelectModel",

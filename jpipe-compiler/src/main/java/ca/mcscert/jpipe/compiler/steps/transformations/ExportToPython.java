@@ -14,8 +14,7 @@ public class ExportToPython
 			Transformation<JustificationModel<?>, String> {
 
 	@Override
-	protected String run(JustificationModel<?> input, CompilationContext ctx)
-			throws Exception {
+	protected String run(JustificationModel<?> input, CompilationContext ctx) {
 		return new PythonExporter().export(input, ctx.sourcePath());
 	}
 }

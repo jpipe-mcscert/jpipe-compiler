@@ -24,8 +24,7 @@ public final class ActionListInterpretation
 			Transformation<List<Command>, Unit> {
 
 	@Override
-	protected Unit run(List<Command> input, CompilationContext ctx)
-			throws Exception {
+	protected Unit run(List<Command> input, CompilationContext ctx) {
 		long macros = input.stream().filter(MacroCommand.class::isInstance)
 				.count();
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_TOTAL, input.size());

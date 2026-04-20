@@ -243,3 +243,9 @@ should pass the plain id when possible.
 - **Cognitive complexity ≤ 15**: extract private helpers rather than nesting conditions;
   SonarQube flags methods that exceed this threshold (S3776)
 - **No commented-out code**: delete dead code — git history preserves it (S125)
+- **`@SuppressWarnings` requires explicit approval**: never add a suppression
+  without proposing it to the user first and receiving a go-ahead. Always present
+  the real alternative (refactoring, narrower type, etc.) before suggesting a
+  suppression. Suppressions that are legitimately unavoidable (e.g. generated
+  code, functional-interface `throws` boundaries) must still be approved and must
+  carry an explanatory comment.

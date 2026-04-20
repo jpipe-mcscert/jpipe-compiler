@@ -35,16 +35,6 @@ class CheckerTest {
 	}
 
 	@Test
-	void check_throwingCheckedExceptionWrapsInCompilationException() {
-		Checker<String> failing = Checker.checking((value, c) -> {
-			throw new Exception("bad input");
-		});
-		assertThatThrownBy(() -> failing.fire("x", ctx))
-				.isInstanceOf(CompilationException.class)
-				.hasCauseInstanceOf(Exception.class);
-	}
-
-	@Test
 	void check_throwingRuntimeExceptionPropagatesUnwrapped() {
 		RuntimeException original = new IllegalArgumentException("bad input");
 		Checker<String> failing = Checker.checking((value, c) -> {

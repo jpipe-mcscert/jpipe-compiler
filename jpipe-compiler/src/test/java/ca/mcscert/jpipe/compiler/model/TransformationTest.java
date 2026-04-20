@@ -39,17 +39,6 @@ class TransformationTest {
 	// ────────────────────────────────────────────────────
 
 	@Test
-	void fire_wrapsCheckedExceptionInCompilationException() {
-		Transformation<String, String> t = Transformation.of((input, c) -> {
-			throw new Exception("checked");
-		});
-		assertThatThrownBy(() -> t.fire("input", ctx))
-				.isInstanceOf(CompilationException.class)
-				.hasCauseInstanceOf(Exception.class)
-				.hasMessageContaining("checked");
-	}
-
-	@Test
 	void fire_propagatesRuntimeExceptionUnwrapped() {
 		RuntimeException original = new IllegalStateException("runtime");
 		Transformation<String, String> t = Transformation.of((input, c) -> {

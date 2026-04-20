@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.cli;
 
 import ca.mcscert.jpipe.compiler.CompilerFactory;
+import java.io.IOException;
 import java.io.OutputStream;
 import picocli.CommandLine.Command;
 
@@ -12,7 +13,7 @@ import picocli.CommandLine.Command;
 class DiagnosticCommand extends InputOutputCommand {
 
 	@Override
-	protected Integer doCall(OutputStream out) throws Exception {
+	protected Integer doCall(OutputStream out) throws IOException {
 		boolean hasErrors = CompilerFactory.buildDiagnosticCompiler(out)
 				.compile(input, output);
 		return hasErrors ? Main.EXIT_JPIPE_ERROR : Main.EXIT_OK;

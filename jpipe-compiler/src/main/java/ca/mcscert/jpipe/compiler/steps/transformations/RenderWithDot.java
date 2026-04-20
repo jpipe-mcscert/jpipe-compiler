@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
+import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,15 +35,13 @@ public class RenderWithDot extends Transformation<String, byte[]> {
 	}
 
 	@Override
-	protected byte[] run(String dotSource, CompilationContext ctx)
-			throws Exception {
+	protected byte[] run(String dotSource, CompilationContext ctx) {
 		Process process;
 		try {
 			process = new ProcessBuilder("dot", "-T" + dotFormat).start();
-		} catch (IOException e) {
-			throw new IOException(
-					"dot not found on PATH — install Graphviz or run 'jpipe --doctor'",
-					e);
+		} catch (IOException _) {
+			throw new CompilationException(stepName(),
+					"dot not found on PATH — install Graphviz or run 'jpipe --doctor'");
 		}
 
 		// Write dot source in a virtual thread to avoid deadlock when the
@@ -76,10 +75,17 @@ public class RenderWithDot extends Transformation<String, byte[]> {
 			stderrReader.join();
 			int exitCode = process.waitFor();
 			if (exitCode != 0) {
-				throw new IOException("dot exited with code " + exitCode + ": "
-						+ stderrCapture.get().strip());
+				throw new CompilationException(stepName(),
+						"dot exited with code " + exitCode + ": "
+								+ stderrCapture.get().strip());
 			}
 			return result;
+		} catch (IOException e) {
+			throw new CompilationException(stepName(), e.getMessage());
+		} catch (InterruptedException _) {
+			Thread.currentThread().interrupt();
+			throw new CompilationException(stepName(),
+					"interrupted while waiting for dot");
 		} finally {
 			// If readAllBytes(), join(), or waitFor() threw, kill the process.
 			// destroyForcibly() is a no-op when the process has already exited.

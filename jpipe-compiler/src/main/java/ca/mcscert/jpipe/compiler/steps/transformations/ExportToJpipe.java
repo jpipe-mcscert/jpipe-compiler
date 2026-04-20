@@ -14,8 +14,7 @@ public class ExportToJpipe
 			Transformation<JustificationModel<?>, String> {
 
 	@Override
-	protected String run(JustificationModel<?> input, CompilationContext ctx)
-			throws Exception {
+	protected String run(JustificationModel<?> input, CompilationContext ctx) {
 		return new JpipeExporter().export(input);
 	}
 }

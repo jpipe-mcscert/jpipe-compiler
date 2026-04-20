@@ -21,23 +21,21 @@ public abstract class Checker<I> extends Transformation<I, I> {
 	/** Functional interface for the {@link #of} factory. */
 	@FunctionalInterface
 	public interface Check<I> {
-		@SuppressWarnings("java:S112")
-		void apply(I input, CompilationContext ctx) throws Exception;
+		void apply(I input, CompilationContext ctx);
 	}
 
 	/** Create a {@code Checker} from a lambda or method reference. */
 	public static <I> Checker<I> checking(Check<I> check) {
 		return new Checker<>() {
 			@Override
-			protected void check(I input, CompilationContext ctx)
-					throws Exception {
+			protected void check(I input, CompilationContext ctx) {
 				check.apply(input, ctx);
 			}
 		};
 	}
 
 	@Override
-	protected final I run(I input, CompilationContext ctx) throws Exception {
+	protected final I run(I input, CompilationContext ctx) {
 		check(input, ctx);
 		return input;
 	}
@@ -51,11 +49,7 @@ public abstract class Checker<I> extends Transformation<I, I> {
 	 *            the value to inspect.
 	 * @param ctx
 	 *            compilation context for reporting diagnostics.
-	 * @throws Exception
-	 *             if the check encounters an unrecoverable failure.
 	 */
-	@SuppressWarnings("java:S112")
-	protected abstract void check(I input, CompilationContext ctx)
-			throws Exception;
+	protected abstract void check(I input, CompilationContext ctx);
 
 }

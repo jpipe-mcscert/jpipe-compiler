@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
+import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,8 +18,11 @@ public final class CharStreamProvider
 			Transformation<InputStream, CharStream> {
 
 	@Override
-	protected CharStream run(InputStream input, CompilationContext ctx)
-			throws IOException {
-		return CharStreams.fromStream(input, StandardCharsets.UTF_8);
+	protected CharStream run(InputStream input, CompilationContext ctx) {
+		try {
+			return CharStreams.fromStream(input, StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new CompilationException(stepName(), e.getMessage());
+		}
 	}
 }

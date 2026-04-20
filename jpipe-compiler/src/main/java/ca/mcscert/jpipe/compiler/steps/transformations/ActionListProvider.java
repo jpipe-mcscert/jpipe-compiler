@@ -50,8 +50,7 @@ public final class ActionListProvider
 	}
 
 	@Override
-	protected List<Command> run(ParseTree input, CompilationContext ctx)
-			throws Exception {
+	protected List<Command> run(ParseTree input, CompilationContext ctx) {
 		ActionBuilder ab = new ActionBuilder(ctx.sourcePath(), ctx, operators,
 				unificationEquivalences);
 		ParseTreeWalker.DEFAULT.walk(ab, input);

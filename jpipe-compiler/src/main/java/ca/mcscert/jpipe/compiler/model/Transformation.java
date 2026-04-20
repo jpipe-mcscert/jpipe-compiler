@@ -29,8 +29,7 @@ public abstract class Transformation<I, O> {
 	 */
 	@FunctionalInterface
 	public interface Step<I, O> {
-		@SuppressWarnings("java:S112")
-		O apply(I input, CompilationContext ctx) throws Exception;
+		O apply(I input, CompilationContext ctx);
 	}
 
 	/**
@@ -48,7 +47,7 @@ public abstract class Transformation<I, O> {
 	public static <I, O> Transformation<I, O> of(Step<I, O> step) {
 		return new Transformation<>() {
 			@Override
-			protected O run(I input, CompilationContext ctx) throws Exception {
+			protected O run(I input, CompilationContext ctx) {
 				return step.apply(input, ctx);
 			}
 
@@ -92,11 +91,10 @@ public abstract class Transformation<I, O> {
 	 *            compilation context carrying the source path and diagnostic
 	 *            bag.
 	 * @return the transformed value — never {@code null}.
-	 * @throws Exception
+	 * @throws RuntimeException
 	 *             if anything goes wrong.
 	 */
-	@SuppressWarnings("java:S112")
-	protected abstract O run(I input, CompilationContext ctx) throws Exception;
+	protected abstract O run(I input, CompilationContext ctx);
 
 	/**
 	 * Public entry-point: runs this step with logging and error handling.
@@ -124,15 +122,9 @@ public abstract class Transformation<I, O> {
 			String name = stepName();
 			logger.debug("Firing transformation [{}]", name);
 		}
-		try {
-			O result = run(in, ctx);
-			return Objects.requireNonNull(result,
-					"Transformation [" + stepName() + "] returned null");
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new CompilationException(stepName(), e);
-		}
+		O result = run(in, ctx);
+		return Objects.requireNonNull(result,
+				"Transformation [" + stepName() + "] returned null");
 	}
 
 	/**
@@ -155,7 +147,7 @@ public abstract class Transformation<I, O> {
 		Transformation<I, O> self = this;
 		return new Transformation<>() {
 			@Override
-			protected R run(I input, CompilationContext ctx) throws Exception {
+			protected R run(I input, CompilationContext ctx) {
 				return next.fire(self.fire(input, ctx), ctx);
 			}
 
