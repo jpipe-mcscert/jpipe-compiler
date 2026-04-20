@@ -11,6 +11,8 @@ jobs:
   build:
     name: Build and test
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.mvn_version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v6
@@ -28,6 +30,10 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Extract Maven version
+        id: mvn_version
+        run: echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> "$GITHUB_OUTPUT"
+
       - name: Build and test
         run: mvn -B package
 
@@ -42,7 +48,7 @@ jobs:
       - name: Upload fat JAR artifact
         uses: actions/upload-artifact@v7
         with:
-          name: jpipe-cli-${{ github.sha }}
+          name: jpipe-cli-${{ steps.mvn_version.outputs.version }}
           path: ${{ steps.locate.outputs.path }}
           archive: false
           if-no-files-found: error
@@ -62,7 +68,7 @@ jobs:
       - name: Download fat JAR artifact
         uses: actions/download-artifact@v7
         with:
-          name: jpipe-cli-${{ github.sha }}
+          name: jpipe-cli-${{ needs.build.outputs.version }}
           path: dist
 
       - name: Publish unstable release
