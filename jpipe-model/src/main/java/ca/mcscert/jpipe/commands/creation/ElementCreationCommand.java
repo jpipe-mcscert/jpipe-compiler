@@ -21,8 +21,7 @@ import ca.mcscert.jpipe.model.elements.ElementView;
  * in live model objects.
  */
 public sealed interface ElementCreationCommand extends Command, ElementView
-		permits CreateConclusion, CreateStrategy, CreateEvidence,
-		CreateSubConclusion, CreateAbstractSupport {
+		permits AbstractElementCreationCommand {
 
 	/** Name of the model this command adds an element to. */
 	String container();

@@ -92,9 +92,10 @@
         <checkstyle.version>13.3.0</checkstyle.version>
         <jacoco-plugin.version>0.8.14</jacoco-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
-        <sonar-plugin.version>5.0.0.4389</sonar-plugin.version>
+        <sonar-plugin.version>5.6.0.6792</sonar-plugin.version>
 
         <!-- SonarCloud -->
+        <sonar.projectKey>jpipe-mcscert_jpipe-compiler</sonar.projectKey>
         <sonar.organization>jpipe-mcscert</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     </properties>
@@ -269,6 +270,12 @@
                             <phase>verify</phase>
                         </execution>
                     </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.sonarsource.scanner.maven</groupId>
+                    <artifactId>sonar-maven-plugin</artifactId>
+                    <version>${sonar-plugin.version}</version>
                 </plugin>
 
                 <plugin>
