@@ -111,21 +111,27 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 					parent));
 			sb.append(
 					String.format("  elements:  %s%n", elementSummary(model)));
-			if (model instanceof Template) {
-				List<String> impls = implementors.getOrDefault(model.getName(),
-						List.of());
-				if (!impls.isEmpty()) {
-					String names = impls.stream().map(n -> {
-						SourceLocation loc = unit.locationOf(n);
-						return "\"" + n + "\""
-								+ (loc.isKnown()
-										? " @ " + loc.line() + ":"
-												+ loc.column()
-										: "");
-					}).collect(Collectors.joining(", "));
-					sb.append(String.format("  used by:   %s%n", names));
-				}
-			}
+			appendTemplateImplementors(sb, unit, model, implementors);
+		}
+	}
+
+	private void appendTemplateImplementors(StringBuilder sb, Unit unit,
+			JustificationModel<?> model,
+			Map<String, List<String>> implementors) {
+		if (!(model instanceof Template)) {
+			return;
+		}
+		List<String> impls = implementors.getOrDefault(model.getName(),
+				List.of());
+		if (!impls.isEmpty()) {
+			String names = impls.stream().map(n -> {
+				SourceLocation loc = unit.locationOf(n);
+				return "\"" + n + "\""
+						+ (loc.isKnown()
+								? " @ " + loc.line() + ":" + loc.column()
+								: "");
+			}).collect(Collectors.joining(", "));
+			sb.append(String.format("  used by:   %s%n", names));
 		}
 	}
 
@@ -172,45 +178,61 @@ public final class DiagnosticReport extends Transformation<Unit, String> {
 				unit);
 
 		for (JustificationModel<?> model : unit.getModels()) {
-			String modelName = model.getName();
-			SourceLocation modelLoc = unit.locationOf(modelName);
-			String kind = (model instanceof Template)
-					? "template"
-					: "justification";
-			sb.append(String.format("%s \"%s\"  [%s]%n", kind, modelName,
-					modelLoc));
+			appendModelSymbolEntry(sb, unit, model, aliasesByModel);
+		}
+	}
 
-			List<JustificationElement> elements = collectElements(model);
-			if (!elements.isEmpty()) {
-				int maxLen = elements.stream().mapToInt(e -> e.id().length())
-						.max().orElse(0);
-				String modelSource = modelLoc.source();
-				for (JustificationElement e : elements) {
-					SourceLocation elemLoc = unit.locationOf(modelName, e.id());
-					String locStr;
-					if (elemLoc.isKnown()) {
-						locStr = (modelSource != null
-								&& modelSource.equals(elemLoc.source()))
-										? elemLoc.line() + ":"
-												+ elemLoc.column()
-										: elemLoc.toString();
-					} else {
-						locStr = "[synthesized]";
-					}
-					sb.append(String.format("  %s  %s%n",
-							padEnd(e.id(), maxLen), locStr));
-				}
-			}
+	private void appendModelSymbolEntry(StringBuilder sb, Unit unit,
+			JustificationModel<?> model,
+			Map<String, Map<String, String>> aliasesByModel) {
+		String modelName = model.getName();
+		SourceLocation modelLoc = unit.locationOf(modelName);
+		String kind = (model instanceof Template)
+				? "template"
+				: "justification";
+		sb.append(
+				String.format("%s \"%s\"  [%s]%n", kind, modelName, modelLoc));
+		appendElementEntries(sb, unit, modelName, modelLoc,
+				collectElements(model));
+		appendAliasEntries(sb,
+				aliasesByModel.getOrDefault(modelName, Map.of()));
+	}
 
-			Map<String, String> modelAliases = aliasesByModel
-					.getOrDefault(modelName, Map.of());
-			if (!modelAliases.isEmpty()) {
-				int maxLen = modelAliases.keySet().stream()
-						.mapToInt(String::length).max().orElse(0);
-				modelAliases.forEach((oldId, newId) -> sb
-						.append(String.format("  %s  %s %s  [alias]%n",
-								padEnd(oldId, maxLen), ARROW, newId)));
+	private void appendElementEntries(StringBuilder sb, Unit unit,
+			String modelName, SourceLocation modelLoc,
+			List<JustificationElement> elements) {
+		if (elements.isEmpty()) {
+			return;
+		}
+		int maxLen = elements.stream().mapToInt(e -> e.id().length()).max()
+				.orElse(0);
+		String modelSource = modelLoc.source();
+		for (JustificationElement e : elements) {
+			SourceLocation elemLoc = unit.locationOf(modelName, e.id());
+			String locStr;
+			if (elemLoc.isKnown()) {
+				locStr = (modelSource != null
+						&& modelSource.equals(elemLoc.source()))
+								? elemLoc.line() + ":" + elemLoc.column()
+								: elemLoc.toString();
+			} else {
+				locStr = "[synthesized]";
 			}
+			sb.append(String.format("  %s  %s%n", padEnd(e.id(), maxLen),
+					locStr));
+		}
+	}
+
+	private void appendAliasEntries(StringBuilder sb,
+			Map<String, String> aliases) {
+		if (aliases.isEmpty()) {
+			return;
+		}
+		int maxLen = aliases.keySet().stream().mapToInt(String::length).max()
+				.orElse(0);
+		for (Map.Entry<String, String> entry : aliases.entrySet()) {
+			sb.append(String.format("  %s  %s %s  [alias]%n",
+					padEnd(entry.getKey(), maxLen), ARROW, entry.getValue()));
 		}
 	}
 

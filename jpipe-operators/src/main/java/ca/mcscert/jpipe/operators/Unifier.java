@@ -111,48 +111,57 @@ public final class Unifier {
 			return List.copyOf(commands);
 		}
 
-		// Rebuild command list
-		List<Command> result = new ArrayList<>();
-		Set<String> insertedUnified = new LinkedHashSet<>();
-		Set<String> seenEdges = new LinkedHashSet<>();
-
-		for (Command cmd : commands) {
-			if (isElement(cmd)) {
-				String id = idOf(cmd);
-				if (phase4Aliases.containsKey(id)) {
-					// Replace the FIRST occurrence with the synthesized element
-					String unifiedId = phase4Aliases.get(id);
-					if (insertedUnified.add(unifiedId)) {
-						result.add(synthesized(cmd, unifiedId));
-					}
-					// All subsequent occurrences (other group members) are
-					// dropped
-				} else {
-					result.add(cmd);
-				}
-			} else if (cmd instanceof AddSupport as) {
-				String newSupportable = resolve(as.supportableId(),
-						phase4Aliases);
-				String newSupporter = resolve(as.supporterId(), phase4Aliases);
-				String key = newSupportable + "->" + newSupporter;
-				if (seenEdges.add(key)) {
-					result.add(new AddSupport(resultName, newSupportable,
-							newSupporter));
-				}
-			} else {
-				result.add(cmd);
-			}
-		}
-
-		// Append RegisterAlias commands for all phase4 merges
+		List<Command> result = rebuildCommands(resultName, commands,
+				phase4Aliases);
 		phase4Aliases.forEach((oldId, newId) -> result
 				.add(new RegisterAlias(resultName, oldId, newId)));
-
 		return List.copyOf(result);
 	}
 
 	// ── Helpers
 	// ─────────────────────────────────────────────────────────────────
+
+	private static List<Command> rebuildCommands(String resultName,
+			List<Command> commands, Map<String, String> phase4Aliases) {
+		List<Command> result = new ArrayList<>();
+		Set<String> insertedUnified = new LinkedHashSet<>();
+		Set<String> seenEdges = new LinkedHashSet<>();
+		for (Command cmd : commands) {
+			if (isElement(cmd)) {
+				appendElement(result, cmd, phase4Aliases, insertedUnified);
+			} else if (cmd instanceof AddSupport as) {
+				appendEdge(result, resultName, as, phase4Aliases, seenEdges);
+			} else {
+				result.add(cmd);
+			}
+		}
+		return result;
+	}
+
+	private static void appendElement(List<Command> result, Command cmd,
+			Map<String, String> phase4Aliases, Set<String> insertedUnified) {
+		String id = idOf(cmd);
+		if (phase4Aliases.containsKey(id)) {
+			String unifiedId = phase4Aliases.get(id);
+			if (insertedUnified.add(unifiedId)) {
+				result.add(synthesized(cmd, unifiedId));
+			}
+		} else {
+			result.add(cmd);
+		}
+	}
+
+	private static void appendEdge(List<Command> result, String resultName,
+			AddSupport as, Map<String, String> phase4Aliases,
+			Set<String> seenEdges) {
+		String newSupportable = resolve(as.supportableId(), phase4Aliases);
+		String newSupporter = resolve(as.supporterId(), phase4Aliases);
+		String key = newSupportable + "->" + newSupporter;
+		if (seenEdges.add(key)) {
+			result.add(
+					new AddSupport(resultName, newSupportable, newSupporter));
+		}
+	}
 
 	private static Set<String> parseExcludeList(String raw) {
 		if (raw.isBlank()) {

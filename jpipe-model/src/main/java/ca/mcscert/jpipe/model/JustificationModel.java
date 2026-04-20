@@ -141,34 +141,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		});
 
 		// Step 2: re-wire support edges between included copies only
-		template.conclusion().ifPresent(tc -> tc.getSupport().ifPresent(s -> {
-			if (copies.containsKey(tc.id()) && copies.containsKey(s.id())) {
-				JustificationElement copiedC = copies.get(tc.id());
-				Strategy copiedS = (Strategy) copies.get(s.id());
-				// copiedC is always a Conclusion or SubConclusion because tc
-				// was a Conclusion
-				if (copiedC instanceof Conclusion c) {
-					c.addSupport(copiedS);
-				} else if (copiedC instanceof SubConclusion sc) {
-					sc.addSupport(copiedS);
-				}
-			}
-		}));
-
-		template.subConclusions().forEach(sc -> sc.getSupport().ifPresent(s -> {
-			if (copies.containsKey(sc.id()) && copies.containsKey(s.id())) {
-				((SubConclusion) copies.get(sc.id()))
-						.addSupport((Strategy) copies.get(s.id()));
-			}
-		}));
-
-		template.strategies().forEach(s -> s.getSupports().forEach(leaf -> {
-			String leafId = ((JustificationElement) leaf).id();
-			if (copies.containsKey(s.id()) && copies.containsKey(leafId)) {
-				((Strategy) copies.get(s.id()))
-						.addSupport((SupportLeaf) copies.get(leafId));
-			}
-		}));
+		rewireEdges(template, copies);
 
 		// Step 3: add included copies to this model
 		copies.values().stream().filter(c -> !(c instanceof Conclusion))
@@ -177,6 +150,41 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 					E typed = (E) copy;
 					addElement(typed);
 				});
+	}
+
+	private void rewireEdges(Template template,
+			Map<String, JustificationElement> copies) {
+		template.conclusion()
+				.ifPresent(tc -> rewireConclusionSupport(tc, copies));
+		template.subConclusions().forEach(sc -> sc.getSupport().ifPresent(s -> {
+			if (copies.containsKey(sc.id()) && copies.containsKey(s.id())) {
+				((SubConclusion) copies.get(sc.id()))
+						.addSupport((Strategy) copies.get(s.id()));
+			}
+		}));
+		template.strategies().forEach(s -> s.getSupports().forEach(leaf -> {
+			String leafId = ((JustificationElement) leaf).id();
+			if (copies.containsKey(s.id()) && copies.containsKey(leafId)) {
+				((Strategy) copies.get(s.id()))
+						.addSupport((SupportLeaf) copies.get(leafId));
+			}
+		}));
+	}
+
+	private void rewireConclusionSupport(Conclusion tc,
+			Map<String, JustificationElement> copies) {
+		tc.getSupport().ifPresent(s -> {
+			if (!copies.containsKey(tc.id()) || !copies.containsKey(s.id())) {
+				return;
+			}
+			JustificationElement copiedC = copies.get(tc.id());
+			Strategy copiedS = (Strategy) copies.get(s.id());
+			if (copiedC instanceof Conclusion c) {
+				c.addSupport(copiedS);
+			} else if (copiedC instanceof SubConclusion sc) {
+				sc.addSupport(copiedS);
+			}
+		});
 	}
 
 	/**
