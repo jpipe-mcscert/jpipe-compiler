@@ -32,7 +32,9 @@ jobs:
 
       - name: Extract Maven version
         id: mvn_version
-        run: echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION="$(mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout | head -n 1 | tr -d '\r' | tr ':/' '-')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build and test
         run: mvn -B package
