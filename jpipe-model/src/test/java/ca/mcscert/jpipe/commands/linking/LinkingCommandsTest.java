@@ -15,7 +15,7 @@ class LinkingCommandsTest {
 	class AddElementTest {
 
 		@Test
-		void adds_element_to_container() throws Exception {
+		void adds_element_to_container() {
 			Unit unit = unitWithJustification("j");
 			Evidence e = new Evidence("e1", "E");
 
@@ -48,7 +48,7 @@ class LinkingCommandsTest {
 	class RemoveElementTest {
 
 		@Test
-		void removes_element_from_container() throws Exception {
+		void removes_element_from_container() {
 			Unit unit = new Unit("src");
 			Justification j = new Justification("j");
 			j.addElement(new Evidence("e1", "E"));
@@ -87,7 +87,7 @@ class LinkingCommandsTest {
 	class RewireStrategySupportTest {
 
 		@Test
-		void replaces_old_supporter_with_new_one() throws Exception {
+		void replaces_old_supporter_with_new_one() {
 			Unit unit = new Unit("src");
 			Justification j = new Justification("j");
 			Strategy s = new Strategy("s", "S");

@@ -31,7 +31,7 @@ class AddSupportTest {
 	class ConclusionSupportedByStrategy {
 
 		@Test
-		void strategyIsLinkedToConclusion() throws Exception {
+		void strategyIsLinkedToConclusion() {
 			Unit unit = unitWithJustification("j1");
 			new CreateConclusion("j1", "c1", "my conclusion").execute(unit);
 			new CreateStrategy("j1", "s1", "my strategy").execute(unit);
@@ -48,7 +48,7 @@ class AddSupportTest {
 	class SubConclusionSupportedByStrategy {
 
 		@Test
-		void strategyIsLinkedToSubConclusion() throws Exception {
+		void strategyIsLinkedToSubConclusion() {
 			Unit unit = unitWithJustification("j1");
 			new CreateSubConclusion("j1", "sc1", "sub").execute(unit);
 			new CreateStrategy("j1", "s1", "strategy").execute(unit);
@@ -65,7 +65,7 @@ class AddSupportTest {
 	class StrategySupportedByEvidence {
 
 		@Test
-		void evidenceIsLinkedToStrategy() throws Exception {
+		void evidenceIsLinkedToStrategy() {
 			Unit unit = unitWithJustification("j1");
 			new CreateStrategy("j1", "s1", "strategy").execute(unit);
 			new CreateEvidence("j1", "e1", "evidence").execute(unit);
@@ -83,7 +83,7 @@ class AddSupportTest {
 	class StrategySupportedBySubConclusion {
 
 		@Test
-		void subConclusionIsLinkedToStrategyAsSupportLeaf() throws Exception {
+		void subConclusionIsLinkedToStrategyAsSupportLeaf() {
 			Unit unit = unitWithJustification("j1");
 			new CreateStrategy("j1", "s1", "strategy").execute(unit);
 			new CreateSubConclusion("j1", "sc1", "sub").execute(unit);
@@ -101,7 +101,7 @@ class AddSupportTest {
 	class StrategySupportedByAbstractSupport {
 
 		@Test
-		void abstractSupportIsLinkedToStrategyInTemplate() throws Exception {
+		void abstractSupportIsLinkedToStrategyInTemplate() {
 			Unit unit = new Unit("src");
 			new CreateTemplate("t1").execute(unit);
 			new CreateStrategy("t1", "s1", "strategy").execute(unit);
@@ -124,7 +124,7 @@ class AddSupportTest {
 	class InvalidSupportPair {
 
 		@Test
-		void evidenceCannotBeSupportable() throws Exception {
+		void evidenceCannotBeSupportable() {
 			Unit unit = unitWithJustification("j1");
 			new CreateEvidence("j1", "e1", "evidence").execute(unit);
 			new CreateStrategy("j1", "s1", "strategy").execute(unit);
@@ -150,7 +150,7 @@ class AddSupportTest {
 		}
 
 		@Test
-		void conditionFalseWhenOnlyOnElementExists() throws Exception {
+		void conditionFalseWhenOnlyOnElementExists() {
 			Unit unit = unitWithJustification("j1");
 			new CreateConclusion("j1", "c1", "conclusion").execute(unit);
 			assertThat(new AddSupport("j1", "c1", "s1").condition().test(unit))
@@ -158,7 +158,7 @@ class AddSupportTest {
 		}
 
 		@Test
-		void conditionTrueWhenBothElementsExist() throws Exception {
+		void conditionTrueWhenBothElementsExist() {
 			Unit unit = unitWithJustification("j1");
 			new CreateConclusion("j1", "c1", "conclusion").execute(unit);
 			new CreateStrategy("j1", "s1", "strategy").execute(unit);

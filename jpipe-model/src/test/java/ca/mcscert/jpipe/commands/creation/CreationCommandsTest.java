@@ -45,7 +45,7 @@ class CreationCommandsTest {
 	class CreateJustificationTest {
 
 		@Test
-		void addsJustificationToUnit() throws Exception {
+		void addsJustificationToUnit() {
 			Unit unit = new Unit("src");
 			new CreateJustification("j1").execute(unit);
 			assertThat(unit.findModel("j1")).isPresent().get()
@@ -53,7 +53,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void registersLocationWhenProvided() throws Exception {
+		void registersLocationWhenProvided() {
 			Unit unit = new Unit("src");
 			SourceLocation loc = new SourceLocation(2, 0);
 			new CreateJustification("j1", loc).execute(unit);
@@ -61,7 +61,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void locationIsUnknownWhenNotProvided() throws Exception {
+		void locationIsUnknownWhenNotProvided() {
 			Unit unit = new Unit("src");
 			new CreateJustification("j1").execute(unit);
 			assertThat(unit.locationOf("j1")).isEqualTo(SourceLocation.UNKNOWN);
@@ -77,7 +77,7 @@ class CreationCommandsTest {
 	class CreateTemplateTest {
 
 		@Test
-		void addsTemplateToUnit() throws Exception {
+		void addsTemplateToUnit() {
 			Unit unit = new Unit("src");
 			new CreateTemplate("t1").execute(unit);
 			assertThat(unit.findModel("t1")).isPresent().get()
@@ -85,7 +85,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void registersLocationWhenProvided() throws Exception {
+		void registersLocationWhenProvided() {
 			Unit unit = new Unit("src");
 			SourceLocation loc = new SourceLocation(5, 0);
 			new CreateTemplate("t1", loc).execute(unit);
@@ -93,7 +93,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void locationIsUnknownWhenNotProvided() throws Exception {
+		void locationIsUnknownWhenNotProvided() {
 			Unit unit = new Unit("src");
 			new CreateTemplate("t1").execute(unit);
 			assertThat(unit.locationOf("t1")).isEqualTo(SourceLocation.UNKNOWN);
@@ -113,7 +113,7 @@ class CreationCommandsTest {
 	class CreateConclusionTest {
 
 		@Test
-		void setsConclusionOnModel() throws Exception {
+		void setsConclusionOnModel() {
 			Unit unit = unitWithJustification("j1");
 			new CreateConclusion("j1", "c1", "my conclusion").execute(unit);
 			assertThat(unit.get("j1").conclusion()).isPresent().get()
@@ -121,7 +121,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void registersLocationWhenProvided() throws Exception {
+		void registersLocationWhenProvided() {
 			Unit unit = unitWithJustification("j1");
 			SourceLocation loc = new SourceLocation(3, 2);
 			new CreateConclusion("j1", "c1", "my conclusion", loc)
@@ -130,7 +130,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void locationIsUnknownWhenNotProvided() throws Exception {
+		void locationIsUnknownWhenNotProvided() {
 			Unit unit = unitWithJustification("j1");
 			new CreateConclusion("j1", "c1", "my conclusion").execute(unit);
 			assertThat(unit.locationOf("j1", "c1"))
@@ -148,7 +148,7 @@ class CreationCommandsTest {
 	class CreateStrategyTest {
 
 		@Test
-		void addsStrategyToContainer() throws Exception {
+		void addsStrategyToContainer() {
 			Unit unit = unitWithJustification("j1");
 			new CreateStrategy("j1", "s1", "my strategy").execute(unit);
 			assertThat(unit.get("j1").getElements()).hasSize(1).first()
@@ -157,7 +157,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void registersLocationWhenProvided() throws Exception {
+		void registersLocationWhenProvided() {
 			Unit unit = unitWithJustification("j1");
 			SourceLocation loc = new SourceLocation(4, 2);
 			new CreateStrategy("j1", "s1", "my strategy", loc).execute(unit);
@@ -165,7 +165,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void locationIsUnknownWhenNotProvided() throws Exception {
+		void locationIsUnknownWhenNotProvided() {
 			Unit unit = unitWithJustification("j1");
 			new CreateStrategy("j1", "s1", "my strategy").execute(unit);
 			assertThat(unit.locationOf("j1", "s1"))
@@ -183,7 +183,7 @@ class CreationCommandsTest {
 	class CreateEvidenceTest {
 
 		@Test
-		void addsEvidenceToContainer() throws Exception {
+		void addsEvidenceToContainer() {
 			Unit unit = unitWithJustification("j1");
 			new CreateEvidence("j1", "e1", "my evidence").execute(unit);
 			assertThat(unit.get("j1").getElements()).hasSize(1).first()
@@ -192,7 +192,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void registersLocationWhenProvided() throws Exception {
+		void registersLocationWhenProvided() {
 			Unit unit = unitWithJustification("j1");
 			SourceLocation loc = new SourceLocation(7, 2);
 			new CreateEvidence("j1", "e1", "my evidence", loc).execute(unit);
@@ -200,7 +200,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void locationIsUnknownWhenNotProvided() throws Exception {
+		void locationIsUnknownWhenNotProvided() {
 			Unit unit = unitWithJustification("j1");
 			new CreateEvidence("j1", "e1", "my evidence").execute(unit);
 			assertThat(unit.locationOf("j1", "e1"))
@@ -218,7 +218,7 @@ class CreationCommandsTest {
 	class CreateSubConclusionTest {
 
 		@Test
-		void addsSubConclusionToContainer() throws Exception {
+		void addsSubConclusionToContainer() {
 			Unit unit = unitWithJustification("j1");
 			new CreateSubConclusion("j1", "sc1", "my sub-conclusion")
 					.execute(unit);
@@ -228,7 +228,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void registersLocationWhenProvided() throws Exception {
+		void registersLocationWhenProvided() {
 			Unit unit = unitWithJustification("j1");
 			SourceLocation loc = new SourceLocation(6, 2);
 			new CreateSubConclusion("j1", "sc1", "my sub-conclusion", loc)
@@ -237,7 +237,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void locationIsUnknownWhenNotProvided() throws Exception {
+		void locationIsUnknownWhenNotProvided() {
 			Unit unit = unitWithJustification("j1");
 			new CreateSubConclusion("j1", "sc1", "my sub-conclusion")
 					.execute(unit);
@@ -256,7 +256,7 @@ class CreationCommandsTest {
 	class CreateAbstractSupportTest {
 
 		@Test
-		void addsAbstractSupportToContainer() throws Exception {
+		void addsAbstractSupportToContainer() {
 			Unit unit = unitWithTemplate("t1");
 			new CreateAbstractSupport("t1", "as1", "my abstract support")
 					.execute(unit);
@@ -267,7 +267,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void registersLocationWhenProvided() throws Exception {
+		void registersLocationWhenProvided() {
 			Unit unit = unitWithTemplate("t1");
 			SourceLocation loc = new SourceLocation(8, 2);
 			new CreateAbstractSupport("t1", "as1", "my abstract support", loc)
@@ -276,7 +276,7 @@ class CreationCommandsTest {
 		}
 
 		@Test
-		void locationIsUnknownWhenNotProvided() throws Exception {
+		void locationIsUnknownWhenNotProvided() {
 			Unit unit = unitWithTemplate("t1");
 			new CreateAbstractSupport("t1", "as1", "my abstract support")
 					.execute(unit);

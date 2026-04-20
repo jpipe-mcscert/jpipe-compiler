@@ -20,13 +20,13 @@ class RegisterAliasTest {
 	class Execute {
 
 		@Test
-		void recordsAliasInUnit() throws Exception {
+		void recordsAliasInUnit() {
 			new RegisterAlias("result", "a:elem", "elem").execute(unit);
 			assertThat(unit.resolveAlias("result", "a:elem")).isEqualTo("elem");
 		}
 
 		@Test
-		void doesNotAffectOtherModels() throws Exception {
+		void doesNotAffectOtherModels() {
 			new RegisterAlias("result", "a:elem", "elem").execute(unit);
 			assertThat(unit.resolveAlias("other", "a:elem"))
 					.isEqualTo("a:elem");

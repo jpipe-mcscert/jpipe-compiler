@@ -31,7 +31,7 @@ class ImplementsTemplateTest {
 	// -------------------------------------------------------------------------
 
 	@Test
-	void setsTemplateAsParentOfJustification() throws Exception {
+	void setsTemplateAsParentOfJustification() {
 		Unit unit = new Unit("src");
 		new CreateTemplate("t1").execute(unit);
 		new CreateJustification("j1").execute(unit);
@@ -43,7 +43,7 @@ class ImplementsTemplateTest {
 	}
 
 	@Test
-	void templateCanHaveMultipleImplementors() throws Exception {
+	void templateCanHaveMultipleImplementors() {
 		Unit unit = new Unit("src");
 		new CreateTemplate("t1").execute(unit);
 		new CreateJustification("j1").execute(unit);
@@ -61,7 +61,7 @@ class ImplementsTemplateTest {
 	// -------------------------------------------------------------------------
 
 	@Test
-	void throwsWhenNamedModelIsNotATemplate() throws Exception {
+	void throwsWhenNamedModelIsNotATemplate() {
 		Unit unit = new Unit("src");
 		new CreateJustification("j1").execute(unit);
 		new CreateJustification("j2").execute(unit);
@@ -87,7 +87,7 @@ class ImplementsTemplateTest {
 		}
 
 		@Test
-		void conditionFalseWhenOnlyJustificationExists() throws Exception {
+		void conditionFalseWhenOnlyJustificationExists() {
 			Unit unit = new Unit("src");
 			new CreateJustification("j1").execute(unit);
 			assertThat(
@@ -96,7 +96,7 @@ class ImplementsTemplateTest {
 		}
 
 		@Test
-		void conditionFalseWhenOnlyTemplateExists() throws Exception {
+		void conditionFalseWhenOnlyTemplateExists() {
 			Unit unit = new Unit("src");
 			new CreateTemplate("t1").execute(unit);
 			assertThat(
@@ -105,7 +105,7 @@ class ImplementsTemplateTest {
 		}
 
 		@Test
-		void conditionTrueWhenBothModelsExist() throws Exception {
+		void conditionTrueWhenBothModelsExist() {
 			Unit unit = new Unit("src");
 			new CreateJustification("j1").execute(unit);
 			new CreateTemplate("t1").execute(unit);
@@ -378,7 +378,7 @@ class ImplementsTemplateTest {
 	class LocationPropagation {
 
 		@Test
-		void inlinedElementsInheritTemplateLocations() throws Exception {
+		void inlinedElementsInheritTemplateLocations() {
 			SourceLocation stratLoc = new SourceLocation(5, 2);
 			SourceLocation evidLoc = new SourceLocation(6, 2);
 			Unit unit = new Unit("src");
@@ -398,7 +398,7 @@ class ImplementsTemplateTest {
 		}
 
 		@Test
-		void inlinedConclusionInheritsTemplateLocation() throws Exception {
+		void inlinedConclusionInheritsTemplateLocation() {
 			SourceLocation concLoc = new SourceLocation(3, 0);
 			Unit unit = new Unit("src");
 			new CreateTemplate("t").execute(unit);
