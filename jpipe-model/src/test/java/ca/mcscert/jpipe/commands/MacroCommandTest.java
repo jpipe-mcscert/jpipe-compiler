@@ -19,7 +19,7 @@ class MacroCommandTest {
 	}
 
 	@Test
-	void expand_returns_commands_to_execute() throws Exception {
+	void expand_returns_commands_to_execute() {
 		Unit unit = new Unit("src");
 		Command inner = new CreateEvidence("j", "e1", "Evidence");
 		MacroCommand macro = u -> List.of(inner);

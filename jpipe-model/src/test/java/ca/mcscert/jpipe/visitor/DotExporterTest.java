@@ -121,14 +121,15 @@ class DotExporterTest {
 
 		String dot = new DotExporter().export(j);
 
-		// Abstract support in cluster, suffixed with @abstract
-		assertThat(dot).contains("\"immediate:a_template:abs@abstract\"");
-		// Concrete override exists in the graph
-		assertThat(dot).contains("id=\"immediate:a_template:abs\"");
-		// Dashed arrow: abstract ghost → concrete ("fulfilled by")
-		assertThat(dot).contains(
-				"\"immediate:a_template:abs\" -> \"immediate:a_template:abs@abstract\""
-						+ " [arrowhead=empty, style=dotted]");
+		assertThat(dot)
+				// Abstract support in cluster, suffixed with @abstract
+				.contains("\"immediate:a_template:abs@abstract\"")
+				// Concrete override exists in the graph
+				.contains("id=\"immediate:a_template:abs\"")
+				// Dashed arrow: abstract ghost → concrete ("fulfilled by")
+				.contains(
+						"\"immediate:a_template:abs\" -> \"immediate:a_template:abs@abstract\""
+								+ " [arrowhead=empty, style=dotted]");
 	}
 
 	@Test

@@ -21,25 +21,25 @@ class ActionListInterpretationTest {
 	}
 
 	@Test
-	void emptyCommandListProducesEmptyUnit() throws Exception {
+	void emptyCommandListProducesEmptyUnit() {
 		Unit unit = step.run(List.of(), ctx);
 		assertThat(unit.getModels()).isEmpty();
 	}
 
 	@Test
-	void unitSourceMatchesContextSourcePath() throws Exception {
+	void unitSourceMatchesContextSourcePath() {
 		Unit unit = step.run(List.of(), ctx);
 		assertThat(unit.getSource()).isEqualTo("test.jd");
 	}
 
 	@Test
-	void commandsAreExecuted() throws Exception {
+	void commandsAreExecuted() {
 		Unit unit = step.run(List.of(new CreateJustification("j1")), ctx);
 		assertThat(unit.findModel("j1")).isPresent();
 	}
 
 	@Test
-	void multipleCommandsAreAllExecuted() throws Exception {
+	void multipleCommandsAreAllExecuted() {
 		Unit unit = step.run(List.of(new CreateJustification("j1"),
 				new CreateJustification("j2")), ctx);
 		assertThat(unit.justifications()).extracting(j -> j.getName())
