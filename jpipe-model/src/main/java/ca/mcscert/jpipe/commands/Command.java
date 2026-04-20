@@ -12,5 +12,5 @@ public interface Command {
 		return unit -> true;
 	}
 
-	void execute(Unit context) throws Exception;
+	void execute(Unit context);
 }

@@ -22,8 +22,6 @@ public interface MacroCommand extends Command {
 	 * @param context
 	 *            the current unit, available to inspect model state.
 	 * @return the list of commands to splice into the execution queue.
-	 * @throws Exception
-	 *             if expansion fails due to an unexpected model state.
 	 */
 	List<Command> expand(Unit context);
 

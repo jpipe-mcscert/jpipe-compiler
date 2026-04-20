@@ -17,10 +17,10 @@ public abstract class RegularCommand implements Command {
 	private final Logger logger = LogManager.getLogger(getClass());
 
 	@Override
-	public final void execute(Unit context) throws Exception {
+	public final void execute(Unit context) {
 		logger.debug("Executing {}", this);
 		doExecute(context);
 	}
 
-	protected abstract void doExecute(Unit context) throws Exception;
+	protected abstract void doExecute(Unit context);
 }
