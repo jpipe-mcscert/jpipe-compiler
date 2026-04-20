@@ -1,0 +1,54 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches:
+      - refactor
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'zulu'
+
+      - name: Install PlantUML
+        run: sudo apt-get install -y plantuml
+
+      - name: Install MkDocs
+        run: pip install mkdocs-material plantuml-markdown
+
+      - name: Generate railroad diagrams
+        run: |
+          pip install pipenv
+          cd jpipe-lang && pipenv install --deploy
+          pipenv run python3 gen_railroad.py
+
+      - name: Generate Javadoc
+        run: mvn javadoc:aggregate -q
+
+      - name: Copy Javadoc into docs
+        run: cp -r target/reports/apidocs docs/api
+
+      - name: Prepare docs index from README
+        run: |
+          sed \
+            -e 's|./docs/logo.svg|logo.svg|g' \
+            -e 's|./docs/sponsors/|sponsors/|g' \
+            -e 's|^  - |    - |g' \
+            README.md > docs/index.md
+
+      - name: Deploy to GitHub Pages
+        run: mkdocs gh-deploy --force

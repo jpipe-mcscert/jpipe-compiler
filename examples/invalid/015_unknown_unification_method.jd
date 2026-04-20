@@ -1,0 +1,13 @@
+justification base {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+    s supports c
+    e supports s
+}
+
+justification bad is assemble(base) {
+    conclusionLabel: "A conclusion"
+    strategyLabel:   "A strategy"
+    unifyBy:         "nonexistent"
+}

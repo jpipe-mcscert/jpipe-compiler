@@ -1,0 +1,7 @@
+justification minimal {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+    s supports c
+    e supports s
+}

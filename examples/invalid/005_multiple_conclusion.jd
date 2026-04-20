@@ -1,0 +1,27 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// A justification can only clain one single conclusion
+justification j {
+    conclusion c1 is "First conclusion"
+    conclusion c2 is "Second conclusion"
+    strategy   s  is "A strategy"
+    evidence   e  is "An evidence"
+
+    s supports c1
+    e supports s
+}
+
+// A template can only claim one single conclusion
+template t {
+    conclusion c1   is "First conclusion"
+    conclusion c2   is "Second conclusion"
+    strategy   s    is "A strategy"
+    @support   abs  is "An evidence"
+
+    s   supports c1
+    abs supports s
+}

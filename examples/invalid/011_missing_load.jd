@@ -1,0 +1,11 @@
+// This file intentionally loads a non-existent file to trigger a fatal error.
+load "does_not_exist.jd" as missing
+
+justification foo {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+
+    e supports s
+    s supports c
+}

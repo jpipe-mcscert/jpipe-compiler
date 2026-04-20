@@ -1,0 +1,24 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+ // A justification with really long labels
+justification long_labels {
+
+    conclusion c is "The system is correct and behaves as expected under all operational conditions"
+
+    sub-conclusion sc is "All individual components have been verified against their specifications"
+
+    strategy s is "Combining unit testing, integration testing and formal verification methods"
+
+    evidence e1 is "Automated test suite with full branch coverage across all critical modules"
+
+    strategy s2 is "Aggregating component-level evidence through a structured review process"
+
+    e1 supports s
+    s  supports sc
+    sc supports s2
+    s2 supports c
+}

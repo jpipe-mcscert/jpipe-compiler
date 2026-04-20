@@ -1,0 +1,380 @@
+package ca.mcscert.jpipe.model;
+
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.Conclusion;
+import ca.mcscert.jpipe.model.elements.Evidence;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
+import ca.mcscert.jpipe.model.elements.Strategy;
+import ca.mcscert.jpipe.model.elements.SubConclusion;
+import ca.mcscert.jpipe.model.elements.SupportLeaf;
+import ca.mcscert.jpipe.model.validation.CompletenessValidator;
+import ca.mcscert.jpipe.model.validation.ConsistencyValidator;
+import ca.mcscert.jpipe.visitor.JustificationVisitor;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Abstract base for all named justification models. Sealed to exactly two
+ * subtypes: {@link Justification} (concrete) and {@link Template}
+ * (abstract/reusable).
+ *
+ * <p>
+ * The type parameter {@code E} constrains which elements can be added:
+ * {@link Justification} accepts only
+ * {@link ca.mcscert.jpipe.model.elements.CommonElement}, while {@link Template}
+ * accepts any {@link JustificationElement} including
+ * {@link ca.mcscert.jpipe.model.elements.AbstractSupport}.
+ *
+ * <p>
+ * Every model has exactly one {@link Conclusion}, set via
+ * {@link #setConclusion(Conclusion)} and accessed via {@link #conclusion()}.
+ * Passing a {@link Conclusion} to {@link #addElement(JustificationElement)} is
+ * rejected.
+ *
+ * <p>
+ * Use {@link #validate()} to check consistency and completeness. For
+ * location-aware diagnostics in a compiler pipeline use
+ * {@link ca.mcscert.jpipe.model.validation.ConsistencyValidator} and
+ * {@link ca.mcscert.jpipe.model.validation.CompletenessValidator} directly.
+ */
+public abstract sealed class JustificationModel<E extends JustificationElement>
+		permits Justification, Template {
+
+	private final String name;
+	private Conclusion conclusion;
+	private Template parent = null;
+	private final List<E> elements = new ArrayList<>();
+
+	protected JustificationModel(String name) {
+		this.name = name;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	/**
+	 * Sets the single required conclusion. Throws {@link IllegalStateException}
+	 * if a conclusion has already been assigned.
+	 */
+	public void setConclusion(Conclusion conclusion) {
+		if (this.conclusion != null) {
+			throw new IllegalStateException(
+					"Model '" + name + "' already has a conclusion");
+		}
+		this.conclusion = conclusion;
+	}
+
+	/** Returns the conclusion, if one has been set. */
+	public Optional<Conclusion> conclusion() {
+		return Optional.ofNullable(conclusion);
+	}
+
+	public Optional<Template> getParent() {
+		return Optional.ofNullable(parent);
+	}
+
+	protected void setParent(Template parent) {
+		if (this.parent != null) {
+			throw new IllegalStateException(
+					"Model '" + name + "' already has a parent template");
+		}
+		this.parent = parent;
+	}
+
+	/**
+	 * Rejects {@link Conclusion} — use {@link #setConclusion(Conclusion)}
+	 * instead.
+	 */
+	public void addElement(E element) {
+		if (element instanceof Conclusion) {
+			throw new IllegalArgumentException(
+					"Use setConclusion() to assign the conclusion of a model");
+		}
+		elements.add(element);
+	}
+
+	/**
+	 * Inlines {@code template} into this model: each template element is copied
+	 * with a qualified id ({@code templateName:originalId}) and support edges
+	 * between copied elements are re-wired. The model becomes self-contained —
+	 * operators can mutate it freely without affecting the original template.
+	 *
+	 * <p>
+	 * Whether a copy is added is controlled by {@link #includeInExpansion}:
+	 * {@link Justification} excludes {@link AbstractSupport} copies (type
+	 * constraint; abstract supports must be overridden by concrete elements);
+	 * {@link Template} includes everything.
+	 *
+	 * <p>
+	 * The template's conclusion is always copied as a {@link Conclusion},
+	 * maintaining its top-level status. If this model already has a conclusion,
+	 * the template's conclusion is mapped to it for edge re-wiring but not
+	 * added as a second conclusion.
+	 */
+	public void inline(Template template, String templateName) {
+		setParent(template);
+
+		// Step 1: build copy map (original plain id → copied element with
+		// qualified id)
+		Map<String, JustificationElement> copies = new LinkedHashMap<>();
+
+		template.conclusion().ifPresent(tc -> {
+			Conclusion copy = (Conclusion) qualifiedCopy(tc, templateName);
+			if (this.conclusion == null) {
+				this.setConclusion(copy);
+			}
+			// In Step 2, we want edges supporting 'tc' to now support our
+			// conclusion
+			copies.put(tc.id(), this.conclusion);
+		});
+
+		template.getElements().forEach(elem -> {
+			JustificationElement copy = qualifiedCopy(elem, templateName);
+			if (includeInExpansion(copy)) {
+				copies.put(elem.id(), copy);
+			}
+		});
+
+		// Step 2: re-wire support edges between included copies only
+		rewireEdges(template, copies);
+
+		// Step 3: add included copies to this model
+		copies.values().stream().filter(c -> !(c instanceof Conclusion))
+				.forEach(copy -> {
+					@SuppressWarnings("unchecked")
+					E typed = (E) copy;
+					addElement(typed);
+				});
+	}
+
+	private void rewireEdges(Template template,
+			Map<String, JustificationElement> copies) {
+		template.conclusion()
+				.ifPresent(tc -> rewireConclusionSupport(tc, copies));
+		template.subConclusions().forEach(sc -> sc.getSupport().ifPresent(s -> {
+			if (copies.containsKey(sc.id()) && copies.containsKey(s.id())) {
+				((SubConclusion) copies.get(sc.id()))
+						.addSupport((Strategy) copies.get(s.id()));
+			}
+		}));
+		template.strategies().forEach(s -> s.getSupports().forEach(leaf -> {
+			String leafId = ((JustificationElement) leaf).id();
+			if (copies.containsKey(s.id()) && copies.containsKey(leafId)) {
+				((Strategy) copies.get(s.id()))
+						.addSupport((SupportLeaf) copies.get(leafId));
+			}
+		}));
+	}
+
+	private void rewireConclusionSupport(Conclusion tc,
+			Map<String, JustificationElement> copies) {
+		tc.getSupport().ifPresent(s -> {
+			if (!copies.containsKey(tc.id()) || !copies.containsKey(s.id())) {
+				return;
+			}
+			JustificationElement copiedC = copies.get(tc.id());
+			Strategy copiedS = (Strategy) copies.get(s.id());
+			if (copiedC instanceof Conclusion c) {
+				c.addSupport(copiedS);
+			} else if (copiedC instanceof SubConclusion sc) {
+				sc.addSupport(copiedS);
+			}
+		});
+	}
+
+	/**
+	 * Returns true if the given element copy should be added to this model
+	 * during template expansion. {@link Justification} returns false for
+	 * {@link AbstractSupport}; {@link Template} returns true for all elements.
+	 */
+	protected abstract boolean includeInExpansion(JustificationElement copy);
+
+	/**
+	 * Validates this model for consistency and completeness without requiring a
+	 * {@link Unit}. Useful for non-compiler consumers that build models
+	 * programmatically.
+	 *
+	 * <p>
+	 * All violations carry {@link SourceLocation#UNKNOWN} because source
+	 * location data is only available when building through the compiler
+	 * pipeline (see
+	 * {@link ca.mcscert.jpipe.model.validation.ConsistencyValidator} and
+	 * {@link ca.mcscert.jpipe.model.validation.CompletenessValidator}).
+	 *
+	 * @return unmodifiable list of violations; empty means valid.
+	 */
+	public List<Violation> validate() {
+		List<Violation> violations = new ArrayList<>();
+		violations.addAll(new ConsistencyValidator().validateModel(this));
+		violations.addAll(new CompletenessValidator().validateModel(this));
+		return Collections.unmodifiableList(violations);
+	}
+
+	/** Removes the element with the given id from the elements list. */
+	public void removeElement(String id) {
+		elements.removeIf(e -> e.id().equals(id));
+	}
+
+	public List<E> getElements() {
+		return Collections.unmodifiableList(elements);
+	}
+
+	/**
+	 * Returns {@code true} when the conclusion was defined directly in this
+	 * model, i.e. it was not inherited from a parent template via
+	 * {@link #inline}. Returns {@code false} when there is no conclusion yet or
+	 * when the conclusion was set by inlining a parent template.
+	 */
+	public boolean hasOwnConclusion() {
+		if (conclusion == null || parent == null) {
+			return conclusion != null;
+		}
+		return !ancestorTypes().containsKey(conclusion.id());
+	}
+
+	/**
+	 * Elements defined directly in this model — their id has no counterpart in
+	 * any ancestor template.
+	 */
+	public List<E> ownElements() {
+		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
+		return elements.stream().filter(e -> !pt.containsKey(e.id())).toList();
+	}
+
+	/**
+	 * Elements copied from an ancestor template whose runtime type is unchanged
+	 * (not overridden).
+	 */
+	public List<E> inheritedElements() {
+		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
+		return elements.stream().filter(e -> pt.get(e.id()) == e.getClass())
+				.toList();
+	}
+
+	/**
+	 * Elements that replaced an ancestor's {@link AbstractSupport} placeholder
+	 * — same qualified id, but a concrete type (e.g. {@link Evidence} or
+	 * {@link SubConclusion}).
+	 *
+	 * <p>
+	 * Together with {@link #ownElements()} and {@link #inheritedElements()},
+	 * these three lists partition {@link #getElements()}.
+	 */
+	public List<E> concreteOverrides() {
+		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
+		return elements.stream().filter(
+				e -> pt.containsKey(e.id()) && pt.get(e.id()) != e.getClass())
+				.toList();
+	}
+
+	/**
+	 * Builds a map from qualified element id to its runtime class for every
+	 * element (including the conclusion) in the direct parent template. Because
+	 * the parent's element list was already flattened by its own
+	 * {@link #inline} call, this map transitively covers all ancestors.
+	 *
+	 * <p>
+	 * Plain ids in the parent (e.g. {@code s}) are qualified to match how
+	 * {@link #inline} stored them in this model (e.g. {@code parent:s}).
+	 * Already-qualified ids (grandparent elements) are kept as-is.
+	 */
+	private Map<String, Class<? extends JustificationElement>> ancestorTypes() {
+		if (parent == null) {
+			return Map.of();
+		}
+		String parentName = parent.getName();
+		Map<String, Class<? extends JustificationElement>> map = new LinkedHashMap<>();
+		parent.conclusion().ifPresent(
+				c -> map.put(qualifiedId(c.id(), parentName), c.getClass()));
+		parent.getElements().forEach(
+				e -> map.put(qualifiedId(e.id(), parentName), e.getClass()));
+		return map;
+	}
+
+	/**
+	 * Returns {@code id} qualified with {@code prefix} when it is a plain id
+	 * (no colon), or returns {@code id} unchanged when it is already qualified.
+	 * Mirrors the id-preservation rule applied by {@link #qualifiedCopy}.
+	 */
+	private static String qualifiedId(String id, String prefix) {
+		return id.contains(":") ? id : prefix + ":" + id;
+	}
+
+	/**
+	 * Searches both the conclusion field and the elements list, so callers do
+	 * not need to know how the conclusion is stored.
+	 */
+	public Optional<JustificationElement> findById(String id) {
+		if (conclusion != null && conclusion.id().equals(id)) {
+			return Optional.of(conclusion);
+		}
+		Optional<JustificationElement> exact = elements.stream()
+				.filter(e -> e.id().equals(id))
+				.map(e -> (JustificationElement) e).findFirst();
+		if (exact.isPresent()) {
+			return exact;
+		}
+		// Short-name suffix fallback: resolves a plain id to an inherited
+		// qualified element (e.g. "s" resolves to "t:s" after template
+		// expansion).
+		String suffix = ":" + id;
+		return elements.stream().filter(e -> e.id().endsWith(suffix))
+				.map(e -> (JustificationElement) e).findFirst();
+	}
+
+	public <T extends JustificationElement> List<T> elementsOfType(
+			Class<T> type) {
+		return elements.stream().filter(type::isInstance).map(type::cast)
+				.toList();
+	}
+
+	public List<SubConclusion> subConclusions() {
+		return elementsOfType(SubConclusion.class);
+	}
+
+	public List<Strategy> strategies() {
+		return elementsOfType(Strategy.class);
+	}
+
+	public List<Evidence> evidence() {
+		return elementsOfType(Evidence.class);
+	}
+
+	public final <R> R accept(JustificationVisitor<R> visitor) {
+		return visitSelf(visitor);
+	}
+
+	protected abstract <R> R visitSelf(JustificationVisitor<R> visitor);
+
+	/** Returns the last colon-separated segment of a qualified id. */
+	protected static String plainId(String id) {
+		int colon = id.lastIndexOf(':');
+		return colon >= 0 ? id.substring(colon + 1) : id;
+	}
+
+	/**
+	 * Creates a copy of {@code elem}. If the element's id is already qualified
+	 * (contains {@code :}), the id is preserved as-is — it was inherited from a
+	 * grandparent template and must not be double-qualified. Plain ids are
+	 * prefixed with {@code prefix:}.
+	 */
+	protected static JustificationElement qualifiedCopy(
+			JustificationElement elem, String prefix) {
+		String qualifiedId = elem.id().contains(":")
+				? elem.id()
+				: prefix + ":" + elem.id();
+		return switch (elem) {
+			case Evidence e -> new Evidence(qualifiedId, e.label());
+			case Strategy s -> new Strategy(qualifiedId, s.label());
+			case SubConclusion sc -> new SubConclusion(qualifiedId, sc.label());
+			case Conclusion c -> new Conclusion(qualifiedId, c.label());
+			case AbstractSupport as ->
+				new AbstractSupport(qualifiedId, as.label());
+		};
+	}
+}

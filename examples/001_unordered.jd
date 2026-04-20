@@ -1,0 +1,17 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// The compiler does not expect elements to be provided in any order.
+justification j {
+
+    s supports c
+    e supports s
+
+    conclusion c is "a conclusion"
+    strategy s   is "a strategy"
+    evidence e   is "an evidence"
+
+}

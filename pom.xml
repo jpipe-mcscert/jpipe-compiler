@@ -1,384 +1,339 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>eu.ace-design</groupId>
+    <groupId>org.jpipe</groupId>
     <artifactId>jpipe</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
 
-    <inceptionYear>2023</inceptionYear>
+    <name>jPipe</name>
+    <description>Justified Pipelines language and compiler</description>
+    <url>https://github.com/jpipe-mcscert/jpipe-compiler</url>
 
-    <!-- Versioning convention: YYYY.term, 1 = Winter, 2 = Summer, 3 = Fall -->
-    <version>2025.1</version>
-
-    <organization>
-        <name>McMaster Centre for Software Certification (McSCert)</name>
-        <url>https://www.mcscert.ca</url>
-    </organization>
-
-
-    <properties>
-        <jar.filename>jpipe</jar.filename>
-        <!-- Should use latest LTS version -->
-        <maven.compiler.release>21</maven.compiler.release>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <!-- Antlr configuration -->
-        <antlr4.visitor>true</antlr4.visitor>
-        <antlr4.listener>true</antlr4.listener>
-
-        <!-- Controlling tests execution (default value) -->
-        <skip.tests.unit>false</skip.tests.unit>
-        <skip.tests.integration>false</skip.tests.integration>
-
-        <!-- Sonar code quality analysis (requires a SONAR_TOKEN env variable)  -->
-        <sonar.organization>jpipe-mcscert</sonar.organization>
-        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-
-        <!-- Code Dependencies versions -->
-        <antlr.version>4.13.2</antlr.version>
-        <commons-cli.version>1.9.0</commons-cli.version>
-        <graphviz-java.version>0.18.1</graphviz-java.version>
-        <junit.version>5.10.0</junit.version>
-        <log4j.version>2.25.0</log4j.version>
-        <json.version>20250517</json.version>
-        <commons-text.version>1.13.1</commons-text.version>
-
-        <!-- Build dependencies versions -->
-        <maven-compiler.version>3.13.0</maven-compiler.version>
-        <maven-assembly.version>3.6.0</maven-assembly.version>
-        <antlr4-maven.version>${antlr.version}</antlr4-maven.version>
-        <jacoco-maven.version>0.8.12</jacoco-maven.version>
-        <maven-surefire.version>3.2.5</maven-surefire.version>
-        <junit-tree-reporter.version>1.4.0</junit-tree-reporter.version>
-        <maven-failsafe.version>3.2.5</maven-failsafe.version>
-        <copy-rename.version>1.0.1</copy-rename.version>
-        <checkstyle-plugin.version>3.4.0</checkstyle-plugin.version>
-        <checkstyle.version>10.25.1</checkstyle.version>
-
-        <!-- GraalVM profile (not working right now, waiting for log4j 2.25) -->
-        <graalvm.plugin>0.10.5</graalvm.plugin>
-
-    </properties>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
 
     <developers>
         <developer>
-            <id>seb</id>
             <name>Sébastien Mosser</name>
             <email>mossers@mcmaster.ca</email>
-            <url>https://mosser.github.io</url>
-            <organization>McMaster University (McScert)</organization>
-            <organizationUrl>https://www.eng.mcmaster.ca/cas/</organizationUrl>
-            <roles>
-                <role>architect</role>
-                <role>developer</role>
-            </roles>
-            <timezone>America/Toronto</timezone>
+            <organization>McSCert, McMaster University</organization>
+            <url>https://mosser.github.io/</url>
         </developer>
         <developer>
-            <id>nirmal</id>
+            <name>Kalvin Thuan-Phong Khuu</name>
+            <organization>McSCert, McMaster University</organization>
+            <url>https://kalvinkhuu.github.io/</url>
+        </developer>
+        <developer>
             <name>Nirmal Chaudhari</name>
-            <email>chaudn12@mcmaster.ca</email>
+            <organization>McSCert, McMaster University</organization>
             <url>https://www.linkedin.com/in/nirmal2003/</url>
-            <organization>McMaster University (McSCert)</organization>
-            <organizationUrl>https://www.eng.mcmaster.ca/cas/</organizationUrl>
-            <roles>
-                <role>developer</role>
-            </roles>
-            <timezone>America/Toronto</timezone>
+        </developer>
+        <developer>
+            <name>Aaron Loh</name>
+            <organization>McSCert, McMaster University</organization>
+            <url>https://www.linkedin.com/in/aaron-loh26/</url>
+        </developer>
+        <developer>
+            <name>Deesha Patel</name>
+            <organization>McSCert, McMaster University</organization>
+            <url>https://www.linkedin.com/in/deeshupatel/</url>
+        </developer>
+        <developer>
+            <name>Corinne Pulgar</name>
+            <organization>École de Technologie Supérieure (ETS)</organization>
+            <url>https://www.linkedin.com/in/corinne-pulgar-12a58190/</url>
         </developer>
     </developers>
 
-    <dependencies>
-        <!-- Core dependencies -->
-        <dependency>
-            <groupId>org.antlr</groupId>
-            <artifactId>antlr4-runtime</artifactId>
-            <version>${antlr.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-cli</groupId>
-            <artifactId>commons-cli</artifactId>
-            <version>${commons-cli.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>guru.nidi</groupId>
-            <artifactId>graphviz-java</artifactId>
-            <version>${graphviz-java.version}</version>
-        </dependency>
-        <!-- Tests dependencies -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <!-- Log plugins -->
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>${log4j.version}</version>
+    <scm>
+        <connection>scm:git:git://github.com/jpipe-mcscert/jpipe-compiler.git</connection>
+        <developerConnection>scm:git:ssh://github.com/jpipe-mcscert/jpipe-compiler.git</developerConnection>
+        <url>https://github.com/jpipe-mcscert/jpipe-compiler</url>
+    </scm>
 
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>${log4j.version}</version>
-        </dependency>
+    <modules>
+        <module>jpipe-lang</module>
+        <module>jpipe-model</module>
+        <module>jpipe-operators</module>
+        <module>jpipe-compiler</module>
+        <module>jpipe-cli</module>
+    </modules>
 
-        <!-- JSON export library -->
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>${json.version}</version>
-        </dependency>
-        <!-- Apache commons Text for text similarity -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-text</artifactId>
-            <version>${commons-text.version}</version>
-        </dependency>
-    </dependencies>
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Dependency versions -->
+        <antlr4.version>4.13.2</antlr4.version>
+        <picocli.version>4.7.7</picocli.version>
+        <json.version>20250107</json.version>
+        <log4j.version>2.24.3</log4j.version>
+        <junit.version>5.11.4</junit.version>
+        <assertj.version>3.27.3</assertj.version>
+        <cucumber.version>7.20.1</cucumber.version>
+
+        <!-- Plugin versions -->
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
+        <junit-tree-reporter.version>1.4.0</junit-tree-reporter.version>
+        <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
+        <log4j-transform.version>0.1.0</log4j-transform.version>
+        <spotless-plugin.version>3.4.0</spotless-plugin.version>
+        <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
+        <checkstyle.version>13.3.0</checkstyle.version>
+        <jacoco-plugin.version>0.8.14</jacoco-plugin.version>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+        <sonar-plugin.version>5.0.0.4389</sonar-plugin.version>
+
+        <!-- SonarCloud -->
+        <sonar.organization>jpipe-mcscert</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Inter-module -->
+            <dependency>
+                <groupId>org.jpipe</groupId>
+                <artifactId>jpipe-lang</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jpipe</groupId>
+                <artifactId>jpipe-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jpipe</groupId>
+                <artifactId>jpipe-operators</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jpipe</groupId>
+                <artifactId>jpipe-compiler</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- ANTLR4 -->
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-runtime</artifactId>
+                <version>${antlr4.version}</version>
+            </dependency>
+
+            <!-- CLI -->
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli</artifactId>
+                <version>${picocli.version}</version>
+            </dependency>
+
+            <!-- JSON -->
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>${json.version}</version>
+            </dependency>
+
+            <!-- Logging -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+
+            <!-- Testing -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-java</artifactId>
+                <version>${cucumber.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-junit-platform-engine</artifactId>
+                <version>${cucumber.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-suite</artifactId>
+                <version>1.11.4</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
-        <finalName>${jar.filename}</finalName>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven-javadoc-plugin.version}</version>
+                    <configuration>
+                        <!-- Aggregate all modules into a single Javadoc site -->
+                        <aggregate>true</aggregate>
+                        <!-- ANTLR-generated sources fail strict doclint -->
+                        <doclint>none</doclint>
+                        <quiet>true</quiet>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>me.fabriciorby</groupId>
+                            <artifactId>maven-surefire-junit5-tree-reporter</artifactId>
+                            <version>${junit-tree-reporter.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <consoleOutputReporter>
+                            <disable>true</disable>
+                        </consoleOutputReporter>
+                        <statelessTestsetInfoReporter
+                            implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter">
+                            <theme>UNICODE</theme>
+                        </statelessTestsetInfoReporter>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.antlr</groupId>
+                    <artifactId>antlr4-maven-plugin</artifactId>
+                    <version>${antlr4.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${maven-shade-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>com.diffplug.spotless</groupId>
+                    <artifactId>spotless-maven-plugin</artifactId>
+                    <version>${spotless-plugin.version}</version>
+                    <configuration>
+                        <java>
+                            <eclipse>
+                                <version>4.35</version>
+                                <file>${maven.multiModuleProjectDirectory}/config/eclipse-formatter.xml</file>
+                            </eclipse>
+                            <removeUnusedImports/>
+                            <trimTrailingWhitespace/>
+                            <endWithNewline/>
+                        </java>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <phase>verify</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>prepare-agent</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                            <phase>verify</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${checkstyle-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>${checkstyle.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <configLocation>google_checks.xml</configLocation>
+                        <failsOnError>true</failsOnError>
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <phase>verify</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler.version}</version>
-                <configuration>
-                    <compilerArgs>
-                        <arg>-proc:full</arg>
-                    </compilerArgs>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>${maven-assembly.version}</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>ca.mcscert.jpipe.Main</mainClass>
-                        </manifest>
-                        <manifestEntries>
-                            <Multi-Release>true</Multi-Release>
-                        </manifestEntries>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-maven-plugin</artifactId>
-                <version>${antlr4-maven.version}</version>
-                <configuration>
-                    <arguments>
-                        <argument>-package</argument>
-                        <argument>ca.mcscert.jpipe.syntax</argument>
-                    </arguments>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>antlr</id>
-                        <goals>
-                            <goal>antlr4</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>${jacoco-maven.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>report</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <excludes>
-                        <!-- Excluding lex/parse code generated by ANTLR -->
-                        <exclude>ca/mcscert/jpipe/syntax/**</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire.version}</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>me.fabriciorby</groupId>
-                        <artifactId>maven-surefire-junit5-tree-reporter</artifactId>
-                        <version>${junit-tree-reporter.version}</version>
-                    </dependency>
-                </dependencies>
-                <configuration>
-                    <!-- invoke with -Dskip.tests.units to skip unit tests -->
-                    <skipTests>${skip.tests.unit}</skipTests>
-                    <trimStackTrace>true</trimStackTrace>
-                    <consoleOutputReporter>
-                        <disable>true</disable>
-                    </consoleOutputReporter>
-                    <statelessTestsetInfoReporter
-                            implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter">
-                        <theme>UNICODE</theme>
-                    </statelessTestsetInfoReporter>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${maven-failsafe.version}</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>me.fabriciorby</groupId>
-                        <artifactId>maven-surefire-junit5-tree-reporter</artifactId>
-                        <version>${junit-tree-reporter.version}</version>
-                    </dependency>
-                </dependencies>
-                <configuration>
-                    <!-- invoke with -Dskip.tests.integration to skip unit tests -->
-                    <skipTests>${skip.tests.integration}</skipTests>
-                    <trimStackTrace>true</trimStackTrace>
-                    <consoleOutputReporter>
-                        <disable>true</disable>
-                    </consoleOutputReporter>
-                    <statelessTestsetInfoReporter
-                            implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter">
-                        <theme>UNICODE</theme>
-                    </statelessTestsetInfoReporter>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.coderplus.maven.plugins</groupId>
-                <artifactId>copy-rename-maven-plugin</artifactId>
-                <version>${copy-rename.version}</version>
-                <executions>
-                    <execution>
-                        <id>rename-file</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>rename</goal>
-                        </goals>
-                        <configuration>
-                            <sourceFile>${project.build.directory}/${project.artifactId}-jar-with-dependencies.jar</sourceFile>
-                            <destinationFile>${jar.filename}.jar</destinationFile>
-                        </configuration>
-                    </execution>
-                </executions>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${checkstyle-plugin.version}</version>
-                <dependencies>
-                    <!-- Need to update Checkstyle to support annotations in the source code -->
-                    <dependency>
-                        <groupId>com.puppycrawl.tools</groupId>
-                        <artifactId>checkstyle</artifactId>
-                        <version>${checkstyle.version}</version>
-                    </dependency>
-                </dependencies>
-                <configuration>
-                    <sourceDirectories>
-                        <!-- To avoid checking ANTLR4 code generation -->
-                        <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
-                    </sourceDirectories>
-                    <configLocation>${project.resources[0].directory}/checkstyle/jpipe_checks.xml</configLocation>
-                    <consoleOutput>false</consoleOutput>
-                    <failsOnError>true</failsOnError>
-                    <violationSeverity>warning</violationSeverity>
-                    <failOnViolation>true</failOnViolation>
-                    <linkXRef>true</linkXRef>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>install</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
-
-
-    <profiles>
-        <profile> <!-- NOT WORKING FOR NOW - WAITING FOR LOG4J 2.25 -->
-            <id>native</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.graalvm.buildtools</groupId>
-                        <artifactId>native-maven-plugin</artifactId>
-                        <version>${graalvm.plugin}</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <imageName>jpipe-optimized</imageName>
-                            <buildArgs>
-                                <buildArg>-O2</buildArg>
-                            </buildArgs>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>build-native</id>
-                                <goals>
-                                    <goal>compile-no-fork</goal>
-                                </goals>
-                                <phase>package</phase>
-                            </execution>
-                            <execution>
-                                <id>test-native</id>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <phase>test</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
 
 </project>

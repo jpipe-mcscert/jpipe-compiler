@@ -1,0 +1,34 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// Sharing a piece of evidence [e] across multiple branches
+justification shared {
+    // branch convergence, joining #1 and #2
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    s supports c
+
+    // branch #1
+    sub-conclusion sc1 is "A sub-conclusion [#1]"
+    strategy       s1  is "A strategy       [#1]"
+    evidence       e1  is "An evidence      [#1]"
+    sc1 supports s
+    s1  supports sc1
+    e1  supports s1
+
+    // branch #2
+    sub-conclusion sc2 is "A sub-conclusion [#2]"
+    strategy       s2  is "A strategy       [#2]"
+    evidence       e2  is "An evidence      [#2]"
+    sc2 supports s
+    s2  supports sc2
+    e2  supports s2
+
+    // shared evidence
+    evidence e is "A shared evidence     [#1, #2]"
+    e supports s1
+    e supports s2
+}

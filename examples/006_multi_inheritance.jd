@@ -1,0 +1,40 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// Top-level template, exposing abs1 and abs2 as abstract supports 
+template root {
+    conclusion c is "A root conclusion"
+    strategy   s is "A root strategy"
+    @support abs1 is "A root abstract support #1"
+    @support abs2 is "A root abstract support #2"
+
+    s    supports c
+    abs1 supports s
+    abs2 supports s
+}
+
+// Immediately overriding abs1 and abs2 with pieces of evidence
+justification leaf implements root {
+    evidence root:abs1 is "A leaf evidence #1"
+    evidence root:abs2 is "A leaf evidence #2"
+}
+
+// An intermediate template that refine how abs1 is claimed
+template intermediate implements root {
+    sub-conclusion root:abs1 is "an intermediate sub conclusion #1"
+    strategy       s         is "An intermediate strategy"
+    @support       abs_i     is "An intermediate abstract support #3"
+    s     supports root:abs1
+    abs_i supports s
+}
+
+// A justification using the intermediate template, and:
+//   1. overriding abs2  from the top-level
+//   2. overriding abs_i from the inter
+justification leaf_intermediate implements intermediate {
+    evidence intermediate:abs_i is "A leaf support  #3"
+    evidence root:abs2          is "A leaf evidence #2"
+}

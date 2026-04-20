@@ -1,0 +1,21 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+template t {
+    conclusion c is "A conclusion"
+    strategy s   is "A strategy"
+    @support abs1 is "An abstract support #1"
+    @support abs2 is "An abstract support #1"
+
+    s    supports c
+    abs1 supports s
+    abs2 supports s
+}
+
+// Abstract support t:abs2 is not overriden, so j is not a justification
+justification j implements t {
+    evidence t:abs1 is "A concrete evidence overriding abs1"
+}

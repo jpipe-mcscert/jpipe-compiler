@@ -25,6 +25,10 @@ community include:
   and learning from the experience
 * Focusing on what is best not just for us as individuals, but for the overall
   community
+* Supporting the professional growth and mentorship of junior researchers and
+  students
+* Upholding academic integrity and acknowledging the contributions of all
+  collaborators
 
 Examples of unacceptable behavior include:
 
@@ -39,10 +43,10 @@ Examples of unacceptable behavior include:
 
 ## Enforcement Responsibilities
 
-Community leaders are responsible for clarifying and enforcing our standards of
-acceptable behavior and will take appropriate and fair corrective action in
-response to any behavior that they deem inappropriate, threatening, offensive,
-or harmful.
+Community leaders (the PI and senior researchers) are responsible for clarifying
+and enforcing our standards of acceptable behavior and will take appropriate and
+fair corrective action in response to any behavior that they deem inappropriate,
+threatening, offensive, or harmful.
 
 Community leaders have the right and responsibility to remove, edit, or reject
 comments, commits, code, wiki edits, issues, and other contributions that are
@@ -61,8 +65,15 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the PI responsible for enforcement at
-[mossers@mcmaster.ca](mossers@mcmaster.ca).
+[mossers@mcmaster.ca](mailto:mossers@mcmaster.ca).
 All complaints will be reviewed and investigated promptly and fairly.
+
+In cases where a report involves the PI, or if the reporter feels uncomfortable
+reporting within the project, they are encouraged to utilize McMaster
+University's formal reporting channels through the [Equity and Inclusion Office
+(EIO)][McMaster EIO]. This Code of Conduct is intended to supplement, not
+replace, the [McMaster University Discrimination and Harassment
+Policy][McMaster Policy].
 
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident.
@@ -85,3 +96,5 @@ For answers to common questions about this code of conduct, see the FAQ at
 [Mozilla CoC]: https://github.com/mozilla/diversity
 [FAQ]: https://www.contributor-covenant.org/faq
 [translations]: https://www.contributor-covenant.org/translations
+[McMaster EIO]: https://equity.mcmaster.ca/
+[McMaster Policy]: https://equity.mcmaster.ca/policy/discrimination-harassment-policy/

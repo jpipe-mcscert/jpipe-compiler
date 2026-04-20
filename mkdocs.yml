@@ -1,0 +1,59 @@
+site_name: jPipe
+site_description: Justified Pipelines language and compiler
+site_url: https://ace-design.github.io/jpipe
+repo_url: https://github.com/jpipe-mcscert/jpipe-compiler
+repo_name: jpipe-mcscert/jpipe-compiler
+
+theme:
+  name: material
+  palette:
+    scheme: default
+  features:
+    - navigation.sections
+    - navigation.top
+    - toc.integrate
+
+extra_css:
+  - stylesheets/mcmaster.css
+
+nav:
+  - Home: index.md
+  - API Reference: api-reference.md
+  - Design:
+      - design/language.md
+      - design/model.md
+      - design/compiler.md
+      - design/steps.md
+      - design/operators.md
+      - design/cli.md
+  - Architecture Decisions:
+      - adr/0001-semver-versioning.md
+      - adr/0002-multi-module-structure.md
+      - adr/0003-fat-jar-with-shade.md
+      - adr/0004-sonarcloud-quality-gate.md
+      - adr/0005-command-pattern-for-model-construction.md
+      - adr/0006-logging-conventions.md
+      - adr/0007-dependency-freshness-policy.md
+      - adr/0008-visitor-pattern-for-model-traversal.md
+      - adr/0009-pipeline-abstraction-for-compilation.md
+      - adr/0010-model-visitors-in-jpipe-model.md
+      - adr/0011-cucumber-for-compiler-end-to-end-tests.md
+      - adr/0012-qualified-ids-and-template-expansion.md
+      - adr/0013-export-strategy-text-vs-library.md
+      - adr/0014-colorblind-safe-dot-palette.md
+      - adr/0015-consistency-and-completeness-validation.md
+      - adr/0016-error-management.md
+      - adr/0017-load-directive-as-compiler-step.md
+      - adr/0018-composition-operators.md
+      - adr/0019-ai-assisted-development.md
+plugins:
+  - search
+
+markdown_extensions:
+  - md_in_html
+  - pymdownx.snippets:
+      base_path: .
+  - plantuml_markdown:
+      format: svg
+      plantuml_cmd: plantuml
+

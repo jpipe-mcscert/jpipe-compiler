@@ -1,0 +1,57 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+
+// Original justification
+justification minimal {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+
+    s supports c
+    e supports s
+}
+
+// Refinment
+justification refinement {
+    conclusion c is "an evidence is true"
+    strategy   s is "A refined strategy"
+    evidence   e is "A refined evidence"
+
+    s supports c
+    e supports s
+}
+
+
+// Calling the composition operator
+justification refined is refine(minimal, refinement) {
+    hook: "minimal/e"
+} 
+
+
+
+justification expected {
+    // elements (from minimal)
+    conclusion     minimal_c    is "A conclusion"
+    strategy       minimal_s    is "A strategy"
+    // relations (from minimal)
+    minimal_s supports minimal_c
+
+    // elements (from refinment)
+    strategy       refinement_s is "A strategy"
+    evidence       refinement_e is "An evidence"
+    // relations (from refinment)
+    refinement_e supports refinement_s
+
+    // Elements created while composing (rewritten)
+    //   - minimal:e \equiv refinment:c under refinment equivalence class
+    //   - minimal:e -> anonymous1, refinment:c -> anonymous1 
+    sub-conclusion anonymous1 is "an evidence is true"
+    anonymous1 supports minimal_s       // was `e supports s` in minimal
+    refinement_s supports anonymous1    // was `s supports c` in refinment
+}
+
+// assert: refined \equiv expected (same elements, isomorphic)

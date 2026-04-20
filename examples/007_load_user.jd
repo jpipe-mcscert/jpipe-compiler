@@ -1,0 +1,15 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// Load an existing file and bind its symbols under the "base" namespace.
+// All models from 004_template.jd are accessible as base:xxx.
+load "004_template.jd" as base
+
+// A local justification that implements a template from the loaded file.
+// The override key uses the full qualified template name as prefix.
+justification my_justification implements base:t {
+    evidence base:t:abs is "A concrete evidence overriding the abstract support"
+}

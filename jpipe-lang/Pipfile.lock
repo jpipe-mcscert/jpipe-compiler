@@ -1,0 +1,30 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "9a1a44576759fa44e0431d71defde6053899363b3c49659d42fe620cf2b56c0c"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "3.12"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "railroad-diagrams": {
+            "hashes": [
+                "sha256:a91332bac900cb3c367331fa9b699f0897bcf86b7264f65458675df430d04ce3",
+                "sha256:d414ff2439ed53345950e197938097548721b5d097926fafeaabc2bb069b44f9"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.7'",
+            "version": "==3.0.1"
+        }
+    },
+    "develop": {}
+}

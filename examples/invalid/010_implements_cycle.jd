@@ -1,0 +1,23 @@
+
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+
+template t1 implements t2 {
+    conclusion c is "First template conclusion"
+    strategy s is "First template strategy"
+    s supports c
+    @support placeholder is "Abstract support"
+    placeholder supports s
+}
+
+template t2 implements t1 {
+    sub-conclusion t1:placeholder is "Second template sub-conclusion"
+    strategy s is "Second template strategy"
+    s supports sc
+    @support placeholder is "Abstract support"
+    placeholder supports s
+}

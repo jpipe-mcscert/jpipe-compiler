@@ -1,0 +1,440 @@
+package ca.mcscert.jpipe.commands.linking;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import ca.mcscert.jpipe.commands.ExecutionEngine;
+import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
+import ca.mcscert.jpipe.commands.creation.CreateConclusion;
+import ca.mcscert.jpipe.commands.creation.CreateEvidence;
+import ca.mcscert.jpipe.commands.creation.CreateJustification;
+import ca.mcscert.jpipe.commands.creation.CreateStrategy;
+import ca.mcscert.jpipe.commands.creation.CreateTemplate;
+import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.SourceLocation;
+import ca.mcscert.jpipe.model.Template;
+import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.Evidence;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
+import ca.mcscert.jpipe.model.elements.Strategy;
+import ca.mcscert.jpipe.model.elements.Conclusion;
+import java.util.List;
+import java.util.NoSuchElementException;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+class ImplementsTemplateTest {
+
+	// -------------------------------------------------------------------------
+	// Normal execution
+	// -------------------------------------------------------------------------
+
+	@Test
+	void setsTemplateAsParentOfJustification() {
+		Unit unit = new Unit("src");
+		new CreateTemplate("t1").execute(unit);
+		new CreateJustification("j1").execute(unit);
+
+		new ImplementsTemplate("j1", "t1").execute(unit);
+
+		assertThat(unit.get("j1").getParent()).isPresent().get()
+				.extracting(Template::getName).isEqualTo("t1");
+	}
+
+	@Test
+	void templateCanHaveMultipleImplementors() {
+		Unit unit = new Unit("src");
+		new CreateTemplate("t1").execute(unit);
+		new CreateJustification("j1").execute(unit);
+		new CreateJustification("j2").execute(unit);
+
+		new ImplementsTemplate("j1", "t1").execute(unit);
+		new ImplementsTemplate("j2", "t1").execute(unit);
+
+		assertThat(unit.get("j1").getParent()).isPresent();
+		assertThat(unit.get("j2").getParent()).isPresent();
+	}
+
+	// -------------------------------------------------------------------------
+	// Error cases
+	// -------------------------------------------------------------------------
+
+	@Test
+	void throwsWhenNamedModelIsNotATemplate() {
+		Unit unit = new Unit("src");
+		new CreateJustification("j1").execute(unit);
+		new CreateJustification("j2").execute(unit);
+
+		var cmd = new ImplementsTemplate("j1", "j2");
+		assertThatThrownBy(() -> cmd.execute(unit))
+				.isInstanceOf(NoSuchElementException.class);
+	}
+
+	// -------------------------------------------------------------------------
+	// Condition / deferred execution
+	// -------------------------------------------------------------------------
+
+	@Nested
+	class DeferredExecution {
+
+		@Test
+		void conditionFalseWhenBothModelsAbsent() {
+			Unit unit = new Unit("src");
+			assertThat(
+					new ImplementsTemplate("j1", "t1").condition().test(unit))
+					.isFalse();
+		}
+
+		@Test
+		void conditionFalseWhenOnlyJustificationExists() {
+			Unit unit = new Unit("src");
+			new CreateJustification("j1").execute(unit);
+			assertThat(
+					new ImplementsTemplate("j1", "t1").condition().test(unit))
+					.isFalse();
+		}
+
+		@Test
+		void conditionFalseWhenOnlyTemplateExists() {
+			Unit unit = new Unit("src");
+			new CreateTemplate("t1").execute(unit);
+			assertThat(
+					new ImplementsTemplate("j1", "t1").condition().test(unit))
+					.isFalse();
+		}
+
+		@Test
+		void conditionTrueWhenBothModelsExist() {
+			Unit unit = new Unit("src");
+			new CreateJustification("j1").execute(unit);
+			new CreateTemplate("t1").execute(unit);
+			assertThat(
+					new ImplementsTemplate("j1", "t1").condition().test(unit))
+					.isTrue();
+		}
+
+		@Test
+		void engineDefersUntilBothModelsCreated() {
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src",
+					List.of(new ImplementsTemplate("j1", "t1"),
+							new CreateTemplate("t1"),
+							new CreateJustification("j1")));
+
+			assertThat(unit.get("j1").getParent()).isPresent().get()
+					.isInstanceOf(Template.class)
+					.extracting(m -> ((Template) m).getName()).isEqualTo("t1");
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Template inlining — qualified ids and support-edge re-wiring
+	// -------------------------------------------------------------------------
+
+	@Nested
+	class TemplateInlining {
+
+		/**
+		 * Builds a unit with template t (tc←ts←te) and justification j
+		 * implements t. j declares no conclusion of its own — the template's
+		 * conclusion becomes j's conclusion with qualified id t:tc.
+		 */
+		private Unit buildUnit() {
+			ExecutionEngine engine = new ExecutionEngine();
+			return engine.spawn("src",
+					List.of(new CreateTemplate("t"),
+							new CreateConclusion("t", "tc",
+									"Template conclusion"),
+							new CreateStrategy("t", "ts", "Template strategy"),
+							new CreateEvidence("t", "te", "Template evidence"),
+							new AddSupport("t", "tc", "ts"),
+							new AddSupport("t", "ts", "te"),
+							new CreateJustification("j"),
+							new ImplementsTemplate("j", "t")));
+		}
+
+		@Test
+		void templateConclusionIsExpandedAsConclusion() {
+			Unit unit = buildUnit();
+			assertThat(unit.get("j").findById("t:tc")).isPresent().get()
+					.isInstanceOf(Conclusion.class);
+		}
+
+		@Test
+		void templateStrategyIsExpandedWithQualifiedId() {
+			Unit unit = buildUnit();
+			assertThat(unit.get("j").findById("t:ts")).isPresent().get()
+					.isInstanceOf(Strategy.class);
+		}
+
+		@Test
+		void templateEvidenceIsExpandedWithQualifiedId() {
+			Unit unit = buildUnit();
+			assertThat(unit.get("j").findById("t:te")).isPresent().get()
+					.isInstanceOf(Evidence.class);
+		}
+
+		@Test
+		void plainIdResolvesToInheritedElement() {
+			Unit unit = buildUnit();
+			assertThat(unit.get("j").findById("ts")).isPresent().get()
+					.isInstanceOf(Strategy.class)
+					.extracting(e -> ((Strategy) e).id()).isEqualTo("t:ts");
+		}
+
+		@Test
+		void supportEdgeBetweenCopiedElementsIsRewired() {
+			Unit unit = buildUnit();
+			Conclusion tc = (Conclusion) unit.get("j").findById("t:tc")
+					.orElseThrow();
+			assertThat(tc.getSupport()).isPresent().get()
+					.extracting(Strategy::id).isEqualTo("t:ts");
+		}
+
+		@Test
+		void abstractSupportIsInlinedAsPlaceholder() {
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src", List.of(new CreateTemplate("t"),
+					new CreateConclusion("t", "tc", "Template conclusion"),
+					new CreateStrategy("t", "ts", "Template strategy"),
+					new CreateAbstractSupport("t", "as", "Abstract support"),
+					new AddSupport("t", "ts", "as"),
+					new AddSupport("t", "tc", "ts"),
+					new CreateJustification("j"),
+					new CreateConclusion("j", "c", "My conclusion"),
+					new ImplementsTemplate("j", "t")));
+
+			assertThat(unit.get("j").findById("t:as")).isPresent().get()
+					.isInstanceOf(AbstractSupport.class);
+		}
+
+		@Test
+		void overrideRegistersOverrideSiteLocation() {
+			SourceLocation overrideLoc = new SourceLocation(10, 4);
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src", List.of(new CreateTemplate("t"),
+					new CreateConclusion("t", "tc", "Template conclusion"),
+					new CreateStrategy("t", "ts", "Template strategy"),
+					new CreateAbstractSupport("t", "as", "Abstract support"),
+					new AddSupport("t", "ts", "as"),
+					new AddSupport("t", "tc", "ts"),
+					new CreateJustification("j"),
+					new CreateConclusion("j", "c", "My conclusion"),
+					new ImplementsTemplate("j", "t"),
+					new OverrideAbstractSupport("j", "t:as", "evidence",
+							"Concrete", overrideLoc)));
+
+			assertThat(unit.locationOf("j", "t:as")).isEqualTo(overrideLoc);
+		}
+
+		@Test
+		void overrideAbstractSupportReplacesPlaceholderWithEvidence() {
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src", List.of(new CreateTemplate("t"),
+					new CreateConclusion("t", "tc", "Template conclusion"),
+					new CreateStrategy("t", "ts", "Template strategy"),
+					new CreateAbstractSupport("t", "as", "Abstract support"),
+					new AddSupport("t", "ts", "as"),
+					new AddSupport("t", "tc", "ts"),
+					new CreateJustification("j"),
+					new CreateConclusion("j", "c", "My conclusion"),
+					new ImplementsTemplate("j", "t"),
+					new OverrideAbstractSupport("j", "t:as", "evidence",
+							"Concrete evidence")));
+
+			Justification j = (Justification) unit.get("j");
+			assertThat(j.findById("t:as")).isPresent().get()
+					.isInstanceOf(Evidence.class);
+			Strategy ts = (Strategy) j.findById("t:ts").orElseThrow();
+			assertThat(ts.getSupports())
+					.extracting(sl -> ((JustificationElement) sl).id())
+					.contains("t:as");
+		}
+
+		@Test
+		void multipleImplementorsExpandIndependently() {
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src",
+					List.of(new CreateTemplate("t"),
+							new CreateConclusion("t", "tc",
+									"Template conclusion"),
+							new CreateStrategy("t", "ts", "Template strategy"),
+							new CreateEvidence("t", "te", "Template evidence"),
+							new AddSupport("t", "tc", "ts"),
+							new AddSupport("t", "ts", "te"),
+							new CreateJustification("j1"),
+							new CreateConclusion("j1", "c", "Conclusion 1"),
+							new CreateJustification("j2"),
+							new CreateConclusion("j2", "c", "Conclusion 2"),
+							new ImplementsTemplate("j1", "t"),
+							new ImplementsTemplate("j2", "t")));
+
+			Strategy s1 = (Strategy) unit.get("j1").findById("t:ts")
+					.orElseThrow();
+			Strategy s2 = (Strategy) unit.get("j2").findById("t:ts")
+					.orElseThrow();
+			assertThat(s1).isNotSameAs(s2);
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Template-to-template inlining
+	// -------------------------------------------------------------------------
+
+	@Nested
+	class TemplateToTemplateInlining {
+
+		@Test
+		void childTemplateInheritsParentElementsWithQualifiedIds() {
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src", List.of(
+					new CreateTemplate("parent"),
+					new CreateConclusion("parent", "pc", "Parent conclusion"),
+					new CreateStrategy("parent", "ps", "Parent strategy"),
+					new CreateAbstractSupport("parent", "as",
+							"Abstract support"),
+					new AddSupport("parent", "ps", "as"),
+					new AddSupport("parent", "pc", "ps"),
+					new CreateTemplate("child"),
+					new ImplementsTemplate("child", "parent")));
+
+			assertThat(unit.get("child").findById("parent:pc")).isPresent()
+					.get().isInstanceOf(Conclusion.class);
+			assertThat(unit.get("child").findById("parent:ps")).isPresent()
+					.get().isInstanceOf(Strategy.class);
+		}
+
+		@Test
+		void childTemplateInheritsAbstractSupport() {
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src", List.of(
+					new CreateTemplate("parent"),
+					new CreateConclusion("parent", "pc", "Parent conclusion"),
+					new CreateAbstractSupport("parent", "as",
+							"Abstract support"),
+					new CreateTemplate("child"),
+					new CreateConclusion("child", "cc", "Child conclusion"),
+					new ImplementsTemplate("child", "parent")));
+
+			assertThat(unit.get("child").findById("parent:as")).isPresent()
+					.get().isInstanceOf(AbstractSupport.class);
+		}
+
+		@Test
+		void grandchildPreservesGrandparentQualifiedIds() {
+			// grandchild implements child implements parent
+			// grandparent elements (parent:pc, parent:as) must appear in
+			// grandchild
+			// with their original IDs, not double-qualified as child:parent:pc.
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src", List.of(
+					new CreateTemplate("parent"),
+					new CreateConclusion("parent", "pc", "Parent conclusion"),
+					new CreateStrategy("parent", "ps", "Parent strategy"),
+					new CreateAbstractSupport("parent", "as",
+							"Abstract support"),
+					new AddSupport("parent", "ps", "as"),
+					new AddSupport("parent", "pc", "ps"),
+					new CreateTemplate("child"),
+					new ImplementsTemplate("child", "parent"),
+					new CreateJustification("grandchild"),
+					new ImplementsTemplate("grandchild", "child"),
+					new OverrideAbstractSupport("grandchild", "parent:as",
+							"evidence", "Concrete evidence")));
+
+			assertThat(unit.get("grandchild").findById("parent:pc")).isPresent()
+					.get().isInstanceOf(Conclusion.class);
+			assertThat(unit.get("grandchild").findById("parent:ps")).isPresent()
+					.get().isInstanceOf(Strategy.class);
+			assertThat(unit.get("grandchild").findById("parent:as")).isPresent()
+					.get().isInstanceOf(Evidence.class);
+			assertThat(unit.get("grandchild").findById("child:parent:pc"))
+					.isEmpty();
+		}
+
+		@Test
+		void childTemplateSetsParentReference() {
+			ExecutionEngine engine = new ExecutionEngine();
+			Unit unit = engine.spawn("src", List.of(
+					new CreateTemplate("parent"),
+					new CreateConclusion("parent", "pc", "Parent conclusion"),
+					new CreateAbstractSupport("parent", "as",
+							"Abstract support"),
+					new CreateTemplate("child"),
+					new CreateConclusion("child", "cc", "Child conclusion"),
+					new ImplementsTemplate("child", "parent")));
+
+			assertThat(unit.get("child").getParent()).isPresent().get()
+					.extracting(Template::getName).isEqualTo("parent");
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Location propagation
+	// -------------------------------------------------------------------------
+
+	@Nested
+	class LocationPropagation {
+
+		@Test
+		void inlinedElementsInheritTemplateLocations() {
+			SourceLocation stratLoc = new SourceLocation(5, 2);
+			SourceLocation evidLoc = new SourceLocation(6, 2);
+			Unit unit = new Unit("src");
+			new CreateTemplate("t").execute(unit);
+			new CreateConclusion("t", "tc", "Template conclusion")
+					.execute(unit);
+			new CreateStrategy("t", "ts", "Template strategy", stratLoc)
+					.execute(unit);
+			new CreateEvidence("t", "te", "Template evidence", evidLoc)
+					.execute(unit);
+			new CreateJustification("j").execute(unit);
+			new CreateConclusion("j", "c", "My conclusion").execute(unit);
+			new ImplementsTemplate("j", "t").execute(unit);
+
+			assertThat(unit.locationOf("j", "t:ts")).isEqualTo(stratLoc);
+			assertThat(unit.locationOf("j", "t:te")).isEqualTo(evidLoc);
+		}
+
+		@Test
+		void inlinedConclusionInheritsTemplateLocation() {
+			SourceLocation concLoc = new SourceLocation(3, 0);
+			Unit unit = new Unit("src");
+			new CreateTemplate("t").execute(unit);
+			new CreateConclusion("t", "tc", "Template conclusion", concLoc)
+					.execute(unit);
+			new CreateJustification("j").execute(unit);
+			new CreateConclusion("j", "c", "My conclusion").execute(unit);
+			new ImplementsTemplate("j", "t").execute(unit);
+
+			assertThat(unit.locationOf("j", "t:tc")).isEqualTo(concLoc);
+		}
+
+		@Test
+		void inlinedElementWithUnknownTemplateLocationStaysUnknown()
+				throws Exception {
+			Unit unit = new Unit("src");
+			new CreateTemplate("t").execute(unit);
+			new CreateConclusion("t", "tc", "Template conclusion")
+					.execute(unit);
+			new CreateEvidence("t", "te", "Template evidence").execute(unit);
+			new CreateJustification("j").execute(unit);
+			new CreateConclusion("j", "c", "My conclusion").execute(unit);
+			new ImplementsTemplate("j", "t").execute(unit);
+
+			assertThat(unit.locationOf("j", "t:te"))
+					.isEqualTo(SourceLocation.UNKNOWN);
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// toString
+	// -------------------------------------------------------------------------
+
+	@Test
+	void toStringIsPrologFact() {
+		assertThat(new ImplementsTemplate("j1", "t1"))
+				.hasToString("implements('j1', 't1').");
+	}
+}

@@ -1,0 +1,99 @@
+package ca.mcscert.jpipe.compiler.steps.transformations;
+
+import ca.mcscert.jpipe.compiler.model.CompilationContext;
+import ca.mcscert.jpipe.compiler.model.CompilationException;
+import ca.mcscert.jpipe.compiler.model.Transformation;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicReference;
+
+/**
+ * Compilation step that renders DOT text to a binary image format by invoking
+ * the {@code dot} command-line tool.
+ *
+ * <p>
+ * The {@code dot} binary must be available on {@code PATH}. Use
+ * {@code jpipe --doctor} to verify before running.
+ *
+ * <p>
+ * stdin is written in a virtual thread while stdout is read in the caller
+ * thread, avoiding deadlock when the process's pipe buffers are smaller than
+ * the input.
+ */
+public class RenderWithDot extends Transformation<String, byte[]> {
+
+	private final String dotFormat;
+
+	/**
+	 * @param dotFormat
+	 *            the {@code dot -T} format name, e.g. {@code "png"} or
+	 *            {@code "jpeg"}.
+	 */
+	public RenderWithDot(String dotFormat) {
+		this.dotFormat = dotFormat;
+	}
+
+	@Override
+	protected byte[] run(String dotSource, CompilationContext ctx) {
+		Process process;
+		try {
+			process = new ProcessBuilder("dot", "-T" + dotFormat).start();
+		} catch (IOException _) {
+			throw new CompilationException(stepName(),
+					"dot not found on PATH — install Graphviz or run 'jpipe --doctor'");
+		}
+
+		// Write dot source in a virtual thread to avoid deadlock when the
+		// process pipe buffer is smaller than the input.
+		Thread writer = Thread.ofVirtual().start(() -> {
+			try (OutputStream stdin = process.getOutputStream()) {
+				stdin.write(dotSource.getBytes(StandardCharsets.UTF_8));
+			} catch (IOException _) {
+				// Process was destroyed before we finished writing; safe to
+				// ignore.
+			}
+		});
+
+		// Drain stderr in a virtual thread to prevent the stderr pipe buffer
+		// from filling and blocking the process before it can close stdout.
+		AtomicReference<String> stderrCapture = new AtomicReference<>("");
+		Thread stderrReader = Thread.ofVirtual().start(() -> {
+			try {
+				stderrCapture
+						.set(new String(process.getErrorStream().readAllBytes(),
+								StandardCharsets.UTF_8));
+			} catch (IOException _) {
+				// Process was destroyed before stderr was fully read; safe to
+				// ignore.
+			}
+		});
+
+		try {
+			byte[] result = process.getInputStream().readAllBytes();
+			writer.join();
+			stderrReader.join();
+			int exitCode = process.waitFor();
+			if (exitCode != 0) {
+				throw new CompilationException(stepName(),
+						"dot exited with code " + exitCode + ": "
+								+ stderrCapture.get().strip());
+			}
+			return result;
+		} catch (IOException e) {
+			throw new CompilationException(stepName(), e.getMessage());
+		} catch (InterruptedException _) {
+			Thread.currentThread().interrupt();
+			throw new CompilationException(stepName(),
+					"interrupted while waiting for dot");
+		} finally {
+			// If readAllBytes(), join(), or waitFor() threw, kill the process.
+			// destroyForcibly() is a no-op when the process has already exited.
+			// The writer thread self-terminates once the broken pipe raises
+			// IOException, so no explicit join is needed on the error path.
+			if (process.isAlive()) {
+				process.destroyForcibly();
+			}
+		}
+	}
+}

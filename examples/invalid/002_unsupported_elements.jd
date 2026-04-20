@@ -1,0 +1,26 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// Conclusion [c] is not supported
+justification missing_support_for_conclusion {
+    conclusion c is "A conclusion"
+}
+
+// Strategy [s] is not supported
+justification missing_support_for_strategy {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    s supports c
+}
+
+// Sub-conclusion [sc] is not supported
+justification missing_support_for_sub_conclusion {
+    conclusion     c  is "A conclusion"
+    strategy       s  is "A strategy"
+    sub-conclusion sc is "A sub-conclusion"
+    s  supports c
+    sc supports s
+}

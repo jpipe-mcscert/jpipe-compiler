@@ -1,11 +1,22 @@
 .vscode
+.code-review-graph 
 .idea
+.claude
+.antlr
 *.iml
 target
-*.class 
+jpipe-lang/src/main/java
+*.class
 *~
 *.png
 *.svg
+!docs/**/*.png
+!docs/**/*.svg
 *.jar
 .DS_Store
 .java-version
+site/
+
+# Local agent instructions
+CLAUDE.md
+GEMINI.md

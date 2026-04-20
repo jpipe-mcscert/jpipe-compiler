@@ -1,0 +1,42 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// A justification must be acyclic.
+// Here, [sc] is supported by a strategy [s2] supported by [sc]
+justification j {
+
+    conclusion     c is "A conclusion"
+    strategy       s1 is "A strategy"
+    sub-conclusion sc is "A self-fulfilling sub-conclusion"
+    strategy       s2 is "Another strategy"
+    evidence       e  is "A legit evidence"
+    
+    s1 supports c
+    sc supports s1
+    s2 supports sc
+    e  supports s2
+    sc supports s2 // incorrect link, introducing a cycle
+
+}
+
+// A template must be acyclic.
+// Here, [sc] is supported by a strategy [s2] supported by [sc]
+template t {
+
+    conclusion     c   is "A conclusion"
+    strategy       s1   is "A strategy"
+    sub-conclusion sc   is "A self-fulfilling sub-conclusion"
+    strategy       s2   is "Another strategy"
+    @support       abs  is "A legit evidence"
+    
+    s1   supports c
+    sc   supports s1
+    s2   supports sc
+    abs  supports s2
+    sc   supports s2 // incorrect link, introducing a cycle
+    
+}
+

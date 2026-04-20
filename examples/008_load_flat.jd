@@ -1,0 +1,13 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// Load without "as": symbols are imported flat into the current namespace.
+load "004_template.jd"
+
+// Template t from 004_template.jd is now directly accessible
+justification flat_justification implements t {
+    evidence t:abs is "A flat-loaded evidence"
+}

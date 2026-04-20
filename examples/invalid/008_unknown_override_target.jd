@@ -1,0 +1,30 @@
+/*********************************
+ * jPipe  -  Reference Examples  * 
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// This template is 100% valid
+template t {
+    conclusion c is "A conclusion"
+    strategy s   is "A strategy"
+    @support abs is "Abstract"
+    
+    s   supports c
+    abs supports s
+}
+
+// This justification does not explictely call the template namespace
+justification no_namespace implements t {
+    evidence abs is "Evidence"
+}
+
+// This justification uses the wrong namespace
+justification wrong_namespace implements t {
+    evidence wrong:abs is "Evidence"
+}
+
+// This justification uses the wrong identifier
+justification wrong_identifier implements t {
+    evidence t:placeholder is "Evidence"
+}
