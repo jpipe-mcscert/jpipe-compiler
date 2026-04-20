@@ -22,8 +22,18 @@ import picocli.CommandLine.Option;
  */
 @Command(name = "jpipe", description = "Compile and process jPipe justification files.", subcommands = {
 		DoctorCommand.class, DiagnosticCommand.class,
-		ProcessCommand.class}, mixinStandardHelpOptions = true, version = "jPipe 2.0.0")
+		ProcessCommand.class}, mixinStandardHelpOptions = true, versionProvider = Main.ManifestVersionProvider.class)
 public class Main {
+
+	static class ManifestVersionProvider
+			implements
+				CommandLine.IVersionProvider {
+		@Override
+		public String[] getVersion() {
+			String v = Main.class.getPackage().getImplementationVersion();
+			return new String[]{"jPipe " + (v != null ? v : "dev")};
+		}
+	}
 
 	static final int EXIT_OK = 0;
 	static final int EXIT_JPIPE_ERROR = 1;

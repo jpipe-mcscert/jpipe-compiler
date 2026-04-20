@@ -73,6 +73,7 @@
                                     <mainClass>ca.mcscert.jpipe.cli.Main</mainClass>
                                     <manifestEntries>
                                         <Multi-Release>true</Multi-Release>
+                                        <Implementation-Version>${project.version}</Implementation-Version>
                                     </manifestEntries>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
