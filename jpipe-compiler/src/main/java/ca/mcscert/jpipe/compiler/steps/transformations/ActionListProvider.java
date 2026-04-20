@@ -19,6 +19,7 @@ import ca.mcscert.jpipe.lang.JPipeParser;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.operators.ApplyOperator;
 import ca.mcscert.jpipe.operators.ModelKind;
+import ca.mcscert.jpipe.operators.OperatorCallConfig;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import java.util.ArrayList;
@@ -148,10 +149,12 @@ public final class ActionListProvider
 						? ctx.params_decl().id.stream().map(t -> t.getText())
 								.toList()
 						: List.of();
-				result.add(new ApplyOperator(ctx.id.getText(),
+				var callConfig = new OperatorCallConfig(ctx.id.getText(),
 						ctx.operator.getText(), sources,
-						collectConfig(ctx.rule_config()), operators, loc,
-						ModelKind.JUSTIFICATION, unificationEquivalences));
+						collectConfig(ctx.rule_config()), loc,
+						ModelKind.JUSTIFICATION);
+				result.add(new ApplyOperator(callConfig, operators,
+						unificationEquivalences));
 				return;
 			}
 			String parentName = ctx.parent != null
@@ -187,10 +190,12 @@ public final class ActionListProvider
 						? ctx.params_decl().id.stream().map(t -> t.getText())
 								.toList()
 						: List.of();
-				result.add(new ApplyOperator(ctx.id.getText(),
+				var callConfig = new OperatorCallConfig(ctx.id.getText(),
 						ctx.operator.getText(), sources,
-						collectConfig(ctx.rule_config()), operators, loc,
-						ModelKind.TEMPLATE, unificationEquivalences));
+						collectConfig(ctx.rule_config()), loc,
+						ModelKind.TEMPLATE);
+				result.add(new ApplyOperator(callConfig, operators,
+						unificationEquivalences));
 				return;
 			}
 			String parentName = ctx.parent != null

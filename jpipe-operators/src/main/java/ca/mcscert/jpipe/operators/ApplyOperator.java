@@ -22,82 +22,68 @@ import java.util.function.Predicate;
  */
 public final class ApplyOperator implements MacroCommand {
 
-	private final String resultName;
-	private final String operatorName;
-	private final List<String> sourceNames;
-	private final Map<String, String> arguments;
+	private final OperatorCallConfig config;
 	private final OperatorRegistry operators;
-	private final SourceLocation location;
-	private final ModelKind declaredKind;
 	private final UnificationEquivalenceRegistry unificationEquivalences;
 
-	@SuppressWarnings("java:S107") // all 8 params are required to describe an
-									// operator call
-	public ApplyOperator(String resultName, String operatorName,
-			List<String> sourceNames, Map<String, String> arguments,
-			OperatorRegistry operators, SourceLocation location,
-			ModelKind declaredKind,
+	public ApplyOperator(OperatorCallConfig config, OperatorRegistry operators,
 			UnificationEquivalenceRegistry unificationEquivalences) {
-		this.resultName = resultName;
-		this.operatorName = operatorName;
-		this.sourceNames = List.copyOf(sourceNames);
-		this.arguments = Map.copyOf(arguments);
+		this.config = config;
 		this.operators = operators;
-		this.location = location;
-		this.declaredKind = declaredKind;
 		this.unificationEquivalences = unificationEquivalences;
 	}
 
 	public String resultName() {
-		return resultName;
+		return config.resultName();
 	}
 
 	public String operatorName() {
-		return operatorName;
+		return config.operatorName();
 	}
 
 	public List<String> sourceNames() {
-		return sourceNames;
+		return config.sourceNames();
 	}
 
 	public Map<String, String> arguments() {
-		return arguments;
+		return config.arguments();
 	}
 
 	public SourceLocation location() {
-		return location;
+		return config.location();
 	}
 
 	@Override
 	public Predicate<Unit> condition() {
-		return unit -> sourceNames.stream()
+		return unit -> config.sourceNames().stream()
 				.allMatch(name -> unit.findModel(name).isPresent());
 	}
 
 	@Override
 	public List<Command> expand(Unit context) {
-		CompositionOperator op = operators.find(operatorName).orElseThrow(
-				() -> new InvalidOperatorCallException("Unknown operator: '"
-						+ operatorName + "' at " + location));
-		List<JustificationModel<?>> sources = sourceNames.stream()
+		CompositionOperator op = operators.find(config.operatorName())
+				.orElseThrow(() -> new InvalidOperatorCallException(
+						"Unknown operator: '" + config.operatorName() + "' at "
+								+ config.location()));
+		List<JustificationModel<?>> sources = config.sourceNames().stream()
 				.<JustificationModel<?>>map(context::get).toList();
-		ModelKind actualKind = op.resultKind(sources, arguments);
-		if (actualKind != declaredKind) {
+		ModelKind actualKind = op.resultKind(sources, config.arguments());
+		if (actualKind != config.declaredKind()) {
 			throw new InvalidOperatorCallException(
-					"[execution-error] operator '" + operatorName
+					"[execution-error] operator '" + config.operatorName()
 							+ "' produces a " + actualKind.name().toLowerCase()
 							+ " but was declared as '"
-							+ declaredKind.name().toLowerCase() + "'");
+							+ config.declaredKind().name().toLowerCase() + "'");
 		}
-		List<Command> composed = op.apply(resultName, sources, arguments,
-				location, context.locations());
-		return new Unifier(unificationEquivalences).unify(resultName, composed,
-				arguments);
+		List<Command> composed = op.apply(config.resultName(), sources,
+				config.arguments(), config.location(), context.locations());
+		return new Unifier(unificationEquivalences).unify(config.resultName(),
+				composed, config.arguments());
 	}
 
 	@Override
 	public String toString() {
-		return "applyOperator('" + resultName + "', '" + operatorName + "', "
-				+ sourceNames + ").";
+		return "applyOperator('" + config.resultName() + "', '"
+				+ config.operatorName() + "', " + config.sourceNames() + ").";
 	}
 }
