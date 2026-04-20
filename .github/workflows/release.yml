@@ -18,6 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Verify tag is on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "ERROR: tag must point to a commit on main"
+            exit 1
+          fi
+
       - name: Set up JDK 25
         uses: actions/setup-java@v5
         with:
@@ -42,7 +50,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           POM_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed 's/-SNAPSHOT//')
           if [ "$VERSION" != "$POM_VER" ]; then
-            echo "ERROR: tag v$VERSION does not match pom.xml version $POM_VER (expected $VERSION)"
+            echo "ERROR: tag v$VERSION does not match pom.xml version (expected $POM_VER)"
             exit 1
           fi
 
@@ -50,7 +58,7 @@ jobs:
         run: mvn -B versions:set -DnewVersion=${{ steps.version.outputs.version }} -DgenerateBackupPoms=false
 
       - name: Build fat JAR
-        run: mvn -B package -DskipTests
+        run: mvn -B verify
 
       - name: Locate fat JAR
         id: locate
@@ -129,7 +137,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Install Debian packaging tools
-        run: sudo apt-get install -y devscripts debhelper dput gnupg
+        run: sudo apt-get update -y && sudo apt-get install -y devscripts debhelper dput gnupg
 
       - name: Import GPG key
         env:
