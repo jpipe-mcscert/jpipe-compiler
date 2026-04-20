@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.model.elements;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import ca.mcscert.jpipe.model.Justification;
@@ -71,6 +72,27 @@ class JustificationElementTest {
 		void acceptDispatchesToVisitor() {
 			assertThat(conclusion.accept(visitor)).isEqualTo(Conclusion.class);
 		}
+		@Test
+		void addSupportRegistersStrategy() {
+			Conclusion c = new Conclusion("c1", "conclusion");
+			Strategy s = new Strategy("s1", "strategy");
+			c.addSupport(s);
+			assertThat(c.getSupport()).isPresent().contains(s);
+		}
+		@Test
+		void addSupportThrowsWhenAlreadySet() {
+			Conclusion c = new Conclusion("c1", "conclusion");
+			Strategy s = new Strategy("s1", "strategy");
+			c.addSupport(s);
+			assertThatThrownBy(() -> c.addSupport(s))
+					.isInstanceOf(IllegalStateException.class)
+					.hasMessageContaining("Conclusion");
+		}
+		@Test
+		void toStringContainsIdAndLabel() {
+			assertThat(conclusion)
+					.hasToString("Conclusion{id='c1', label='my conclusion'}");
+		}
 	}
 
 	@Nested
@@ -90,6 +112,27 @@ class JustificationElementTest {
 		void acceptDispatchesToVisitor() {
 			assertThat(subConclusion.accept(visitor))
 					.isEqualTo(SubConclusion.class);
+		}
+		@Test
+		void addSupportRegistersStrategy() {
+			SubConclusion sc = new SubConclusion("sc1", "sub-conclusion");
+			Strategy s = new Strategy("s1", "strategy");
+			sc.addSupport(s);
+			assertThat(sc.getSupport()).isPresent().contains(s);
+		}
+		@Test
+		void addSupportThrowsWhenAlreadySet() {
+			SubConclusion sc = new SubConclusion("sc1", "sub-conclusion");
+			Strategy s = new Strategy("s1", "strategy");
+			sc.addSupport(s);
+			assertThatThrownBy(() -> sc.addSupport(s))
+					.isInstanceOf(IllegalStateException.class)
+					.hasMessageContaining("SubConclusion");
+		}
+		@Test
+		void toStringContainsIdAndLabel() {
+			assertThat(subConclusion).hasToString(
+					"SubConclusion{id='sc1', label='my sub-conclusion'}");
 		}
 	}
 
