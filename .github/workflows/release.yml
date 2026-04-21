@@ -112,15 +112,21 @@ jobs:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           path: tap
 
-      - name: Update jpipe.rb
+      - name: Update Homebrew formulas
         run: |
           VERSION="${{ needs.build-and-release.outputs.version }}"
           SHA256="${{ needs.build-and-release.outputs.sha256 }}"
           URL="https://github.com/jpipe-mcscert/jpipe-compiler/releases/download/v${VERSION}/jpipe-${VERSION}.tar.gz"
 
+          # Update jpipe.rb (latest alias)
           sed -i "s|url \".*\"|url \"${URL}\"|" tap/jpipe.rb
           sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" tap/jpipe.rb
           sed -i "s|openjdk@[0-9]*|openjdk@25|g" tap/jpipe.rb
+
+          # Create versioned formula jpipe@X.Y.Z.rb (e.g. 2.1.0 → JpipeAT210)
+          AT_VERSION=$(echo "$VERSION" | tr -d '.')
+          sed "s|class Jpipe <|class JpipeAT${AT_VERSION} <|" tap/jpipe.rb \
+            > "tap/jpipe@${VERSION}.rb"
 
       - name: Commit and push
         run: |
@@ -128,7 +134,8 @@ jobs:
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore: bump jpipe to v${VERSION}"
+          git add "jpipe.rb" "jpipe@${VERSION}.rb"
+          git commit -m "chore: bump jpipe to v${VERSION}"
           git push
 
   publish-ppa:
