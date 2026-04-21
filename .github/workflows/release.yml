@@ -49,8 +49,9 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           POM_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed 's/-SNAPSHOT//')
-          if [ "$VERSION" != "$POM_VER" ]; then
-            echo "ERROR: tag v$VERSION does not match pom.xml version (expected $POM_VER)"
+          TAG_BASE="${VERSION%%-*}"
+          if [ "$TAG_BASE" != "$POM_VER" ]; then
+            echo "ERROR: tag v$VERSION (base: $TAG_BASE) does not match pom.xml version (expected $POM_VER)"
             exit 1
           fi
 
@@ -87,9 +88,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          PRERELEASE_FLAG=""
+          [[ "$VERSION" == *-* ]] && PRERELEASE_FLAG="--prerelease"
           gh release create "v$VERSION" \
             --title "jPipe v$VERSION" \
             --generate-notes \
+            $PRERELEASE_FLAG \
             "${{ steps.tarball.outputs.path }}" \
             "${{ steps.locate.outputs.path }}"
 
@@ -97,6 +101,7 @@ jobs:
     name: Update Homebrew formula
     runs-on: ubuntu-latest
     needs: build-and-release
+    if: ${{ !contains(needs.build-and-release.outputs.version, '-') }}
 
     steps:
       - name: Checkout Homebrew tap
@@ -129,6 +134,7 @@ jobs:
     name: Publish to Ubuntu PPA (${{ matrix.distro }})
     runs-on: ubuntu-latest
     needs: build-and-release
+    if: ${{ !contains(needs.build-and-release.outputs.version, '-') }}
     strategy:
       matrix:
         distro: [focal, jammy, noble, questing]
