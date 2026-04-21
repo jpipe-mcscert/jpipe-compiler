@@ -1,14 +1,14 @@
-#! env sh
+#!/bin/sh
 
 which java > /dev/null
 if [ $? -ne 0 ]; then
-    echo "[homebrew:jpipe] Java not found"
+    echo "[jpipe] Java not found"
     exit 1
 fi
 
 which dot > /dev/null
 if [ $? -ne 0 ]; then
-    echo "[homebrew:jpipe] Graphviz not found"
+    echo "[jpipe] Graphviz not found"
     exit 1
 fi
 

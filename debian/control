@@ -2,13 +2,13 @@ Source: jpipe
 Section: devel
 Priority: optional
 Maintainer: jPipe Team <mossers@mcmaster.ca>
-Build-Depends: debhelper-compat (= 13)
+Build-Depends: debhelper-compat (= 12)
 Standards-Version: 4.6.0
 Homepage: https://github.com/jpipe-mcscert/jpipe-compiler
 
 Package: jpipe
 Architecture: all
-Depends: ${misc:Depends}, default-jre, graphviz
+Depends: ${misc:Depends}, openjdk-25-jre, graphviz
 Description: Justified Pipeline compiler
  jPipe is a compiler and language environment for defining justifications
  that support software maintenance and CI/CD activities.
