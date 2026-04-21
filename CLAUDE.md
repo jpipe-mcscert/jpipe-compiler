@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code when working with this repository.
 
+## Critical Rules
+
+- **Never commit or push code without explicit user consent.** Always show the diff and ask before running any `git commit` or `git push` command.
+
 ---
 
 ## Project Overview
