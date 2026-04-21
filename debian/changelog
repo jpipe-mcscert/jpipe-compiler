@@ -1,4 +1,4 @@
-jpipe (2.0.0-1) unstable; urgency=medium
+jpipe (0~initial) unstable; urgency=low
 
   * Initial Debian packaging.
 

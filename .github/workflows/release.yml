@@ -189,7 +189,6 @@ jobs:
           dch --newversion "${VERSION}~${{ matrix.distro }}1" \
               --distribution ${{ matrix.distro }} \
               --force-distribution \
-              -b \
               "Release v${VERSION}."
 
       - name: Build Debian source package
