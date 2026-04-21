@@ -46,6 +46,7 @@ nav:
       - adr/0017-load-directive-as-compiler-step.md
       - adr/0018-composition-operators.md
       - adr/0019-ai-assisted-development.md
+      - adr/0020-tag-triggered-release-pipeline.md
 plugins:
   - search
 
