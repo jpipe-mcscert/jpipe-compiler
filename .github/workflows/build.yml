@@ -50,8 +50,9 @@ jobs:
       - name: Upload fat JAR artifact
         uses: actions/upload-artifact@v7
         with:
-          name: jpipe-cli-${{ steps.mvn_version.outputs.version }}
+          name: jpipe-cli-${{ steps.mvn_version.outputs.version }}.jar
           path: ${{ steps.locate.outputs.path }}
+          archive: false
           if-no-files-found: error
 
 
@@ -69,7 +70,7 @@ jobs:
       - name: Download fat JAR artifact
         uses: actions/download-artifact@v7
         with:
-          name: jpipe-cli-${{ needs.build.outputs.version }}
+          name: jpipe-cli-${{ needs.build.outputs.version }}.jar
           path: dist
 
       - name: Publish unstable release
