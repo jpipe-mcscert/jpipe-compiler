@@ -80,10 +80,22 @@ Four GitHub Actions secrets must be configured in the repository:
 
 ### Release procedure
 
-A release requires two manual steps before pushing the tag:
+The pipeline runs `mvn versions:set` internally, so the developer does **not**
+need to remove the `-SNAPSHOT` suffix before tagging. The validation step strips
+`-SNAPSHOT` from the pom version before comparing, so a pom at `2.1.0-SNAPSHOT`
+is correct when releasing `v2.1.0`.
 
-1. Update the version in `pom.xml` (remove the `-SNAPSHOT` suffix).
-2. Run `mvn spotless:apply && mvn verify` to confirm the build is green.
+Manual steps required:
+
+1. Verify the base version in `pom.xml` matches the intended tag
+   (e.g. `2.1.0-SNAPSHOT` to release `v2.1.0`).
+2. Run `mvn verify` locally to confirm the build is green.
+3. Push the tag — the pipeline fires automatically.
+4. After the pipeline completes, bump `pom.xml` to the next development version
+   (`mvn -B versions:set -DnewVersion=X.Y+1.0-SNAPSHOT`) and push to `main`.
+
+Tags containing `-` (e.g. `v2.1.0-rc1`) are automatically marked as pre-releases;
+the Homebrew and PPA jobs are skipped for pre-releases.
 
 See the "Releasing a new version" section in `README.md` for the full
 step-by-step procedure.

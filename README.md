@@ -76,22 +76,32 @@ repository settings:
 **Steps:**
 
 ```bash
-# 1. Update pom.xml to the release version (remove -SNAPSHOT)
-mvn -B versions:set -DnewVersion=X.Y.Z -DgenerateBackupPoms=false
-mvn spotless:apply && mvn verify
+# 1. Verify the base version in pom.xml matches what you plan to tag.
+#    pom.xml should be X.Y.Z-SNAPSHOT; the pipeline strips -SNAPSHOT automatically.
+mvn verify   # confirm the build is green locally
 
-# 2. Commit, tag, and push — the pipeline fires automatically
-git commit -am "chore: release vX.Y.Z"
-git tag vX.Y.Z
+# 2. Tag and push — the pipeline fires automatically.
+git tag vX.Y.Z          # or vX.Y.Z-rcN for a pre-release
 git push origin main --tags
+
+# 3. After the pipeline completes, bump to the next development version.
+mvn -B versions:set -DnewVersion=X.Y+1.0-SNAPSHOT -DgenerateBackupPoms=false
+git commit -am "chore: bump to X.Y+1.0-SNAPSHOT"
+git push origin main
 ```
 
 **What happens automatically:**
 
-1. The fat JAR is built with `Implementation-Version: X.Y.Z` in its manifest.
-2. A GitHub Release is created with the fat JAR and a Homebrew tarball.
-3. `jpipe.rb` in the Homebrew tap is updated with the new URL and SHA256.
-4. A signed Debian source package is uploaded to `ppa:mcscert/ppa`.
+1. The pipeline validates that the tag version matches the base version in `pom.xml`
+   (e.g. tag `v2.1.0` is accepted when `pom.xml` declares `2.1.0-SNAPSHOT`).
+2. `mvn versions:set` is run inside the pipeline to stamp the exact release version
+   into the fat JAR manifest (`Implementation-Version: X.Y.Z`).
+3. A GitHub Release is created with the fat JAR and a Homebrew tarball.
+   Tags containing `-` (e.g. `-rc1`) are automatically marked as pre-releases.
+4. `jpipe.rb` in the Homebrew tap is updated with the new URL and SHA256
+   (stable releases only — skipped for pre-releases).
+5. A signed Debian source package is uploaded to `ppa:mcscert/ppa`
+   (stable releases only — skipped for pre-releases).
 
 **Verifying the release** (~30 min after the pipeline completes):
 
