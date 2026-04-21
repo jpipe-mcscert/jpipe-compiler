@@ -48,7 +48,7 @@ jobs:
       - name: Validate tag matches pom.xml version
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          POM_VER="$(mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout | tr -d '\r' | sed 's/-SNAPSHOT//')"
+          POM_VER="$(mvn -B help:evaluate -Dexpression=project.version -DforceStdout | grep -v '^\[' | tr -d '\r' | sed 's/-SNAPSHOT//')"
           TAG_BASE="${VERSION%%-*}"
           if [ "$TAG_BASE" != "$POM_VER" ]; then
             echo "ERROR: tag v$VERSION (base: $TAG_BASE) does not match pom.xml version (expected $POM_VER)"
