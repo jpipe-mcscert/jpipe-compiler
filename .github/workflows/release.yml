@@ -181,11 +181,15 @@ jobs:
             --output jpipe.jar
 
       - name: Generate debian/changelog for this release
+        env:
+          DEBEMAIL: mossers@mcmaster.ca
+          DEBFULLNAME: jPipe Team
         run: |
           VERSION="${{ needs.build-and-release.outputs.version }}"
           dch --newversion "${VERSION}~${{ matrix.distro }}1" \
               --distribution ${{ matrix.distro }} \
               --force-distribution \
+              -b \
               "Release v${VERSION}."
 
       - name: Build Debian source package
