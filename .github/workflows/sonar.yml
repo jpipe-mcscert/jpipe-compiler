@@ -2,10 +2,10 @@ name: SonarQube
 on:
   push:
     branches:
-      - master
-      - refactor
+      - main
   pull_request:
     types: [opened, synchronize, reopened]
+    
 jobs:
   build:
     name: Build and analyze
