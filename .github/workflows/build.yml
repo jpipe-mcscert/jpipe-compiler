@@ -33,7 +33,9 @@ jobs:
       - name: Extract Maven version
         id: mvn_version
         run: |
+          set -o pipefail
           VERSION="$(mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout | head -n 1 | tr -d '\r' | tr ':/' '-')"
+          [ -n "$VERSION" ] || { echo "ERROR: could not extract project version"; exit 1; }
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build and test
@@ -76,8 +78,11 @@ jobs:
       - name: Publish unstable release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
-          cp dist/*.jar jpipe-cli.jar
+          JAR_FILE="dist/jpipe-cli-${VERSION}.jar"
+          [ -f "$JAR_FILE" ] || { echo "ERROR: $JAR_FILE not found"; find dist -maxdepth 2 || echo "dist dir missing"; exit 1; }
+          cp "$JAR_FILE" jpipe-cli.jar
 
           # Re-point the unstable tag to this commit
           git tag -f unstable
