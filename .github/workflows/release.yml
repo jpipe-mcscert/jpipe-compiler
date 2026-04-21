@@ -193,6 +193,9 @@ jobs:
           DEBEMAIL: mossers@mcmaster.ca
           DEBFULLNAME: jPipe Team
         run: |
+          VERSION="${{ needs.build-and-release.outputs.version }}"
+          git archive --format=tar.gz --prefix="jpipe-${VERSION}/" HEAD \
+            > "../jpipe_${VERSION}.orig.tar.gz"
           dpkg-buildpackage -S -sa -d --sign-key="$GPG_FINGERPRINT"
 
       - name: Upload to Launchpad PPA
