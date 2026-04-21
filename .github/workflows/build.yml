@@ -52,6 +52,7 @@ jobs:
         with:
           name: jpipe-cli-${{ steps.mvn_version.outputs.version }}.jar
           path: ${{ steps.locate.outputs.path }}
+          archive: false
           if-no-files-found: error
 
 
