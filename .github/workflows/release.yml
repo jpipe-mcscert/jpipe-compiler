@@ -183,7 +183,7 @@ jobs:
       - name: Generate debian/changelog for this release
         run: |
           VERSION="${{ needs.build-and-release.outputs.version }}"
-          dch --newversion "${VERSION}-1" \
+          dch --newversion "${VERSION}~${{ matrix.distro }}1" \
               --distribution ${{ matrix.distro }} \
               --force-distribution \
               "Release v${VERSION}."
@@ -194,11 +194,9 @@ jobs:
           DEBFULLNAME: jPipe Team
         run: |
           VERSION="${{ needs.build-and-release.outputs.version }}"
-          git archive --format=tar.gz --prefix="jpipe-${VERSION}/" HEAD \
-            > "../jpipe_${VERSION}.orig.tar.gz"
-          dpkg-buildpackage -S -sa -d --sign-key="$GPG_FINGERPRINT"
+          dpkg-buildpackage -S -d --sign-key="$GPG_FINGERPRINT"
 
       - name: Upload to Launchpad PPA
         run: |
           VERSION="${{ needs.build-and-release.outputs.version }}"
-          dput ppa:mcscert/ppa ../jpipe_${VERSION}-1_source.changes
+          dput ppa:mcscert/ppa "../jpipe_${VERSION}~${{ matrix.distro }}1_source.changes"
