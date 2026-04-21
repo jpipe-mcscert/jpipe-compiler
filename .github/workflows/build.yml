@@ -34,7 +34,7 @@ jobs:
         id: mvn_version
         run: |
           set -o pipefail
-          VERSION="$(mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout | head -n 1 | tr -d '\r' | tr ':/' '-')"
+          VERSION="$(mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout | tr -d '\r' | tr ':/' '-')"
           [ -n "$VERSION" ] || { echo "ERROR: could not extract project version"; exit 1; }
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
