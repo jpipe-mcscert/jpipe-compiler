@@ -17,8 +17,8 @@ import java.time.Instant;
  * function:
  *
  * <ul>
- * <li>{@code # @jpipe_link("<modelName:elementId>")} — commented out until the
- * jpipe_link decorator is available at runtime.</li>
+ * <li>{@code @jpipe_link("<modelName:elementId>")} — links the function back to
+ * the originating jPipe element.</li>
  * <li>{@code @jpipe(produce=[], consume=[])} — placeholder decorators to be
  * filled in by the developer.</li>
  * </ul>
@@ -126,8 +126,8 @@ public class PythonExporter extends AbstractModelExporter {
 		builder.append("from typing import Any, Callable\n");
 		builder.append("from jpipe_runner.framework.decorators")
 				.append(".jpipe_decorator import jpipe\n");
-		builder.append("# from jpipe_runner.framework.decorators")
-				.append(".jpipe_decorator import jpipe_link\n");
+		builder.append("from jpipe_runner.framework.decorators")
+				.append(".link_decorator import jpipe_link\n");
 		builder.append("\n");
 		builder.append("JpipeProduce = Callable[[str, Any], None]\n");
 		builder.append("\n\n");
@@ -141,7 +141,7 @@ public class PythonExporter extends AbstractModelExporter {
 				: "produce: JpipeProduce";
 		String decoratorArgs = jpipeDecoratorArgs(element);
 
-		builder.append("# @jpipe_link(\"").append(qid).append("\")\n");
+		builder.append("@jpipe_link(\"").append(qid).append("\")\n");
 		builder.append("@jpipe(").append(decoratorArgs).append(")\n");
 		builder.append("def ").append(name).append("(").append(params)
 				.append(") -> bool:\n");

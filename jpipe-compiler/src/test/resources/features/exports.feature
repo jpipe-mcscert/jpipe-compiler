@@ -9,7 +9,7 @@ Feature: Exporting compiled models to various formats
       And the DOT output contains a node with id "minimal:s"
       And the DOT output contains a node with id "minimal:e"
 
-  Scenario: Python export produces snake_case methods with commented @jpipe_link
+  Scenario: Python export produces snake_case methods with active @jpipe_link
     Given the source file "000_minimal.jd"
     When I compile it into a unit
     Then the unit contains a justification named "minimal"
@@ -17,6 +17,6 @@ Feature: Exporting compiled models to various formats
     Then the Python output contains a method named "a_conclusion"
       And the Python output contains a method named "a_strategy"
       And the Python output contains a method named "an_evidence"
-      And the Python output has @jpipe_link for id "minimal:c" commented out
-      And the Python output has @jpipe_link for id "minimal:s" commented out
-      And the Python output has @jpipe_link for id "minimal:e" commented out
+      And the Python output has @jpipe_link for id "minimal:c" active
+      And the Python output has @jpipe_link for id "minimal:s" active
+      And the Python output has @jpipe_link for id "minimal:e" active

@@ -25,14 +25,14 @@ class PythonExporterTest {
 	}
 
 	@Test
-	void export_jpipeLinkIsCommented() {
+	void export_jpipeLinkIsActive() {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());
 
 		assertThat(py)
-				.contains("# @jpipe_link(\"j:c\")", "# @jpipe_link(\"j:s\")",
-						"# @jpipe_link(\"j:e1\")")
-				.doesNotContain("\n@jpipe_link(");
+				.contains("@jpipe_link(\"j:c\")", "@jpipe_link(\"j:s\")",
+						"@jpipe_link(\"j:e1\")")
+				.doesNotContain("# @jpipe_link(");
 	}
 
 	@Test
@@ -40,9 +40,9 @@ class PythonExporterTest {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(py).contains("# @jpipe_link(\"j:c\")\n@jpipe(consume=[])",
-				"# @jpipe_link(\"j:s\")\n@jpipe(produce=[], consume=[])",
-				"# @jpipe_link(\"j:e1\")\n@jpipe(produce=[])");
+		assertThat(py).contains("@jpipe_link(\"j:c\")\n@jpipe(consume=[])",
+				"@jpipe_link(\"j:s\")\n@jpipe(produce=[], consume=[])",
+				"@jpipe_link(\"j:e1\")\n@jpipe(produce=[])");
 	}
 
 	@Test
@@ -53,8 +53,8 @@ class PythonExporterTest {
 		assertThat(py).contains("from typing import Any, Callable",
 				"from jpipe_runner.framework.decorators"
 						+ ".jpipe_decorator import jpipe",
-				"# from jpipe_runner.framework.decorators"
-						+ ".jpipe_decorator import jpipe_link",
+				"from jpipe_runner.framework.decorators"
+						+ ".link_decorator import jpipe_link",
 				"JpipeProduce = Callable[[str, Any], None]");
 	}
 

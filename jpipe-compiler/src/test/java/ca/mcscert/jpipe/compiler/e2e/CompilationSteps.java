@@ -202,12 +202,11 @@ public class CompilationSteps {
 		assertThat(pythonOutput).contains("def " + name + "(");
 	}
 
-	@Then("the Python output has @jpipe_link for id {string} commented out")
-	public void thePythonOutputHasJpipeLinkCommentedOut(String qualifiedId) {
+	@Then("the Python output has @jpipe_link for id {string} active")
+	public void thePythonOutputHasJpipeLinkActive(String qualifiedId) {
 		assertThat(pythonOutput)
-				.contains("# @jpipe_link(\"" + qualifiedId + "\")");
-		assertThat(pythonOutput)
-				.doesNotContain("\n@jpipe_link(\"" + qualifiedId + "\")");
+				.contains("@jpipe_link(\"" + qualifiedId + "\")")
+				.doesNotContain("# @jpipe_link(\"" + qualifiedId + "\")");
 	}
 
 	@Then("the compilation has validation errors")
