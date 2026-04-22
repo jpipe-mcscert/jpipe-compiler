@@ -1,0 +1,1590 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Justified Pipelines language and compiler">
+      
+      
+      
+        <link rel="canonical" href="https://ace-design.github.io/jpipe/adr/0018-composition-operators/">
+      
+      
+        <link rel="prev" href="../0017-load-directive-as-compiler-step/">
+      
+      
+        <link rel="next" href="../0019-ai-assisted-development/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>ADR-0018: Composition Operators - jPipe</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/mcmaster.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#adr-0018-composition-operators" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="jPipe" class="md-header__button md-logo" aria-label="jPipe" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            jPipe
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ADR-0018: Composition Operators
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jpipe-mcscert/jpipe-compiler" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jpipe-mcscert/jpipe-compiler
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="jPipe" class="md-nav__button md-logo" aria-label="jPipe" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    jPipe
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jpipe-mcscert/jpipe-compiler" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jpipe-mcscert/jpipe-compiler
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/language/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/steps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler Steps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/operators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0001-semver-versioning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0001: Semantic Versioning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0002-multi-module-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0002: Multi-Module Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0003-fat-jar-with-shade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0003: Fat JAR with Maven Shade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0004-sonarcloud-quality-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004: SonarCloud as Mandatory Quality Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0005-command-pattern-for-model-construction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0005: Command Pattern for Model Construction and Modification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0006-logging-conventions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0006: Logging Conventions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0007-dependency-freshness-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007: Dependency Freshness Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0008-visitor-pattern-for-model-traversal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0008: Visitor Pattern for Model Traversal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0009-pipeline-abstraction-for-compilation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0009: Pipeline Abstraction for Compilation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0010-model-visitors-in-jpipe-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0010: Model-Only Visitors Belong in jpipe-model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0011-cucumber-for-compiler-end-to-end-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0011: Cucumber for Compiler End-to-End Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0012-qualified-ids-and-template-expansion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0012: Qualified Ids and Template Expansion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0013-export-strategy-text-vs-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0013: Export Strategy — Text Generation vs. Library-Backed IR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0014-colorblind-safe-dot-palette/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0014: Colorblind-Safe Colour Palette for DOT Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0015-consistency-and-completeness-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0015: Consistency and Completeness Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0016-error-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0016: Error Management — Diagnostic Levels, Pipeline Interruption, and Exit Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0017-load-directive-as-compiler-step/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0017: Load Directive Resolved as a Compiler Step
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0018: Composition Operators
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0018: Composition Operators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-match-and-merge-framework-jpipe-operators-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Match-and-merge framework (jpipe-operators module)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-automatic-post-composition-unification-jpipe-operators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Automatic post-composition unification (jpipe-operators)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-applyoperator-implements-macrocommand-jpipe-operators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. ApplyOperator implements MacroCommand (jpipe-operators)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-compiler-integration-jpipe-compiler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Compiler integration (jpipe-compiler)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-symbol-table-for-operator-created-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Symbol table for operator-created models
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rationale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rationale
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0019-ai-assisted-development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: AI-Assisted Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0020-tag-triggered-release-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0020: Tag-Triggered Release Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="adr-0018-composition-operators">ADR-0018: Composition Operators</h1>
+<p><strong>Date:</strong> 2026-04-06
+<strong>Status:</strong> Accepted</p>
+<h2 id="context">Context</h2>
+<p>jPipe files can declare a justification (or template) as the result of composing
+two or more existing models via a <em>composition operator</em>:</p>
+<pre><code>justification refined is refine(minimal, refinement) {
+    hook: &quot;minimal/e&quot;
+}
+</code></pre>
+<p>The grammar (<code>JPipe.g4</code>) already supports this syntax. The compiler must:</p>
+<ol>
+<li>Dispatch the operator call to the correct implementation at model-build time.</li>
+<li>Remain non-destructive — source models must not be mutated.</li>
+<li>Be extensible — adding a new operator must not require changes to the
+   compilation pipeline.</li>
+<li>Preserve the original element names in the compiled <code>Unit</code> so that
+   post-composition lookups can resolve them even after elements are renamed
+   during merging.</li>
+</ol>
+<h2 id="decision">Decision</h2>
+<h3 id="1-match-and-merge-framework-jpipe-operators-module">1. Match-and-merge framework (<code>jpipe-operators</code> module)</h3>
+<p>Composition is modelled as a two-phase <em>match-and-merge</em> algorithm owned by
+an abstract <code>CompositionOperator</code> class (Template Method pattern):</p>
+<ul>
+<li><strong><code>EquivalenceRelation</code></strong> — a binary predicate <code>(a, b) → boolean</code> that decides
+  whether two <code>SourcedElement</code>s belong to the same equivalence class.
+  <code>CompositionOperator</code> partitions all source elements automatically using an
+  O(n²) representative-based scan; callers need only supply the predicate.</li>
+<li><strong><code>MergeFunction</code></strong> — receives one equivalence class (<code>ElementGroup</code>) and
+  creates the merged element via <code>Command</code> objects.  It must register old ids →
+  new id in the supplied <code>AliasRegistry</code> and must not emit <code>AddSupport</code> commands
+  (edge reconstruction is automatic).</li>
+<li><strong><code>SourcedElement</code></strong> — a 3-component record <code>(element, source, location)</code>
+  pairing a <code>JustificationElement</code> with the <code>JustificationModel</code> it was taken
+  from and its original <code>SourceLocation</code>.  The location is looked up from the
+  compilation unit's location registry when <code>apply()</code> builds the sourced-element
+  list, so <code>MergeFunction</code> implementations can forward it to creation commands
+  and have it recorded in the result model's symbol-table entry.</li>
+<li><strong><code>CompositionOperator.apply()</code></strong> — the sealed template method.  Four overloads
+  are provided for call-site convenience; all delegate to the full 5-argument
+  form:</li>
+<li><code>apply(resultName, sources, arguments)</code> — no location information (unit tests).</li>
+<li><code>apply(resultName, sources, arguments, location)</code> — attaches a <code>SourceLocation</code>
+    to the result model declaration but supplies no element locations.</li>
+<li><code>apply(resultName, sources, arguments, location, knownLocations)</code> — the
+    canonical form; <code>knownLocations</code> is a <code>Map&lt;String, SourceLocation&gt;</code> keyed
+    on <code>"modelName/elementId"</code> (the same format used by <code>Unit.locations()</code>).
+    <code>ApplyOperator.expand()</code> passes <code>context.locations()</code> here so that copied
+    elements carry their source file positions into the result model.</li>
+<li>Phase 1: creates elements, populates <code>AliasRegistry</code>, emits <code>RegisterAlias</code>
+    commands to persist aliases in the <code>Unit</code>.</li>
+<li>Phase 2: reconstructs support edges by translating original endpoints through
+    the registry, with set-based deduplication to prevent duplicate edges when
+    multiple source models share the same edge.</li>
+<li>Subclasses provide <code>equivalenceRelation(sources, arguments)</code>,
+    <code>mergeFunction(sources, arguments)</code>,
+    <code>createResultModel(name, location, sources, arguments)</code>, and optionally
+    <code>requiredArguments()</code> (missing required keys throw
+    <code>InvalidOperatorCallException</code>).  All hook methods receive the full
+    <code>sources</code> list so that operators can inspect source types and distinguish
+    elements by their origin model without breaking the sealed <code>apply()</code>.</li>
+<li><strong><code>additionalCommands(resultName, sources, aliases, args)</code></strong> — optional hook
+    called after Phase 2 is complete. The default implementation returns
+    <code>List.of()</code>. Override to inject synthesized elements (e.g. a new
+    aggregating strategy and conclusion) and cross-model edges that have no
+    counterpart in any source model. Because it runs after Phase 2, all
+    source-derived elements and edges are already present; the returned
+    commands are appended at the end.</li>
+<li><strong>Phase 4 — automatic unification</strong> runs in <code>ApplyOperator.expand()</code> after
+    <code>apply()</code> returns, via <code>Unifier.unify()</code>. It is not part of the sealed
+    <code>apply()</code> template but is always applied to the command list before the
+    engine sees it. See §5 below.</li>
+<li><strong><code>ModelReplicator</code></strong> — a stateless utility that generates commands to copy a
+  model's elements and edges non-destructively, following the same qualified-id
+  convention as <code>JustificationModel.inline()</code>.</li>
+<li><strong><code>OperatorRegistry</code></strong> — a name → <code>CompositionOperator</code> map populated at
+  compiler startup.  Currently populated with hardcoded built-in operators in
+  <code>CompilerFactory.builtInOperators()</code>; a service-loader extension point is
+  deferred to a later ADR.</li>
+<li><strong>Aliases in <code>Unit</code></strong> — <code>Unit</code> gains <code>recordAlias(model, oldId, newId)</code>,
+  <code>resolveAlias(model, id)</code>, and <code>aliases()</code> (an unmodifiable view of the full
+  alias map, keyed on <code>"model/oldId"</code>), backed by a flat <code>Map&lt;String, String&gt;</code>.
+  A new <code>RegisterAlias</code> command writes alias entries so the mapping survives in
+  the compiled unit.  <code>aliases()</code> is used by <code>DiagnosticReport</code> to include
+  alias entries in the symbol table.</li>
+</ul>
+<h3 id="2-automatic-post-composition-unification-jpipe-operators">2. Automatic post-composition unification (<code>jpipe-operators</code>)</h3>
+<p><code>ApplyOperator.expand()</code> passes the command list returned by <code>apply()</code> through
+a <code>Unifier</code> instance before returning it to the engine. The <code>Unifier</code> performs
+a Phase 4 transformation on the command list:</p>
+<ul>
+<li><strong>Algorithm</strong> — scans the list for element-creation commands (<code>CreateConclusion</code>,
+  <code>CreateStrategy</code>, <code>CreateEvidence</code>, <code>CreateSubConclusion</code>,
+  <code>CreateAbstractSupport</code>), partitions them into equivalence classes using an
+  <code>EquivalenceRelation</code> looked up in <code>UnificationEquivalenceRegistry</code>, and for
+  each class with more than one member:</li>
+<li>Creates a new synthesized element with id <code>"unified_N"</code> (N = 0-based
+     counter per merged group, incremented per group within one <code>unify()</code> call).</li>
+<li>Removes all original <code>Create*</code> commands for the group members.</li>
+<li>Rewrites all <code>AddSupport</code> commands referencing removed ids to use the new
+     <code>"unified_N"</code> id, deduplicating edge re-writes.</li>
+<li>Appends <code>RegisterAlias(resultName, oldId, "unified_N")</code> for every removed
+     id so the alias map in <code>Unit</code> remains consistent.</li>
+<li><strong>Config parameters</strong> (read from the operator's <code>rule_config</code> map):</li>
+<li><code>unifyBy</code> — name of the equivalence relation (default: <code>"sameLabel"</code>).
+    Throws <code>InvalidOperatorCallException</code> if the name is not registered.</li>
+<li><code>unifyExclude</code> — comma-separated list of result-model element ids that must
+    not participate in unification (default: empty). Excluded elements remain
+    as-is and do not block other elements from merging.</li>
+<li><strong><code>UnificationEquivalenceRegistry</code></strong> — a name-to-<code>EquivalenceRelation</code> map
+  populated at compiler startup, following the same pattern as
+  <code>OperatorRegistry</code>. Currently registers <code>"sameLabel"</code> → <code>SameLabel</code>.
+  <code>SameShortId</code> is intentionally absent — it is reserved for Phase 1 operator
+  equivalence only. New equivalence relations (e.g. Levenshtein distance) can
+  be added by registering them in <code>CompilerFactory.builtInUnificationEquivalences()</code>.</li>
+<li><strong><code>Partitions</code></strong> — a package-private utility class extracted from
+  <code>CompositionOperator</code> so that both <code>CompositionOperator</code> (Phase 1) and
+  <code>Unifier</code> (Phase 4) share the same O(n²) representative-based partition
+  algorithm without duplication.</li>
+</ul>
+<h3 id="4-applyoperator-implements-macrocommand-jpipe-operators">4. <code>ApplyOperator implements MacroCommand</code> (<code>jpipe-operators</code>)</h3>
+<p>When the parser produces a justification or template with <code>ctx.operator != null</code>,
+<code>ActionListProvider</code> emits an <code>ApplyOperator</code> command instead of
+<code>CreateJustification</code> / <code>CreateTemplate</code>.</p>
+<p><code>ApplyOperator</code> implements the <code>MacroCommand</code> interface already used by the engine
+for deferred expansion:</p>
+<ul>
+<li><code>condition()</code> — defers until all source model names are present in the <code>Unit</code>.</li>
+<li><code>expand(Unit)</code> — looks up the operator by name in the <code>OperatorRegistry</code>,
+  gathers source models from the unit, and delegates to the 5-argument
+  <code>operator.apply()</code>, passing the stored <code>SourceLocation</code> and <code>context.locations()</code>
+  so that element locations are threaded through to the result model.
+  Returns the resulting <code>List&lt;Command&gt;</code> for the engine to splice at the front
+  of the queue.</li>
+</ul>
+<h3 id="5-compiler-integration-jpipe-compiler">5. Compiler integration (<code>jpipe-compiler</code>)</h3>
+<ul>
+<li><code>ActionListProvider</code> receives an <code>OperatorRegistry</code> at construction
+  (field named <code>operators</code>).</li>
+<li>In <code>enterJustification</code> / <code>enterTemplate</code>, when <code>ctx.operator != null</code>, all
+  data needed for <code>ApplyOperator</code> (result name, operator name, source names,
+  config map) is read eagerly from the already-built parse tree context.  The
+  method returns early without updating <code>buildContext</code>, since there is no body
+  to parse.</li>
+<li><code>enterRule_config</code> becomes a no-op (config was consumed in the parent callback).</li>
+<li><code>CompilerFactory.parsingChain()</code> passes <code>builtInOperators()</code> to
+  <code>ActionListProvider</code>.</li>
+</ul>
+<h3 id="6-symbol-table-for-operator-created-models">6. Symbol table for operator-created models</h3>
+<p><code>DiagnosticReport</code> builds the symbol table by iterating <code>unit.getModels()</code>
+directly rather than only the recorded-location registry.  For each element:</p>
+<ul>
+<li>If <code>unit.locationOf(modelName, elementId)</code> returns a known location (threaded
+  from the source model via <code>knownLocations</code>), that location is displayed.</li>
+<li>Otherwise the element is marked <code>[synthesized]</code> — indicating it was created by
+  the operator with no corresponding source position (e.g. a merged SubConclusion).</li>
+</ul>
+<p>Aliases are shown after the element list for each model, formatted as
+<code>oldId → newId  [alias]</code>.</p>
+<h2 id="rationale">Rationale</h2>
+<ul>
+<li>Encoding the operator call as a <code>MacroCommand</code> reuses the engine's existing
+  deferred-execution mechanism (also used by <code>ImplementsTemplate</code>) without
+  introducing new scheduling logic.</li>
+<li>Collecting <code>rule_config</code> eagerly in <code>enterJustification</code> avoids accumulating
+  state across child callbacks and is safe because the ANTLR parse tree is
+  fully built before the walker fires any listener method.</li>
+<li>Separating the equivalence predicate from the merge function makes both
+  independently testable and reusable across different operator implementations.</li>
+<li><code>OperatorRegistry</code> as an explicit constructor dependency of <code>ActionListProvider</code>
+  (rather than a static singleton) makes the available operator set visible at
+  construction time and mockable in tests.</li>
+<li>Persisting aliases to <code>Unit</code> via <code>RegisterAlias</code> commands keeps the alias data
+  in the same place as all other compiled model state, consistent with how
+  <code>recordLocation</code> / <code>locationOf</code> track source positions.</li>
+<li>Passing <code>knownLocations</code> as a <code>Map&lt;String, SourceLocation&gt;</code> (rather than <code>Unit</code>
+  itself) to <code>apply()</code> keeps the operator framework decoupled from the full
+  compilation unit and limits the operator's read access to location data only.</li>
+<li>Building the symbol table from <code>unit.getModels()</code> rather than from
+  <code>unit.locations()</code> ensures that operator-created models — which may have no
+  element-level location entries — still appear with their complete element list.</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<ul>
+<li>Two built-in operators ship with the framework:</li>
+<li><strong><code>refine(base, refinement)</code></strong> — merges a hook element from <code>base</code> with the
+    conclusion of <code>refinement</code> into a single <code>SubConclusion</code>; requires a <code>hook</code>
+    argument in <code>"modelName/elementId"</code> form.</li>
+<li><strong><code>assemble(src₁, …, srcₙ)</code></strong> — demotes each source's conclusion to a
+    <code>SubConclusion</code>, wires all demoted conclusions through a synthesized
+    aggregating <code>Strategy</code>, and tops them with a synthesized global
+    <code>Conclusion</code>; requires <code>conclusionLabel</code> and <code>strategyLabel</code> arguments.
+    Result is a <code>Template</code> if any source is a <code>Template</code>, otherwise a
+    <code>Justification</code>.</li>
+<li>Post-composition unification always runs after every operator call. By default
+  (<code>unifyBy: "sameLabel"</code>) any two result-model elements with identical labels
+  are merged into a single synthesized element with id <code>"unified_N"</code> (N = 0-based
+  counter per group). Both original ids are registered as aliases. Set
+  <code>unifyExclude</code> to a comma-separated id list to protect specific elements from
+  unification. Specify <code>unifyBy</code> to use an alternative equivalence relation
+  registered in <code>UnificationEquivalenceRegistry</code>.</li>
+<li>Adding a new built-in unification equivalence requires only implementing
+  <code>EquivalenceRelation</code> and registering it in
+  <code>CompilerFactory.builtInUnificationEquivalences()</code>.</li>
+<li>Adding a new built-in operator requires only implementing <code>CompositionOperator</code>
+  and registering it in <code>CompilerFactory.builtInOperators()</code>.</li>
+<li><code>ApplyOperator</code> is the only command that holds a reference to <code>OperatorRegistry</code>;
+  all other commands remain independent of the operator framework.</li>
+<li>Future service-loader extensibility can be added inside <code>builtInOperators()</code>
+  without changing any other class.</li>
+<li>Merge functions that accidentally emit <code>AddSupport</code> violate the <code>MergeFunction</code>
+  contract and will produce duplicate edges; this is documented in the contract
+  Javadoc but not enforced at runtime.</li>
+<li>An operator call with an unknown operator name causes <code>expand()</code> to throw
+  <code>InvalidOperatorCallException</code>.  The engine wraps this in a <code>CompilationException</code>
+  via the standard <code>fire()</code> / exception-wrapping mechanism.</li>
+<li>Elements copied from source models appear in the result model's symbol table
+  with their original source positions.  Truly synthesized elements (e.g. a
+  merged SubConclusion produced by the <code>refine</code> operator) appear as
+  <code>[synthesized]</code>.  Aliases (old id → merged id) are shown separately per model.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

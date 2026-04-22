@@ -1,0 +1,1803 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Justified Pipelines language and compiler">
+      
+      
+      
+        <link rel="canonical" href="https://ace-design.github.io/jpipe/design/steps/">
+      
+      
+        <link rel="prev" href="../compiler/">
+      
+      
+        <link rel="next" href="../operators/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Compiler Steps - jPipe</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/mcmaster.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#compiler-steps" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="jPipe" class="md-header__button md-logo" aria-label="jPipe" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            jPipe
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Compiler Steps
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jpipe-mcscert/jpipe-compiler" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jpipe-mcscert/jpipe-compiler
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="jPipe" class="md-nav__button md-logo" aria-label="jPipe" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    jPipe
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jpipe-mcscert/jpipe-compiler" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jpipe-mcscert/jpipe-compiler
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../language/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler Steps
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler Steps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#sub-chains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sub-chains
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sub-chains">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parsingchain-source-file-listcommand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parsingChain() — source file → List&lt;Command&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unitbuilder-listcommand-unit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unitBuilder() — List&lt;Command&gt; → Unit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#complete-pipeline-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete pipeline sequence
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sources
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sources">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filesource" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FileSource
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parsing-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parsing steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parsing steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#charstreamprovider" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CharStreamProvider
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lexer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lexer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#haltandcatchfiret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HaltAndCatchFire&lt;T&gt;
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#actionlistprovider" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ActionListProvider
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#loadresolver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LoadResolver
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-building-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model-building steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Model-building steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#actionlistinterpretation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ActionListInterpretation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consistencychecker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConsistencyChecker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#completenesschecker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CompletenessChecker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selection-and-export-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection and export steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Selection and export steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#selectmodel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SelectModel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exporttodot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExportToDot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exporttojson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExportToJson
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exporttojpipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExportToJpipe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exporttopython" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExportToPython
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderwithdot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderWithDot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diagnosticreport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DiagnosticReport
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sinks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sinks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sinks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stringsink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StringSink
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bytesink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ByteSink
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0001-semver-versioning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0001: Semantic Versioning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0002-multi-module-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0002: Multi-Module Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0003-fat-jar-with-shade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0003: Fat JAR with Maven Shade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0004-sonarcloud-quality-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004: SonarCloud as Mandatory Quality Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0005-command-pattern-for-model-construction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0005: Command Pattern for Model Construction and Modification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0006-logging-conventions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0006: Logging Conventions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0007-dependency-freshness-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007: Dependency Freshness Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0008-visitor-pattern-for-model-traversal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0008: Visitor Pattern for Model Traversal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0009-pipeline-abstraction-for-compilation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0009: Pipeline Abstraction for Compilation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0010-model-visitors-in-jpipe-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0010: Model-Only Visitors Belong in jpipe-model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0011-cucumber-for-compiler-end-to-end-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0011: Cucumber for Compiler End-to-End Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0012-qualified-ids-and-template-expansion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0012: Qualified Ids and Template Expansion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0013-export-strategy-text-vs-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0013: Export Strategy — Text Generation vs. Library-Backed IR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0014-colorblind-safe-dot-palette/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0014: Colorblind-Safe Colour Palette for DOT Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0015-consistency-and-completeness-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0015: Consistency and Completeness Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0016-error-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0016: Error Management — Diagnostic Levels, Pipeline Interruption, and Exit Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0017-load-directive-as-compiler-step/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0017: Load Directive Resolved as a Compiler Step
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0018-composition-operators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0018: Composition Operators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0019-ai-assisted-development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: AI-Assisted Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0020-tag-triggered-release-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0020: Tag-Triggered Release Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="compiler-steps">Compiler Steps</h1>
+<p>The <code>jpipe-compiler</code> module wires concrete pipeline steps into the
+<code>Source / Transformation / Checker / Sink</code> framework described in
+<a href="../compiler/">compiler.md</a>. This document describes every step class and the
+two reusable sub-chains that <code>CompilerFactory</code> assembles from them.</p>
+<h2 id="sub-chains">Sub-chains</h2>
+<p><code>CompilerFactory</code> exposes two reusable sub-chains. Every concrete pipeline is
+built by composing these two chains with a format-specific export tail.</p>
+<h3 id="parsingchain-source-file-listcommand"><code>parsingChain()</code> — source file → <code>List&lt;Command&gt;</code></h3>
+<pre><code>FileSource
+  → CharStreamProvider
+  → Lexer
+  → Parser
+  → HaltAndCatchFire&lt;ParseTree&gt;
+  → ActionListProvider
+  → LoadResolver
+</code></pre>
+<p>Reads a <code>.jd</code> source file, tokenises and parses it, detects syntax errors,
+walks the parse tree to produce a flat list of model-construction commands, and
+resolves any <code>load</code> directives by recursively parsing referenced files.</p>
+<h3 id="unitbuilder-listcommand-unit"><code>unitBuilder()</code> — <code>List&lt;Command&gt;</code> → <code>Unit</code></h3>
+<pre><code>ActionListInterpretation
+  → ConsistencyChecker
+  → CompletenessChecker
+</code></pre>
+<p>Executes the command list through the <code>ExecutionEngine</code> to build the fully
+populated <code>Unit</code>, then validates it for consistency and completeness.</p>
+<h3 id="complete-pipeline-sequence">Complete pipeline sequence</h3>
+<p>The sequence below shows a full <code>compile</code> call for DOT output.</p>
+<p><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBjb250ZW50U2NyaXB0VHlwZT0iYXBwbGljYXRpb24vZWNtYXNjcmlwdCIgY29udGVudFN0eWxlVHlwZT0idGV4dC9jc3MiIGhlaWdodD0iNDU5cHgiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiIHN0eWxlPSJ3aWR0aDoxMDMycHg7aGVpZ2h0OjQ1OXB4OyIgdmVyc2lvbj0iMS4xIiB2aWV3Qm94PSIwIDAgMTAzMiA0NTkiIHdpZHRoPSIxMDMycHgiIHpvb21BbmRQYW49Im1hZ25pZnkiPjxkZWZzPjxmaWx0ZXIgaGVpZ2h0PSIzMDAlIiBpZD0iZmE3NzE0c3loaWM1ZCIgd2lkdGg9IjMwMCUiIHg9Ii0xIiB5PSItMSI+PGZlR2F1c3NpYW5CbHVyIHJlc3VsdD0iYmx1ck91dCIgc3RkRGV2aWF0aW9uPSIyLjAiLz48ZmVDb2xvck1hdHJpeCBpbj0iYmx1ck91dCIgcmVzdWx0PSJibHVyT3V0MiIgdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIC40IDAiLz48ZmVPZmZzZXQgZHg9IjQuMCIgZHk9IjQuMCIgaW49ImJsdXJPdXQyIiByZXN1bHQ9ImJsdXJPdXQzIi8+PGZlQmxlbmQgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iYmx1ck91dDMiIG1vZGU9Im5vcm1hbCIvPjwvZmlsdGVyPjwvZGVmcz48Zz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNS4wLDUuMDsiIHgxPSIzNiIgeDI9IjM2IiB5MT0iMzguMjk2OSIgeTI9IjQ0Ny4wMjM0Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IHN0cm9rZS1kYXNoYXJyYXk6IDUuMCw1LjA7IiB4MT0iMTg2LjUiIHgyPSIxODYuNSIgeTE9IjM4LjI5NjkiIHkyPSI0NDcuMDIzNCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjQxMyIgeDI9IjQxMyIgeTE9IjM4LjI5NjkiIHkyPSI0NDcuMDIzNCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjU1NSIgeDI9IjU1NSIgeTE9IjM4LjI5NjkiIHkyPSI0NDcuMDIzNCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjY2NyIgeDI9IjY2NyIgeTE9IjM4LjI5NjkiIHkyPSI0NDcuMDIzNCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9Ijc4MSIgeDI9Ijc4MSIgeTE9IjM4LjI5NjkiIHkyPSI0NDcuMDIzNCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjkwNiIgeDI9IjkwNiIgeTE9IjM4LjI5NjkiIHkyPSI0NDcuMDIzNCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjEwMDEiIHgyPSIxMDAxIiB5MT0iMzguMjk2OSIgeTI9IjQ0Ny4wMjM0Ii8+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2ZhNzcxNHN5aGljNWQpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjUyIiB4PSI4IiB5PSIzIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMzgiIHg9IjE1IiB5PSIyMi45OTUxIj5DYWxsZXI8L3RleHQ+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2ZhNzcxNHN5aGljNWQpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjEyNSIgeD0iMTIyLjUiIHk9IjMiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMTEiIHg9IjEyOS41IiB5PSIyMi45OTUxIj5Db21waWxlckZhY3Rvcnk8L3RleHQ+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2ZhNzcxNHN5aGljNWQpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjExNCIgeD0iMzU0IiB5PSIzIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTAwIiB4PSIzNjEiIHk9IjIyLjk5NTEiPnBhcnNpbmdDaGFpbigpPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmYTc3MTRzeWhpYzVkKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI5OCIgeD0iNTA0IiB5PSIzIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODQiIHg9IjUxMSIgeT0iMjIuOTk1MSI+dW5pdEJ1aWxkZXIoKTwvdGV4dD48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZmE3NzE0c3loaWM1ZCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iOTkiIHg9IjYxNiIgeT0iMyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9Ijg1IiB4PSI2MjMiIHk9IjIyLjk5NTEiPlNlbGVjdE1vZGVsPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmYTc3MTRzeWhpYzVkKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMDEiIHg9IjcyOSIgeT0iMyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9Ijg3IiB4PSI3MzYiIHk9IjIyLjk5NTEiPkV4cG9ydFRvRG90PC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmYTc3MTRzeWhpYzVkKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMjAiIHg9Ijg0NCIgeT0iMyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEwNiIgeD0iODUxIiB5PSIyMi45OTUxIj5SZW5kZXJXaXRoRG90PC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmYTc3MTRzeWhpYzVkKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI0MyIgeD0iOTc4IiB5PSIzIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjkiIHg9Ijk4NSIgeT0iMjIuOTk1MSI+U2luazwvdGV4dD48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjE3NSw2NS40Mjk3LDE4NSw2OS40Mjk3LDE3NSw3My40Mjk3LDE3OSw2OS40Mjk3IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSIzNiIgeDI9IjE4MSIgeTE9IjY5LjQyOTciIHkyPSI2OS40Mjk3Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTI3IiB4PSI0MyIgeT0iNjQuMzYzOCI+YnVpbGQoY29uZmlnLCBzdGRvdXQpPC90ZXh0Pjxwb2x5Z29uIGZpbGw9IiNBODAwMzYiIHBvaW50cz0iNDAxLDk0LjU2MjUsNDExLDk4LjU2MjUsNDAxLDEwMi41NjI1LDQwNSw5OC41NjI1IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSIxODciIHgyPSI0MDciIHkxPSI5OC41NjI1IiB5Mj0iOTguNTYyNSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjIwMiIgeD0iMTk0IiB5PSI5My40OTY2Ij5GaWxlU291cmNlIOKGkiDigKYg4oaSIExvYWRSZXNvbHZlcjwvdGV4dD48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjE5OCwxMjMuNjk1MywxODgsMTI3LjY5NTMsMTk4LDEzMS42OTUzLDE5NCwxMjcuNjk1MyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IHN0cm9rZS1kYXNoYXJyYXk6IDIuMCwyLjA7IiB4MT0iMTkyIiB4Mj0iNDEyIiB5MT0iMTI3LjY5NTMiIHkyPSIxMjcuNjk1MyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjExMSIgeD0iMjA0IiB5PSIxMjIuNjI5NCI+TGlzdCZsdDtDb21tYW5kJmd0OzwvdGV4dD48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjU0MywxNTIuODI4MSw1NTMsMTU2LjgyODEsNTQzLDE2MC44MjgxLDU0NywxNTYuODI4MSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTg3IiB4Mj0iNTQ5IiB5MT0iMTU2LjgyODEiIHkyPSIxNTYuODI4MSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjM0NCIgeD0iMTk0IiB5PSIxNTEuNzYyMiI+QWN0aW9uTGlzdEludGVycHJldGF0aW9uIOKGkiDigKYg4oaSIENvbXBsZXRlbmVzc0NoZWNrZXI8L3RleHQ+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIxOTgsMTgxLjk2MDksMTg4LDE4NS45NjA5LDE5OCwxODkuOTYwOSwxOTQsMTg1Ljk2MDkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiAyLjAsMi4wOyIgeDE9IjE5MiIgeDI9IjU1NCIgeTE9IjE4NS45NjA5IiB5Mj0iMTg1Ljk2MDkiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIyNiIgeD0iMjA0IiB5PSIxODAuODk1Ij5Vbml0PC90ZXh0Pjxwb2x5Z29uIGZpbGw9IiNBODAwMzYiIHBvaW50cz0iNjU1LjUsMjExLjA5MzgsNjY1LjUsMjE1LjA5MzgsNjU1LjUsMjE5LjA5MzgsNjU5LjUsMjE1LjA5MzgiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjE4NyIgeDI9IjY2MS41IiB5MT0iMjE1LjA5MzgiIHkyPSIyMTUuMDkzOCIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjU3IiB4PSIxOTQiIHk9IjIxMC4wMjc4Ij5ydW4oVW5pdCk8L3RleHQ+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIxOTgsMjQwLjIyNjYsMTg4LDI0NC4yMjY2LDE5OCwyNDguMjI2NiwxOTQsMjQ0LjIyNjYiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiAyLjAsMi4wOyIgeDE9IjE5MiIgeDI9IjY2Ni41IiB5MT0iMjQ0LjIyNjYiIHkyPSIyNDQuMjI2NiIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEzOSIgeD0iMjA0IiB5PSIyMzkuMTYwNiI+SnVzdGlmaWNhdGlvbk1vZGVsJmx0Oz8mZ3Q7PC90ZXh0Pjxwb2x5Z29uIGZpbGw9IiNBODAwMzYiIHBvaW50cz0iNzY5LjUsMjY5LjM1OTQsNzc5LjUsMjczLjM1OTQsNzY5LjUsMjc3LjM1OTQsNzczLjUsMjczLjM1OTQiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjE4NyIgeDI9Ijc3NS41IiB5MT0iMjczLjM1OTQiIHkyPSIyNzMuMzU5NCIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjE3MCIgeD0iMTk0IiB5PSIyNjguMjkzNSI+cnVuKEp1c3RpZmljYXRpb25Nb2RlbCZsdDs/Jmd0Oyk8L3RleHQ+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIxOTgsMjk4LjQ5MjIsMTg4LDMwMi40OTIyLDE5OCwzMDYuNDkyMiwxOTQsMzAyLjQ5MjIiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiAyLjAsMi4wOyIgeDE9IjE5MiIgeDI9Ijc4MC41IiB5MT0iMzAyLjQ5MjIiIHkyPSIzMDIuNDkyMiIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEyNiIgeD0iMjA0IiB5PSIyOTcuNDI2MyI+U3RyaW5nIChET1Qgc291cmNlKTwvdGV4dD48cGF0aCBkPSJNOTksMzE1LjQ5MjIgTDk5LDM0MC40OTIyIEwyNzEsMzQwLjQ5MjIgTDI3MSwzMjUuNDkyMiBMMjYxLDMxNS40OTIyIEw5OSwzMTUuNDkyMiAiIGZpbGw9IiNGQkZCNzciIGZpbHRlcj0idXJsKCNmYTc3MTRzeWhpYzVkKSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHBhdGggZD0iTTI2MSwzMTUuNDkyMiBMMjYxLDMyNS40OTIyIEwyNzEsMzI1LjQ5MjIgTDI2MSwzMTUuNDkyMiAiIGZpbGw9IiNGQkZCNzciIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjE1MSIgeD0iMTA1IiB5PSIzMzIuNTU5MSI+Rm9yIFBORy9KUEVHL1NWRyBvbmx5OjwvdGV4dD48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9Ijg5NCwzNjYuNzU3OCw5MDQsMzcwLjc1NzgsODk0LDM3NC43NTc4LDg5OCwzNzAuNzU3OCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTg3IiB4Mj0iOTAwIiB5MT0iMzcwLjc1NzgiIHkyPSIzNzAuNzU3OCIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjY5IiB4PSIxOTQiIHk9IjM2NS42OTE5Ij5ydW4oU3RyaW5nKTwvdGV4dD48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjE5OCwzOTUuODkwNiwxODgsMzk5Ljg5MDYsMTk4LDQwMy44OTA2LDE5NCwzOTkuODkwNiIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IHN0cm9rZS1kYXNoYXJyYXk6IDIuMCwyLjA7IiB4MT0iMTkyIiB4Mj0iOTA1IiB5MT0iMzk5Ljg5MDYiIHkyPSIzOTkuODkwNiIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjM4IiB4PSIyMDQiIHk9IjM5NC44MjQ3Ij5ieXRlW108L3RleHQ+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSI5ODkuNSw0MjUuMDIzNCw5OTkuNSw0MjkuMDIzNCw5ODkuNSw0MzMuMDIzNCw5OTMuNSw0MjkuMDIzNCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTg3IiB4Mj0iOTk1LjUiIHkxPSI0MjkuMDIzNCIgeTI9IjQyOS4wMjM0Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTUzIiB4PSIxOTQiIHk9IjQyMy45NTc1Ij5wb3VySW50byhyZXN1bHQsIHNpbmtGaWxlKTwvdGV4dD48IS0tTUQ1PVs4MjYzODk1MmE1NTA4ZWU2OTU0ZDBjZGZiZmJlMGZjMl0KQHN0YXJ0dW1sIHN0ZXBzLXNlcXVlbmNlDQoNCnNraW5wYXJhbSBzZXF1ZW5jZU1lc3NhZ2VBbGlnbiBsZWZ0DQpoaWRlIGZvb3Rib3gNCg0KcGFydGljaXBhbnQgQ2FsbGVyDQpwYXJ0aWNpcGFudCBDb21waWxlckZhY3RvcnkNCnBhcnRpY2lwYW50ICJwYXJzaW5nQ2hhaW4oKSIgYXMgUEMNCnBhcnRpY2lwYW50ICJ1bml0QnVpbGRlcigpIiBhcyBVQg0KcGFydGljaXBhbnQgU2VsZWN0TW9kZWwNCnBhcnRpY2lwYW50IEV4cG9ydFRvRG90DQpwYXJ0aWNpcGFudCBSZW5kZXJXaXRoRG90DQpwYXJ0aWNpcGFudCBTaW5rDQoNCkNhbGxlciAtPiBDb21waWxlckZhY3RvcnkgOiBidWlsZChjb25maWcsIHN0ZG91dCkNCkNvbXBpbGVyRmFjdG9yeSAtPiBQQyA6IEZpbGVTb3VyY2Ug4oaSIOKApiDihpIgTG9hZFJlc29sdmVyDQpQQyAtIC0+IENvbXBpbGVyRmFjdG9yeSA6IExpc3Q8Q29tbWFuZD4NCkNvbXBpbGVyRmFjdG9yeSAtPiBVQiA6IEFjdGlvbkxpc3RJbnRlcnByZXRhdGlvbiDihpIg4oCmIOKGkiBDb21wbGV0ZW5lc3NDaGVja2VyDQpVQiAtIC0+IENvbXBpbGVyRmFjdG9yeSA6IFVuaXQNCkNvbXBpbGVyRmFjdG9yeSAtPiBTZWxlY3RNb2RlbCA6IHJ1bihVbml0KQ0KU2VsZWN0TW9kZWwgLSAtPiBDb21waWxlckZhY3RvcnkgOiBKdXN0aWZpY2F0aW9uTW9kZWw8Pz4NCkNvbXBpbGVyRmFjdG9yeSAtPiBFeHBvcnRUb0RvdCA6IHJ1bihKdXN0aWZpY2F0aW9uTW9kZWw8Pz4pDQpFeHBvcnRUb0RvdCAtIC0+IENvbXBpbGVyRmFjdG9yeSA6IFN0cmluZyAoRE9UIHNvdXJjZSkNCg0Kbm90ZSBvdmVyIENvbXBpbGVyRmFjdG9yeQ0KICBGb3IgUE5HL0pQRUcvU1ZHIG9ubHk6DQplbmQgbm90ZQ0KQ29tcGlsZXJGYWN0b3J5IC0+IFJlbmRlcldpdGhEb3QgOiBydW4oU3RyaW5nKQ0KUmVuZGVyV2l0aERvdCAtIC0+IENvbXBpbGVyRmFjdG9yeSA6IGJ5dGVbXQ0KQ29tcGlsZXJGYWN0b3J5IC0+IFNpbmsgOiBwb3VySW50byhyZXN1bHQsIHNpbmtGaWxlKQ0KDQpAZW5kdW1sDQoKUGxhbnRVTUwgdmVyc2lvbiAxLjIwMjAuMDIoU3VuIE1hciAwMSAxMDoyMjowNyBVVEMgMjAyMCkKKEdQTCBzb3VyY2UgZGlzdHJpYnV0aW9uKQpKYXZhIFJ1bnRpbWU6IE9wZW5KREsgUnVudGltZSBFbnZpcm9ubWVudApKVk06IE9wZW5KREsgNjQtQml0IFNlcnZlciBWTQpKYXZhIFZlcnNpb246IDI1LjAuMys5LUxUUwpPcGVyYXRpbmcgU3lzdGVtOiBMaW51eApEZWZhdWx0IEVuY29kaW5nOiBVVEYtOApMYW5ndWFnZTogZW4KQ291bnRyeTogbnVsbAotLT48L2c+PC9zdmc+" class="uml" alt="uml diagram" title="" /></p>
+<hr />
+<h2 id="step-reference">Step reference</h2>
+<h3 id="sources">Sources</h3>
+<h4 id="filesource"><code>FileSource</code></h4>
+<p><strong>Type:</strong> <code>Source&lt;InputStream&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.io.sources</code></p>
+<p>Opens the source <code>.jd</code> file path supplied to <code>compile()</code> as a raw
+<code>InputStream</code>. This is always the first step in any pipeline.</p>
+<hr />
+<h3 id="parsing-steps">Parsing steps</h3>
+<h4 id="charstreamprovider"><code>CharStreamProvider</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;InputStream, CharStream&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Wraps the raw <code>InputStream</code> in an ANTLR <code>CharStream</code> (UTF-8). Required before
+ANTLR lexing can proceed.</p>
+<h4 id="lexer"><code>Lexer</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;CharStream, CommonTokenStream&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Runs the ANTLR-generated <code>JPipeLexer</code> over the character stream and produces a
+<code>CommonTokenStream</code>. Lexer errors are recorded as non-fatal <code>ERROR</code> diagnostics
+so that parsing can still run and collect further errors.</p>
+<h4 id="parser"><code>Parser</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;CommonTokenStream, ParseTree&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Runs the ANTLR-generated <code>JPipeParser</code> and returns the root <code>ParseTree</code>. Parser
+errors are also recorded as non-fatal <code>ERROR</code> diagnostics.</p>
+<h4 id="haltandcatchfiret"><code>HaltAndCatchFire&lt;T&gt;</code></h4>
+<p><strong>Type:</strong> <code>Checker&lt;T&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.checkers</code></p>
+<p>A checkpoint that promotes all accumulated non-fatal <code>ERROR</code>s to a single
+<code>FATAL</code> diagnostic. Because <code>Transformation.fire()</code> skips <code>run()</code> when the
+context holds a fatal error, any step placed after <code>HaltAndCatchFire</code> is
+guaranteed never to receive a broken input. Used after <code>Parser</code> to abort before
+the tree-walking steps attempt to work on a malformed parse tree.</p>
+<p>The name refers to the HCF instruction on IBM System/360 (and a good TV show).</p>
+<h4 id="actionlistprovider"><code>ActionListProvider</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;ParseTree, List&lt;Command&gt;&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Walks the <code>ParseTree</code> using an internal ANTLR <code>JPipeBaseListener</code> and emits one
+<code>Command</code> per grammar construct:</p>
+<ul>
+<li><code>CreateJustification</code> / <code>CreateTemplate</code> for model declarations</li>
+<li><code>CreateConclusion</code>, <code>CreateEvidence</code>, <code>CreateStrategy</code>, <code>CreateSubConclusion</code>,
+  <code>CreateAbstractSupport</code> for element declarations</li>
+<li><code>AddSupport</code>, <code>ImplementsTemplate</code>, <code>OverrideAbstractSupport</code> for
+  relationships and template specialisation</li>
+<li><code>ApplyOperator</code> (a <code>MacroCommand</code>) for <code>is refine(…)</code> / <code>is assemble(…)</code>
+  operator calls</li>
+<li><code>LoadResolver.LoadDirective</code> (an internal sentinel) for <code>load</code> directives</li>
+</ul>
+<p>All string labels are unquoted at this stage. Duplicate <code>conclusion</code>
+declarations within one model are caught here and reported as <code>ERROR</code>
+diagnostics.</p>
+<h4 id="loadresolver"><code>LoadResolver</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;List&lt;Command&gt;, List&lt;Command&gt;&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Eliminates every <code>LoadDirective</code> by recursively parsing the referenced file
+and splicing its prefixed commands in place. Each referenced file is parsed
+through the chain <code>CharStreamProvider → Lexer → Parser → HaltAndCatchFire →
+ActionListProvider</code> using a fresh <code>CompilationContext</code>; diagnostics from the
+sub-file are forwarded to the parent context. Cycles are detected by tracking
+resolved absolute paths in a <code>Set&lt;Path&gt;</code> threaded through the recursion.</p>
+<p>When <code>load "path" as ns</code> carries a namespace alias, every model-name reference
+in the expanded sub-list is qualified with <code>ns:</code> so that loaded models do not
+collide with locally declared ones.</p>
+<hr />
+<h3 id="model-building-steps">Model-building steps</h3>
+<h4 id="actionlistinterpretation"><code>ActionListInterpretation</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;List&lt;Command&gt;, Unit&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Feeds the flat command list to the <code>ExecutionEngine</code>, which handles deferred
+execution and macro expansion (see <code>model.md</code> — Commands). The result is a
+fully populated <code>Unit</code>.</p>
+<p>If execution deadlocks (deferred commands that can never run because their
+conditions remain unsatisfied), <code>ExecutionFailureDiagnostics</code> maps each stuck
+command to a specific semantic <code>ERROR</code> (e.g. <code>[unknown-element]</code>) rather than
+propagating a raw exception. The partial <code>Unit</code> built so far is returned so
+that downstream diagnostic steps can still run.</p>
+<h4 id="consistencychecker"><code>ConsistencyChecker</code></h4>
+<p><strong>Type:</strong> <code>Checker&lt;Unit&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.checkers</code></p>
+<p>Delegates to <code>ConsistencyValidator</code> (from <code>jpipe-model</code>) and maps each
+structural violation to a non-fatal <code>ERROR</code> diagnostic, enriched with source
+location from the unit's location registry. Consistency rules check for things
+like unresolved support references and type mismatches.</p>
+<h4 id="completenesschecker"><code>CompletenessChecker</code></h4>
+<p><strong>Type:</strong> <code>Checker&lt;Unit&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.checkers</code></p>
+<p>Delegates to <code>CompletenessValidator</code> (from <code>jpipe-model</code>) and reports
+violations as non-fatal <code>ERROR</code>s. Completeness rules verify that each
+<code>Justification</code> has exactly one <code>Conclusion</code> and that every declared support
+edge is reachable.</p>
+<hr />
+<h3 id="selection-and-export-steps">Selection and export steps</h3>
+<h4 id="selectmodel"><code>SelectModel</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;Unit, JustificationModel&lt;?&gt;&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Extracts one <code>JustificationModel</code> from the <code>Unit</code> by name (from the <code>-d</code> /
+<code>--diagram</code> CLI flag). When no name is given and the unit contains exactly one
+model, that model is auto-selected. If the unit contains multiple models and no
+name is given, a <code>CompilationException</code> is thrown listing the available names.</p>
+<h4 id="exporttodot"><code>ExportToDot</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;JustificationModel&lt;?&gt;, String&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Serializes a model to a Graphviz DOT string using <code>DotExporter</code> (a
+<code>JustificationVisitor</code> from <code>jpipe-model</code>). The color palette is
+colorblind-safe (see ADR-0014).</p>
+<h4 id="exporttojson"><code>ExportToJson</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;JustificationModel&lt;?&gt;, String&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Serializes a model to a JSON string using <code>JsonExporter</code>.</p>
+<h4 id="exporttojpipe"><code>ExportToJpipe</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;JustificationModel&lt;?&gt;, String&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Serializes a model back to canonical jPipe source syntax using <code>JpipeExporter</code>.
+Useful for normalisation or round-trip testing.</p>
+<h4 id="exporttopython"><code>ExportToPython</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;JustificationModel&lt;?&gt;, String&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Serializes a model as a Python object model using <code>PythonExporter</code>.</p>
+<h4 id="renderwithdot"><code>RenderWithDot</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;String, byte[]&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Shells out to the <code>dot</code> command-line tool (Graphviz) to render DOT source to a
+binary image. The <code>dot</code> binary must be on <code>PATH</code>; <code>jpipe --doctor</code> checks for
+it. DOT source is written to <code>stdin</code> in a virtual thread while <code>stdout</code> is read
+in the caller thread, avoiding deadlock when the process pipe buffer is smaller
+than the input. Supports any format that <code>dot -T</code> accepts; the CLI uses
+<code>"png"</code>, <code>"jpeg"</code>, and <code>"svg"</code>.</p>
+<h4 id="diagnosticreport"><code>DiagnosticReport</code></h4>
+<p><strong>Type:</strong> <code>Transformation&lt;Unit, String&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.transformations</code></p>
+<p>Produces a human-readable diagnostic report from the compiled <code>Unit</code> and
+<code>CompilationContext</code>. Used by the <code>diagnostic</code> CLI command instead of an
+export. The report has four sections: Diagnostics, Action Statistics, Model
+Summary (type, parent, element counts per model), and Symbol Table (element
+ids with source locations and alias mappings from composition operators).</p>
+<hr />
+<h3 id="sinks">Sinks</h3>
+<h4 id="stringsink"><code>StringSink</code></h4>
+<p><strong>Type:</strong> <code>Sink&lt;String&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.io.sinks</code></p>
+<p>Writes a <code>String</code> result to an <code>OutputStream</code> (typically <code>stdout</code>). Used by
+all text-format pipelines.</p>
+<h4 id="bytesink"><code>ByteSink</code></h4>
+<p><strong>Type:</strong> <code>Sink&lt;byte[]&gt;</code><br />
+<strong>Package:</strong> <code>compiler.steps.io.sinks</code></p>
+<p>Writes a <code>byte[]</code> result to an <code>OutputStream</code>. Used by image-format pipelines
+(<code>RenderWithDot</code> output).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
