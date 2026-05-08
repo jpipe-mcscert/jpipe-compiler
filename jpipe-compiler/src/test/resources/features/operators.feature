@@ -74,6 +74,19 @@ Feature: Composition operators
     And the evidence "unified_0" supports the strategy "a_claim:s"
     And the evidence "unified_0" supports the strategy "another_claim:s"
 
+  Scenario: refine after assemble resolves hook element through alias
+    Given the source file "012_chaining_operators.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+    And the unit contains a justification named "with_refine_1"
+    And it has a conclusion with id "both:assembleConclusion" and label "an assembled conclusion"
+    And it has a sub-conclusion with id "hook" and label "a refined conclusion #1"
+    And it has a strategy with id "both:first:s" and label "a first strategy"
+    And it has evidence with id "refine_1:e" and label "a refined evidence #1"
+    And the sub-conclusion "hook" supports the strategy "both:first:s"
+    And the sub-conclusion "hook" supports the strategy "both:second:s"
+    And the strategy "refine_1:s" supports the sub-conclusion "hook"
+
   Scenario: unknown unification method reports an execution error
     Given the source file "invalid/015_unknown_unification_method.jd"
     When I compile it into a unit

@@ -88,8 +88,8 @@ public final class AssembleOperator extends CompositionOperator {
 
 	@Override
 	protected EquivalenceRelation equivalenceRelation(
-			List<JustificationModel<?>> sources,
-			Map<String, String> arguments) {
+			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			Map<String, String> knownAliases) {
 		return (a, b) -> false; // no merging — every element is its own group
 	}
 

@@ -48,7 +48,8 @@ class CompositionOperatorTest {
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
 				List<JustificationModel<?>> sources,
-				Map<String, String> arguments) {
+				Map<String, String> arguments,
+				Map<String, String> knownAliases) {
 			return new SameShortId();
 		}
 
@@ -99,7 +100,7 @@ class CompositionOperatorTest {
 		}
 
 		private static String qualId(JustificationModel<?> source, String id) {
-			return id.contains(":") ? id : source.getName() + ":" + id;
+			return source.getName() + ":" + id;
 		}
 	}
 
@@ -114,7 +115,8 @@ class CompositionOperatorTest {
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
 				List<JustificationModel<?>> sources,
-				Map<String, String> arguments) {
+				Map<String, String> arguments,
+				Map<String, String> knownAliases) {
 			return (a, b) -> false;
 		}
 

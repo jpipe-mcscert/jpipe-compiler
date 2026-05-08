@@ -1,0 +1,43 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+
+justification first {
+   conclusion c is "a first conclusion"
+   strategy s is "a first strategy"
+   evidence e1 is "a first evidence"
+   evidence e is "a shared evidence"
+   e supports s
+   e1 supports s
+   s supports c
+}
+
+justification second {
+   conclusion c is "a second conclusion"
+   strategy s is "a second strategy"
+   evidence e1 is "a second evidence"
+   evidence e is "a shared evidence"
+   e supports s
+   e1 supports s
+   s supports c
+}
+
+justification both is assemble(first, second) {
+conclusionLabel: "an assembled conclusion"
+strategyLabel: "a assembled strategy"
+}
+
+justification refine_1 {
+   conclusion c is "a refined conclusion #1"
+   strategy s is "a refined strategy #1"
+   evidence e is "a refined evidence #1"
+   e supports s
+   s supports c
+}
+
+justification with_refine_1 is refine(both, refine_1) {
+   hook: "first:e"
+}

@@ -64,9 +64,15 @@ public abstract class CompositionOperator {
 	/**
 	 * Returns the equivalence relation to use for partitioning elements from
 	 * {@code sources} and {@code arguments}.
+	 *
+	 * @param knownAliases
+	 *            alias registry of the compilation unit (keyed as
+	 *            {@code "modelName/oldId"}); operators may use this to resolve
+	 *            element ids that were renamed by a prior composition step.
 	 */
 	protected abstract EquivalenceRelation equivalenceRelation(
-			List<JustificationModel<?>> sources, Map<String, String> arguments);
+			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			Map<String, String> knownAliases);
 
 	/**
 	 * Returns the merge function to use for creating result elements from
@@ -138,7 +144,8 @@ public abstract class CompositionOperator {
 	public final List<Command> apply(String resultName,
 			List<JustificationModel<?>> sources, Map<String, String> arguments,
 			SourceLocation location) {
-		return apply(resultName, sources, arguments, location, Map.of());
+		return apply(resultName, sources, arguments, location, Map.of(),
+				Map.of());
 	}
 
 	/**
@@ -161,6 +168,35 @@ public abstract class CompositionOperator {
 			List<JustificationModel<?>> sources, Map<String, String> arguments,
 			SourceLocation location,
 			Map<String, SourceLocation> knownLocations) {
+		return apply(resultName, sources, arguments, location, knownLocations,
+				Map.of());
+	}
+
+	/**
+	 * Applies this operator to {@code sources} and returns the complete list of
+	 * commands needed to build the result model named {@code resultName}.
+	 *
+	 * @param location
+	 *            source location of the operator call; forwarded to
+	 *            {@link #createResultModel} so the result model is registered
+	 *            in the symbol table.
+	 * @param knownLocations
+	 *            location registry of the compilation unit (keyed as
+	 *            {@code "modelName/elementId"}); used to attach each source
+	 *            element's original location to its copy in the result model.
+	 * @param knownAliases
+	 *            alias registry of the compilation unit (keyed as
+	 *            {@code "modelName/oldId"}); used by operators to resolve
+	 *            element ids that may have been renamed by a prior composition
+	 *            step (e.g. unification after {@code assemble}).
+	 * @throws InvalidOperatorCallException
+	 *             if any key declared by {@link #requiredArguments()} is absent
+	 *             from {@code arguments}
+	 */
+	public final List<Command> apply(String resultName,
+			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			SourceLocation location, Map<String, SourceLocation> knownLocations,
+			Map<String, String> knownAliases) {
 
 		Map<String, String> args = Map.copyOf(arguments);
 
@@ -191,7 +227,7 @@ public abstract class CompositionOperator {
 
 		// Partition into equivalence classes
 		List<ElementGroup> groups = partition(all,
-				equivalenceRelation(sources, args));
+				equivalenceRelation(sources, args, knownAliases));
 		logger.debug("{} element(s) partitioned into {} group(s)", all.size(),
 				groups.size());
 
@@ -253,7 +289,7 @@ public abstract class CompositionOperator {
 	}
 
 	private static String qualId(JustificationModel<?> source, String id) {
-		return id.contains(":") ? id : source.getName() + ":" + id;
+		return source.getName() + ":" + id;
 	}
 
 	private static List<ElementGroup> partition(List<SourcedElement> elements,

@@ -32,16 +32,21 @@ import java.util.Set;
  *
  * <pre>
  * justification result is refine(base, refinement) {
- *     hook: "base/elementId"
+ *     hook: "elementId"
  * }
  * </pre>
  *
  * <p>
- * Semantics: the hook element (identified by model name and element id) from
- * {@code base} and the conclusion of {@code refinement} are merged into a
- * single {@link SubConclusion} named {@code "hook"}. All other elements are
+ * Semantics: the hook element (identified by its id in the first source model)
+ * and the conclusion of the second source ({@code refinement}) are merged into
+ * a single {@link SubConclusion} named {@code "hook"}. All other elements are
  * kept with their source model name as id prefix (e.g. {@code base:c},
  * {@code refinement:s}).
+ *
+ * <p>
+ * The hook id is resolved through the unit alias map, so it can refer to an
+ * element that was renamed by a prior composition step (e.g. unification after
+ * {@code assemble}).
  */
 public final class RefineOperator extends CompositionOperator {
 
@@ -62,39 +67,31 @@ public final class RefineOperator extends CompositionOperator {
 
 	@Override
 	protected EquivalenceRelation equivalenceRelation(
-			List<JustificationModel<?>> sources,
-			Map<String, String> arguments) {
+			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			Map<String, String> knownAliases) {
 		if (sources.size() != 2) {
 			throw new InvalidOperatorCallException(
 					"refine requires exactly 2 sources, got " + sources.size());
 		}
-		String[] parts = parseHook(arguments.get("hook"));
-		String hookModelName = parts[0];
-		String hookElementId = parts[1];
-		JustificationModel<?> hookSource = findByName(sources, hookModelName);
-		JustificationModel<?> refinementSource = sources.stream()
-				.filter(s -> s != hookSource).findFirst().orElseThrow();
+		JustificationModel<?> base = sources.get(0);
+		JustificationModel<?> refinement = sources.get(1);
+		String hookElementId = arguments.get("hook");
+		// Resolve through the unit alias map: the element may have been renamed
+		// by a prior composition step (e.g. unification after assemble).
+		String resolvedHookId = knownAliases.getOrDefault(
+				base.getName() + "/" + hookElementId, hookElementId);
 
-		// Phase 1 always passes SourcedElement; the pattern match is always
-		// true.
-		// The guard keeps the lambda signature aligned with
-		// EquivalenceRelation.
 		return (a, b) -> a instanceof SourcedElement sa
 				&& b instanceof SourcedElement sb
-				&& (isHookPair(sa, sb, hookSource, hookElementId,
-						refinementSource)
-						|| isHookPair(sb, sa, hookSource, hookElementId,
-								refinementSource));
+				&& (isHookPair(sa, sb, base, resolvedHookId, refinement)
+						|| isHookPair(sb, sa, base, resolvedHookId,
+								refinement));
 	}
 
 	@Override
 	protected MergeFunction mergeFunction(List<JustificationModel<?>> sources,
 			Map<String, String> arguments) {
-		String[] parts = parseHook(arguments.get("hook"));
-		String hookModelName = parts[0];
-		JustificationModel<?> hookSource = findByName(sources, hookModelName);
-		JustificationModel<?> refinementSource = sources.stream()
-				.filter(s -> s != hookSource).findFirst().orElseThrow();
+		JustificationModel<?> refinement = sources.get(1);
 
 		return (resultName, group, aliases) -> {
 			List<SourcedElement> members = group.members();
@@ -107,14 +104,14 @@ public final class RefineOperator extends CompositionOperator {
 				return elementCommand(resultName, newId, se);
 			} else {
 				// Hook group: hook element + refinement conclusion →
-				// SubConclusion
+				// SubConclusion.
 				// Register qualified old ids so Phase 2 resolves both to
-				// HOOK_ID
+				// HOOK_ID.
 				List<String> qualOldIds = members.stream().map(
 						se -> se.source().getName() + ":" + se.element().id())
 						.toList();
 				aliases.register(HOOK_ID, qualOldIds);
-				String label = labelFrom(members, refinementSource);
+				String label = labelFrom(members, refinement);
 				return List.of(
 						new CreateSubConclusion(resultName, HOOK_ID, label));
 			}
@@ -129,36 +126,12 @@ public final class RefineOperator extends CompositionOperator {
 	 * {@code refinement} is the conclusion of the refinement source.
 	 */
 	private static boolean isHookPair(SourcedElement hook,
-			SourcedElement refinement, JustificationModel<?> hookSource,
-			String hookElementId, JustificationModel<?> refinementSource) {
-		return hook.source() == hookSource
-				&& hook.element().id().equals(hookElementId)
+			SourcedElement refinement, JustificationModel<?> base,
+			String resolvedHookId, JustificationModel<?> refinementSource) {
+		return hook.source() == base
+				&& hook.element().id().equals(resolvedHookId)
 				&& refinement.source() == refinementSource
 				&& refinement.element() instanceof Conclusion;
-	}
-
-	/**
-	 * Parses {@code "model/elementId"} into {@code ["model", "elementId"]}.
-	 */
-	private static String[] parseHook(String hook) {
-		int slash = hook.indexOf('/');
-		if (slash < 0) {
-			throw new InvalidOperatorCallException(
-					"hook must be 'modelName/elementId', got: '" + hook + "'");
-		}
-		return new String[]{hook.substring(0, slash),
-				hook.substring(slash + 1)};
-	}
-
-	private static JustificationModel<?> findByName(
-			List<JustificationModel<?>> sources, String name) {
-		return sources.stream().filter(s -> s.getName().equals(name))
-				.findFirst()
-				.orElseThrow(() -> new InvalidOperatorCallException(
-						"Hook model '" + name + "' not found among sources: "
-								+ sources.stream()
-										.map(JustificationModel::getName)
-										.toList()));
 	}
 
 	/** Returns the label of the member that comes from {@code source}. */

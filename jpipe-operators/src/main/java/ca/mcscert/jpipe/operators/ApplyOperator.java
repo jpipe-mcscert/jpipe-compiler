@@ -76,7 +76,8 @@ public final class ApplyOperator implements MacroCommand {
 							+ config.declaredKind().name().toLowerCase() + "'");
 		}
 		List<Command> composed = op.apply(config.resultName(), sources,
-				config.arguments(), config.location(), context.locations());
+				config.arguments(), config.location(), context.locations(),
+				context.aliases());
 		return new Unifier(unificationEquivalences).unify(config.resultName(),
 				composed, config.arguments());
 	}
