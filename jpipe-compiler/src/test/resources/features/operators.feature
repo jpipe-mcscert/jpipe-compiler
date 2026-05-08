@@ -110,3 +110,9 @@ Feature: Composition operators
     When I compile it into a unit
     Then the compilation has validation errors
     And a validation error is reported for rule "execution-error"
+
+  Scenario: unknown hook element reports an execution error
+    Given the source file "invalid/016_unknown_hook_element.jd"
+    When I compile it into a unit
+    Then the compilation has validation errors
+    And a validation error is reported for rule "execution-error"

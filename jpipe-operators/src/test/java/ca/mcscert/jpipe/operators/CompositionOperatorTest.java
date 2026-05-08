@@ -250,6 +250,39 @@ class CompositionOperatorTest {
 					List.of(j), Map.of());
 			assertThat(commands).isUnmodifiable();
 		}
+
+		@Test
+		void transitiveAliasesFromSourceModelsAreCarriedForward() {
+			// Simulate a source model "src" whose element "c" was previously
+			// unified into "unified_0". The knownAliases map records
+			// "src/c" -> "unified_0" (as would be produced by a prior
+			// assemble).
+			// The operator then merges "unified_0" into a new id. After
+			// apply(),
+			// the result must contain a RegisterAlias entry so that the
+			// original
+			// pre-assemble id "src:c" (= "result/src:c") is reachable under
+			// its final name in the new model.
+			Justification src = buildJustification("src",
+					List.of(new CreateConclusion("src", "unified_0", "C")));
+
+			Map<String, String> knownAliases = Map.of("src/c", "unified_0");
+
+			List<Command> commands = new TestOperator().apply("result",
+					List.of(src), Map.of(), SourceLocation.UNKNOWN, Map.of(),
+					knownAliases);
+
+			// The TestOperator merges by short-id: "unified_0" stays as
+			// "unified_0".
+			// The transitive alias chain: src/c -> unified_0 -> result element
+			// "unified_0" (via src:unified_0). So "result" must register that
+			// "src:c" is an alias for "unified_0".
+			List<RegisterAlias> aliasCommands = commands.stream()
+					.filter(RegisterAlias.class::isInstance)
+					.map(RegisterAlias.class::cast).toList();
+			assertThat(aliasCommands).anySatisfy(
+					ra -> assertThat(ra.oldId()).isEqualTo("src:c"));
+		}
 	}
 
 	@Nested

@@ -242,6 +242,28 @@ public abstract class CompositionOperator {
 			commands.addAll(merge.merge(resultName, group, aliases));
 		}
 
+		// Carry forward transitive aliases from source models.
+		// For each prior alias "sourceName/oldId → intermId" (recorded in a
+		// previous composition step), resolve "sourceName:intermId" through the
+		// current local registry to find the final id in this result, then
+		// register "sourceName:oldId → finalId" so callers can still reach
+		// the element under its pre-composition name.
+		for (JustificationModel<?> source : sources) {
+			String prefix = source.getName() + "/";
+			for (Map.Entry<String, String> entry : knownAliases.entrySet()) {
+				if (!entry.getKey().startsWith(prefix)) {
+					continue;
+				}
+				String oldId = entry.getKey().substring(prefix.length());
+				String qualOldId = qualId(source, oldId);
+				String qualIntermId = qualId(source, entry.getValue());
+				String finalId = aliases.resolve(qualIntermId);
+				if (!qualOldId.equals(finalId)) {
+					aliases.register(finalId, qualOldId);
+				}
+			}
+		}
+
 		// Persist aliases to Unit via RegisterAlias commands
 		aliases.aliases().forEach((oldId, newId) -> commands
 				.add(new RegisterAlias(resultName, oldId, newId)));
