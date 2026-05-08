@@ -181,6 +181,50 @@ class RefineOperatorTest {
 		}
 
 		@Test
+		void hookCanBeReferencedByShortId() {
+			// "minimal" stores evidence as "e"; hook "e" triggers the suffix
+			// fallback in findById — the actual stored id is "e" here, but the
+			// fix normalizes to the element's real id so isHookPair matches.
+			var minimal = buildMinimal();
+			var refinement = buildRefinement();
+			List<Command> cmds = refine.apply("refined",
+					List.of(minimal, refinement), Map.of("hook", "e"));
+			Unit unit = engine.spawn("out", cmds);
+			Justification result = (Justification) unit.get("refined");
+
+			assertThat(result.subConclusions()).hasSize(1);
+			assertThat(result.subConclusions().get(0).id())
+					.isEqualTo(RefineOperator.HOOK_ID);
+		}
+
+		@Test
+		void hookReferencedByShortIdWhenStoredAsQualifiedId() {
+			// Simulates a base model where the evidence is stored as "base:e"
+			// (a qualified id, as produced after template expansion). The hook
+			// argument is just "e". findById's suffix fallback resolves "e" to
+			// "base:e", and after normalization isHookPair must still match.
+			List<Command> baseCmds = new ArrayList<>();
+			baseCmds.add(new CreateJustification("base"));
+			baseCmds.add(new CreateConclusion("base", "c", "A conclusion"));
+			baseCmds.add(new CreateStrategy("base", "s", "A strategy"));
+			baseCmds.add(new CreateEvidence("base", "base:e", "An evidence"));
+			baseCmds.add(new AddSupport("base", "c", "s"));
+			baseCmds.add(new AddSupport("base", "s", "base:e"));
+			Unit baseUnit = engine.spawn("src", baseCmds);
+			Justification base = (Justification) baseUnit.get("base");
+
+			var refinement = buildRefinement();
+			List<Command> cmds = refine.apply("refined",
+					List.of(base, refinement), Map.of("hook", "e"));
+			Unit unit = engine.spawn("out", cmds);
+			Justification result = (Justification) unit.get("refined");
+
+			assertThat(result.subConclusions()).hasSize(1);
+			assertThat(result.subConclusions().get(0).id())
+					.isEqualTo(RefineOperator.HOOK_ID);
+		}
+
+		@Test
 		void hookCanBeReferencedByAlias() {
 			// Simulates refine(src, refinement) when "e" in src was unified
 			// into "unified_0" by a prior composition step. The alias map

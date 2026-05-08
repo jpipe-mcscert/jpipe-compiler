@@ -78,14 +78,17 @@ public final class RefineOperator extends CompositionOperator {
 		String hookElementId = arguments.get("hook");
 		// Resolve through the unit alias map: the element may have been renamed
 		// by a prior composition step (e.g. unification after assemble).
-		String resolvedHookId = knownAliases.getOrDefault(
+		String aliasedHookId = knownAliases.getOrDefault(
 				base.getName() + "/" + hookElementId, hookElementId);
-		if (base.findById(resolvedHookId).isEmpty()) {
-			throw new InvalidOperatorCallException(
-					"[execution-error] hook element '" + hookElementId
-							+ "' not found in base model '" + base.getName()
-							+ "'");
-		}
+		// Normalize to the actual stored id via findById (which has a suffix
+		// fallback). This ensures isHookPair's id comparison matches even when
+		// the hook is referenced by its plain short id (e.g. "s" -> "t:s").
+		String resolvedHookId = base.findById(aliasedHookId)
+				.map(JustificationElement::id)
+				.orElseThrow(() -> new InvalidOperatorCallException(
+						"[execution-error] hook element '" + hookElementId
+								+ "' not found in base model '" + base.getName()
+								+ "'"));
 
 		return (a, b) -> a instanceof SourcedElement sa
 				&& b instanceof SourcedElement sb
