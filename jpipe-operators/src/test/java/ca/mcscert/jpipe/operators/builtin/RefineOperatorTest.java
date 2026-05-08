@@ -224,5 +224,16 @@ class RefineOperatorTest {
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("2 sources");
 		}
+
+		@Test
+		void throwsWhenHookElementNotFoundInBaseModel() {
+			List<JustificationModel<?>> sources = List.of(buildMinimal(),
+					buildRefinement());
+			Map<String, String> args = Map.of("hook", "nonexistent");
+			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+					.isInstanceOf(InvalidOperatorCallException.class)
+					.hasMessageContaining("nonexistent")
+					.hasMessageContaining("minimal");
+		}
 	}
 }
