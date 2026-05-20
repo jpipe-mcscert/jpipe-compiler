@@ -145,7 +145,7 @@ jobs:
     if: ${{ !contains(needs.build-and-release.outputs.version, '-') }}
     strategy:
       matrix:
-        distro: [focal, jammy, noble, questing]
+        distro: [jammy, noble, questing, resolute]
 
     steps:
       - uses: actions/checkout@v6
