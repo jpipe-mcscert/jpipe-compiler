@@ -1,5 +1,5 @@
-load "019_flat_collision_a.jd"
-load "020_flat_collision_b.jd"
+load "../000_minimal.jd"
+load "../009_refine.jd"
 
 justification bar {
     conclusion c is "A conclusion"
