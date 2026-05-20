@@ -158,8 +158,6 @@ public final class LoadResolver
 					resolved, load.namespace());
 			return List.of();
 		}
-		loaded.add(loadKey);
-
 		CompilationContext subCtx = new CompilationContext(resolved.toString());
 		try {
 			List<Command> subCommands = parseFile(resolved, subCtx);
@@ -170,6 +168,7 @@ public final class LoadResolver
 			if (load.namespace() != null) {
 				subCommands = prefix(load.namespace(), subCommands);
 			}
+			loaded.add(loadKey);
 			return subCommands;
 
 		} catch (IOException e) {

@@ -46,13 +46,13 @@ runs inside `jpipe-compiler`, between `ActionListProvider` and
 … → ActionListProvider → LoadResolver → ActionListInterpretation → …
 ```
 
-`ActionListProvider` produces a `LoadCommand` record (defined in
+`ActionListProvider` produces a `LoadDirective` record (defined in
 `jpipe-compiler`, not `jpipe-model`) whenever it encounters a `load` directive.
-`LoadCommand` implements `Command` so it can inhabit the `List<Command>` that
+`LoadDirective` implements `Command` so it can inhabit the `List<Command>` that
 flows between the two steps, but its `condition()` always returns `false` and
 its `execute()` always throws, preventing it from reaching `ExecutionEngine`.
 
-`LoadResolver` eliminates every `LoadCommand` by:
+`LoadResolver` eliminates every `LoadDirective` by:
 
 1. Resolving the path to an absolute, normalised `Path` relative to the
    directory of the file currently being compiled (`ctx.sourcePath()`).
@@ -62,23 +62,24 @@ its `execute()` always throws, preventing it from reaching `ExecutionEngine`.
 3. Parsing the referenced file through a raw sub-chain (the same steps as
    `parsingChain()`, but without `LoadResolver` itself) using a fresh
    `CompilationContext` bound to the sub-file.
-4. Recursively resolving any `LoadCommand`s found in the sub-file's command list.
+4. Recursively resolving any `LoadDirective`s found in the sub-file's command list.
    Two sets are threaded through the recursion:
    - `visited` (`Set<Path>`, **copied** per branch): tracks files currently being
      expanded in the active call chain. Detects infinite loading loops (A→B→A→B…).
      Copied so that a diamond (root→A→C, root→B→C) is not misidentified as a loop.
-   - `loaded` (`Set<(Path,namespace)>`, **shared** across all branches): tracks
-     `(file, namespace)` pairs already fully expanded anywhere in the compilation.
-     When a `LoadDirective` resolves to a pair already in `loaded`, a `WARN`
-     diagnostic is logged and the directive is silently skipped (idempotent load).
-     Shared so that sibling branches see each other's completed work and do not
-     re-expand the same file.
+   - `loaded` (`Set<String>`, **shared** across all branches): tracks
+     `"absolutePath|namespace"` keys for pairs already fully expanded anywhere in
+     the compilation. When a `LoadDirective` resolves to a key already in `loaded`,
+     a `WARN` is logged and the directive is silently skipped (idempotent load).
+     The key is added only after a successful expansion, so a failed load is not
+     silently suppressed on retry. Shared so that sibling branches see each
+     other's completed work and do not re-expand the same file.
 5. Prefixing every model-name argument of every command in the expanded list
    with `namespace + ":"` via `CommandPrefixer`, when a namespace alias was
    given. Element IDs and display labels are not prefixed; they are local to
    their model and get qualified by `JustificationModel.inline()` at template
    expansion time.
-6. Splicing the resulting flat list in place of the `LoadCommand`.
+6. Splicing the resulting flat list in place of the `LoadDirective`.
 
 Diagnostics produced while compiling a sub-file are forwarded to the parent
 `CompilationContext` via a `finally` block, so the root caller receives a
@@ -91,7 +92,7 @@ flat, under their declared names, into the parent unit.
 
 ## Rationale
 
-- **No circular module dependency.** `LoadCommand` and `LoadResolver` live in
+- **No circular module dependency.** `LoadDirective` and `LoadResolver` live in
   `jpipe-compiler`; `jpipe-model` remains unaware of file loading. The
   dependency direction (`compiler → model`, never `model → compiler`) is
   preserved.
@@ -119,7 +120,7 @@ flat, under their declared names, into the parent unit.
 
 ## Consequences
 
-- `LoadCommand` must never reach `ExecutionEngine`. Its `condition() = false`
+- `LoadDirective` must never reach `ExecutionEngine`. Its `condition() = false`
   and `execute() = throw` enforce this by construction, but `LoadResolver` must
   always appear in the pipeline between `ActionListProvider` and
   `ActionListInterpretation`.
