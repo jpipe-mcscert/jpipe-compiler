@@ -29,3 +29,38 @@ Feature: Load directive
     When I compile it into a unit
     Then the compilation fails with a fatal error
       And a fatal error mentions "does_not_exist.jd"
+
+  Scenario: loading the same file twice under the same namespace is idempotent
+    Given the source file "013_load_same_twice.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "base:t"
+      And the unit contains a justification named "my_justification"
+
+  Scenario: loading the same file twice without a namespace is idempotent
+    Given the source file "014_load_flat_twice.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "t"
+      And the unit contains a justification named "flat_justification"
+
+  Scenario: diamond dependency (two files sharing a common load) compiles without duplicates
+    Given the source file "017_load_diamond_root.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "shared:t"
+      And the unit contains a justification named "left_justification"
+      And the unit contains a justification named "right_justification"
+      And the unit contains a justification named "root_justification"
+
+  Scenario: circular load is reported as a fatal error
+    Given the source file "invalid/017_load_cycle_a.jd"
+    When I compile it into a unit
+    Then the compilation fails with a fatal error
+      And a fatal error mentions "Circular load detected"
+
+  Scenario: flat-importing two files that declare the same model name is an error
+    Given the source file "invalid/019_load_flat_collision.jd"
+    When I compile it into a unit
+    Then the compilation has validation errors
+      And a validation error is reported for rule "execution-error"

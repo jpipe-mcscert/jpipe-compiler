@@ -1,0 +1,6 @@
+load "004_template.jd" as base
+load "004_template.jd" as base
+
+justification my_justification implements base:t {
+    evidence base:t:abs is "A concrete evidence overriding the abstract support"
+}

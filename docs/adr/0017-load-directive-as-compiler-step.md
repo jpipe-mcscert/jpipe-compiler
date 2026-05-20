@@ -46,13 +46,13 @@ runs inside `jpipe-compiler`, between `ActionListProvider` and
 … → ActionListProvider → LoadResolver → ActionListInterpretation → …
 ```
 
-`ActionListProvider` produces a `LoadCommand` record (defined in
+`ActionListProvider` produces a `LoadDirective` record (defined in
 `jpipe-compiler`, not `jpipe-model`) whenever it encounters a `load` directive.
-`LoadCommand` implements `Command` so it can inhabit the `List<Command>` that
+`LoadDirective` implements `Command` so it can inhabit the `List<Command>` that
 flows between the two steps, but its `condition()` always returns `false` and
 its `execute()` always throws, preventing it from reaching `ExecutionEngine`.
 
-`LoadResolver` eliminates every `LoadCommand` by:
+`LoadResolver` eliminates every `LoadDirective` by:
 
 1. Resolving the path to an absolute, normalised `Path` relative to the
    directory of the file currently being compiled (`ctx.sourcePath()`).
@@ -62,14 +62,24 @@ its `execute()` always throws, preventing it from reaching `ExecutionEngine`.
 3. Parsing the referenced file through a raw sub-chain (the same steps as
    `parsingChain()`, but without `LoadResolver` itself) using a fresh
    `CompilationContext` bound to the sub-file.
-4. Recursively resolving any `LoadCommand`s found in the sub-file's command list,
-   passing an extended copy of the visited set.
+4. Recursively resolving any `LoadDirective`s found in the sub-file's command list.
+   Two sets are threaded through the recursion:
+   - `visited` (`Set<Path>`, **copied** per branch): tracks files currently being
+     expanded in the active call chain. Detects infinite loading loops (A→B→A→B…).
+     Copied so that a diamond (root→A→C, root→B→C) is not misidentified as a loop.
+   - `loaded` (`Set<String>`, **shared** across all branches): tracks
+     `"absolutePath|namespace"` keys for pairs already fully expanded anywhere in
+     the compilation. When a `LoadDirective` resolves to a key already in `loaded`,
+     a `WARN` is logged and the directive is silently skipped (idempotent load).
+     The key is added only after a successful expansion, so a failed load is not
+     silently suppressed on retry. Shared so that sibling branches see each
+     other's completed work and do not re-expand the same file.
 5. Prefixing every model-name argument of every command in the expanded list
    with `namespace + ":"` via `CommandPrefixer`, when a namespace alias was
    given. Element IDs and display labels are not prefixed; they are local to
    their model and get qualified by `JustificationModel.inline()` at template
    expansion time.
-6. Splicing the resulting flat list in place of the `LoadCommand`.
+6. Splicing the resulting flat list in place of the `LoadDirective`.
 
 Diagnostics produced while compiling a sub-file are forwarded to the parent
 `CompilationContext` via a `finally` block, so the root caller receives a
@@ -82,7 +92,7 @@ flat, under their declared names, into the parent unit.
 
 ## Rationale
 
-- **No circular module dependency.** `LoadCommand` and `LoadResolver` live in
+- **No circular module dependency.** `LoadDirective` and `LoadResolver` live in
   `jpipe-compiler`; `jpipe-model` remains unaware of file loading. The
   dependency direction (`compiler → model`, never `model → compiler`) is
   preserved.
@@ -94,10 +104,12 @@ flat, under their declared names, into the parent unit.
   compilation concern, not a domain-model concern. Rewriting model-name strings
   in commands before they are executed means the `Unit` ends up with correctly
   namespaced models without any change to the model API.
-- **Cycle detection is O(depth) per file.** Passing an immutable snapshot of the
-  visited set down each branch makes cycle detection both correct (a file
-  reachable via two independent paths is not a cycle) and cheap (one set lookup
-  per load directive).
+- **Cycle detection is O(depth) per file; duplicate loads are O(1) per directive.**
+  The `visited` set (per-branch snapshot) makes cycle detection correct and cheap:
+  a file reachable via two independent paths is not a cycle.
+  The `loaded` set (shared across all branches) makes loading idempotent at zero
+  extra cost: a second `load` of the same `(file, namespace)` pair is a set lookup
+  followed by an early return.
 - **Grammar-pre-processing is avoided.** The `load` rule remains a first-class
   grammar production, so ANTLR reports syntax errors at accurate source
   locations.
@@ -108,7 +120,7 @@ flat, under their declared names, into the parent unit.
 
 ## Consequences
 
-- `LoadCommand` must never reach `ExecutionEngine`. Its `condition() = false`
+- `LoadDirective` must never reach `ExecutionEngine`. Its `condition() = false`
   and `execute() = throw` enforce this by construction, but `LoadResolver` must
   always appear in the pipeline between `ActionListProvider` and
   `ActionListInterpretation`.
@@ -116,10 +128,11 @@ flat, under their declared names, into the parent unit.
   Overriding an abstract support that was inherited through a load requires the
   full qualified key: `namespace:templateName:elementId`. This is consistent
   with the existing override syntax (ADR-0012) and documented in the examples.
-- Omitting `as` imports all models from the loaded file into the current
-  namespace without prefix. If two loaded files declare models with the same
-  name, `ExecutionEngine` will report a duplicate-model error at interpretation
-  time, not at load time.
+- Omitting `as` imports all models from the loaded file flat. Loading the same
+  file flat twice, or loading two files that both flat-import the same third file,
+  is safe: the second expansion is silently skipped (WARN logged). Two *different*
+  files that happen to declare models with the same name will still collide at
+  interpretation time.
 - Cycle detection operates on normalised absolute file paths. Symlinks that
   resolve to the same inode via different paths will be treated as the same file
   and correctly flagged as a cycle.

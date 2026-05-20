@@ -1,0 +1,6 @@
+load "004_template.jd"
+load "004_template.jd"
+
+justification flat_justification implements t {
+    evidence t:abs is "A flat evidence overriding the abstract support"
+}

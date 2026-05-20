@@ -1,0 +1,10 @@
+load "015_load_diamond_left.jd"
+load "016_load_diamond_right.jd"
+
+justification root_justification {
+    conclusion c is "Root conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+    e supports s
+    s supports c
+}
