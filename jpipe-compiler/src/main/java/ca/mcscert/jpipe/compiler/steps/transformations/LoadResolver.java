@@ -155,7 +155,8 @@ public final class LoadResolver
 		if (loaded.contains(loadKey)) {
 			logger.warn(
 					"File '{}' already loaded under namespace '{}', skipping duplicate",
-					resolved, load.namespace());
+					resolved,
+					load.namespace() == null ? "(flat)" : load.namespace());
 			return List.of();
 		}
 		CompilationContext subCtx = new CompilationContext(resolved.toString());
