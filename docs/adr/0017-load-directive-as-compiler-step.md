@@ -62,8 +62,17 @@ its `execute()` always throws, preventing it from reaching `ExecutionEngine`.
 3. Parsing the referenced file through a raw sub-chain (the same steps as
    `parsingChain()`, but without `LoadResolver` itself) using a fresh
    `CompilationContext` bound to the sub-file.
-4. Recursively resolving any `LoadCommand`s found in the sub-file's command list,
-   passing an extended copy of the visited set.
+4. Recursively resolving any `LoadCommand`s found in the sub-file's command list.
+   Two sets are threaded through the recursion:
+   - `visited` (`Set<Path>`, **copied** per branch): tracks files currently being
+     expanded in the active call chain. Detects infinite loading loops (A→B→A→B…).
+     Copied so that a diamond (root→A→C, root→B→C) is not misidentified as a loop.
+   - `loaded` (`Set<(Path,namespace)>`, **shared** across all branches): tracks
+     `(file, namespace)` pairs already fully expanded anywhere in the compilation.
+     When a `LoadDirective` resolves to a pair already in `loaded`, a `WARN`
+     diagnostic is logged and the directive is silently skipped (idempotent load).
+     Shared so that sibling branches see each other's completed work and do not
+     re-expand the same file.
 5. Prefixing every model-name argument of every command in the expanded list
    with `namespace + ":"` via `CommandPrefixer`, when a namespace alias was
    given. Element IDs and display labels are not prefixed; they are local to
@@ -94,10 +103,12 @@ flat, under their declared names, into the parent unit.
   compilation concern, not a domain-model concern. Rewriting model-name strings
   in commands before they are executed means the `Unit` ends up with correctly
   namespaced models without any change to the model API.
-- **Cycle detection is O(depth) per file.** Passing an immutable snapshot of the
-  visited set down each branch makes cycle detection both correct (a file
-  reachable via two independent paths is not a cycle) and cheap (one set lookup
-  per load directive).
+- **Cycle detection is O(depth) per file; duplicate loads are O(1) per directive.**
+  The `visited` set (per-branch snapshot) makes cycle detection correct and cheap:
+  a file reachable via two independent paths is not a cycle.
+  The `loaded` set (shared across all branches) makes loading idempotent at zero
+  extra cost: a second `load` of the same `(file, namespace)` pair is a set lookup
+  followed by an early return.
 - **Grammar-pre-processing is avoided.** The `load` rule remains a first-class
   grammar production, so ANTLR reports syntax errors at accurate source
   locations.
@@ -116,10 +127,11 @@ flat, under their declared names, into the parent unit.
   Overriding an abstract support that was inherited through a load requires the
   full qualified key: `namespace:templateName:elementId`. This is consistent
   with the existing override syntax (ADR-0012) and documented in the examples.
-- Omitting `as` imports all models from the loaded file into the current
-  namespace without prefix. If two loaded files declare models with the same
-  name, `ExecutionEngine` will report a duplicate-model error at interpretation
-  time, not at load time.
+- Omitting `as` imports all models from the loaded file flat. Loading the same
+  file flat twice, or loading two files that both flat-import the same third file,
+  is safe: the second expansion is silently skipped (WARN logged). Two *different*
+  files that happen to declare models with the same name will still collide at
+  interpretation time.
 - Cycle detection operates on normalised absolute file paths. Symlinks that
   resolve to the same inode via different paths will be treated as the same file
   and correctly flagged as a cycle.

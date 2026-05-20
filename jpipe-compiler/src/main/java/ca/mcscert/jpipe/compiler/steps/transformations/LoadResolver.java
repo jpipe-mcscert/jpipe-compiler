@@ -116,7 +116,8 @@ public final class LoadResolver
 			CompilationContext ctx) {
 		Set<Path> visited = new HashSet<>();
 		visited.add(Paths.get(ctx.sourcePath()).toAbsolutePath().normalize());
-		return resolve(commands, ctx, visited);
+		Set<String> loaded = new HashSet<>();
+		return resolve(commands, ctx, visited, loaded);
 	}
 
 	// -------------------------------------------------------------------------
@@ -124,20 +125,20 @@ public final class LoadResolver
 	// -------------------------------------------------------------------------
 
 	private List<Command> resolve(List<Command> commands,
-			CompilationContext ctx, Set<Path> visited) {
+			CompilationContext ctx, Set<Path> visited, Set<String> loaded) {
 		List<Command> result = new ArrayList<>();
 		for (Command cmd : commands) {
 			if (!(cmd instanceof LoadDirective load)) {
 				result.add(cmd);
 				continue;
 			}
-			result.addAll(expand(load, ctx, visited));
+			result.addAll(expand(load, ctx, visited, loaded));
 		}
 		return result;
 	}
 
 	private List<Command> expand(LoadDirective load, CompilationContext ctx,
-			Set<Path> visited) {
+			Set<Path> visited, Set<String> loaded) {
 		logger.debug("Expanding load [{}] as [{}]", load.path(),
 				load.namespace());
 		Path resolved = Paths.get(ctx.sourcePath()).toAbsolutePath().normalize()
@@ -149,13 +150,23 @@ public final class LoadResolver
 			return List.of();
 		}
 
+		String loadKey = resolved + "|"
+				+ (load.namespace() == null ? "" : load.namespace());
+		if (loaded.contains(loadKey)) {
+			logger.warn(
+					"File '{}' already loaded under namespace '{}', skipping duplicate",
+					resolved, load.namespace());
+			return List.of();
+		}
+		loaded.add(loadKey);
+
 		CompilationContext subCtx = new CompilationContext(resolved.toString());
 		try {
 			List<Command> subCommands = parseFile(resolved, subCtx);
 
 			Set<Path> newVisited = new HashSet<>(visited);
 			newVisited.add(resolved);
-			subCommands = resolve(subCommands, subCtx, newVisited);
+			subCommands = resolve(subCommands, subCtx, newVisited, loaded);
 			if (load.namespace() != null) {
 				subCommands = prefix(load.namespace(), subCommands);
 			}

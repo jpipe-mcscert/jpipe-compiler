@@ -29,3 +29,26 @@ Feature: Load directive
     When I compile it into a unit
     Then the compilation fails with a fatal error
       And a fatal error mentions "does_not_exist.jd"
+
+  Scenario: loading the same file twice under the same namespace is idempotent
+    Given the source file "013_load_same_twice.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "base:t"
+      And the unit contains a justification named "my_justification"
+
+  Scenario: loading the same file twice without a namespace is idempotent
+    Given the source file "014_load_flat_twice.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "t"
+      And the unit contains a justification named "flat_justification"
+
+  Scenario: diamond dependency (two files sharing a common load) compiles without duplicates
+    Given the source file "017_load_diamond_root.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "shared:t"
+      And the unit contains a justification named "left_justification"
+      And the unit contains a justification named "right_justification"
+      And the unit contains a justification named "root_justification"

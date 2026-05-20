@@ -1,0 +1,5 @@
+load "004_template.jd" as shared
+
+justification left_justification implements shared:t {
+    evidence shared:t:abs is "Left evidence overriding the abstract support"
+}
