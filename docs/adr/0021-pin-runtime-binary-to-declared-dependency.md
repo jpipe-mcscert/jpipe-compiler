@@ -43,15 +43,22 @@ minimal correct dependency for a CLI tool with no GUI components). The `@@JAVA@@
 placeholder is resolved at **install time** by a `debian/postinst` script:
 
 ```sh
-JAVA_BIN=$(update-alternatives --list java | grep 'java-25' | head -1)
-sed -i "s|@@JAVA@@|$JAVA_BIN|g" /usr/bin/jpipe
+JAVA_BIN=$(dpkg-query -L openjdk-25-jre-headless | grep '/bin/java$' | head -1)
+sed -i "s|which java > /dev/null|test -x '${JAVA_BIN}'|g" /usr/bin/jpipe
+sed -i "s|@@JAVA@@|${JAVA_BIN}|g" /usr/bin/jpipe
 ```
 
-`update-alternatives` is the authoritative registry for runtime binary alternatives
-on Debian/Ubuntu. Querying it avoids hardcoding an architecture-specific path (e.g.
-`/usr/lib/jvm/java-25-openjdk-amd64/bin/java`) while remaining pinned to the
-declared version. The substitution happens at install time, where the dependency is
-guaranteed present, rather than at build time, where it may not be installed.
+`dpkg-query -L openjdk-25-jre-headless` lists exactly the files owned by the
+declared dependency, returning a single deterministic path regardless of how many
+other Java providers are installed. The substitution happens at install time, where
+the dependency is guaranteed present, rather than at build time, where it may not
+be installed.
+
+The `postinst` also patches the launcher's pre-flight check (`which java`) to
+validate the specific binary path (`test -x '$JAVA_BIN'`). Without this, the check
+and the actual invocation would test different binaries, and the script would abort
+on systems where `java` is not on `PATH` even though the declared runtime is
+available.
 
 ## Rationale
 
@@ -59,9 +66,11 @@ guaranteed present, rather than at build time, where it may not be installed.
   global setting that can change independently of the package. The declared
   dependency is meaningless if the launcher ignores it.
 - **Each channel has a native resolution mechanism.** Homebrew provides
-  `Formula[...].opt_bin`; Debian/Ubuntu provides `update-alternatives`. Using
-  these avoids fragile path guessing and keeps the solution idiomatic for each
-  platform.
+  `Formula[...].opt_bin`; Debian/Ubuntu provides `dpkg-query -L` on the declared
+  package. Using these avoids fragile path guessing and keeps the solution
+  idiomatic for each platform. `update-alternatives` was considered for Debian but
+  rejected: it requires filtering by provider name and is non-deterministic when
+  multiple Java 25 providers are installed.
 - **Headless is the correct Debian dependency.** `openjdk-25-jre` adds AWT/Swing
   display libraries that jPipe, as a CLI compiler, does not use. Depending on the
   minimal sufficient package reduces the installation footprint.
@@ -69,13 +78,17 @@ guaranteed present, rather than at build time, where it may not be installed.
 ## Consequences
 
 - `debian/postinst` is introduced; the `@@JAVA@@` sed line is removed from
-  `debian/rules`.
+  `debian/rules`. The postinst performs two substitutions: it replaces the
+  `which java` pre-flight check with `test -x '$JAVA_BIN'`, and replaces
+  `@@JAVA@@` with the resolved binary path. Both the check and the invocation
+  therefore validate and use the same binary.
 - The Homebrew formula in `jpipe-mcscert/homebrew-mcscert` must use
   `Formula["openjdk@25"].opt_bin/"java"` in its `inreplace` call rather than the
   string `"java"`.
 - Any future packaging format (RPM `%post`, AppImage, etc.) must apply the same
   principle: resolve the runtime binary path from the package manager's own
   registry rather than using an unqualified command name.
-- The launcher's pre-flight `which java` check remains as a developer convenience
-  for running the script outside a packaged installation; it does not affect the
-  installed path.
+- The launcher's pre-flight `which java` check remains intact in `bin/jpipe` for
+  developer convenience (running the script outside a packaged installation).
+  The packaged copy at `/usr/bin/jpipe` has it replaced with `test -x '$JAVA_BIN'`
+  by `postinst`.

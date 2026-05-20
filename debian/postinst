@@ -3,12 +3,13 @@ set -e
 
 case "$1" in
     configure)
-        JAVA_BIN=$(update-alternatives --list java | grep 'java-25' | head -1)
-        if [ -z "$JAVA_BIN" ]; then
-            echo "jpipe: could not locate Java 25 binary via update-alternatives" >&2
+        JAVA_BIN=$(dpkg-query -L openjdk-25-jre-headless | grep '/bin/java$' | head -1)
+        if [ -z "$JAVA_BIN" ] || [ ! -x "$JAVA_BIN" ]; then
+            echo "jpipe: could not locate Java 25 binary from openjdk-25-jre-headless" >&2
             exit 1
         fi
-        sed -i "s|@@JAVA@@|$JAVA_BIN|g" /usr/bin/jpipe
+        sed -i "s|which java > /dev/null|test -x '${JAVA_BIN}'|g" /usr/bin/jpipe
+        sed -i "s|@@JAVA@@|${JAVA_BIN}|g" /usr/bin/jpipe
         ;;
 esac
 
