@@ -60,7 +60,7 @@ Feature: Load directive
       And a fatal error mentions "Circular load detected"
 
   Scenario: flat-importing two files that declare the same model name is an error
-    Given the source file "invalid/021_load_flat_collision.jd"
+    Given the source file "invalid/019_load_flat_collision.jd"
     When I compile it into a unit
     Then the compilation has validation errors
       And a validation error is reported for rule "execution-error"
