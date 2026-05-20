@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        JAVA_BIN=$(update-alternatives --list java | grep 'java-25' | head -1)
+        if [ -z "$JAVA_BIN" ]; then
+            echo "jpipe: could not locate Java 25 binary via update-alternatives" >&2
+            exit 1
+        fi
+        sed -i "s|@@JAVA@@|$JAVA_BIN|g" /usr/bin/jpipe
+        ;;
+esac
+
+#DEBHELPER#
