@@ -1,0 +1,10 @@
+load "019_flat_collision_a.jd"
+load "020_flat_collision_b.jd"
+
+justification bar {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+    e supports s
+    s supports c
+}

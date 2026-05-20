@@ -1,0 +1,9 @@
+load "018_load_cycle_b.jd"
+
+justification j {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+    e supports s
+    s supports c
+}

@@ -52,3 +52,15 @@ Feature: Load directive
       And the unit contains a justification named "left_justification"
       And the unit contains a justification named "right_justification"
       And the unit contains a justification named "root_justification"
+
+  Scenario: circular load is reported as a fatal error
+    Given the source file "invalid/017_load_cycle_a.jd"
+    When I compile it into a unit
+    Then the compilation fails with a fatal error
+      And a fatal error mentions "Circular load detected"
+
+  Scenario: flat-importing two files that declare the same model name is an error
+    Given the source file "invalid/021_load_flat_collision.jd"
+    When I compile it into a unit
+    Then the compilation has validation errors
+      And a validation error is reported for rule "execution-error"
