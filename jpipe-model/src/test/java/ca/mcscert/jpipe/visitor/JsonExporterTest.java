@@ -44,4 +44,20 @@ class JsonExporterTest {
 
 		assertThat(json).contains("\"abstract-support\"", "\"t:abs\"");
 	}
+
+	@Test
+	void export_mergedElement_carriesQualifiedAliases() {
+		String json = new JsonExporter()
+				.export(ModelFixtures.unifiedJustification());
+
+		assertThat(json).contains("\"aliases\"", "\"j:a:s\"", "\"j:b:s\"");
+	}
+
+	@Test
+	void export_withoutAliases_omitsAliasesKey() {
+		String json = new JsonExporter()
+				.export(ModelFixtures.simpleJustification());
+
+		assertThat(json).doesNotContain("\"aliases\"");
+	}
 }

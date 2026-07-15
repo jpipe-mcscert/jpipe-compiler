@@ -18,7 +18,10 @@ import java.time.Instant;
  *
  * <ul>
  * <li>{@code @jpipe_link("<modelName:elementId>")} — links the function back to
- * the originating jPipe element.</li>
+ * the originating jPipe element. When the element resulted from a
+ * composition/unification merge, one additional {@code @jpipe_link} is emitted
+ * per original (pre-merge) id, so the function can be resolved by any of
+ * them.</li>
  * <li>{@code @jpipe(produce=[], consume=[])} — placeholder decorators to be
  * filled in by the developer.</li>
  * </ul>
@@ -107,6 +110,7 @@ public class PythonExporter extends AbstractModelExporter {
 	@Override
 	protected void exportModel(JustificationModel<?> model) {
 		currentModelName = model.getName();
+		initAliases(model);
 		model.conclusion().ifPresent(c -> c.accept(this));
 		model.getElements().forEach(e -> e.accept(this));
 	}
@@ -142,6 +146,9 @@ public class PythonExporter extends AbstractModelExporter {
 		String decoratorArgs = jpipeDecoratorArgs(element);
 
 		builder.append("@jpipe_link(\"").append(qid).append("\")\n");
+		for (String alias : qualifiedAliasesOf(element.id())) {
+			builder.append("@jpipe_link(\"").append(alias).append("\")\n");
+		}
 		builder.append("@jpipe(").append(decoratorArgs).append(")\n");
 		builder.append("def ").append(name).append("(").append(params)
 				.append(") -> bool:\n");

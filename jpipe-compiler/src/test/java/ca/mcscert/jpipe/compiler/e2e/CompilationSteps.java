@@ -17,6 +17,7 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.visitor.DotExporter;
+import ca.mcscert.jpipe.visitor.JsonExporter;
 import ca.mcscert.jpipe.visitor.PythonExporter;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -36,6 +37,7 @@ public class CompilationSteps {
 	private JustificationModel<?> currentModel;
 	private String dotOutput;
 	private String pythonOutput;
+	private String jsonOutput;
 
 	@Given("the source file {string}")
 	public void theSourceFile(String filename) {
@@ -190,6 +192,16 @@ public class CompilationSteps {
 	@Then("the DOT output contains a node with id {string}")
 	public void theDotOutputContainsANodeWithId(String id) {
 		assertThat(dotOutput).contains("id=\"" + id + "\"");
+	}
+
+	@When("I export the current model to JSON format")
+	public void iExportTheCurrentModelToJsonFormat() {
+		jsonOutput = new JsonExporter().export(currentModel);
+	}
+
+	@Then("the JSON output contains {string}")
+	public void theJsonOutputContains(String fragment) {
+		assertThat(jsonOutput).contains(fragment);
 	}
 
 	@When("I export the current model to Python format")

@@ -9,6 +9,7 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.util.LabelEscaper;
+import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -27,10 +28,16 @@ import org.json.JSONObject;
  * {
  *   "name": "...",
  *   "type": "justification" | "template",
- *   "elements": [ { "type": "...", "id": "...", "label": "..." }, ... ],
+ *   "elements": [ { "type": "...", "id": "...", "label": "...",
+ *                   "aliases": [ "..." ] }, ... ],
  *   "relations": [ { "source": "...", "target": "..." }, ... ]
  * }
  * }</pre>
+ *
+ * <p>
+ * The optional per-element {@code "aliases"} array lists the qualified original
+ * ids that were merged into the element during composition/unification; it is
+ * omitted for elements that are not the target of any alias.
  */
 public class JsonExporter extends AbstractModelExporter {
 
@@ -95,6 +102,7 @@ public class JsonExporter extends AbstractModelExporter {
 				? "justification"
 				: "template";
 		currentModelName = model.getName();
+		initAliases(model);
 		elements = new JSONArray();
 		relations = new JSONArray();
 
@@ -131,6 +139,10 @@ public class JsonExporter extends AbstractModelExporter {
 		obj.put("id", qualify(element.id()));
 		obj.put("label", element.label());
 		obj.put("escaped", LabelEscaper.toMethodName(element.label()));
+		List<String> aliases = qualifiedAliasesOf(element.id());
+		if (!aliases.isEmpty()) {
+			obj.put("aliases", new JSONArray(aliases));
+		}
 		elements.put(obj);
 	}
 

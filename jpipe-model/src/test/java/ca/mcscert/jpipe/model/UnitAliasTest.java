@@ -45,4 +45,27 @@ class UnitAliasTest {
 			assertThat(unit.resolveAlias("result", "b:s")).isEqualTo("s");
 		}
 	}
+
+	@Nested
+	class MirrorsOntoModel {
+
+		@Test
+		void recordingAnAliasPopulatesBothUnitAndModel() {
+			Justification model = new Justification("result");
+			unit.add(model);
+
+			unit.recordAlias("result", "a:s", "s");
+
+			assertThat(unit.aliases()).containsEntry("result/a:s", "s");
+			assertThat(model.aliases()).containsEntry("a:s", "s");
+		}
+
+		@Test
+		void aliasForUnknownModelIsRecordedOnlyOnUnit() {
+			unit.recordAlias("absent", "a:s", "s");
+
+			assertThat(unit.aliases()).containsEntry("absent/a:s", "s");
+			assertThat(unit.findModel("absent")).isEmpty();
+		}
+	}
 }
