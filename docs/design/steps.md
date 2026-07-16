@@ -169,6 +169,12 @@ When `load "path" as ns` carries a namespace alias, every model-name reference
 in the expanded sub-list is qualified with `ns:` so that loaded models do not
 collide with locally declared ones.
 
+A `load` path may also be a **glob pattern** (e.g. `load "models/*.jd" as lib`),
+in which case one directive expands into every matched file, each resolved by
+the same per-file logic (cycle detection, deduplication, prefixing). Matches are
+sorted for deterministic order; an empty match set is a FATAL. A literal path
+(no glob metacharacters) keeps the single-file behavior. See ADR-0022.
+
 ---
 
 ### Model-building steps

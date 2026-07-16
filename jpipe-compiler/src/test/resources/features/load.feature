@@ -64,3 +64,36 @@ Feature: Load directive
     When I compile it into a unit
     Then the compilation has validation errors
       And a validation error is reported for rule "execution-error"
+
+  Scenario: a glob load expands into every matching file, imported flat
+    Given the source file "020_load_glob_flat.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "alpha"
+      And the unit contains a template named "beta"
+      And the unit contains a justification named "alpha_justification"
+      And the unit contains a justification named "beta_justification"
+
+  Scenario: a glob load with a namespace shares that namespace across matches
+    Given the source file "021_load_glob_namespace.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "lib:alpha"
+      And the unit contains a template named "lib:beta"
+      And the unit contains a justification named "alpha_justification"
+      And the unit contains a justification named "beta_justification"
+
+  Scenario: a recursive glob load also matches nested directories
+    Given the source file "022_load_glob_recursive.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "lib:alpha"
+      And the unit contains a template named "lib:beta"
+      And the unit contains a template named "lib:gamma"
+      And the unit contains a justification named "gamma_justification"
+
+  Scenario: a glob load that matches no file is a fatal error
+    Given the source file "invalid/020_load_glob_nomatch.jd"
+    When I compile it into a unit
+    Then the compilation fails with a fatal error
+      And a fatal error mentions "No file matches load pattern"

@@ -1,0 +1,10 @@
+// A glob load with "as": every matched file's models share the one namespace.
+load "globs/*.jd" as lib
+
+justification alpha_justification implements lib:alpha {
+    evidence lib:alpha:abs is "A concrete evidence for alpha"
+}
+
+justification beta_justification implements lib:beta {
+    evidence lib:beta:abs is "A concrete evidence for beta"
+}

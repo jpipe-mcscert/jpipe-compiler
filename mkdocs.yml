@@ -47,6 +47,8 @@ nav:
       - adr/0018-composition-operators.md
       - adr/0019-ai-assisted-development.md
       - adr/0020-tag-triggered-release-pipeline.md
+      - adr/0021-pin-runtime-binary-to-declared-dependency.md
+      - adr/0022-glob-patterns-in-load.md
 plugins:
   - search
 

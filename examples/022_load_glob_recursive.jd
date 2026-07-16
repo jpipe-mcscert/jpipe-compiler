@@ -1,0 +1,9 @@
+// A recursive glob ("**") matches .jd files at any depth. Following Java NIO
+// glob semantics, "globs/**.jd" matches every .jd under globs/ including nested
+// ones (model_alpha.jd, model_beta.jd and nested/model_gamma.jd), whereas
+// "globs/**/*.jd" would match only the nested files.
+load "globs/**.jd" as lib
+
+justification gamma_justification implements lib:gamma {
+    evidence lib:gamma:abs is "A concrete evidence for gamma"
+}

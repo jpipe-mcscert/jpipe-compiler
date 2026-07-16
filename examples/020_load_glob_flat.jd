@@ -1,0 +1,11 @@
+// A single glob load expands into every matching file, imported flat.
+// "globs/*.jd" matches model_alpha.jd and model_beta.jd (not the nested one).
+load "globs/*.jd"
+
+justification alpha_justification implements alpha {
+    evidence alpha:abs is "A concrete evidence for alpha"
+}
+
+justification beta_justification implements beta {
+    evidence beta:abs is "A concrete evidence for beta"
+}
