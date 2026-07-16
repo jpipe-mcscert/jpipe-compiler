@@ -182,6 +182,37 @@ Architecture decisions live in `docs/adr/`. Notable ones:
   `jpipe-compiler/src/test/resources/features` and JUnit Jupiter unit tests in
   the relevant module.
 - **Logging:** Log4j 2; follow ADR-0006 conventions.
+- **Changelog:** Every user-facing change must be recorded in
+  [`CHANGELOG.md`](CHANGELOG.md) under `## [Unreleased]` — see
+  [Keeping the Changelog Current](#keeping-the-changelog-current).
+
+---
+
+## Keeping the Changelog Current
+
+The project maintains a human-readable [`CHANGELOG.md`](CHANGELOG.md) that
+follows [Keep a Changelog](https://keepachangelog.com/) and semantic versioning.
+**Update it as part of the same change that introduces the behaviour — never as
+an afterthought.**
+
+Rules:
+
+- **When:** Any change a user or downstream integrator would notice — new
+  syntax, CLI flags, export formats, operators, diagnostics, or bug fixes. Pure
+  internal refactors, test-only changes, and CI tweaks do **not** need an entry
+  unless they alter observable behaviour.
+- **Where:** Add a bullet under the `## [Unreleased]` section, in the
+  appropriate group: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, or
+  `Security`. Create the group heading if it does not yet exist. If there is no
+  `## [Unreleased]` section (e.g. right after a release), add one at the top.
+- **How:** Write one concise, user-facing sentence describing the *effect*, not
+  the implementation. Reference the PR or issue number when there is one
+  (e.g. `(#136)`). Match the tone and style of existing entries.
+- **Releasing (maintainer action):** When cutting a release, rename
+  `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, add the git-compare link at
+  the bottom, and open a fresh empty `## [Unreleased]` section above it.
+
+Do not edit already-released sections except to correct an error.
 
 ---
 
