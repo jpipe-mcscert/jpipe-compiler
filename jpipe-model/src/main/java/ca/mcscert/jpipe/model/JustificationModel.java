@@ -48,6 +48,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	private Conclusion conclusion;
 	private Template parent = null;
 	private final List<E> elements = new ArrayList<>();
+	private final Map<String, String> aliases = new LinkedHashMap<>();
 
 	protected JustificationModel(String name) {
 		this.name = name;
@@ -84,6 +85,23 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 					"Model '" + name + "' already has a parent template");
 		}
 		this.parent = parent;
+	}
+
+	/**
+	 * Records that {@code oldId} was merged into {@code newId} within this
+	 * model during composition/unification. Enables consumers of an exported
+	 * model to reference a merged element by any of its pre-merge ids.
+	 */
+	public void recordAlias(String oldId, String newId) {
+		aliases.put(oldId, newId);
+	}
+
+	/**
+	 * Unmodifiable view of this model's aliases. Keys are original element ids;
+	 * values are the id they were merged into.
+	 */
+	public Map<String, String> aliases() {
+		return Collections.unmodifiableMap(aliases);
 	}
 
 	/**

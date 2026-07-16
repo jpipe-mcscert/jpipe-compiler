@@ -131,6 +131,7 @@ public final class Unit {
 	 */
 	public void recordAlias(String modelName, String oldId, String newId) {
 		aliases.put(modelName + "/" + oldId, newId);
+		findModel(modelName).ifPresent(m -> m.recordAlias(oldId, newId));
 	}
 
 	/**

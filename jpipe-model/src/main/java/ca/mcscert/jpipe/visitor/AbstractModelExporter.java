@@ -4,6 +4,10 @@ import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Abstract base for exporters that serialise a single
@@ -44,11 +48,44 @@ public abstract class AbstractModelExporter
 	protected String currentModelName;
 
 	/**
+	 * Inverted alias map for the model currently being exported: merged element
+	 * id &rarr; the list of original ids that were merged into it. Populated by
+	 * {@link #initAliases(JustificationModel)}.
+	 */
+	private final Map<String, List<String>> aliasesByTarget = new HashMap<>();
+
+	/**
 	 * Qualifies {@code elementId} with the current model name:
 	 * {@code "currentModelName:elementId"}.
 	 */
 	protected final String qualify(String elementId) {
 		return currentModelName + ":" + elementId;
+	}
+
+	/**
+	 * Builds the inverted alias lookup for {@code model}. Subclasses that
+	 * surface aliases must call this at the start of
+	 * {@link #exportModel(JustificationModel)}, after setting
+	 * {@link #currentModelName}.
+	 */
+	protected final void initAliases(JustificationModel<?> model) {
+		aliasesByTarget.clear();
+		model.aliases().forEach((oldId, newId) -> aliasesByTarget
+				.computeIfAbsent(newId, _ -> new ArrayList<>()).add(oldId));
+	}
+
+	/**
+	 * Returns the qualified original ids that were merged into
+	 * {@code plainElementId}, or an empty list when the element is not the
+	 * target of any alias. Requires {@link #initAliases(JustificationModel)} to
+	 * have been called first.
+	 */
+	protected final List<String> qualifiedAliasesOf(String plainElementId) {
+		List<String> originals = aliasesByTarget.get(plainElementId);
+		if (originals == null) {
+			return List.of();
+		}
+		return originals.stream().map(this::qualify).toList();
 	}
 
 	/**

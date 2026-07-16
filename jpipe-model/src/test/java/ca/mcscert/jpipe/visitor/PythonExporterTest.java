@@ -36,6 +36,15 @@ class PythonExporterTest {
 	}
 
 	@Test
+	void export_mergedElement_emitsExtraJpipeLinkPerAlias() {
+		String py = new PythonExporter()
+				.export(ModelFixtures.unifiedJustification());
+
+		assertThat(py).contains("@jpipe_link(\"j:s\")",
+				"@jpipe_link(\"j:a:s\")", "@jpipe_link(\"j:b:s\")");
+	}
+
+	@Test
 	void export_decoratorArgsReflectElementRole() {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());

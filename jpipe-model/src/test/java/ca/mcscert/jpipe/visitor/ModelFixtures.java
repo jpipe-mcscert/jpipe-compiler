@@ -38,6 +38,18 @@ class ModelFixtures {
 	}
 
 	/**
+	 * A {@link #simpleJustification()} whose strategy {@code "s"} is the merge
+	 * target of two original ids ({@code "a:s"} and {@code "b:s"}), as recorded
+	 * during composition/unification.
+	 */
+	static Justification unifiedJustification() {
+		Justification j = simpleJustification();
+		j.recordAlias("a:s", "s");
+		j.recordAlias("b:s", "s");
+		return j;
+	}
+
+	/**
 	 * Template with a single Conclusion &larr; Strategy &larr; AbstractSupport
 	 * chain.
 	 *
