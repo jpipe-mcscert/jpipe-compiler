@@ -18,7 +18,9 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-Work in progress toward `2.0.5`.
+---
+
+## [2.1.0] — 2026-07-15
 
 ### Added
 - `load` directive now supports **glob patterns** for loading multiple files
@@ -238,7 +240,8 @@ server.
 ### Added
 - Initial commit: first version of the compiler.
 
-[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.0.4...HEAD
+[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.0.4...v2.1.0
 [2.0.4]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.0.3...v2.0.4
 [2.0.3]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.0.1...v2.0.2
