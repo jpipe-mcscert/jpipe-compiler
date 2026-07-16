@@ -75,24 +75,25 @@
         <!-- Dependency versions -->
         <antlr4.version>4.13.2</antlr4.version>
         <picocli.version>4.7.7</picocli.version>
-        <json.version>20250107</json.version>
+        <json.version>20260522</json.version>
         <log4j.version>2.24.3</log4j.version>
-        <junit.version>5.11.4</junit.version>
+        <junit.version>5.14.2</junit.version>
+        <junit-platform.version>1.14.2</junit-platform.version>
         <assertj.version>3.27.3</assertj.version>
-        <cucumber.version>7.20.1</cucumber.version>
+        <cucumber.version>7.34.4</cucumber.version>
 
         <!-- Plugin versions -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
-        <junit-tree-reporter.version>1.4.0</junit-tree-reporter.version>
-        <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
+        <junit-tree-reporter.version>1.5.1</junit-tree-reporter.version>
+        <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
         <log4j-transform.version>0.1.0</log4j-transform.version>
-        <spotless-plugin.version>3.4.0</spotless-plugin.version>
+        <spotless-plugin.version>3.8.0</spotless-plugin.version>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
-        <checkstyle.version>13.3.0</checkstyle.version>
-        <jacoco-plugin.version>0.8.14</jacoco-plugin.version>
+        <checkstyle.version>13.8.0</checkstyle.version>
+        <jacoco-plugin.version>0.8.15</jacoco-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
-        <sonar-plugin.version>5.6.0.6792</sonar-plugin.version>
+        <sonar-plugin.version>5.7.0.6970</sonar-plugin.version>
 
         <!-- SonarCloud -->
         <sonar.projectKey>jpipe-mcscert_jpipe-compiler</sonar.projectKey>
@@ -185,7 +186,7 @@
             <dependency>
                 <groupId>org.junit.platform</groupId>
                 <artifactId>junit-platform-suite</artifactId>
-                <version>1.11.4</version>
+                <version>${junit-platform.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
