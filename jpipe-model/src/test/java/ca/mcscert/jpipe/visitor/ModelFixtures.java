@@ -38,17 +38,6 @@ class ModelFixtures {
 	}
 
 	/**
-	 * Template with a single Conclusion &larr; Strategy &larr; AbstractSupport
-	 * chain.
-	 *
-	 * <ul>
-	 * <li>name: {@code "t"}
-	 * <li>Conclusion {@code "c"} &mdash; "Conclusion"
-	 * <li>Strategy {@code "s"} &mdash; "Strategy"
-	 * <li>AbstractSupport {@code "abs"} &mdash; "Abstract step"
-	 * </ul>
-	 */
-	/**
 	 * A {@link #simpleJustification()} whose strategy {@code "s"} is the merge
 	 * target of two original ids ({@code "a:s"} and {@code "b:s"}), as recorded
 	 * during composition/unification.
@@ -60,6 +49,17 @@ class ModelFixtures {
 		return j;
 	}
 
+	/**
+	 * Template with a single Conclusion &larr; Strategy &larr; AbstractSupport
+	 * chain.
+	 *
+	 * <ul>
+	 * <li>name: {@code "t"}
+	 * <li>Conclusion {@code "c"} &mdash; "Conclusion"
+	 * <li>Strategy {@code "s"} &mdash; "Strategy"
+	 * <li>AbstractSupport {@code "abs"} &mdash; "Abstract step"
+	 * </ul>
+	 */
 	static Template simpleTemplate() {
 		Template t = new Template("t");
 		Conclusion c = new Conclusion("c", "Conclusion");
