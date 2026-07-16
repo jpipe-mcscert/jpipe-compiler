@@ -23,6 +23,7 @@ import ca.mcscert.jpipe.model.Unit;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -153,7 +155,18 @@ public final class LoadResolver
 			return expandOne(resolved, load, ctx, visited, loaded);
 		}
 
-		List<Path> matches = matchGlob(base, load.path());
+		List<Path> matches;
+		try {
+			matches = matchGlob(base, load.path());
+		} catch (PatternSyntaxException e) {
+			ctx.fatal("Invalid glob in load pattern '" + load.path() + "': "
+					+ e.getDescription());
+			return List.of();
+		} catch (IOException | UncheckedIOException e) {
+			ctx.fatal("Cannot expand load pattern '" + load.path() + "': "
+					+ e.getMessage());
+			return List.of();
+		}
 		if (matches.isEmpty()) {
 			ctx.fatal("No file matches load pattern '" + load.path() + "'");
 			return List.of();
@@ -228,18 +241,22 @@ public final class LoadResolver
 	 * regular files as absolute, normalized paths in a deterministic
 	 * (lexicographic) order. Standard glob semantics apply: {@code *} does not
 	 * cross directory boundaries, while {@code **} does.
+	 *
+	 * @throws PatternSyntaxException
+	 *             if {@code pattern} is not a valid glob (e.g. an unbalanced
+	 *             {@code [}); reported as a FATAL by the caller.
+	 * @throws IOException
+	 *             if walking {@code base} fails; reported as a FATAL by the
+	 *             caller so an IO failure is not misclassified as a no-match.
 	 */
-	private static List<Path> matchGlob(Path base, String pattern) {
+	private static List<Path> matchGlob(Path base, String pattern)
+			throws IOException {
 		PathMatcher matcher = FileSystems.getDefault()
 				.getPathMatcher("glob:" + pattern);
 		try (Stream<Path> walk = Files.walk(base)) {
 			return walk.filter(Files::isRegularFile)
 					.filter(p -> matcher.matches(base.relativize(p)))
 					.map(p -> p.toAbsolutePath().normalize()).sorted().toList();
-		} catch (IOException e) {
-			logger.debug("Cannot walk '{}' for pattern '{}': {}", base, pattern,
-					e.getMessage());
-			return List.of();
 		}
 	}
 

@@ -1,0 +1,7 @@
+// A malformed glob pattern (unbalanced '[') is a fatal error, reported as a
+// diagnostic rather than crashing the compiler.
+load "globs/[.jd" as lib
+
+justification j implements lib:alpha {
+    evidence lib:alpha:abs is "unreachable"
+}

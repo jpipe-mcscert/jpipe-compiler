@@ -91,6 +91,18 @@ class LoadResolverGlobTest {
 	}
 
 	@Test
+	void invalidGlobSyntaxIsAFatalErrorAndDoesNotThrow() throws IOException {
+		writeTemplate("a.jd", "alpha");
+
+		// "[.jd" is an unbalanced glob; it must not crash compilation.
+		CompilationContext ctx = compile("[.jd", null);
+
+		assertThat(ctx.hasFatalErrors()).isTrue();
+		assertThat(fatalMessages(ctx))
+				.anyMatch(m -> m.contains("Invalid glob in load pattern"));
+	}
+
+	@Test
 	void globMatchingTheSourceFileIsReportedAsACycle() throws IOException {
 		writeTemplate("root.jd", "root");
 
