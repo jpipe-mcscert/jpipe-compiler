@@ -1,0 +1,6 @@
+// A glob that matches no file is a fatal error (likely a typo or wrong path).
+load "globs/none_*.jd" as lib
+
+justification j implements lib:alpha {
+    evidence lib:alpha:abs is "unreachable"
+}

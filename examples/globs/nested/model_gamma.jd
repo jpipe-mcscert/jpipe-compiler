@@ -1,0 +1,9 @@
+// A nested glob-loaded model (matched only by the recursive "globs/**/*.jd").
+template gamma {
+    conclusion c is "Gamma conclusion"
+    strategy s   is "Gamma strategy"
+    @support abs is "Gamma abstract support"
+
+    s   supports c
+    abs supports s
+}

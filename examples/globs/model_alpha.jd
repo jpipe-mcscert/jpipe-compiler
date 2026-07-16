@@ -1,0 +1,9 @@
+// A glob-loaded model (matched by "globs/*.jd").
+template alpha {
+    conclusion c is "Alpha conclusion"
+    strategy s   is "Alpha strategy"
+    @support abs is "Alpha abstract support"
+
+    s   supports c
+    abs supports s
+}

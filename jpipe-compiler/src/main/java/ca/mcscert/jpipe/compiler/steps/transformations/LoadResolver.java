@@ -23,13 +23,19 @@ import ca.mcscert.jpipe.model.Unit;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 /**
@@ -141,9 +147,45 @@ public final class LoadResolver
 			Set<Path> visited, Set<String> loaded) {
 		logger.debug("Expanding load [{}] as [{}]", load.path(),
 				load.namespace());
-		Path resolved = Paths.get(ctx.sourcePath()).toAbsolutePath().normalize()
-				.getParent().resolve(load.path()).normalize();
+		Path base = Paths.get(ctx.sourcePath()).toAbsolutePath().normalize()
+				.getParent();
 
+		if (!isGlob(load.path())) {
+			Path resolved = base.resolve(load.path()).normalize();
+			return expandOne(resolved, load, ctx, visited, loaded);
+		}
+
+		List<Path> matches;
+		try {
+			matches = matchGlob(base, load.path());
+		} catch (PatternSyntaxException e) {
+			ctx.fatal("Invalid glob in load pattern '" + load.path() + "': "
+					+ e.getDescription());
+			return List.of();
+		} catch (IOException | UncheckedIOException e) {
+			ctx.fatal("Cannot expand load pattern '" + load.path() + "': "
+					+ e.getMessage());
+			return List.of();
+		}
+		if (matches.isEmpty()) {
+			ctx.fatal("No file matches load pattern '" + load.path() + "'");
+			return List.of();
+		}
+		List<Command> result = new ArrayList<>();
+		for (Path resolved : matches) {
+			result.addAll(expandOne(resolved, load, ctx, visited, loaded));
+		}
+		return result;
+	}
+
+	/**
+	 * Expands a single resolved file into its (recursively resolved and
+	 * optionally namespace-prefixed) command list. Cycle detection and
+	 * duplicate suppression are performed here, per file, so they work
+	 * identically for a literal load and for each match of a glob pattern.
+	 */
+	private List<Command> expandOne(Path resolved, LoadDirective load,
+			CompilationContext ctx, Set<Path> visited, Set<String> loaded) {
 		if (visited.contains(resolved)) {
 			logger.debug("Circular load detected: [{}], skipping", resolved);
 			ctx.fatal("Circular load detected: " + resolved);
@@ -181,6 +223,40 @@ public final class LoadResolver
 			return List.of();
 		} finally {
 			subCtx.diagnostics().forEach(ctx::report);
+		}
+	}
+
+	/**
+	 * Tells whether a load path is a glob pattern (rather than a literal path).
+	 * A literal path keeps the historical single-file behavior, including the
+	 * "Cannot open loaded file" fatal error when it does not exist.
+	 */
+	private static boolean isGlob(String path) {
+		return path.chars()
+				.anyMatch(c -> c == '*' || c == '?' || c == '[' || c == '{');
+	}
+
+	/**
+	 * Resolves a glob pattern against {@code base}, returning the matching
+	 * regular files as absolute, normalized paths in a deterministic
+	 * (lexicographic) order. Standard glob semantics apply: {@code *} does not
+	 * cross directory boundaries, while {@code **} does.
+	 *
+	 * @throws PatternSyntaxException
+	 *             if {@code pattern} is not a valid glob (e.g. an unbalanced
+	 *             {@code [}); reported as a FATAL by the caller.
+	 * @throws IOException
+	 *             if walking {@code base} fails; reported as a FATAL by the
+	 *             caller so an IO failure is not misclassified as a no-match.
+	 */
+	private static List<Path> matchGlob(Path base, String pattern)
+			throws IOException {
+		PathMatcher matcher = FileSystems.getDefault()
+				.getPathMatcher("glob:" + pattern);
+		try (Stream<Path> walk = Files.walk(base)) {
+			return walk.filter(Files::isRegularFile)
+					.filter(p -> matcher.matches(base.relativize(p)))
+					.map(p -> p.toAbsolutePath().normalize()).sorted().toList();
 		}
 	}
 
