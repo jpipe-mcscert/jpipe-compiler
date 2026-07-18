@@ -18,6 +18,11 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- PPA packages are now published for Ubuntu `noble` (24.04 LTS), `resolute`
+  (26.04 LTS), and `stonking` per the new Ubuntu release target policy
+  (ADR-0023); `jammy` (22.04 LTS) and `questing` (25.10) are no longer targeted.
+
 ---
 
 ## [2.1.0] — 2026-07-15
