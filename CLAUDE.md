@@ -5,6 +5,32 @@ This file provides guidance to Claude Code when working with this repository.
 ## Critical Rules
 
 - **Never commit or push code without explicit user consent.** Always show the diff and ask before running any `git commit` or `git push` command.
+- **Never commit directly to `main`.** `main` is release-only (see [Git Workflow](#git-workflow)). All feature and fix work branches off `dev` and merges back into `dev`.
+
+---
+
+## Git Workflow
+
+The repository uses a two-tier branching model (ADR-0024):
+
+- **`main` — release-only.** Every commit on `main` is a released, tagged
+  version; `main@HEAD` always equals the latest published release. Never commit
+  or merge feature work directly to `main`.
+- **`dev` — integration branch.** The default target for all day-to-day work.
+  It holds "everything merged since the last release," and the `CHANGELOG.md`
+  `## [Unreleased]` section lives on `dev`.
+- **Topic branches** — `feat/…`, `fix/…`, `chore/…`, `docs/…`. Branch **from
+  `dev`**, merge back **into `dev`** (normally via PR). Merging into `dev` is
+  what adds the change to `[Unreleased]`.
+- **Releasing** — merge `dev` → `main`, rename `[Unreleased]` to the version,
+  push a `vX.Y.Z` tag on `main` (this triggers `release.yml`, ADR-0020), then
+  merge `main` back into `dev`.
+- **Hotfixes** — branch from `main`, merge into `main`, release via a patch tag,
+  then merge back into `dev`.
+
+CI follows the model: the `unstable` rolling pre-release (`build.yml`) and docs
+deploy (`docs.yml`) track `dev`; `sonar.yml` analyses both branches;
+`release.yml` triggers on tags and requires the tag to be on `main`.
 
 ---
 
@@ -167,6 +193,8 @@ Architecture decisions live in `docs/adr/`. Notable ones:
 | ADR-0012 | Qualified ids and template expansion |
 | ADR-0016 | Error management |
 | ADR-0018 | Composition operators |
+| ADR-0020 | Tag-triggered release pipeline |
+| ADR-0024 | Git branching model (`dev` integration, `main` release-only) |
 
 ---
 
@@ -208,9 +236,11 @@ Rules:
 - **How:** Write one concise, user-facing sentence describing the *effect*, not
   the implementation. Reference the PR or issue number when there is one
   (e.g. `(#136)`). Match the tone and style of existing entries.
-- **Releasing (maintainer action):** When cutting a release, rename
+- **Releasing (maintainer action):** Cutting a release is a `dev` → `main`
+  merge (see [Git Workflow](#git-workflow)). As part of it, rename
   `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, add the git-compare link at
-  the bottom, and open a fresh empty `## [Unreleased]` section above it.
+  the bottom, and open a fresh empty `## [Unreleased]` section above it. The
+  `vX.Y.Z` tag is pushed on `main`.
 
 Do not edit already-released sections except to correct an error.
 
