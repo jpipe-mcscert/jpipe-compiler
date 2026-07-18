@@ -26,8 +26,19 @@ public final class Strategy implements CommonElement {
 		return label;
 	}
 
+	/**
+	 * Adds {@code supporter} to this strategy. A strategy can never
+	 * legitimately be supported twice by the same element id, so the call is
+	 * idempotent by id: if a supporter with the same id is already present,
+	 * nothing is added.
+	 */
 	public void addSupport(SupportLeaf supporter) {
-		this.supporters.add(supporter);
+		String id = ((JustificationElement) supporter).id();
+		boolean present = supporters.stream()
+				.anyMatch(s -> ((JustificationElement) s).id().equals(id));
+		if (!present) {
+			this.supporters.add(supporter);
+		}
 	}
 
 	public List<SupportLeaf> getSupports() {
@@ -35,13 +46,19 @@ public final class Strategy implements CommonElement {
 	}
 
 	/**
-	 * Replaces {@code oldSupport} with {@code newSupport} in the list of
-	 * supporters.
+	 * Replaces the supporter sharing {@code oldSupport}'s id with
+	 * {@code newSupport}. Matching is by id rather than object identity so that
+	 * an {@link AbstractSupport} placeholder can be swapped for the concrete
+	 * element that overrides it (both share the same qualified id but are
+	 * different objects and types).
 	 */
 	public void replaceSupport(SupportLeaf oldSupport, SupportLeaf newSupport) {
-		int index = supporters.indexOf(oldSupport);
-		if (index != -1) {
-			supporters.set(index, newSupport);
+		String oldId = ((JustificationElement) oldSupport).id();
+		for (int i = 0; i < supporters.size(); i++) {
+			if (((JustificationElement) supporters.get(i)).id().equals(oldId)) {
+				supporters.set(i, newSupport);
+				return;
+			}
 		}
 	}
 

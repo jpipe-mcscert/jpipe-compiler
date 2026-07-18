@@ -60,6 +60,13 @@ Feature: Consistency and completeness validation
     Then the compilation has validation errors
     And a validation error is reported for rule "acyclic-support"
 
+  Scenario: referencing a template-internal element from an implementor causes a semantic error
+    Given the source file "invalid/022_reference_into_template.jd"
+    When I compile it into a unit
+    Then the compilation has validation errors
+    And a validation error is reported for rule "reference-into-template"
+    And a validation error mentions "quality:gates"
+
   Scenario: mutually implementing templates causes a semantic error
     Given the source file "invalid/010_implements_cycle.jd"
     When I compile it into a unit

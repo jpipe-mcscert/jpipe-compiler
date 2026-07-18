@@ -244,4 +244,11 @@ public class CompilationSteps {
 				.extracting(Diagnostic::message)
 				.anySatisfy(msg -> assertThat(msg).contains("[" + rule + "]"));
 	}
+
+	@Then("a validation error mentions {string}")
+	public void aValidationErrorMentions(String text) {
+		assertThat(ctx.diagnostics()).filteredOn(Diagnostic::isError)
+				.extracting(Diagnostic::message)
+				.anySatisfy(msg -> assertThat(msg).contains(text));
+	}
 }

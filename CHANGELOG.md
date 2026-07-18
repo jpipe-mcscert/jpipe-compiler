@@ -18,10 +18,23 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- A model implementing a template may now only override the template's
+  `@support` placeholders; referencing a template-internal element (a strategy
+  or conclusion) is rejected with a `[reference-into-template]` error.
+
 ### Changed
 - PPA packages are now published for Ubuntu `noble` (24.04 LTS), `resolute`
   (26.04 LTS), and `stonking` per the new Ubuntu release target policy
   (ADR-0023); `jammy` (22.04 LTS) and `questing` (25.10) are no longer targeted.
+
+### Fixed
+- DOT export now quotes template cluster ids, so a namespaced template name
+  (e.g. loaded via `load "…" as ns`) no longer produces a malformed Graphviz
+  graph.
+- Overriding a template's `@support` with an evidence no longer leaves a stale
+  placeholder reference on the inherited strategy, which could render a
+  duplicate arrow in DOT export.
 
 ---
 
