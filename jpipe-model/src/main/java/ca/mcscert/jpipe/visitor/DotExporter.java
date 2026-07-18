@@ -239,8 +239,9 @@ public class DotExporter extends AbstractModelExporter {
 			String indent) {
 		String ancName = ancestor.getName();
 
-		builder.append(indent).append("subgraph cluster_").append(ancName)
-				.append(" {").append(System.lineSeparator());
+		builder.append(indent).append("subgraph ")
+				.append(DotLabel.quoted("cluster_" + ancName)).append(" {")
+				.append(System.lineSeparator());
 		builder.append(indent).append(INDENT).append(CLUSTER_ATTRS)
 				.append(System.lineSeparator());
 		builder.append(indent).append(INDENT).append("label=")

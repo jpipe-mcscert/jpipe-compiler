@@ -34,6 +34,13 @@ public final class DiagnosticCodes {
 	/** An {@code implements} directive could not be applied. */
 	public static final String IMPLEMENTS_ERROR = "[implements-error]";
 
+	/**
+	 * A model implementing a template references a template-internal element (a
+	 * strategy or conclusion) instead of only overriding its {@code @support}
+	 * placeholders.
+	 */
+	public static final String REFERENCE_INTO_TEMPLATE = "[reference-into-template]";
+
 	// ---- support / element resolution ---------------------------------------
 
 	/**

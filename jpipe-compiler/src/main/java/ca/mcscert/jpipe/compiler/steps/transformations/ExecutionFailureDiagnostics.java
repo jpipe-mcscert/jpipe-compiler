@@ -4,6 +4,7 @@ import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
+import ca.mcscert.jpipe.commands.linking.ReferenceIntoTemplateException;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.DiagnosticCodes;
 import ca.mcscert.jpipe.model.SourceLocation;
@@ -74,8 +75,12 @@ final class ExecutionFailureDiagnostics {
 							+ cause.getMessage());
 				}
 			}
-			case AddSupport c -> error(ctx, c.location(),
-					DiagnosticCodes.INVALID_SUPPORT + " " + cause.getMessage());
+			case AddSupport c -> {
+				String code = cause instanceof ReferenceIntoTemplateException
+						? DiagnosticCodes.REFERENCE_INTO_TEMPLATE
+						: DiagnosticCodes.INVALID_SUPPORT;
+				error(ctx, c.location(), code + " " + cause.getMessage());
+			}
 			default -> ctx.error(DiagnosticCodes.EXECUTION_ERROR + " " + cmd
 					+ ": " + cause.getMessage());
 		}

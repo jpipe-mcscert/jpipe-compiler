@@ -291,6 +291,23 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	}
 
 	/**
+	 * Returns {@code true} when {@code id} names an ancestor-template element
+	 * that is <em>not</em> an {@link AbstractSupport} placeholder — i.e.
+	 * template-internal structure (a strategy or conclusion) that a model
+	 * implementing the template must not reference. A model may only override
+	 * the template's {@code @support} placeholders, never reach inside its
+	 * structure.
+	 *
+	 * <p>
+	 * Returns {@code false} for template {@code @support} ids (whether
+	 * overridden or not) and for ids local to this model.
+	 */
+	public boolean isInheritedNonSupport(String id) {
+		Class<? extends JustificationElement> type = ancestorTypes().get(id);
+		return type != null && type != AbstractSupport.class;
+	}
+
+	/**
 	 * Builds a map from qualified element id to its runtime class for every
 	 * element (including the conclusion) in the direct parent template. Because
 	 * the parent's element list was already flattened by its own

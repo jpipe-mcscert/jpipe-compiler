@@ -84,6 +84,13 @@ public final class AddSupport extends RegularCommand {
 				.orElseThrow(() -> new NoSuchElementException(
 						"No element with id: " + supporterId));
 
+		if (model.isInheritedNonSupport(supportableId)) {
+			throw new ReferenceIntoTemplateException(supportableId, container);
+		}
+		if (model.isInheritedNonSupport(supporterId)) {
+			throw new ReferenceIntoTemplateException(supporterId, container);
+		}
+
 		switch (supportable) {
 			case Conclusion c when supporter instanceof Strategy s ->
 				c.addSupport(s);

@@ -68,7 +68,7 @@ class DotExporterTest {
 
 		String dot = new DotExporter().export(j);
 
-		assertThat(dot).contains("subgraph cluster_t");
+		assertThat(dot).contains("subgraph \"cluster_t\"");
 	}
 
 	@Test
@@ -85,7 +85,7 @@ class DotExporterTest {
 
 		// Local evidence node must appear before any cluster block
 		int evidencePos = dot.indexOf("id=\"j:e\"");
-		int clusterPos = dot.indexOf("subgraph cluster_t");
+		int clusterPos = dot.indexOf("subgraph \"cluster_t\"");
 		assertThat(evidencePos).isLessThan(clusterPos);
 	}
 
@@ -149,14 +149,61 @@ class DotExporterTest {
 
 		String dot = new DotExporter().export(j);
 
-		assertThat(dot).contains("subgraph cluster_t2", "subgraph cluster_t1",
-				"id=\"j:t2:s2\"", "id=\"j:t1:s1\"");
+		assertThat(dot).contains("subgraph \"cluster_t2\"",
+				"subgraph \"cluster_t1\"", "id=\"j:t2:s2\"", "id=\"j:t1:s1\"");
 		// Nesting: cluster_t1 must appear after cluster_t2 opens and before
 		// cluster_t2 closes — no closing brace between the two headers
-		int t2Idx = dot.indexOf("subgraph cluster_t2");
-		int t1Idx = dot.indexOf("subgraph cluster_t1");
+		int t2Idx = dot.indexOf("subgraph \"cluster_t2\"");
+		int t1Idx = dot.indexOf("subgraph \"cluster_t1\"");
 		assertThat(t1Idx).isGreaterThan(t2Idx);
 		String between = dot.substring(t2Idx, t1Idx);
 		assertThat(between).doesNotContain("\n}");
+	}
+
+	@Test
+	void export_overriddenSupportWiredToStrategyProducesSingleEdge() {
+		// Reproduces the duplicate-arrow bug: an @support overridden by an
+		// evidence that is also wired to the inherited strategy must not draw
+		// the
+		// ghost -> strategy edge twice.
+		Template t = new Template("a_template");
+		t.setConclusion(new Conclusion("c", "A conclusion"));
+		Strategy templateStrategy = new Strategy("s", "A strategy");
+		t.addElement(templateStrategy);
+		AbstractSupport abs = new AbstractSupport("abs", "An abstract support");
+		t.addElement(abs);
+		templateStrategy.addSupport(abs);
+
+		Justification j = new Justification("immediate");
+		j.inline(t, "a_template");
+		j.removeElement("a_template:abs");
+		Evidence ev = new Evidence("a_template:abs", "An immediate evidence");
+		j.addElement(ev);
+		// Simulate "a_template:abs supports a_template:s": wire the concrete
+		// evidence onto the inherited strategy that still holds the abstract.
+		Strategy inherited = (Strategy) j.findById("a_template:s")
+				.orElseThrow();
+		inherited.addSupport(ev);
+
+		String dot = new DotExporter().export(j);
+
+		assertThat(dot).containsOnlyOnce("\"immediate:a_template:abs@abstract\""
+				+ " -> \"immediate:a_template:s\"");
+	}
+
+	@Test
+	void export_qualifiedTemplateNameProducesQuotedClusterId() {
+		// A namespaced template name contains ':', which Graphviz reads as a
+		// port separator unless the cluster id is quoted.
+		Template t = new Template("ns:t");
+		t.setConclusion(new Conclusion("c", "System correct"));
+		t.addElement(new Strategy("s", "Testing"));
+
+		Justification j = new Justification("j");
+		j.inline(t, "ns:t");
+
+		String dot = new DotExporter().export(j);
+
+		assertThat(dot).contains("subgraph \"cluster_ns:t\"");
 	}
 }
