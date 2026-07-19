@@ -14,9 +14,9 @@ bug fixes, chores, and release-preparation commits all landed directly on
   `release.yml` already verifies that the tag points at a commit on `main`.
   Nothing else about `main` distinguishes "released" commits from
   "work-in-progress" commits — the branch is a mix of both.
-- **`main` also drives the rolling `unstable` snapshot.** The `publish-unstable`
-  job in `build.yml` re-points the `unstable` pre-release on every push to
-  `main`. So `main` is simultaneously the integration branch *and* the release
+- **`main` also drives the rolling `unstable` snapshot.** A job in `build.yml`
+  re-points the `unstable` pre-release on every push to `main`. So `main` is
+  simultaneously the integration branch *and* the release
   branch, and the `CHANGELOG.md` `[Unreleased]` section accumulates directly on
   the same branch that is supposed to represent shipped software.
 
@@ -54,10 +54,13 @@ and the tag-triggered pipeline (ADR-0020) are unchanged; this ADR only changes
 
 ### CI consequences (applied in this change)
 
-- **`build.yml` `publish-unstable`** now triggers on push to **`dev`** instead
-  of `main` — the rolling snapshot tracks the integration branch, which is where
-  continuous merges now happen. (`main` would otherwise only move at release
-  time, making the "unstable" snapshot stale.)
+- **The `unstable` pre-release job in `build.yml` is removed.** With `dev` in
+  place, the tip of `dev` *is* the rolling "latest integrated" state, so a
+  separate `unstable`
+  GitHub pre-release (and its force-pushed `unstable` tag) is redundant. This
+  supersedes the `unstable` pre-release introduced by
+  [ADR-0020](0020-tag-triggered-release-pipeline.md); per-run fat-JAR artifacts
+  remain available on each Actions run.
 - **`sonar.yml`** runs its push analysis on both `main` and `dev` so the
   integration branch is quality-gated.
 - **`docs.yml`** deploys documentation from **`dev`**, so ADRs and design docs
@@ -76,9 +79,9 @@ and the tag-triggered pipeline (ADR-0020) are unchanged; this ADR only changes
   Keeping it off `main` removes the oddity of a shipped branch carrying an
   `[Unreleased]` heading between releases.
 - **Deliberate releases, continuous integration.** Work still flows
-  continuously (into `dev`, with an `unstable` snapshot), while releasing stays
-  an explicit, low-frequency act (a `dev` → `main` merge plus a tag), consistent
-  with ADR-0020's "releases are deliberate" rationale.
+  continuously into `dev` (whose `HEAD` is the latest integrated code), while
+  releasing stays an explicit, low-frequency act (a `dev` → `main` merge plus a
+  tag), consistent with ADR-0020's "releases are deliberate" rationale.
 - **Low ceremony.** Two long-lived branches and short-lived topic branches is
   the smallest model that separates integration from release; it does not
   require release branches or a full git-flow.
@@ -93,8 +96,8 @@ and the tag-triggered pipeline (ADR-0020) are unchanged; this ADR only changes
 - The release checklist gains a first step: merge `dev` into `main` before
   tagging (and merge `main` back into `dev` afterwards). The existing
   ADR-0020 / ADR-0023 release steps follow unchanged.
-- The `unstable` GitHub pre-release now reflects `dev`. Its notes ("rebuilt on
-  every push") are updated to reference `dev`.
+- The `unstable` GitHub pre-release and its `unstable` tag are retired; users who
+  want the latest build take the tip of `dev` or a per-run Actions artifact.
 - Published documentation tracks `dev`; a doc fix is visible once merged, not
   only after the next release.
 - Existing open work branched from `main` (e.g. the branch introducing this
