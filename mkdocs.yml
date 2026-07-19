@@ -50,6 +50,7 @@ nav:
       - adr/0021-pin-runtime-binary-to-declared-dependency.md
       - adr/0022-glob-patterns-in-load.md
       - adr/0023-ubuntu-release-target-policy.md
+      - adr/0024-git-branching-model.md
 plugins:
   - search
 

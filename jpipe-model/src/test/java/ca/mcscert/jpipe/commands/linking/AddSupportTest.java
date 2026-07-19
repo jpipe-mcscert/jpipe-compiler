@@ -12,14 +12,19 @@ import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
+import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class AddSupportTest {
 
@@ -132,6 +137,59 @@ class AddSupportTest {
 			var cmd = new AddSupport("j1", "e1", "s1");
 			assertThatThrownBy(() -> cmd.execute(unit))
 					.isInstanceOf(IllegalArgumentException.class);
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Template encapsulation — an implementor may only override @support
+	// placeholders, never reference the parent template's own structure.
+	// -------------------------------------------------------------------------
+
+	@Nested
+	class TemplateEncapsulation {
+
+		/**
+		 * Every reference to the parent template's own strategy {@code t:s} is
+		 * rejected, whether it appears as the supportable or the supporter, and
+		 * whether it is written qualified ({@code t:s}) or as a plain id
+		 * ({@code s}) — {@code findById} resolves the plain id, so the
+		 * restriction must apply to the resolved id.
+		 */
+		@ParameterizedTest
+		@CsvSource({"t:s, local", "s, local", "local, t:s"})
+		void rejectsReferenceToTemplateInternalStructure(String supportable,
+				String supporter) {
+			Unit unit = unitWithImplementation();
+			var cmd = new AddSupport("j", supportable, supporter);
+
+			assertThatThrownBy(() -> cmd.execute(unit))
+					.isInstanceOf(ReferenceIntoTemplateException.class)
+					.hasMessageContaining("t:s");
+		}
+
+		/**
+		 * A unit with template {@code t} (conclusion c, strategy s, @support
+		 * abs) and a justification {@code j} that inlines it and adds a local
+		 * evidence.
+		 */
+		private static Unit unitWithImplementation() {
+			Unit unit = new Unit("src");
+			Template t = new Template("t");
+			Conclusion tc = new Conclusion("c", "conclusion");
+			t.setConclusion(tc);
+			Strategy ts = new Strategy("s", "strategy");
+			t.addElement(ts);
+			AbstractSupport abs = new AbstractSupport("abs", "abstract");
+			t.addElement(abs);
+			ts.addSupport(abs);
+			tc.addSupport(ts);
+			unit.add(t);
+
+			Justification j = new Justification("j");
+			j.inline(t, "t");
+			j.addElement(new Evidence("local", "local evidence"));
+			unit.add(j);
+			return unit;
 		}
 	}
 

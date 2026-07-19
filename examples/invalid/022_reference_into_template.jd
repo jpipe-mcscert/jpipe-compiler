@@ -1,0 +1,29 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// A valid template exposing two abstract supports.
+template quality {
+  conclusion ready is "Version 2.0 is ready to ship"
+  strategy gates is "All release gates pass"
+  gates supports ready
+
+  @support tested is "Testing is demonstrated"
+  tested supports gates
+
+  @support documented is "Documentation is demonstrated"
+  documented supports gates
+}
+
+// This justification is only allowed to override the @support placeholders.
+// Referencing "quality:gates" (a template-internal strategy) reaches inside
+// the parent template and must be rejected.
+justification readiness implements quality {
+  evidence quality:tested is "The test suite passes"
+  quality:tested supports quality:gates
+
+  evidence quality:documented is "CHANGELOG.md updated in this PR"
+  quality:documented supports quality:gates
+}

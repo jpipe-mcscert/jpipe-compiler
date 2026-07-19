@@ -5,6 +5,37 @@ This file provides guidance to Claude Code when working with this repository.
 ## Critical Rules
 
 - **Never commit or push code without explicit user consent.** Always show the diff and ask before running any `git commit` or `git push` command.
+- **Never commit directly to `main`.** `main` is release-only (see [Git Workflow](#git-workflow)). All feature and fix work branches off `dev` and merges back into `dev`.
+- **Never merge a pull request or push a git tag.** Merging (including the release `dev`→`main` merge) and tagging (`vX.Y.Z`) are **human-only** actions. Claude prepares the branch/PR and hands off; it does not run `gh pr merge`, merge branches into `dev`/`main`, or push tags.
+
+---
+
+## Git Workflow
+
+The repository uses a two-tier branching model (ADR-0024):
+
+- **`main` — release-only.** Every commit on `main` is a released, tagged
+  version; `main@HEAD` always equals the latest published release. Never commit
+  or merge feature work directly to `main`.
+- **`dev` — integration branch.** The default target for all day-to-day work.
+  It holds "everything merged since the last release," and the `CHANGELOG.md`
+  `## [Unreleased]` section lives on `dev`.
+- **Topic branches** — `feat/…`, `fix/…`, `chore/…`, `docs/…`. Branch **from
+  `dev`**, merge back **into `dev`** (normally via PR). Merging into `dev` is
+  what adds the change to `[Unreleased]`.
+- **Releasing** — merge `dev` → `main`, rename `[Unreleased]` to the version,
+  push a `vX.Y.Z` tag on `main` (this triggers `release.yml`, ADR-0020), then
+  merge `main` back into `dev`. **The `dev`→`main` merge and the tag push are
+  human-only actions** (see Critical Rules); Claude only prepares the
+  release-prep branch/PR (changelog finalization, version bump).
+- **Hotfixes** — branch from `main`, merge into `main`, release via a patch tag,
+  then merge back into `dev`.
+
+CI follows the model: `build.yml` runs on every push/PR (fat JAR available as a
+per-run artifact); docs deploy (`docs.yml`) tracks `dev`; `sonar.yml` analyses
+both branches; `release.yml` triggers on tags and requires the tag to be on
+`main`. There is no rolling `unstable` pre-release — the tip of `dev` is the
+latest integrated build (ADR-0024).
 
 ---
 
@@ -167,6 +198,8 @@ Architecture decisions live in `docs/adr/`. Notable ones:
 | ADR-0012 | Qualified ids and template expansion |
 | ADR-0016 | Error management |
 | ADR-0018 | Composition operators |
+| ADR-0020 | Tag-triggered release pipeline |
+| ADR-0024 | Git branching model (`dev` integration, `main` release-only) |
 
 ---
 
@@ -208,9 +241,12 @@ Rules:
 - **How:** Write one concise, user-facing sentence describing the *effect*, not
   the implementation. Reference the PR or issue number when there is one
   (e.g. `(#136)`). Match the tone and style of existing entries.
-- **Releasing (maintainer action):** When cutting a release, rename
-  `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, add the git-compare link at
-  the bottom, and open a fresh empty `## [Unreleased]` section above it.
+- **Releasing (maintainer action):** Cutting a release is a `dev` → `main`
+  merge (see [Git Workflow](#git-workflow)). Claude prepares a release-prep
+  branch that renames `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, adds the
+  git-compare link at the bottom, and opens a fresh empty `## [Unreleased]`
+  section above it. **The maintainer (human) performs the `dev`→`main` merge and
+  pushes the `vX.Y.Z` tag on `main`** — Claude does not merge or tag.
 
 Do not edit already-released sections except to correct an error.
 

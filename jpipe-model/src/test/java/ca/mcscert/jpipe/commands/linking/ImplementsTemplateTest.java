@@ -247,9 +247,14 @@ class ImplementsTemplateTest {
 			assertThat(j.findById("t:as")).isPresent().get()
 					.isInstanceOf(Evidence.class);
 			Strategy ts = (Strategy) j.findById("t:ts").orElseThrow();
-			assertThat(ts.getSupports())
+			// The override must actually replace the abstract placeholder in
+			// the
+			// strategy's supporter list with the concrete evidence (no stale
+			// AbstractSupport reference left behind).
+			assertThat(ts.getSupports()).singleElement()
+					.isInstanceOf(Evidence.class)
 					.extracting(sl -> ((JustificationElement) sl).id())
-					.contains("t:as");
+					.isEqualTo("t:as");
 		}
 
 		@Test
