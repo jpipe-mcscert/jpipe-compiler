@@ -28,9 +28,11 @@ The repository uses a two-tier branching model (ADR-0024):
 - **Hotfixes** — branch from `main`, merge into `main`, release via a patch tag,
   then merge back into `dev`.
 
-CI follows the model: the `unstable` rolling pre-release (`build.yml`) and docs
-deploy (`docs.yml`) track `dev`; `sonar.yml` analyses both branches;
-`release.yml` triggers on tags and requires the tag to be on `main`.
+CI follows the model: `build.yml` runs on every push/PR (fat JAR available as a
+per-run artifact); docs deploy (`docs.yml`) tracks `dev`; `sonar.yml` analyses
+both branches; `release.yml` triggers on tags and requires the tag to be on
+`main`. There is no rolling `unstable` pre-release — the tip of `dev` is the
+latest integrated build (ADR-0024).
 
 ---
 
