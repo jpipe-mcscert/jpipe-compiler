@@ -378,6 +378,35 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("isInheritedNonSupport: true for inherited strategy and conclusion")
+		void isInheritedNonSupportFlagsTemplateStructure() {
+			Template child = new Template("child");
+			child.inline(template(), "t");
+
+			assertThat(child.isInheritedNonSupport("t:s")).isTrue();
+			assertThat(child.isInheritedNonSupport("t:c")).isTrue();
+		}
+
+		@Test
+		@DisplayName("isInheritedNonSupport: false for @support, local, and unknown ids")
+		void isInheritedNonSupportAllowsSupportsAndLocals() {
+			Template child = new Template("child");
+			child.inline(template(), "t");
+
+			assertThat(child.isInheritedNonSupport("t:abs")).isFalse();
+			assertThat(child.isInheritedNonSupport("nonexistent")).isFalse();
+		}
+
+		@Test
+		@DisplayName("isInheritedNonSupport: false when the model has no parent")
+		void isInheritedNonSupportFalseWithoutParent() {
+			Justification j = new Justification("j");
+			j.addElement(new Strategy("s", "strategy"));
+
+			assertThat(j.isInheritedNonSupport("s")).isFalse();
+		}
+
+		@Test
 		@DisplayName("after inline into Justification: CommonElement copies are inherited")
 		void inlinedCommonElementsAreInheritedInJustification() {
 			// Template with no AbstractSupport — safe to inline into
