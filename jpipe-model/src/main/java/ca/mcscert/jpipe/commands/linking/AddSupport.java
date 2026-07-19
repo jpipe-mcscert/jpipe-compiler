@@ -84,11 +84,14 @@ public final class AddSupport extends RegularCommand {
 				.orElseThrow(() -> new NoSuchElementException(
 						"No element with id: " + supporterId));
 
-		if (model.isInheritedNonSupport(supportableId)) {
-			throw new ReferenceIntoTemplateException(supportableId, container);
+		// Check the resolved element ids (findById resolves plain ids to their
+		// qualified form), otherwise a plain id would bypass the restriction.
+		if (model.isInheritedNonSupport(supportable.id())) {
+			throw new ReferenceIntoTemplateException(supportable.id(),
+					container);
 		}
-		if (model.isInheritedNonSupport(supporterId)) {
-			throw new ReferenceIntoTemplateException(supporterId, container);
+		if (model.isInheritedNonSupport(supporter.id())) {
+			throw new ReferenceIntoTemplateException(supporter.id(), container);
 		}
 
 		switch (supportable) {
