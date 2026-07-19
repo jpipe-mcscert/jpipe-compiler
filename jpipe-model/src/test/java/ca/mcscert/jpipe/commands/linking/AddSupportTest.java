@@ -23,6 +23,8 @@ import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class AddSupportTest {
 
@@ -146,32 +148,19 @@ class AddSupportTest {
 	@Nested
 	class TemplateEncapsulation {
 
-		@Test
-		void rejectsInheritedStrategyReferencedByQualifiedId() {
+		/**
+		 * Every reference to the parent template's own strategy {@code t:s} is
+		 * rejected, whether it appears as the supportable or the supporter, and
+		 * whether it is written qualified ({@code t:s}) or as a plain id
+		 * ({@code s}) — {@code findById} resolves the plain id, so the
+		 * restriction must apply to the resolved id.
+		 */
+		@ParameterizedTest
+		@CsvSource({"t:s, local", "s, local", "local, t:s"})
+		void rejectsReferenceToTemplateInternalStructure(String supportable,
+				String supporter) {
 			Unit unit = unitWithImplementation();
-			var cmd = new AddSupport("j", "t:s", "local");
-
-			assertThatThrownBy(() -> cmd.execute(unit))
-					.isInstanceOf(ReferenceIntoTemplateException.class)
-					.hasMessageContaining("t:s");
-		}
-
-		@Test
-		void rejectsInheritedStrategyReferencedByPlainId() {
-			// findById resolves the plain id "s" to the qualified "t:s"; the
-			// restriction must apply to the resolved id, not the raw one.
-			Unit unit = unitWithImplementation();
-			var cmd = new AddSupport("j", "s", "local");
-
-			assertThatThrownBy(() -> cmd.execute(unit))
-					.isInstanceOf(ReferenceIntoTemplateException.class)
-					.hasMessageContaining("t:s");
-		}
-
-		@Test
-		void rejectsInheritedElementUsedAsSupporter() {
-			Unit unit = unitWithImplementation();
-			var cmd = new AddSupport("j", "local", "t:s");
+			var cmd = new AddSupport("j", supportable, supporter);
 
 			assertThatThrownBy(() -> cmd.execute(unit))
 					.isInstanceOf(ReferenceIntoTemplateException.class)

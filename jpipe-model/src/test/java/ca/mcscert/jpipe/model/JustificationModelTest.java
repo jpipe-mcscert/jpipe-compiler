@@ -392,8 +392,10 @@ class JustificationModelTest {
 		void isInheritedNonSupportAllowsSupportsAndLocals() {
 			Template child = new Template("child");
 			child.inline(template(), "t");
+			child.addElement(new Strategy("local", "a local strategy"));
 
 			assertThat(child.isInheritedNonSupport("t:abs")).isFalse();
+			assertThat(child.isInheritedNonSupport("local")).isFalse();
 			assertThat(child.isInheritedNonSupport("nonexistent")).isFalse();
 		}
 
