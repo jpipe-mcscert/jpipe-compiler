@@ -6,6 +6,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 - **Never commit or push code without explicit user consent.** Always show the diff and ask before running any `git commit` or `git push` command.
 - **Never commit directly to `main`.** `main` is release-only (see [Git Workflow](#git-workflow)). All feature and fix work branches off `dev` and merges back into `dev`.
+- **Never merge a pull request or push a git tag.** Merging (including the release `dev`→`main` merge) and tagging (`vX.Y.Z`) are **human-only** actions. Claude prepares the branch/PR and hands off; it does not run `gh pr merge`, merge branches into `dev`/`main`, or push tags.
 
 ---
 
@@ -24,7 +25,9 @@ The repository uses a two-tier branching model (ADR-0024):
   what adds the change to `[Unreleased]`.
 - **Releasing** — merge `dev` → `main`, rename `[Unreleased]` to the version,
   push a `vX.Y.Z` tag on `main` (this triggers `release.yml`, ADR-0020), then
-  merge `main` back into `dev`.
+  merge `main` back into `dev`. **The `dev`→`main` merge and the tag push are
+  human-only actions** (see Critical Rules); Claude only prepares the
+  release-prep branch/PR (changelog finalization, version bump).
 - **Hotfixes** — branch from `main`, merge into `main`, release via a patch tag,
   then merge back into `dev`.
 
@@ -239,10 +242,11 @@ Rules:
   the implementation. Reference the PR or issue number when there is one
   (e.g. `(#136)`). Match the tone and style of existing entries.
 - **Releasing (maintainer action):** Cutting a release is a `dev` → `main`
-  merge (see [Git Workflow](#git-workflow)). As part of it, rename
-  `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, add the git-compare link at
-  the bottom, and open a fresh empty `## [Unreleased]` section above it. The
-  `vX.Y.Z` tag is pushed on `main`.
+  merge (see [Git Workflow](#git-workflow)). Claude prepares a release-prep
+  branch that renames `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, adds the
+  git-compare link at the bottom, and opens a fresh empty `## [Unreleased]`
+  section above it. **The maintainer (human) performs the `dev`→`main` merge and
+  pushes the `vX.Y.Z` tag on `main`** — Claude does not merge or tag.
 
 Do not edit already-released sections except to correct an error.
 
