@@ -33,9 +33,9 @@ public final class Strategy implements CommonElement {
 	 * nothing is added.
 	 */
 	public void addSupport(SupportLeaf supporter) {
-		String id = ((JustificationElement) supporter).id();
-		boolean present = supporters.stream()
-				.anyMatch(s -> ((JustificationElement) s).id().equals(id));
+		String supporterId = ((JustificationElement) supporter).id();
+		boolean present = supporters.stream().anyMatch(
+				s -> ((JustificationElement) s).id().equals(supporterId));
 		if (!present) {
 			this.supporters.add(supporter);
 		}
