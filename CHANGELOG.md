@@ -18,6 +18,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+---
+
+## [2.2.0] — 2026-07-18
+
 ### Added
 - A model implementing a template may now only override the template's
   `@support` placeholders; referencing a template-internal element (a strategy
@@ -27,6 +31,11 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - PPA packages are now published for Ubuntu `noble` (24.04 LTS), `resolute`
   (26.04 LTS), and `stonking` per the new Ubuntu release target policy
   (ADR-0023); `jammy` (22.04 LTS) and `questing` (25.10) are no longer targeted.
+
+### Removed
+- The rolling `unstable` GitHub pre-release and its force-pushed `unstable` tag
+  are retired (ADR-0024); use the tip of `dev` or a per-run CI build artifact for
+  the latest integrated build.
 
 ### Fixed
 - DOT export now quotes template cluster ids, so a namespaced template name
@@ -258,7 +267,8 @@ server.
 ### Added
 - Initial commit: first version of the compiler.
 
-[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.0.4...v2.1.0
 [2.0.4]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.0.3...v2.0.4
 [2.0.3]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.0.2...v2.0.3
