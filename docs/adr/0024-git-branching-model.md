@@ -14,9 +14,9 @@ bug fixes, chores, and release-preparation commits all landed directly on
   `release.yml` already verifies that the tag points at a commit on `main`.
   Nothing else about `main` distinguishes "released" commits from
   "work-in-progress" commits — the branch is a mix of both.
-- **`main` also drives the rolling `unstable` snapshot.** The `publish-unstable`
-  job in `build.yml` re-points the `unstable` pre-release on every push to
-  `main`. So `main` is simultaneously the integration branch *and* the release
+- **`main` also drives the rolling `unstable` snapshot.** A job in `build.yml`
+  re-points the `unstable` pre-release on every push to `main`. So `main` is
+  simultaneously the integration branch *and* the release
   branch, and the `CHANGELOG.md` `[Unreleased]` section accumulates directly on
   the same branch that is supposed to represent shipped software.
 
@@ -54,8 +54,9 @@ and the tag-triggered pipeline (ADR-0020) are unchanged; this ADR only changes
 
 ### CI consequences (applied in this change)
 
-- **`build.yml` `publish-unstable` is removed.** With `dev` in place, the tip of
-  `dev` *is* the rolling "latest integrated" state, so a separate `unstable`
+- **The `unstable` pre-release job in `build.yml` is removed.** With `dev` in
+  place, the tip of `dev` *is* the rolling "latest integrated" state, so a
+  separate `unstable`
   GitHub pre-release (and its force-pushed `unstable` tag) is redundant. This
   supersedes the `unstable` pre-release introduced by
   [ADR-0020](0020-tag-triggered-release-pipeline.md); per-run fat-JAR artifacts
