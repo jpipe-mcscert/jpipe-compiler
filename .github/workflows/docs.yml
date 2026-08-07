@@ -44,9 +44,12 @@ jobs:
 
       - name: Prepare docs index from README
         run: |
+          # The README is read from the repository root on GitHub and from
+          # docs/ on the site, so docs-relative paths have to be re-anchored.
           sed \
-            -e 's|./docs/logo.svg|logo.svg|g' \
-            -e 's|./docs/sponsors/|sponsors/|g' \
+            -e 's|\./docs/logo\.svg|logo.svg|g' \
+            -e 's|\./docs/sponsors/|sponsors/|g' \
+            -e 's|](docs/|](|g' \
             -e 's|^  - |    - |g' \
             README.md > docs/index.md
 

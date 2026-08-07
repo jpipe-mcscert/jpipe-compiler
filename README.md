@@ -31,6 +31,7 @@ The jPipe environment supports the definition of justification to support softwa
 - `jpipe-cli`: command-line interface and fat JAR entry point
 - `docs`: technical documentation and architecture decision records
 - `bin`: launcher script templates (POSIX `sh` and PowerShell) used by the packaging channels
+- `scripts`: maintainer tooling (`release.sh`)
 - `debian`: Debian source packaging metadata for the Ubuntu PPA
 
 ### Developer Setup
@@ -57,79 +58,37 @@ mvn package
 
 The fat JAR is produced in `jpipe-cli/target/`.
 
+#### Branching
+
+Work is integrated on `dev`; `main` is release-only, and every commit on it is a
+published version ([ADR-0024](docs/adr/0024-git-branching-model.md)). Branch from
+`dev` and open a pull request for anything with reviewable content. Low-risk
+changes — version bumps, changelog close-out, CI configuration, a small fix
+carried by its tests — may be pushed straight to `dev` once `mvn verify` is green
+locally. Only `main` requires a pull request.
+
 #### Releasing a new version
 
-Releases are triggered by pushing a `v*.*.*` tag that points at a commit on
-`main` — the pipeline refuses a tag that is not an ancestor of `main`. Day-to-day
-work is merged into `dev`; cutting a release means merging `dev` into `main`
-first (see [ADR-0024](docs/adr/0024-git-branching-model.md)). The pipeline then
-creates a GitHub Release, updates the Homebrew formula and the Scoop manifest,
-and uploads a Debian source package to the Ubuntu PPA.
-
-**Prerequisites:** The following secrets must be configured in the GitHub
-repository settings:
-
-| Secret | Purpose |
-|--------|---------|
-| `HOMEBREW_TAP_TOKEN` | PAT with write access to `jpipe-mcscert/homebrew-mcscert` |
-| `SCOOP_BUCKET_TOKEN` | PAT with write access to `jpipe-mcscert/scoop-mcscert` |
-| `GPG_PRIVATE_KEY` | ASCII-armored GPG key registered on Launchpad |
-| `GPG_KEY_ID` | Fingerprint of the signing key |
-| `GPG_PASSPHRASE` | Passphrase for the signing key |
-
-**Steps:**
+A release is prepared on `dev`, merged into `main` through a pull request, and
+started by pushing a `vX.Y.Z` tag on `main`. The tag triggers the pipeline, which
+publishes the GitHub Release and updates Homebrew, Scoop and the Ubuntu PPA.
 
 ```bash
-# 1. Verify the base version in pom.xml matches what you plan to tag.
-#    pom.xml should be X.Y.Z-SNAPSHOT; the pipeline strips -SNAPSHOT automatically.
-mvn verify   # confirm the build is green locally
+scripts/release.sh prepare X.Y.Z       # on dev: set the version, close the changelog
+                                       # then push, and open the dev → main PR
+scripts/release.sh preflight X.Y.Z     # on main, after the merge: re-run the
+                                       # pipeline's checks before the tag exists
+git tag vX.Y.Z && git push origin vX.Y.Z
 
-# 2. Merge dev into main (normally via a release PR). main is release-only:
-#    every commit on it is a published version.
-
-# 3. Tag the resulting commit on main and push the tag — the pipeline fires.
-git switch main && git pull --ff-only
-git tag vX.Y.Z          # or vX.Y.Z-rcN for a pre-release
-git push origin vX.Y.Z
-
-# 4. Merge main back into dev, then bump to the next development version on a
-#    topic branch merged into dev.
-mvn -B versions:set -DnewVersion=X.Y+1.0-SNAPSHOT -DgenerateBackupPoms=false
+git switch dev && git merge origin/main            # after the release
+scripts/release.sh post-release <next>-SNAPSHOT    # e.g. 2.4.1-SNAPSHOT
 ```
 
-**What happens automatically:**
-
-1. The pipeline validates that the tag version matches the base version in `pom.xml`
-   (e.g. tag `v2.1.0` is accepted when `pom.xml` declares `2.1.0-SNAPSHOT`).
-2. `mvn versions:set` is run inside the pipeline to stamp the exact release version
-   into the fat JAR manifest (`Implementation-Version: X.Y.Z`).
-3. A GitHub Release is created with the fat JAR, a Homebrew tarball, and a
-   Scoop zip. Tags containing `-` (e.g. `-rc1`) are automatically marked as
-   pre-releases.
-4. `jpipe.rb` in the Homebrew tap is updated with the new URL and SHA256
-   (stable releases only — skipped for pre-releases).
-5. `bucket/jpipe.json` in the Scoop bucket is updated with the new version, URL
-   and hash (stable releases only — skipped for pre-releases).
-6. A signed Debian source package is uploaded to `ppa:mcscert/ppa`
-   (stable releases only — skipped for pre-releases).
-
-**Verifying the release** (~30 min after the pipeline completes):
-
-```bash
-# macOS
-brew tap jpipe-mcscert/mcscert
-brew install jpipe
-
-# Ubuntu
-sudo add-apt-repository ppa:mcscert/ppa
-sudo apt update && sudo apt install jpipe
-```
-
-```powershell
-# Windows
-scoop bucket add mcscert https://github.com/jpipe-mcscert/scoop-mcscert
-scoop install mcscert/jpipe
-```
+**Read [`docs/releasing.md`](docs/releasing.md) before cutting a release** — it is
+the full checklist, including the dependency review, the Ubuntu series review and
+the Windows smoke test that the ADRs require. The pipeline's mechanics and the
+repository secrets it needs are documented in
+[ADR-0020](docs/adr/0020-tag-triggered-release-pipeline.md).
 
 #### Code style
 
@@ -149,9 +108,33 @@ mvn package -Dorg.slf4j.simpleLogger.log.org.apache.maven.plugins.shade.DefaultS
 
 ## Usage
 
+### Installation
+
+Released versions are published to one package manager per platform
+([ADR-0025](docs/adr/0025-mainstream-platform-distribution.md)):
+
+```bash
+# macOS
+brew tap jpipe-mcscert/mcscert && brew install jpipe
+
+# Ubuntu
+sudo add-apt-repository ppa:mcscert/ppa
+sudo apt update && sudo apt install jpipe
+```
+
+```powershell
+# Windows
+scoop bucket add mcscert https://github.com/jpipe-mcscert/scoop-mcscert
+scoop install mcscert/jpipe
+```
+
+Each channel installs a `jpipe` launcher on your `PATH`; run `jpipe doctor` to
+check the installed version and its runtime dependencies. The fat JAR is also
+attached to every [GitHub Release](https://github.com/jpipe-mcscert/jpipe-compiler/releases).
+
 ### Running the compiler
 
-After building, the fat JAR is at `jpipe-cli/target/jpipe-cli-*.jar`. The
+After building from source, the fat JAR is at `jpipe-cli/target/jpipe-cli-*.jar`. The
 `process` subcommand is the default, so these two invocations are equivalent:
 
 ```bash
