@@ -1,11 +1,24 @@
 name: Build
 
 on:
+  # Topic branches are built through `pull_request`, which builds the merge
+  # result rather than the branch tip. Listing them here as well would run
+  # every build twice, and a bare `push:` would also rebuild release tags that
+  # release.yml already verifies.
   push:
+    branches:
+      - main
+      - dev
   pull_request:
 
 permissions:
   contents: read
+
+# A new push supersedes the run it interrupts, but only for pull requests --
+# builds of main and dev always run to completion.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
