@@ -18,12 +18,16 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+---
+
+## [2.3.0] — 2026-08-06
+
 ### Added
 - jPipe can now be installed on Windows with [Scoop](https://scoop.sh):
   `scoop bucket add mcscert https://github.com/jpipe-mcscert/scoop-mcscert`
-  followed by `scoop install jpipe`. Releases publish an additional
+  followed by `scoop install mcscert/jpipe`. Releases publish an additional
   `jpipe-<version>.zip` asset, and the release pipeline keeps the bucket
-  manifest up to date automatically (ADR-0025).
+  manifest up to date automatically (#142, ADR-0025).
 
 ---
 
@@ -274,7 +278,8 @@ server.
 ### Added
 - Initial commit: first version of the compiler.
 
-[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.0.4...v2.1.0
 [2.0.4]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.0.3...v2.0.4

@@ -128,7 +128,7 @@ sudo apt update && sudo apt install jpipe
 ```powershell
 # Windows
 scoop bucket add mcscert https://github.com/jpipe-mcscert/scoop-mcscert
-scoop install jpipe
+scoop install mcscert/jpipe
 ```
 
 #### Code style
