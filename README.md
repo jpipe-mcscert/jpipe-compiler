@@ -81,7 +81,7 @@ scripts/release.sh preflight X.Y.Z     # on main, after the merge: re-run the
 git tag vX.Y.Z && git push origin vX.Y.Z
 
 git switch dev && git merge origin/main            # after the release
-scripts/release.sh post-release X.Y.Z+1-SNAPSHOT
+scripts/release.sh post-release <next>-SNAPSHOT    # e.g. 2.4.1-SNAPSHOT
 ```
 
 **Read [`docs/releasing.md`](docs/releasing.md) before cutting a release** — it is

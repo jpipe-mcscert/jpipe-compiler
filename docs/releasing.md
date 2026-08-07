@@ -143,14 +143,17 @@ manual and required** — it is the one channel CI cannot smoke-test
 ```bash
 git switch dev && git pull --ff-only
 git merge origin/main
-scripts/release.sh post-release X.Y.Z+1-SNAPSHOT
+scripts/release.sh post-release <next>-SNAPSHOT   # e.g. 2.4.1-SNAPSHOT
 git push
 ```
 
-Merging `main` back into `dev` keeps the release commit shared between the two
-branches; `post-release` refuses to run until you have. The next patch version is
-the low-surprise default — since Phase 1 sets the release version explicitly, an
+Pass the next version literally — `<next>` is a placeholder, and the script
+rejects anything that is not a valid Maven version. The next **patch** is the
+low-surprise default: since Phase 1 sets the release version explicitly, an
 over-bump here is harmless, but it is what confused the 2.3.1 release.
+
+Merging `main` back into `dev` keeps the release commit shared between the two
+branches; `post-release` refuses to run until you have.
 
 ---
 

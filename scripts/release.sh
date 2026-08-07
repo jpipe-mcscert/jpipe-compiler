@@ -18,6 +18,7 @@ REPO_URL_FALLBACK="https://github.com/jpipe-mcscert/jpipe-compiler"
 
 DRY_RUN=0
 FAILURES=0
+ON_MAIN=0
 
 # ----------------------------------------------------------------------------
 # output helpers
@@ -118,13 +119,16 @@ check_branch_is() {
 }
 
 check_in_sync() {
-  local branch upstream
+  local branch upstream remote
   branch=$(current_branch)
   if ! upstream=$(git rev-parse --abbrev-ref "@{upstream}" 2>/dev/null); then
     warn "$branch has no upstream — cannot check whether it is current"
     return
   fi
-  git fetch --quiet origin
+  # Refresh the remote the branch actually tracks, which is not necessarily
+  # origin — otherwise a stale ref reads as "in sync".
+  remote=${upstream%%/*}
+  git fetch --quiet "$remote"
   if [ "$(git rev-parse HEAD)" = "$(git rev-parse "$upstream")" ]; then
     pass "$branch is in sync with $upstream"
   elif git merge-base --is-ancestor "$upstream" HEAD; then
@@ -138,6 +142,7 @@ check_in_sync() {
 check_on_main() {
   git fetch --quiet origin main
   if git merge-base --is-ancestor HEAD origin/main; then
+    ON_MAIN=1
     pass "HEAD is on main — release.yml's branch check will pass"
   else
     warn "HEAD is not on main yet — merge the dev → main release PR before tagging"
@@ -241,9 +246,14 @@ cmd_preflight() {
     printf '\n%s%d check(s) failed.%s Fix them before tagging.\n' "$C_RED" "$FAILURES" "$C_OFF"
     exit 1
   fi
-  printf '\n%sReady.%s Next: merge the dev → main PR, then tag on main:\n' "$C_GREEN" "$C_OFF"
-  printf '  git switch main && git pull --ff-only\n'
-  printf '  git tag v%s && git push origin v%s\n' "$version" "$version"
+  if [ "$ON_MAIN" -eq 1 ]; then
+    printf '\n%sReady to tag.%s This is the last check before the release fires:\n' "$C_GREEN" "$C_OFF"
+    printf '  git tag v%s && git push origin v%s\n' "$version" "$version"
+  else
+    printf '\n%sReady.%s Next: merge the dev → main PR, then re-run this on main:\n' "$C_GREEN" "$C_OFF"
+    printf '  git switch main && git pull --ff-only\n'
+    printf '  scripts/release.sh preflight %s\n' "$version"
+  fi
 }
 
 rewrite_changelog() {
