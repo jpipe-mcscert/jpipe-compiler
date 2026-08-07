@@ -1,1 +1,4 @@
 *.jd linguist-language=HCL
+
+# Windows launcher templates ship with CRLF endings, whatever the build host is.
+*.ps1 text eol=crlf

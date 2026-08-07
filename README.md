@@ -30,7 +30,7 @@ The jPipe environment supports the definition of justification to support softwa
 - `jpipe-compiler`: compiler pipeline (parsing, model building, validation, export)
 - `jpipe-cli`: command-line interface and fat JAR entry point
 - `docs`: technical documentation and architecture decision records
-- `homebrew`: launcher script template for the Homebrew formula
+- `bin`: launcher script templates (POSIX `sh` and PowerShell) used by the packaging channels
 - `debian`: Debian source packaging metadata for the Ubuntu PPA
 
 ### Developer Setup
@@ -60,8 +60,8 @@ The fat JAR is produced in `jpipe-cli/target/`.
 #### Releasing a new version
 
 Releases are triggered by pushing a `v*.*.*` tag to `main`. The pipeline
-creates a GitHub Release, updates the Homebrew formula, and uploads a Debian
-source package to the Ubuntu PPA.
+creates a GitHub Release, updates the Homebrew formula and the Scoop manifest,
+and uploads a Debian source package to the Ubuntu PPA.
 
 **Prerequisites:** The following secrets must be configured in the GitHub
 repository settings:
@@ -69,6 +69,7 @@ repository settings:
 | Secret | Purpose |
 |--------|---------|
 | `HOMEBREW_TAP_TOKEN` | PAT with write access to `jpipe-mcscert/homebrew-mcscert` |
+| `SCOOP_BUCKET_TOKEN` | PAT with write access to `jpipe-mcscert/scoop-mcscert` |
 | `GPG_PRIVATE_KEY` | ASCII-armored GPG key registered on Launchpad |
 | `GPG_KEY_ID` | Fingerprint of the signing key |
 | `GPG_PASSPHRASE` | Passphrase for the signing key |
@@ -96,11 +97,14 @@ git push origin main
    (e.g. tag `v2.1.0` is accepted when `pom.xml` declares `2.1.0-SNAPSHOT`).
 2. `mvn versions:set` is run inside the pipeline to stamp the exact release version
    into the fat JAR manifest (`Implementation-Version: X.Y.Z`).
-3. A GitHub Release is created with the fat JAR and a Homebrew tarball.
-   Tags containing `-` (e.g. `-rc1`) are automatically marked as pre-releases.
+3. A GitHub Release is created with the fat JAR, a Homebrew tarball, and a
+   Scoop zip. Tags containing `-` (e.g. `-rc1`) are automatically marked as
+   pre-releases.
 4. `jpipe.rb` in the Homebrew tap is updated with the new URL and SHA256
    (stable releases only — skipped for pre-releases).
-5. A signed Debian source package is uploaded to `ppa:mcscert/ppa`
+5. `bucket/jpipe.json` in the Scoop bucket is updated with the new version, URL
+   and hash (stable releases only — skipped for pre-releases).
+6. A signed Debian source package is uploaded to `ppa:mcscert/ppa`
    (stable releases only — skipped for pre-releases).
 
 **Verifying the release** (~30 min after the pipeline completes):
@@ -113,6 +117,12 @@ brew install jpipe
 # Ubuntu
 sudo add-apt-repository ppa:mcscert/ppa
 sudo apt update && sudo apt install jpipe
+```
+
+```powershell
+# Windows
+scoop bucket add mcscert https://github.com/jpipe-mcscert/scoop-mcscert
+scoop install jpipe
 ```
 
 #### Code style
