@@ -66,7 +66,15 @@ Standard Java NIO glob semantics apply, matched against each candidate's path
 A pattern is split at the last `/` preceding its **first wildcard character**.
 Everything before that cut is a literal path, resolved against the declaring
 file's directory exactly like a literal `load` — so it may contain `..` or be
-absolute. The remainder is the glob, matched relative to the resolved directory,
+absolute.
+
+"The declaring file" always means the file that physically contains the `load`
+line, not the file that started the compilation and not the process working
+directory: `LoadResolver` gives every loaded file a `CompilationContext` of its
+own before recursing, so a nested `load "sibling/*.jd"` inside `b/mid.jd`
+resolves to `b/sibling/`, whatever compiled `b/mid.jd` and wherever the compiler
+was invoked from. A relative path is thus a stable property of the file that
+writes it. The remainder is the glob, matched relative to the resolved directory,
 which is also the only subtree that gets walked:
 
 | Pattern            | Literal prefix | Anchor            | Effective glob |
@@ -158,7 +166,18 @@ glob.
 - Cycle detection and idempotent-load suppression apply per matched file, so a
   glob that (transitively) re-includes a file already in progress is still
   flagged as a cycle, and a file matched twice under the same namespace is
-  loaded once.
+  loaded once. Expansion therefore always terminates, however the patterns are
+  tangled: two directories globbing into each other (`a/` loads `b/*.jd`, `b/`
+  loads `a/*.jd`) stops with a `Circular load detected` FATAL rather than
+  recursing.
+- **A glob must not match its own declaring file.** A pattern with no directory
+  prefix — `*.jd`, `./*.jd`, `**.jd` — is anchored at the declaring file's own
+  directory and so necessarily matches that file, which is a cycle and thus a
+  FATAL. This is deliberate: a self-match is treated as the same error as any
+  other cycle rather than being silently skipped. The practical consequence is
+  that models intended to be glob-loaded live in a directory of their own, so
+  the pattern that pulls them in (`models/*.jd`) cannot reach the file doing the
+  pulling. `examples/invalid/022_load_glob_self.jd` pins the behaviour.
 - Because Java glob is used verbatim, `**/*.jd` matches nested files **only**;
   `**.jd` is the pattern for "every `.jd` at any depth". This is documented in
   the table above and in `examples/022_load_glob_recursive.jd`.

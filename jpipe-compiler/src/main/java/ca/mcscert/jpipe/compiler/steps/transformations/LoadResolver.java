@@ -71,6 +71,14 @@ import org.antlr.v4.runtime.tree.ParseTree;
  * </ol>
  *
  * <p>
+ * Because step 3 gives every loaded file a {@link CompilationContext} of its
+ * own, step 1 always resolves against the file that <em>contains</em> the
+ * {@code load} — never against the file that started the compilation, and never
+ * against the process working directory. A relative path therefore denotes the
+ * same file wherever the compiler is invoked from, and a file that is loaded
+ * from two different places still resolves its own loads against itself.
+ *
+ * <p>
  * Diagnostics produced while compiling a sub-file are always forwarded to the
  * parent {@link CompilationContext}, so the caller sees a unified error report.
  */

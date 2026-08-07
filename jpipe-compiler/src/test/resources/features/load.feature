@@ -113,6 +113,12 @@ Feature: Load directive
     Then the compilation fails with a fatal error
       And a fatal error mentions "is not a directory"
 
+  Scenario: a glob that matches its own declaring file is a fatal cycle
+    Given the source file "invalid/022_load_glob_self.jd"
+    When I compile it into a unit
+    Then the compilation fails with a fatal error
+      And a fatal error mentions "Circular load detected"
+
   Scenario: a malformed glob pattern is a fatal error, not a crash
     Given the source file "invalid/021_load_glob_invalid.jd"
     When I compile it into a unit

@@ -176,8 +176,10 @@ sorted for deterministic order; an empty match set is a FATAL. A literal path
 (no glob metacharacters) keeps the single-file behavior. The pattern is anchored
 at the last directory before its first wildcard, and that prefix is resolved like
 any literal path — so a pattern may also reach outside the declaring file's
-directory (`load "../library/*.jd" as lib`) or name an absolute location. See
-ADR-0022.
+directory (`load "../library/*.jd" as lib`) or name an absolute location. A
+prefix-less pattern (`*.jd`) is anchored at the declaring file's own directory
+and therefore matches that file, which is a load cycle and a FATAL; keep
+glob-loaded models in a directory of their own. See ADR-0022.
 
 ---
 
