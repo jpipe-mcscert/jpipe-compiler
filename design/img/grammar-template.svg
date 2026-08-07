@@ -1,0 +1,58 @@
+<svg class="railroad-diagram" height="110" viewBox="0 0 1165.0 110" width="1165.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g transform="translate(.5 .5)">
+<g>
+<path d="M20 30v20m10 -20v20m-10 -10h20" /></g><path d="M40 40h10" /><g class="terminal ">
+<path d="M50 40h0.0" /><path d="M138.0 40h0.0" /><rect height="22" rx="10" ry="10" width="88" x="50" y="29"></rect><text x="94" y="44">template</text></g><path d="M138.0 40h10" /><path d="M148.0 40h10" /><g class="non-terminal ">
+<path d="M158.0 40h0.0" /><path d="M195.0 40h0.0" /><rect height="22" width="37" x="158" y="29"></rect><text x="176.5" y="44">ID</text><title>name</title></g><path d="M195.0 40h10" /><g>
+<path d="M205.0 40h0.0" /><path d="M492.0 40h0.0" /><path d="M205.0 40a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
+<path d="M225.0 20h247.0" /></g><path d="M472.0 20a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M205.0 40h20" /><g>
+<path d="M225.0 40h0.0" /><path d="M472.0 40h0.0" /><g class="terminal ">
+<path d="M225.0 40h0.0" /><path d="M330.0 40h0.0" /><rect height="22" rx="10" ry="10" width="105" x="225" y="29"></rect><text x="277.5" y="44">implements</text></g><path d="M330.0 40h10" /><path d="M340.0 40h10" /><g class="non-terminal ">
+<path d="M350.0 40h0.0" /><path d="M472.0 40h0.0" /><rect height="22" width="122" x="350" y="29"></rect><text x="411" y="44">qualified_id</text><title>parent</title></g></g><path d="M472.0 40h20" /></g><g>
+<path d="M492.0 40h0.0" /><path d="M1125.0 40h0.0" /><path d="M492.0 40h20" /><g>
+<path d="M512.0 40h182.75" /><path d="M922.25 40h182.75" /><g class="terminal ">
+<path d="M694.75 40h0.0" /><path d="M723.25 40h0.0" /><rect height="22" rx="10" ry="10" width="28.5" x="694.75" y="29"></rect><text x="709" y="44">{</text></g><path d="M723.25 40h10" /><path d="M733.25 40h10" /><g class="non-terminal ">
+<path d="M743.25 40h0.0" /><path d="M873.75 40h0.0" /><rect height="22" width="130.5" x="743.25" y="29"></rect><text x="808.5" y="44">template_body</text></g><path d="M873.75 40h10" /><path d="M883.75 40h10" /><g class="terminal ">
+<path d="M893.75 40h0.0" /><path d="M922.25 40h0.0" /><rect height="22" rx="10" ry="10" width="28.5" x="893.75" y="29"></rect><text x="908" y="44">}</text></g></g><path d="M1105.0 40h20" /><path d="M492.0 40a10 10 0 0 1 10 10v19a10 10 0 0 0 10 10" /><g>
+<path d="M512.0 79h0.0" /><path d="M1105.0 79h0.0" /><g class="terminal ">
+<path d="M512.0 79h0.0" /><path d="M549.0 79h0.0" /><rect height="22" rx="10" ry="10" width="37" x="512" y="68"></rect><text x="530.5" y="83">is</text></g><path d="M549.0 79h10" /><path d="M559.0 79h10" /><g class="non-terminal ">
+<path d="M569.0 79h0.0" /><path d="M691.0 79h0.0" /><rect height="22" width="122" x="569" y="68"></rect><text x="630" y="83">qualified_id</text><title>operator</title></g><path d="M691.0 79h10" /><path d="M701.0 79h10" /><g class="terminal ">
+<path d="M711.0 79h0.0" /><path d="M739.5 79h0.0" /><rect height="22" rx="10" ry="10" width="28.5" x="711" y="68"></rect><text x="725.25" y="83">(</text></g><path d="M739.5 79h10" /><g>
+<path d="M749.5 79h0.0" /><path d="M903.0 79h0.0" /><path d="M749.5 79a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
+<path d="M769.5 59h113.5" /></g><path d="M883.0 59a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M749.5 79h20" /><g class="non-terminal ">
+<path d="M769.5 79h0.0" /><path d="M883.0 79h0.0" /><rect height="22" width="113.5" x="769.5" y="68"></rect><text x="826.25" y="83">params_decl</text></g><path d="M883.0 79h20" /></g><path d="M903.0 79h10" /><g class="terminal ">
+<path d="M913.0 79h0.0" /><path d="M941.5 79h0.0" /><rect height="22" rx="10" ry="10" width="28.5" x="913" y="68"></rect><text x="927.25" y="83">)</text></g><path d="M941.5 79h10" /><g>
+<path d="M951.5 79h0.0" /><path d="M1105.0 79h0.0" /><path d="M951.5 79a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
+<path d="M971.5 59h113.5" /></g><path d="M1085.0 59a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M951.5 79h20" /><g class="non-terminal ">
+<path d="M971.5 79h0.0" /><path d="M1085.0 79h0.0" /><rect height="22" width="113.5" x="971.5" y="68"></rect><text x="1028.25" y="83">rule_config</text></g><path d="M1085.0 79h20" /></g></g><path d="M1105.0 79a10 10 0 0 0 10 -10v-19a10 10 0 0 1 10 -10" /></g><path d="M 1125.0 40 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+	svg.railroad-diagram {
+		background-color:hsl(30,20%,95%);
+	}
+	svg.railroad-diagram path {
+		stroke-width:3;
+		stroke:black;
+		fill:rgba(0,0,0,0);
+	}
+	svg.railroad-diagram text {
+		font:bold 14px monospace;
+		text-anchor:middle;
+	}
+	svg.railroad-diagram text.label{
+		text-anchor:start;
+	}
+	svg.railroad-diagram text.comment{
+		font:italic 12px monospace;
+	}
+	svg.railroad-diagram rect{
+		stroke-width:3;
+		stroke:black;
+		fill:hsl(120,100%,90%);
+	}
+	svg.railroad-diagram rect.group-box {
+		stroke: gray;
+		stroke-dasharray: 10 5;
+		fill: none;
+	}
+
+/* ]]> */
+</style></svg>
