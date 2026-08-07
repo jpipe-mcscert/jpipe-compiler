@@ -30,7 +30,7 @@ The jPipe environment supports the definition of justification to support softwa
 - `jpipe-compiler`: compiler pipeline (parsing, model building, validation, export)
 - `jpipe-cli`: command-line interface and fat JAR entry point
 - `docs`: technical documentation and architecture decision records
-- `homebrew`: launcher script template for the Homebrew formula
+- `bin`: launcher script templates (POSIX `sh` and PowerShell) used by the packaging channels
 - `debian`: Debian source packaging metadata for the Ubuntu PPA
 
 ### Developer Setup
@@ -59,9 +59,12 @@ The fat JAR is produced in `jpipe-cli/target/`.
 
 #### Releasing a new version
 
-Releases are triggered by pushing a `v*.*.*` tag to `main`. The pipeline
-creates a GitHub Release, updates the Homebrew formula, and uploads a Debian
-source package to the Ubuntu PPA.
+Releases are triggered by pushing a `v*.*.*` tag that points at a commit on
+`main` — the pipeline refuses a tag that is not an ancestor of `main`. Day-to-day
+work is merged into `dev`; cutting a release means merging `dev` into `main`
+first (see [ADR-0024](docs/adr/0024-git-branching-model.md)). The pipeline then
+creates a GitHub Release, updates the Homebrew formula and the Scoop manifest,
+and uploads a Debian source package to the Ubuntu PPA.
 
 **Prerequisites:** The following secrets must be configured in the GitHub
 repository settings:
@@ -69,6 +72,7 @@ repository settings:
 | Secret | Purpose |
 |--------|---------|
 | `HOMEBREW_TAP_TOKEN` | PAT with write access to `jpipe-mcscert/homebrew-mcscert` |
+| `SCOOP_BUCKET_TOKEN` | PAT with write access to `jpipe-mcscert/scoop-mcscert` |
 | `GPG_PRIVATE_KEY` | ASCII-armored GPG key registered on Launchpad |
 | `GPG_KEY_ID` | Fingerprint of the signing key |
 | `GPG_PASSPHRASE` | Passphrase for the signing key |
@@ -80,14 +84,17 @@ repository settings:
 #    pom.xml should be X.Y.Z-SNAPSHOT; the pipeline strips -SNAPSHOT automatically.
 mvn verify   # confirm the build is green locally
 
-# 2. Tag and push — the pipeline fires automatically.
-git tag vX.Y.Z          # or vX.Y.Z-rcN for a pre-release
-git push origin main --tags
+# 2. Merge dev into main (normally via a release PR). main is release-only:
+#    every commit on it is a published version.
 
-# 3. After the pipeline completes, bump to the next development version.
+# 3. Tag the resulting commit on main and push the tag — the pipeline fires.
+git switch main && git pull --ff-only
+git tag vX.Y.Z          # or vX.Y.Z-rcN for a pre-release
+git push origin vX.Y.Z
+
+# 4. Merge main back into dev, then bump to the next development version on a
+#    topic branch merged into dev.
 mvn -B versions:set -DnewVersion=X.Y+1.0-SNAPSHOT -DgenerateBackupPoms=false
-git commit -am "chore: bump to X.Y+1.0-SNAPSHOT"
-git push origin main
 ```
 
 **What happens automatically:**
@@ -96,11 +103,14 @@ git push origin main
    (e.g. tag `v2.1.0` is accepted when `pom.xml` declares `2.1.0-SNAPSHOT`).
 2. `mvn versions:set` is run inside the pipeline to stamp the exact release version
    into the fat JAR manifest (`Implementation-Version: X.Y.Z`).
-3. A GitHub Release is created with the fat JAR and a Homebrew tarball.
-   Tags containing `-` (e.g. `-rc1`) are automatically marked as pre-releases.
+3. A GitHub Release is created with the fat JAR, a Homebrew tarball, and a
+   Scoop zip. Tags containing `-` (e.g. `-rc1`) are automatically marked as
+   pre-releases.
 4. `jpipe.rb` in the Homebrew tap is updated with the new URL and SHA256
    (stable releases only — skipped for pre-releases).
-5. A signed Debian source package is uploaded to `ppa:mcscert/ppa`
+5. `bucket/jpipe.json` in the Scoop bucket is updated with the new version, URL
+   and hash (stable releases only — skipped for pre-releases).
+6. A signed Debian source package is uploaded to `ppa:mcscert/ppa`
    (stable releases only — skipped for pre-releases).
 
 **Verifying the release** (~30 min after the pipeline completes):
@@ -113,6 +123,12 @@ brew install jpipe
 # Ubuntu
 sudo add-apt-repository ppa:mcscert/ppa
 sudo apt update && sudo apt install jpipe
+```
+
+```powershell
+# Windows
+scoop bucket add mcscert https://github.com/jpipe-mcscert/scoop-mcscert
+scoop install jpipe
 ```
 
 #### Code style

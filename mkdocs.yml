@@ -51,6 +51,7 @@ nav:
       - adr/0022-glob-patterns-in-load.md
       - adr/0023-ubuntu-release-target-policy.md
       - adr/0024-git-branching-model.md
+      - adr/0025-mainstream-platform-distribution.md
 plugins:
   - search
 

@@ -18,6 +18,13 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- jPipe can now be installed on Windows with [Scoop](https://scoop.sh):
+  `scoop bucket add mcscert https://github.com/jpipe-mcscert/scoop-mcscert`
+  followed by `scoop install jpipe`. Releases publish an additional
+  `jpipe-<version>.zip` asset, and the release pipeline keeps the bucket
+  manifest up to date automatically (ADR-0025).
+
 ---
 
 ## [2.2.0] — 2026-07-18
