@@ -1,0 +1,13 @@
+// A glob pattern is anchored at its literal prefix, which is resolved exactly
+// like a literal load path. It may therefore climb out of the declaring file's
+// directory with "..": here the pattern walks up out of examples/ and back down
+// into globs/, matching model_alpha.jd and model_beta.jd.
+load "../examples/globs/*.jd" as lib
+
+justification alpha_justification implements lib:alpha {
+    evidence lib:alpha:abs is "A concrete evidence for alpha"
+}
+
+justification beta_justification implements lib:beta {
+    evidence lib:beta:abs is "A concrete evidence for beta"
+}

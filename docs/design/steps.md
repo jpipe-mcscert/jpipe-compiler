@@ -173,7 +173,11 @@ A `load` path may also be a **glob pattern** (e.g. `load "models/*.jd" as lib`),
 in which case one directive expands into every matched file, each resolved by
 the same per-file logic (cycle detection, deduplication, prefixing). Matches are
 sorted for deterministic order; an empty match set is a FATAL. A literal path
-(no glob metacharacters) keeps the single-file behavior. See ADR-0022.
+(no glob metacharacters) keeps the single-file behavior. The pattern is anchored
+at the last directory before its first wildcard, and that prefix is resolved like
+any literal path — so a pattern may also reach outside the declaring file's
+directory (`load "../library/*.jd" as lib`) or name an absolute location. See
+ADR-0022.
 
 ---
 

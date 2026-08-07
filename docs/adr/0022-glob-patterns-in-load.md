@@ -51,13 +51,55 @@ walking beyond a `Files.walk`. True regular expressions on file paths are
 unusual and were rejected.
 
 Standard Java NIO glob semantics apply, matched against each candidate's path
-*relative to the declaring file's directory*:
+*relative to the pattern's anchor directory* (see below):
 
-| Pattern         | Matches                                                    |
-|-----------------|------------------------------------------------------------|
-| `models/*.jd`   | `.jd` files directly in `models/` (one level, no descent)  |
-| `models/**/*.jd`| `.jd` files in **sub**directories of `models/` only        |
-| `models/**.jd`  | every `.jd` under `models/`, at any depth (incl. top level)|
+| Pattern             | Matches                                                    |
+|---------------------|------------------------------------------------------------|
+| `models/*.jd`       | `.jd` files directly in `models/` (one level, no descent)  |
+| `models/**/*.jd`    | `.jd` files in **sub**directories of `models/` only        |
+| `models/**.jd`      | every `.jd` under `models/`, at any depth (incl. top level)|
+| `../library/*.jd`   | `.jd` files directly in a `library/` directory *beside* the declaring file's directory |
+| `/opt/models/*.jd`  | `.jd` files directly in an absolute location               |
+
+### Anchoring: where the walk starts
+
+A pattern is split at the last `/` preceding its **first wildcard character**.
+Everything before that cut is a literal path, resolved against the declaring
+file's directory exactly like a literal `load` — so it may contain `..` or be
+absolute. The remainder is the glob, matched relative to the resolved directory,
+which is also the only subtree that gets walked:
+
+| Pattern            | Literal prefix | Anchor            | Effective glob |
+|--------------------|----------------|-------------------|----------------|
+| `models/*.jd`      | `models`       | `<dir>/models`    | `*.jd`         |
+| `**.jd`            | *(none)*       | `<dir>`           | `**.jd`        |
+| `../library/*.jd`  | `../library`   | `<dir>/../library`| `*.jd`         |
+| `/opt/models/*.jd` | `/opt/models`  | `/opt/models`     | `*.jd`         |
+| `{a,b}/*.jd`       | *(none)*       | `<dir>`           | `{a,b}/*.jd`   |
+
+Anchoring is **meaning-preserving** for patterns that only descend: matching
+`dir/X` against `dir/<glob>` relative to `<dir>` is equivalent to matching `X`
+against `<glob>` relative to `<dir>/dir`, for every glob construct including
+`**`. Because the cut is made before the first wildcard *character* rather than
+at a segment boundary, a wildcard construct is never split — a brace group
+spanning a separator such as `{foo/bar,baz}/*.jd` keeps its original meaning.
+
+Without anchoring, a glob could only ever descend: a directory walk never
+produces a path containing `..`, so `load "../library/*.jd"` matched nothing and
+reported a spurious "no file matches", even though the literal
+`load "../library/foo.jd"` resolved fine. Anchoring makes the two forms agree.
+
+Two situations are rejected up front rather than surfacing as a confusing
+no-match:
+
+- a `..` segment **after** the first wildcard (e.g. `*/../foo.jd`) is
+  unsatisfiable by a downward walk and is a FATAL;
+- an anchor that is not an existing directory is a FATAL naming the directory
+  (`Cannot expand load pattern '…': '…' is not a directory`), which points at
+  the actual mistake — usually a typo in the literal prefix.
+
+Glob *syntax* is validated before either check, so a malformed pattern is always
+reported as such regardless of where it points.
 
 ### Backward compatibility
 
@@ -92,8 +134,15 @@ The change is localized to `LoadResolver`
 
 - `expand(LoadDirective, …)` now computes the base directory, and:
   - for a literal path, calls the extracted per-file helper `expandOne` once;
-  - for a glob, matches via `matchGlob`, FATALs on zero matches, otherwise calls
-    `expandOne` for each matched path and concatenates the results.
+  - for a glob, delegates to `expandGlob`.
+- `expandGlob(…)` splits the pattern with `anchor(base, pattern)` into a
+  `GlobAnchor(root, pattern)` record, compiles the `PathMatcher` (FATAL on a
+  syntax error), rejects a post-wildcard `..` and a non-directory anchor, then
+  matches via `matchGlob(root, matcher)`, FATALs on zero matches, and otherwise
+  calls `expandOne` for each matched path and concatenates the results.
+- `firstMetaChar(String)` is the single definition of what counts as a wildcard
+  (`*`, `?`, `[`, `{`); both `isGlob` and `anchor` are derived from it so the
+  literal/glob split and the anchor cut cannot drift apart.
 - `expandOne(Path, …)` holds the unchanged per-file body from ADR-0017 (cycle
   detection via the `visited` set, duplicate suppression via the `loaded` set,
   sub-file parsing, recursive resolution, namespace prefixing, diagnostic
@@ -116,7 +165,13 @@ glob.
 - A shared namespace over many files can surface name collisions at
   interpretation time; this is intentional and matches existing flat-import
   semantics.
-- Globbing walks the declaring file's directory subtree. For very large trees a
-  single-level `*.jd` still walks the whole subtree and filters; this is
-  acceptable at the current project scale and can be optimized later with a
-  `DirectoryStream` fast path for non-`**` patterns if needed.
+- Globbing walks only the pattern's anchor subtree, not the whole subtree of the
+  declaring file, so a pattern like `models/*.jd` never enumerates sibling
+  directories. A pattern whose anchor is broad (`**.jd` at the top of a large
+  tree) still walks everything below it; this is acceptable at the current
+  project scale and can be optimized later with a `DirectoryStream` fast path
+  for non-`**` patterns if needed.
+- A pattern may now name files outside the project, via `..` or an absolute
+  prefix. This is deliberate — it mirrors what a literal `load` path has always
+  been able to do — and the usual consequence applies: a `.jd` file's set of
+  dependencies is only as portable as the paths it names.

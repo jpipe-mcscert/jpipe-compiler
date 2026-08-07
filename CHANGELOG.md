@@ -18,6 +18,15 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+- A glob pattern in a `load` directive may now point outside the declaring
+  file's directory, e.g. `load "../library/*.jd" as lib`, or name an absolute
+  location. Such patterns previously failed with a spurious `No file matches
+  load pattern`, even though the equivalent literal path (`load
+  "../library/foo.jd"`) worked. A pattern whose directory does not exist, or
+  one that uses `..` after a wildcard (`*/../foo.jd`, which can never match),
+  now reports a fatal error that names the actual problem (ADR-0022).
+
 ---
 
 ## [2.3.0] — 2026-08-06

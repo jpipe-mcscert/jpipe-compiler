@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -52,7 +53,11 @@ import org.antlr.v4.runtime.tree.ParseTree;
  * Algorithm for each {@code load "path" as ns} directive found in the list:
  * <ol>
  * <li>Resolve {@code path} relative to the directory of the file currently
- * being compiled (taken from the {@link CompilationContext#sourcePath()}).</li>
+ * being compiled (taken from the {@link CompilationContext#sourcePath()}). When
+ * {@code path} is a glob pattern it expands to every matched file instead of
+ * one; its literal prefix is resolved the same way, so a pattern may point
+ * below that directory, above it ({@code ../library/*.jd}) or at an absolute
+ * location — see {@link #anchor}.</li>
  * <li>Detect cycles: if the resolved path is already being compiled in the
  * current call stack, report a FATAL and skip.</li>
  * <li>Parse the referenced file up to and including {@link ActionListProvider}
@@ -92,8 +97,9 @@ public final class LoadResolver
 	 * always throws, so it can never be executed directly.
 	 *
 	 * @param path
-	 *            unquoted path to the file to load, relative to the declaring
-	 *            file.
+	 *            unquoted path to the file to load, or a glob pattern matching
+	 *            several of them; resolved relative to the declaring file
+	 *            unless absolute.
 	 * @param namespace
 	 *            alias under which the loaded file's models are registered, or
 	 *            {@code null} for a flat (no-prefix) import.
@@ -154,14 +160,41 @@ public final class LoadResolver
 			Path resolved = base.resolve(load.path()).normalize();
 			return expandOne(resolved, load, ctx, visited, loaded);
 		}
+		return expandGlob(load, ctx, base, visited, loaded);
+	}
 
-		List<Path> matches;
+	/**
+	 * Expands a glob pattern into the commands of every matched file. The
+	 * pattern is first anchored (see {@link #anchor}), so it may reach outside
+	 * the declaring file's directory via {@code ..} or an absolute prefix.
+	 */
+	private List<Command> expandGlob(LoadDirective load, CompilationContext ctx,
+			Path base, Set<Path> visited, Set<String> loaded) {
+		GlobAnchor anchored = anchor(base, load.path());
+
+		PathMatcher matcher;
 		try {
-			matches = matchGlob(base, load.path());
+			matcher = FileSystems.getDefault()
+					.getPathMatcher("glob:" + anchored.pattern());
 		} catch (PatternSyntaxException e) {
 			ctx.fatal("Invalid glob in load pattern '" + load.path() + "': "
 					+ e.getDescription());
 			return List.of();
+		}
+		if (hasUpwardSegment(anchored.pattern())) {
+			ctx.fatal("'..' may only appear before the first wildcard in load"
+					+ " pattern '" + load.path() + "'");
+			return List.of();
+		}
+		if (!Files.isDirectory(anchored.root())) {
+			ctx.fatal("Cannot expand load pattern '" + load.path() + "': '"
+					+ anchored.root() + "' is not a directory");
+			return List.of();
+		}
+
+		List<Path> matches;
+		try {
+			matches = matchGlob(anchored.root(), matcher);
 		} catch (IOException | UncheckedIOException e) {
 			ctx.fatal("Cannot expand load pattern '" + load.path() + "': "
 					+ e.getMessage());
@@ -227,35 +260,97 @@ public final class LoadResolver
 	}
 
 	/**
+	 * A glob pattern split into the directory the search is anchored at and the
+	 * portion of the pattern matched relative to that directory.
+	 *
+	 * @param root
+	 *            absolute, normalized directory to walk.
+	 * @param pattern
+	 *            glob matched against paths relative to {@code root}.
+	 */
+	private record GlobAnchor(Path root, String pattern) {
+	}
+
+	/**
+	 * Index of the first glob metacharacter in {@code path}, or {@code -1} if
+	 * it holds none. Single source of truth for what counts as "a glob", shared
+	 * by {@link #isGlob} and {@link #anchor}.
+	 */
+	private static int firstMetaChar(String path) {
+		for (int i = 0; i < path.length(); i++) {
+			char c = path.charAt(i);
+			if (c == '*' || c == '?' || c == '[' || c == '{') {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/**
 	 * Tells whether a load path is a glob pattern (rather than a literal path).
 	 * A literal path keeps the historical single-file behavior, including the
 	 * "Cannot open loaded file" fatal error when it does not exist.
 	 */
 	private static boolean isGlob(String path) {
-		return path.chars()
-				.anyMatch(c -> c == '*' || c == '?' || c == '[' || c == '{');
+		return firstMetaChar(path) >= 0;
 	}
 
 	/**
-	 * Resolves a glob pattern against {@code base}, returning the matching
-	 * regular files as absolute, normalized paths in a deterministic
-	 * (lexicographic) order. Standard glob semantics apply: {@code *} does not
-	 * cross directory boundaries, while {@code **} does.
+	 * Anchors a glob pattern: everything up to the last {@code /} preceding the
+	 * first wildcard is a literal path, resolved against {@code base} exactly
+	 * like a literal load, and the remainder is the pattern to match relative
+	 * to that directory. This is what lets a pattern reach outside the
+	 * declaring file's directory ({@code ../library/*.jd}) or name an absolute
+	 * location ({@code /opt/models/*.jd}).
 	 *
-	 * @throws PatternSyntaxException
-	 *             if {@code pattern} is not a valid glob (e.g. an unbalanced
-	 *             {@code [}); reported as a FATAL by the caller.
+	 * <p>
+	 * The cut is made before the first wildcard <em>character</em>, never
+	 * inside a wildcard construct, so a brace group spanning a separator such
+	 * as {@code {foo/bar,baz}/*.jd} stays intact. Because matching
+	 * {@code dir/X} against {@code dir/<pat>} relative to {@code base} is
+	 * equivalent to matching {@code X} against {@code <pat>} relative to
+	 * {@code base/dir}, anchoring leaves the meaning of every previously
+	 * supported pattern unchanged — it only narrows the subtree that has to be
+	 * walked.
+	 */
+	private static GlobAnchor anchor(Path base, String pattern) {
+		int cut = pattern.lastIndexOf('/', firstMetaChar(pattern));
+		if (cut < 0) {
+			return new GlobAnchor(base, pattern);
+		}
+		// cut == 0 means an absolute pattern such as "/opt/*.jd": the literal
+		// prefix is the root itself, which substring(0, 0) would lose.
+		String prefix = cut == 0 ? "/" : pattern.substring(0, cut);
+		return new GlobAnchor(base.resolve(prefix).normalize(),
+				pattern.substring(cut + 1));
+	}
+
+	/**
+	 * Tells whether a pattern contains a {@code ..} segment. Directory walking
+	 * only ever descends, so a {@code ..} left after anchoring (i.e. one that
+	 * follows a wildcard, as in {@code *}{@code /../foo.jd}) can never match
+	 * anything; the caller reports it as a FATAL rather than as a puzzling
+	 * no-match.
+	 */
+	private static boolean hasUpwardSegment(String pattern) {
+		return Arrays.stream(pattern.split("/", -1)).anyMatch(".."::equals);
+	}
+
+	/**
+	 * Walks {@code root}, returning the regular files matching {@code matcher}
+	 * as absolute, normalized paths in a deterministic (lexicographic) order.
+	 * Standard glob semantics apply: {@code *} does not cross directory
+	 * boundaries, while {@code **} does.
+	 *
 	 * @throws IOException
-	 *             if walking {@code base} fails; reported as a FATAL by the
+	 *             if walking {@code root} fails; reported as a FATAL by the
 	 *             caller so an IO failure is not misclassified as a no-match.
 	 */
-	private static List<Path> matchGlob(Path base, String pattern)
+	private static List<Path> matchGlob(Path root, PathMatcher matcher)
 			throws IOException {
-		PathMatcher matcher = FileSystems.getDefault()
-				.getPathMatcher("glob:" + pattern);
-		try (Stream<Path> walk = Files.walk(base)) {
+		try (Stream<Path> walk = Files.walk(root)) {
 			return walk.filter(Files::isRegularFile)
-					.filter(p -> matcher.matches(base.relativize(p)))
+					.filter(p -> matcher.matches(root.relativize(p)))
 					.map(p -> p.toAbsolutePath().normalize()).sorted().toList();
 		}
 	}

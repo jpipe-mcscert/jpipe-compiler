@@ -103,6 +103,75 @@ class LoadResolverGlobTest {
 	}
 
 	@Test
+	void upwardPatternMatchesFilesOutsideTheSourceDirectory()
+			throws IOException {
+		writeTemplate("lib/a.jd", "alpha");
+		writeTemplate("lib/b.jd", "beta");
+
+		CompilationContext ctx = compileFromSubDirectory("../lib/*.jd", "lib");
+
+		assertThat(ctx.hasFatalErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("lib:alpha", "lib:beta");
+	}
+
+	@Test
+	void upwardRecursivePatternMatchesEveryDepth() throws IOException {
+		writeTemplate("lib/a.jd", "alpha");
+		writeTemplate("lib/nested/deep.jd", "deep");
+
+		CompilationContext ctx = compileFromSubDirectory("../lib/**.jd", null);
+
+		assertThat(ctx.hasFatalErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("alpha", "deep");
+	}
+
+	@Test
+	void absolutePatternIsAnchoredAtItsOwnRoot() throws IOException {
+		writeTemplate("lib/a.jd", "alpha");
+		writeTemplate("elsewhere/b.jd", "beta");
+
+		CompilationContext ctx = compileFromSubDirectory(
+				dir.resolve("lib") + "/*.jd", null);
+
+		assertThat(ctx.hasFatalErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("alpha");
+	}
+
+	@Test
+	void anchoredPatternDoesNotWalkSiblingDirectories() throws IOException {
+		writeTemplate("models/a.jd", "alpha");
+		writeTemplate("other/b.jd", "beta");
+
+		CompilationContext ctx = compile("models/*.jd", null);
+
+		assertThat(ctx.hasFatalErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("alpha");
+	}
+
+	@Test
+	void upwardSegmentAfterAWildcardIsAFatalError() throws IOException {
+		writeTemplate("a.jd", "alpha");
+
+		// A directory walk only ever descends, so this can never match.
+		CompilationContext ctx = compile("*/../a.jd", null);
+
+		assertThat(ctx.hasFatalErrors()).isTrue();
+		assertThat(fatalMessages(ctx)).anyMatch(m -> m
+				.contains("'..' may only appear before the first wildcard"));
+	}
+
+	@Test
+	void patternAnchoredAtAMissingDirectoryIsAFatalError() throws IOException {
+		writeTemplate("lib/a.jd", "alpha");
+
+		CompilationContext ctx = compileFromSubDirectory("../nope/*.jd", null);
+
+		assertThat(ctx.hasFatalErrors()).isTrue();
+		assertThat(fatalMessages(ctx))
+				.anyMatch(m -> m.contains("is not a directory"));
+	}
+
+	@Test
 	void globMatchingTheSourceFileIsReportedAsACycle() throws IOException {
 		writeTemplate("root.jd", "root");
 
@@ -123,6 +192,16 @@ class LoadResolverGlobTest {
 	private CompilationContext compile(String pattern, String namespace)
 			throws IOException {
 		return compile(pattern, namespace, dir.resolve("main.jd").toString());
+	}
+
+	/**
+	 * Compiles from a source file one level below the temporary directory, so
+	 * that a "../" pattern has somewhere to climb back up to.
+	 */
+	private CompilationContext compileFromSubDirectory(String pattern,
+			String namespace) {
+		return compile(pattern, namespace,
+				dir.resolve("src/main.jd").toString());
 	}
 
 	private CompilationContext compile(String pattern, String namespace,
