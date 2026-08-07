@@ -95,21 +95,21 @@ need to remove the `-SNAPSHOT` suffix before tagging. The validation step strips
 `-SNAPSHOT` from the pom version before comparing, so a pom at `2.1.0-SNAPSHOT`
 is correct when releasing `v2.1.0`.
 
-Manual steps required:
-
-1. Verify the base version in `pom.xml` matches the intended tag
-   (e.g. `2.1.0-SNAPSHOT` to release `v2.1.0`).
-2. Run `mvn verify` locally to confirm the build is green.
-3. Merge `dev` into `main` and push the tag — the pipeline fires automatically.
-4. Merge `main` back into `dev`, then bump `pom.xml` to the next development
-   version (`mvn -B versions:set -DnewVersion=X.Y+1.0-SNAPSHOT`) on a topic
-   branch merged into `dev`.
+That validation is also the pipeline's sharpest edge: it runs *after* the tag has
+been pushed, so a pom that disagrees with the tag fails the release rather than
+preventing it. The release version is therefore set during preparation, on `dev`,
+by `scripts/release.sh prepare X.Y.Z` — and `scripts/release.sh preflight X.Y.Z`
+reproduces this check, and the "tag is on `main`" check above, locally before the
+tag exists.
 
 Tags containing `-` (e.g. `v2.1.0-rc1`) are automatically marked as pre-releases;
 all three channel jobs are skipped for them.
 
-See the "Releasing a new version" section in `README.md` for the full
-step-by-step procedure.
+The step-by-step procedure — including the dependency review
+([ADR-0007](0007-dependency-freshness-policy.md)), the Ubuntu series review
+([ADR-0023](0023-ubuntu-release-target-policy.md)) and the manual Windows check
+([ADR-0025](0025-mainstream-platform-distribution.md)) — lives in
+[`docs/releasing.md`](../releasing.md).
 
 ### Downstream effects
 

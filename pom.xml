@@ -93,6 +93,7 @@
         <jacoco-plugin.version>0.8.15</jacoco-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
         <sonar-plugin.version>5.7.0.6970</sonar-plugin.version>
+        <versions-plugin.version>2.21.0</versions-plugin.version>
 
         <!-- SonarCloud -->
         <sonar.projectKey>jpipe-mcscert_jpipe-compiler</sonar.projectKey>
@@ -318,6 +319,14 @@
                             <phase>verify</phase>
                         </execution>
                     </executions>
+                </plugin>
+
+                <!-- Used by scripts/release.sh and by release.yml; pinned so a
+                     release never depends on whatever version resolves today. -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>versions-maven-plugin</artifactId>
+                    <version>${versions-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

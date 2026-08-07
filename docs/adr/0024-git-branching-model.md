@@ -89,8 +89,9 @@ and the tag-triggered pipeline (ADR-0020) are unchanged; this ADR only changes
 ## Consequences
 
 - A `dev` branch is created from the current `main` and becomes the default
-  branch for development; branch protection should require PRs into `dev` and
-  forbid direct pushes to `main`.
+  branch for development; branch protection should forbid direct pushes to
+  `main`. (Amended 2026-08-07: protection on `dev` must *not* require a pull
+  request — see the amendment below.)
 - Contributors branch from `dev`, not `main`. The default branch on the remote
   should be set to `dev` so clones and PRs target it by default.
 - The release checklist gains a first step: merge `dev` into `main` before
@@ -102,3 +103,43 @@ and the tag-triggered pipeline (ADR-0020) are unchanged; this ADR only changes
   only after the next release.
 - Existing open work branched from `main` (e.g. the branch introducing this
   ADR) is retargeted onto `dev`.
+
+## Amendment (2026-08-07): pull requests are not required for `dev`
+
+The original decision said feature branches merge into `dev` "normally via pull
+request" and that branch protection "should require PRs into `dev`". In practice
+that made routine bookkeeping disproportionately expensive: bumping the version
+to the next `-SNAPSHOT` after a release is a one-line change with nothing to
+review, yet it cost a branch, a pull request, and a merge.
+
+### Amended decision
+
+- **A pull request remains the default** for any change with reviewable content —
+  new behaviour, bug fixes of substance, grammar or model changes, anything a
+  second reader would improve.
+- **Direct pushes to `dev` are permitted** when the author judges the change
+  low-risk and `mvn verify` is green locally. Blessed examples:
+    - release bookkeeping — version bumps, changelog close-out, compare links;
+    - CI and build configuration;
+    - small fixes carried by their own tests.
+- **`main` is unchanged.** It stays release-only, is entered exclusively through
+  a `dev` → `main` pull request, and the `vX.Y.Z` tag is pushed by a human.
+- **Branch protection** on `dev` should forbid force-pushes and require the
+  status checks to pass; it must **not** require a pull request. `main` keeps its
+  pull-request requirement.
+
+### Rationale
+
+The pull request was never what made a change to `dev` safe. `build.yml` has no
+branch filter, so it runs on every push; `sonar.yml` analyses pushes on
+`branches: [main, dev]`. A direct commit is therefore built, tested and
+quality-gated exactly like a pull-requested one. What the pull request adds is
+*review* — valuable for reviewable content, and pure overhead for a version bump.
+
+One caveat worth weighing rather than legislating: `docs.yml` deploys the
+documentation site on every push to `dev`, so a docs change pushed directly is
+published immediately, with no staging step.
+
+This amendment narrows only *how* a change enters `dev`. The two-tier model, the
+role of each branch, and the release procedure are unaffected. The full release
+runbook lives in [`docs/releasing.md`](../releasing.md).

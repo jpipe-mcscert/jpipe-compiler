@@ -5,7 +5,7 @@ This file provides guidance to Claude Code when working with this repository.
 ## Critical Rules
 
 - **Never commit or push code without explicit user consent.** Always show the diff and ask before running any `git commit` or `git push` command.
-- **Never commit directly to `main`.** `main` is release-only (see [Git Workflow](#git-workflow)). All feature and fix work branches off `dev` and merges back into `dev`.
+- **Never commit directly to `main` or `dev`.** `main` is release-only (see [Git Workflow](#git-workflow)); `dev` accepts direct pushes from human authors, but Claude works on a topic branch unless explicitly told otherwise.
 - **Never merge a pull request or push a git tag.** Merging (including the release `dev`→`main` merge) and tagging (`vX.Y.Z`) are **human-only** actions. Claude prepares the branch/PR and hands off; it does not run `gh pr merge`, merge branches into `dev`/`main`, or push tags.
 
 ---
@@ -21,13 +21,19 @@ The repository uses a two-tier branching model (ADR-0024):
   It holds "everything merged since the last release," and the `CHANGELOG.md`
   `## [Unreleased]` section lives on `dev`.
 - **Topic branches** — `feat/…`, `fix/…`, `chore/…`, `docs/…`. Branch **from
-  `dev`**, merge back **into `dev`** (normally via PR). Merging into `dev` is
-  what adds the change to `[Unreleased]`.
-- **Releasing** — merge `dev` → `main`, rename `[Unreleased]` to the version,
-  push a `vX.Y.Z` tag on `main` (this triggers `release.yml`, ADR-0020), then
-  merge `main` back into `dev`. **The `dev`→`main` merge and the tag push are
-  human-only actions** (see Critical Rules); Claude only prepares the
-  release-prep branch/PR (changelog finalization, version bump).
+  `dev`**, merge back **into `dev`**. Merging into `dev` is what adds the change
+  to `[Unreleased]`.
+- **A PR into `dev` is not required.** Human authors may push low-risk changes
+  (version bumps, changelog close-out, CI configuration, small fixes carried by
+  their tests) straight to `dev` once `mvn verify` is green (ADR-0024, amendment
+  of 2026-08-07). Only `main` requires a PR. **This relaxation is for human
+  authors.** Claude still branches, commits, pushes the topic branch and stops;
+  it pushes to `dev` directly only when explicitly asked, and never commits
+  without showing the diff first (see Critical Rules).
+- **Releasing** — the full runbook is [`docs/releasing.md`](docs/releasing.md),
+  driven by `scripts/release.sh`. **The `dev`→`main` merge and the tag push are
+  human-only actions** (see Critical Rules); Claude only prepares the release
+  commit (changelog close-out, version bump).
 - **Hotfixes** — branch from `main`, merge into `main`, release via a patch tag,
   then merge back into `dev`.
 
@@ -241,12 +247,12 @@ Rules:
 - **How:** Write one concise, user-facing sentence describing the *effect*, not
   the implementation. Reference the PR or issue number when there is one
   (e.g. `(#136)`). Match the tone and style of existing entries.
-- **Releasing (maintainer action):** Cutting a release is a `dev` → `main`
-  merge (see [Git Workflow](#git-workflow)). Claude prepares a release-prep
-  branch that renames `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, adds the
-  git-compare link at the bottom, and opens a fresh empty `## [Unreleased]`
-  section above it. **The maintainer (human) performs the `dev`→`main` merge and
-  pushes the `vX.Y.Z` tag on `main`** — Claude does not merge or tag.
+- **Releasing (maintainer action):** `scripts/release.sh prepare X.Y.Z` performs
+  the close-out — it renames `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, adds
+  the git-compare link at the bottom, and opens a fresh empty `## [Unreleased]`
+  above it. Do this by hand only if the script cannot. **The maintainer (human)
+  performs the `dev`→`main` merge and pushes the `vX.Y.Z` tag** — Claude does not
+  merge or tag. Full runbook: [`docs/releasing.md`](docs/releasing.md).
 
 Do not edit already-released sections except to correct an error.
 
