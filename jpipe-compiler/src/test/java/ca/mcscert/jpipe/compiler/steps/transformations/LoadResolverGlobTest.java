@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
@@ -13,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 class LoadResolverGlobTest {
@@ -169,6 +172,28 @@ class LoadResolverGlobTest {
 		assertThat(ctx.hasFatalErrors()).isTrue();
 		assertThat(fatalMessages(ctx))
 				.anyMatch(m -> m.contains("is not a directory"));
+	}
+
+	@Test
+	@DisabledOnOs(OS.WINDOWS)
+	void anIoFailureWhileWalkingIsAFatalErrorNotANoMatch() throws IOException {
+		writeTemplate("lib/a.jd", "alpha");
+		Path lib = dir.resolve("lib");
+		assumeTrue(lib.toFile().setReadable(false),
+				"filesystem does not honour the permission bit");
+		// A process running as root reads the directory regardless.
+		assumeTrue(!Files.isReadable(lib), "permission bits are not enforced");
+
+		try {
+			CompilationContext ctx = compileFromSubDirectory("../lib/*.jd",
+					null);
+
+			assertThat(ctx.hasFatalErrors()).isTrue();
+			assertThat(fatalMessages(ctx))
+					.anyMatch(m -> m.contains("Cannot expand load pattern"));
+		} finally {
+			lib.toFile().setReadable(true);
+		}
 	}
 
 	@Test

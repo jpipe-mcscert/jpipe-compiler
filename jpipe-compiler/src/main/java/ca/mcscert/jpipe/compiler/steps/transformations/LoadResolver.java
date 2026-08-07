@@ -268,7 +268,7 @@ public final class LoadResolver
 	 * @param pattern
 	 *            glob matched against paths relative to {@code root}.
 	 */
-	private record GlobAnchor(Path root, String pattern) {
+	record GlobAnchor(Path root, String pattern) {
 	}
 
 	/**
@@ -312,8 +312,13 @@ public final class LoadResolver
 	 * {@code base/dir}, anchoring leaves the meaning of every previously
 	 * supported pattern unchanged — it only narrows the subtree that has to be
 	 * walked.
+	 *
+	 * <p>
+	 * Package-private so the anchoring contract can be unit-tested directly:
+	 * anchoring at the filesystem root is otherwise only observable by walking
+	 * the whole filesystem.
 	 */
-	private static GlobAnchor anchor(Path base, String pattern) {
+	static GlobAnchor anchor(Path base, String pattern) {
 		int cut = pattern.lastIndexOf('/', firstMetaChar(pattern));
 		if (cut < 0) {
 			return new GlobAnchor(base, pattern);
