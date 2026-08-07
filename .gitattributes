@@ -1,1 +1,1 @@
-*.jd linguist-language=HCL
+*.jd linguist-language=TypeScript linguist-detectable=false
