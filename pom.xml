@@ -6,7 +6,7 @@
 
     <groupId>org.jpipe</groupId>
     <artifactId>jpipe</artifactId>
-    <version>2.3.0-SNAPSHOT</version>
+    <version>2.3.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>jPipe</name>
@@ -85,7 +85,6 @@
         <!-- Plugin versions -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
-        <junit-tree-reporter.version>1.5.1</junit-tree-reporter.version>
         <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
         <log4j-transform.version>0.1.0</log4j-transform.version>
         <spotless-plugin.version>3.8.0</spotless-plugin.version>
@@ -214,26 +213,21 @@
                     </configuration>
                 </plugin>
 
+                <!--
+                  Stock reporting only. A custom statelessTestsetInfoReporter
+                  does not just restyle the output: it supplies the listener
+                  that accumulates run statistics, so a defective one can drop
+                  results from the pass/fail decision. The tree reporter
+                  (me.fabriciorby:maven-surefire-junit5-tree-reporter) did
+                  exactly that at 1.5.1 — Cucumber scenarios, which run under a
+                  @Suite-nested engine, were written to their XML report but
+                  omitted from the aggregate, so failing E2E tests still gave
+                  BUILD SUCCESS. Prettier output is not worth that risk.
+                -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>me.fabriciorby</groupId>
-                            <artifactId>maven-surefire-junit5-tree-reporter</artifactId>
-                            <version>${junit-tree-reporter.version}</version>
-                        </dependency>
-                    </dependencies>
-                    <configuration>
-                        <consoleOutputReporter>
-                            <disable>true</disable>
-                        </consoleOutputReporter>
-                        <statelessTestsetInfoReporter
-                            implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter">
-                            <theme>UNICODE</theme>
-                        </statelessTestsetInfoReporter>
-                    </configuration>
                 </plugin>
 
                 <plugin>
