@@ -92,11 +92,32 @@ Feature: Load directive
       And the unit contains a template named "lib:gamma"
       And the unit contains a justification named "gamma_justification"
 
+  Scenario: a glob load can reach outside the declaring file's directory
+    Given the source file "023_load_glob_relative.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "lib:alpha"
+      And the unit contains a template named "lib:beta"
+      And the unit contains a justification named "alpha_justification"
+      And the unit contains a justification named "beta_justification"
+
   Scenario: a glob load that matches no file is a fatal error
     Given the source file "invalid/020_load_glob_nomatch.jd"
     When I compile it into a unit
     Then the compilation fails with a fatal error
       And a fatal error mentions "No file matches load pattern"
+
+  Scenario: a glob load anchored at a missing directory names that directory
+    Given the source file "invalid/023_load_glob_nodir.jd"
+    When I compile it into a unit
+    Then the compilation fails with a fatal error
+      And a fatal error mentions "is not a directory"
+
+  Scenario: a glob that matches its own declaring file is a fatal cycle
+    Given the source file "invalid/022_load_glob_self.jd"
+    When I compile it into a unit
+    Then the compilation fails with a fatal error
+      And a fatal error mentions "Circular load detected"
 
   Scenario: a malformed glob pattern is a fatal error, not a crash
     Given the source file "invalid/021_load_glob_invalid.jd"

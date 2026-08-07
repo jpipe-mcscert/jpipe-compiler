@@ -1,0 +1,8 @@
+// A glob is anchored at the last directory before its first wildcard. When that
+// directory does not exist the error names it, rather than reporting the vaguer
+// "no file matches" — the mistake is almost always a typo in the prefix.
+load "no_such_dir/*.jd" as lib
+
+justification j implements lib:alpha {
+    evidence lib:alpha:abs is "unreachable"
+}

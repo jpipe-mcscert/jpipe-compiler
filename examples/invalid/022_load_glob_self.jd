@@ -1,0 +1,12 @@
+// A glob is anchored at its literal prefix, so a pattern with no directory
+// prefix searches the declaring file's own directory. When it also matches that
+// file's name — as the one below does, being narrowed to match nothing else —
+// the file loads itself, which is a load cycle and is fatal. A bare "*.jd"
+// matches every neighbour including this file and so always behaves this way,
+// which is why models meant to be glob-loaded live in a directory of their own
+// ("globs/*.jd" cannot match the file that loads it).
+load "022_load_glob_self*.jd" as lib
+
+justification j implements lib:alpha {
+    evidence lib:alpha:abs is "unreachable"
+}
