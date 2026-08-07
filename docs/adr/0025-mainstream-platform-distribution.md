@@ -106,9 +106,13 @@ updated automatically.
   and `GPG_PASSPHRASE`. A missing credential fails one channel job, not the
   release itself.
 - `bin/` is a channel-neutral launcher directory, not a Homebrew-specific one.
-  It holds `jpipe` (POSIX `sh`) and `jpipe.ps1` (PowerShell); both keep a
-  working fallback when their placeholders are unsubstituted, so they can be run
-  directly from a source checkout.
+  It holds `jpipe` (POSIX `sh`) and `jpipe.ps1` (PowerShell). The two differ in
+  how far they get without substitution: `jpipe.ps1` falls back to `PATH` and
+  its own directory, so it runs unchanged from a source checkout, whereas
+  `jpipe` invokes `@@JAVA@@` directly and only keeps its pre-flight `which java`
+  check intact (ADR-0021) — it requires substitution to run. Aligning the POSIX
+  launcher would mean rewriting the line that `debian/postinst` rewrites by
+  exact string match, so it is deliberately left alone here.
 - Windows is the only channel CI cannot smoke-test: the release workflow runs
   entirely on `ubuntu-latest` and no Windows runner exists. Verifying a Scoop
   release requires a Windows machine and remains a manual release-checklist step.

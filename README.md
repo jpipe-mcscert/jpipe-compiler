@@ -59,7 +59,10 @@ The fat JAR is produced in `jpipe-cli/target/`.
 
 #### Releasing a new version
 
-Releases are triggered by pushing a `v*.*.*` tag to `main`. The pipeline
+Releases are triggered by pushing a `v*.*.*` tag that points at a commit on
+`main` — the pipeline refuses a tag that is not an ancestor of `main`. Day-to-day
+work is merged into `dev`; cutting a release means merging `dev` into `main`
+first (see [ADR-0024](docs/adr/0024-git-branching-model.md)). The pipeline then
 creates a GitHub Release, updates the Homebrew formula and the Scoop manifest,
 and uploads a Debian source package to the Ubuntu PPA.
 
@@ -81,14 +84,17 @@ repository settings:
 #    pom.xml should be X.Y.Z-SNAPSHOT; the pipeline strips -SNAPSHOT automatically.
 mvn verify   # confirm the build is green locally
 
-# 2. Tag and push — the pipeline fires automatically.
-git tag vX.Y.Z          # or vX.Y.Z-rcN for a pre-release
-git push origin main --tags
+# 2. Merge dev into main (normally via a release PR). main is release-only:
+#    every commit on it is a published version.
 
-# 3. After the pipeline completes, bump to the next development version.
+# 3. Tag the resulting commit on main and push the tag — the pipeline fires.
+git switch main && git pull --ff-only
+git tag vX.Y.Z          # or vX.Y.Z-rcN for a pre-release
+git push origin vX.Y.Z
+
+# 4. Merge main back into dev, then bump to the next development version on a
+#    topic branch merged into dev.
 mvn -B versions:set -DnewVersion=X.Y+1.0-SNAPSHOT -DgenerateBackupPoms=false
-git commit -am "chore: bump to X.Y+1.0-SNAPSHOT"
-git push origin main
 ```
 
 **What happens automatically:**
