@@ -171,11 +171,14 @@ glob.
   loads `a/*.jd`) stops with a `Circular load detected` FATAL rather than
   recursing.
 - **A glob must not match its own declaring file.** A pattern with no directory
-  prefix — `*.jd`, `./*.jd`, `**.jd` — is anchored at the declaring file's own
-  directory and so necessarily matches that file, which is a cycle and thus a
-  FATAL. This is deliberate: a self-match is treated as the same error as any
-  other cycle rather than being silently skipped. The practical consequence is
-  that models intended to be glob-loaded live in a directory of their own, so
+  prefix is anchored at the declaring file's own directory, so it is a cycle —
+  and thus a FATAL — whenever it also matches that file's *name*. A catch-all
+  (`*.jd`, `./*.jd`, `**.jd`) always does, which makes "load everything beside
+  me" unwritable; a narrower prefix-less pattern is fine as long as it does not
+  match the declaring file (`none_*.jd` from a file called `a.jd` is a plain
+  no-match). This is deliberate: a self-match is treated as the same error as
+  any other cycle rather than being silently skipped. The practical consequence
+  is that models intended to be glob-loaded live in a directory of their own, so
   the pattern that pulls them in (`models/*.jd`) cannot reach the file doing the
   pulling. `examples/invalid/022_load_glob_self.jd` pins the behaviour.
 - Because Java glob is used verbatim, `**/*.jd` matches nested files **only**;

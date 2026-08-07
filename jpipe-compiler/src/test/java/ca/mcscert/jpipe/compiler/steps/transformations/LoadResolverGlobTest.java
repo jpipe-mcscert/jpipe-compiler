@@ -19,6 +19,7 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class LoadResolverGlobTest {
@@ -85,27 +86,25 @@ class LoadResolverGlobTest {
 		assertThat(templateNames()).containsExactly("lib:alpha", "lib:beta");
 	}
 
-	@Test
-	void zeroMatchesIsAFatalError() throws IOException {
+	/**
+	 * A pattern that cannot be expanded is a fatal error naming the reason, and
+	 * never an exception: an unbalanced "[" is a syntax error, a ".." after a
+	 * wildcard can never be satisfied by a downward walk, and a well-formed
+	 * pattern that simply hits nothing is a no-match.
+	 */
+	@ParameterizedTest
+	@CsvSource({"'none_*.jd',  No file matches load pattern",
+			"'[.jd',       Invalid glob in load pattern",
+			"'*/../a.jd',  '''..'' may only appear before the first wildcard'"})
+	void anUnexpandablePatternIsAFatalError(String pattern,
+			String expectedMessage) throws IOException {
 		writeTemplate("a.jd", "alpha");
 
-		CompilationContext ctx = compile("none_*.jd", null);
+		CompilationContext ctx = compile(pattern, null);
 
 		assertThat(ctx.hasFatalErrors()).isTrue();
 		assertThat(fatalMessages(ctx))
-				.anyMatch(m -> m.contains("No file matches load pattern"));
-	}
-
-	@Test
-	void invalidGlobSyntaxIsAFatalErrorAndDoesNotThrow() throws IOException {
-		writeTemplate("a.jd", "alpha");
-
-		// "[.jd" is an unbalanced glob; it must not crash compilation.
-		CompilationContext ctx = compile("[.jd", null);
-
-		assertThat(ctx.hasFatalErrors()).isTrue();
-		assertThat(fatalMessages(ctx))
-				.anyMatch(m -> m.contains("Invalid glob in load pattern"));
+				.anyMatch(m -> m.contains(expectedMessage));
 	}
 
 	@Test
@@ -155,18 +154,6 @@ class LoadResolverGlobTest {
 	}
 
 	@Test
-	void upwardSegmentAfterAWildcardIsAFatalError() throws IOException {
-		writeTemplate("a.jd", "alpha");
-
-		// A directory walk only ever descends, so this can never match.
-		CompilationContext ctx = compile("*/../a.jd", null);
-
-		assertThat(ctx.hasFatalErrors()).isTrue();
-		assertThat(fatalMessages(ctx)).anyMatch(m -> m
-				.contains("'..' may only appear before the first wildcard"));
-	}
-
-	@Test
 	void patternAnchoredAtAMissingDirectoryIsAFatalError() throws IOException {
 		writeTemplate("lib/a.jd", "alpha");
 
@@ -212,10 +199,15 @@ class LoadResolverGlobTest {
 	}
 
 	/**
-	 * A pattern anchored at the declaring file's own directory necessarily
-	 * matches that file, which is a cycle. This is why models meant to be
-	 * glob-loaded live in a directory of their own: "models/*.jd" cannot match
-	 * the file that loads it, whereas "*.jd" always does.
+	 * Anchoring puts the search in the declaring file's own directory, so a
+	 * pattern that also matches that file's <em>name</em> is a cycle. A
+	 * catch-all ("*.jd", "./*.jd", "**.jd") always does; a narrower one only
+	 * when the name happens to match, as "ro*.jd" does against root.jd — and
+	 * "none_*.jd" does not, which is why
+	 * {@link #anUnexpandablePatternIsAFatalError} gets a no-match there rather
+	 * than a cycle. Keeping glob-loaded models in a directory of their own
+	 * sidesteps the question entirely: "models/*.jd" cannot reach the file that
+	 * loads it.
 	 */
 	@ParameterizedTest
 	@ValueSource(strings = {"*.jd", "./*.jd", "**.jd", "ro*.jd"})
@@ -268,8 +260,10 @@ class LoadResolverGlobTest {
 	void mutualGlobLoadsAcrossDirectoriesTerminateWithACycleError()
 			throws IOException {
 		writeTemplate("a/a.jd", "ta");
-		writeSource("b/b.jd", "load \"../a/*.jd\" as aa\n"
-				+ "template tb { conclusion c is \"c\" }\n");
+		writeSource("b/b.jd", """
+				load "../a/*.jd" as aa
+				template tb { conclusion c is "c" }
+				""");
 
 		CompilationContext ctx = compile("../b/*.jd", "bb",
 				dir.resolve("a/a.jd").toString());
