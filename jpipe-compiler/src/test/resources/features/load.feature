@@ -107,6 +107,12 @@ Feature: Load directive
     Then the compilation fails with a fatal error
       And a fatal error mentions "No file matches load pattern"
 
+  Scenario: a glob load anchored at a missing directory names that directory
+    Given the source file "invalid/023_load_glob_nodir.jd"
+    When I compile it into a unit
+    Then the compilation fails with a fatal error
+      And a fatal error mentions "is not a directory"
+
   Scenario: a malformed glob pattern is a fatal error, not a crash
     Given the source file "invalid/021_load_glob_invalid.jd"
     When I compile it into a unit
