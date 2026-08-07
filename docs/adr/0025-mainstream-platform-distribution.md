@@ -60,9 +60,11 @@ Every channel must satisfy the following contract:
    Pre-releases are for verifying the pipeline, not for distribution.
 6. **Superseded versions stay installable.** Each channel keeps older releases
    reachable through its own native mechanism — versioned formulas
-   (`jpipe@X.Y.Z.rb`) for Homebrew, manifest git history
-   (`scoop install jpipe@X.Y.Z`) for Scoop, and Launchpad's published version
-   history for the PPA. The project does not maintain a separate archive.
+   (`jpipe@X.Y.Z.rb`) for Homebrew, an `autoupdate` block that lets Scoop
+   reconstruct a manifest for an explicit `@version`, and Launchpad's published
+   version history for the PPA. The project does not maintain a separate
+   archive. A channel reaches only as far back as the first release that
+   published its asset.
 
 Adding a channel means adding a release asset, a `release.yml` job, and a
 credential — and meeting all six points. A channel is dropped when its platform
@@ -90,9 +92,14 @@ updated automatically.
   longer matches. Making the pipeline the only writer makes that unrepresentable.
 - **Point 6 lets users pin without the project hoarding.** Each package manager
   already solves version pinning; adopting the native mechanism per channel is
-  cheaper and more idiomatic than a project-run artifact archive. It is also why
-  the Scoop bucket needs no pinned per-version manifests: one commit per release
-  against `bucket/jpipe.json` is exactly what Scoop's `@version` lookup walks.
+  cheaper and more idiomatic than a project-run artifact archive. For Scoop this
+  means an `autoupdate` block rather than pinned per-version manifests: Scoop
+  does **not** search bucket history for an older manifest — `generate_user_manifest`
+  synthesises one by substituting the requested version into the `autoupdate`
+  URL and hashing the downloaded archive. A single templatable release URL
+  therefore covers every version, and the bucket stays one file per app. The
+  block carries no `checkver`, so nothing polls or self-updates and point 4
+  still holds: the release pipeline remains the only writer.
 - **One channel per OS, not the most popular one.** Chocolatey and WinGet are
   larger Windows ecosystems than Scoop, but both are curated: publishing means
   submitting a package for review, which violates point 4. Scoop's bucket model

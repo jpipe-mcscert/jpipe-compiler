@@ -43,8 +43,8 @@ A workflow (`.github/workflows/release.yml`) is triggered when a tag matching
    SHA256, and `openjdk` dependency version) and writes a versioned
    `jpipe@$VERSION.rb` alongside it.
 6. **Updates** `bucket/jpipe.json` in `jpipe-mcscert/scoop-mcscert` (version,
-   URL, hash) with one commit per release, which is what Scoop's
-   `scoop install jpipe@X.Y.Z` history lookup walks.
+   URL, hash). The manifest's `autoupdate` block is left untouched, and is what
+   lets Scoop reconstruct an older `scoop install mcscert/jpipe@X.Y.Z`.
 7. **Builds and uploads** a signed Debian source package to `ppa:mcscert/ppa`
    on Launchpad, once per targeted Ubuntu series (see
    [ADR-0023](0023-ubuntu-release-target-policy.md)).
