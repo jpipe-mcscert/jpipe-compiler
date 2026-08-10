@@ -43,8 +43,13 @@ import org.json.JSONObject;
  * <p>
  * Optional keys are <em>omitted</em> rather than emitted as {@code null}: a
  * diagnostic without a code has no {@code code} key, and one without a source
- * location has neither {@code line} nor {@code column}. {@code schemaVersion}
- * lets consumers detect the shape; later additions stay additive.
+ * location has neither {@code line} nor {@code column}.
+ *
+ * <p>
+ * The document is described by a strict published JSON Schema, so any change to
+ * the set of members — including adding one — means publishing a new schema and
+ * incrementing {@link #SCHEMA_VERSION}. See
+ * {@code docs/design/diagnostic-schema.md}.
  *
  * <p>
  * Uses {@code org.json} internally as a builder for correct string escaping;
@@ -66,6 +71,7 @@ public final class JsonDiagnosticReport
 	private static final String KEY_COLUMN = "column";
 	private static final String KEY_SOURCE = "source";
 	private static final String KEY_NAME = "name";
+	private static final String KEY_LOCATION = "location";
 
 	@Override
 	protected String run(DiagnosticSnapshot input, CompilationContext ctx) {
@@ -130,7 +136,7 @@ public final class JsonDiagnosticReport
 				entry.put("implements", model.implementedTemplate());
 			}
 			location(model.location())
-					.ifPresent(loc -> entry.put("location", loc));
+					.ifPresent(loc -> entry.put(KEY_LOCATION, loc));
 			entry.put("elements", elements(model.counts()));
 			entry.put("usedBy", usedBy(model));
 			entry.put("symbols", symbols(model));
@@ -156,7 +162,7 @@ public final class JsonDiagnosticReport
 			JSONObject entry = new JSONObject();
 			entry.put(KEY_NAME, impl.name());
 			location(impl.location())
-					.ifPresent(loc -> entry.put("location", loc));
+					.ifPresent(loc -> entry.put(KEY_LOCATION, loc));
 			array.put(entry);
 		}
 		return array;
@@ -170,7 +176,7 @@ public final class JsonDiagnosticReport
 			entry.put("kind", symbol.kind());
 			entry.put("synthesized", symbol.isSynthesized());
 			location(symbol.location())
-					.ifPresent(loc -> entry.put("location", loc));
+					.ifPresent(loc -> entry.put(KEY_LOCATION, loc));
 			array.put(entry);
 		}
 		return array;

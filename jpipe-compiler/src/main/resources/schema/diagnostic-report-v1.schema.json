@@ -17,7 +17,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "description": "Version of this document shape. Bumped only on a breaking change; additive changes keep it stable.",
+      "description": "Version of this document shape. Because this schema is strict (additionalProperties: false), any change to the set of members — including adding one — publishes a new schema file and increments this number. Read it before anything else; a version you do not know is one you should refuse rather than mis-read.",
       "const": 1
     },
     "source": {

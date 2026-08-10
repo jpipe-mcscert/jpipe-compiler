@@ -62,12 +62,31 @@ check-jsonschema \
 Every document carries `schemaVersion`, so a consumer can branch on it before
 reading anything else.
 
-- **Additive changes** — a new optional member — keep `schemaVersion` at `1`.
-  Because the schema is strict, the schema file is updated in the same change;
-  consumers pinned to an older copy should ignore members they do not know.
-- **Breaking changes** — removing or retyping a member, or changing what an
-  existing one means — publish a new file (`…-v2.schema.json`) and bump
-  `schemaVersion`. The previous schema stays reachable at its own `$id`.
+**Any change to the set of members publishes a new schema file
+(`…-v2.schema.json`) and increments `schemaVersion`. Adding an optional member
+counts.** Earlier schemas stay reachable at their own `$id`, so a consumer
+pinned to one keeps validating the documents it was written for.
+
+That rule follows from strictness rather than caution. Because the schema sets
+`additionalProperties: false`, a document carrying a member the schema does not
+list *fails validation* — so there is no such thing as an addition that is
+invisible to a consumer. Telling consumers to "ignore members you don't know"
+would not help: their validator rejects the document before their code sees it.
+
+The alternative would be to let the schema permit unknown properties, which
+buys silent additions at the cost of the guarantee that makes the schema useful
+as a test oracle — a typo'd or duplicated key would then validate cleanly. The
+strict reading is the deliberate choice; the versioning rule above is its
+consequence.
+
+For consumers, the practical form is:
+
+```jsonc
+if (report.schemaVersion !== 1) {
+  // a shape this code was not written against — refuse it or handle it
+  // explicitly, rather than reading fields that may have changed meaning
+}
+```
 
 ## Where it is enforced
 

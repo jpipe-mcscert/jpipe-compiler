@@ -167,8 +167,9 @@ compilations. Delegates to
 ```
 
 Optional keys are omitted rather than emitted as `null`. Arrays preserve order;
-object key order is not significant. `schemaVersion` is bumped only on a
-breaking change — additions stay additive.
+object key order is not significant. `schemaVersion` is incremented whenever the
+set of members changes, additions included — the schema is strict, so no change
+is invisible to a consumer validating against it.
 
 The document is described by a published **[JSON Schema](diagnostic-schema.md)**
 that acts as the contract with consumers; it ships on the classpath at

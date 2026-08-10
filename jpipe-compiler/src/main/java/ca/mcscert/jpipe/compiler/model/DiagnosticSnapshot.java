@@ -1,6 +1,8 @@
 package ca.mcscert.jpipe.compiler.model;
 
 import ca.mcscert.jpipe.model.SourceLocation;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +38,28 @@ import java.util.Map;
 public record DiagnosticSnapshot(String source, List<Diagnostic> diagnostics,
 		Map<String, Long> stats, List<ModelInfo> models,
 		List<ActionInfo> actions) {
+
+	/**
+	 * Copies every collection on the way in.
+	 *
+	 * <p>
+	 * {@link CompilationContext#diagnostics()} and
+	 * {@link CompilationContext#stats()} hand out unmodifiable <em>views</em>
+	 * of live state, so a snapshot that merely held those references would keep
+	 * changing as the context did — and two renderings of "the same" snapshot
+	 * could then disagree. Copying here makes the immutability this record
+	 * advertises structural rather than a convention its callers must respect.
+	 *
+	 * <p>
+	 * {@code stats} is copied into a {@link LinkedHashMap} rather than via
+	 * {@code Map.copyOf}, which does not preserve iteration order.
+	 */
+	public DiagnosticSnapshot {
+		diagnostics = List.copyOf(diagnostics);
+		stats = Collections.unmodifiableMap(new LinkedHashMap<>(stats));
+		models = List.copyOf(models);
+		actions = List.copyOf(actions);
+	}
 
 	/** Model kind discriminator: a concrete justification. */
 	public static final String KIND_JUSTIFICATION = "justification";
@@ -73,6 +97,15 @@ public record DiagnosticSnapshot(String source, List<Diagnostic> diagnostics,
 			String implementedTemplate, SourceLocation location,
 			ElementCounts counts, List<ImplementorInfo> usedBy,
 			List<SymbolInfo> symbols, List<AliasInfo> aliases) {
+
+		/**
+		 * Copies every collection on the way in, as the enclosing record does.
+		 */
+		public ModelInfo {
+			usedBy = List.copyOf(usedBy);
+			symbols = List.copyOf(symbols);
+			aliases = List.copyOf(aliases);
+		}
 
 		/** True if this model implements a template. */
 		public boolean implementsTemplate() {

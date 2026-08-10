@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static ca.mcscert.jpipe.compiler.model.CompilationContext.STAT_COMMANDS_TOTAL;
 
 import ca.mcscert.jpipe.commands.ExecutedAction;
@@ -80,6 +81,40 @@ class CollectDiagnosticsTest {
 		assertThat(collect().actions()).extracting(a -> a.index())
 				.containsExactly(1, 2);
 		assertThat(collect().actions().get(1).depth()).isEqualTo(1);
+	}
+
+	/**
+	 * The context hands out unmodifiable <em>views</em> of live state, so a
+	 * snapshot that kept those references would keep changing after collection
+	 * and two renderings of it could disagree.
+	 */
+	@Test
+	void snapshotIsUnaffectedByLaterChangesToTheContext() {
+		ctx.error("reported before collection");
+		DiagnosticSnapshot snapshot = collect();
+
+		ctx.error("reported after collection");
+		ctx.recordStat(STAT_COMMANDS_TOTAL, 99L);
+		ctx.recordActions(List
+				.of(new ExecutedAction(new CreateJustification("late"), 0)));
+
+		assertThat(snapshot.diagnostics()).hasSize(1);
+		assertThat(snapshot.stats()).isEmpty();
+		assertThat(snapshot.actions()).isEmpty();
+	}
+
+	@Test
+	void snapshotCollectionsRejectModification() {
+		unit.add(new Justification("j"));
+		ctx.error("boom");
+		DiagnosticSnapshot snapshot = collect();
+
+		assertThatThrownBy(() -> snapshot.diagnostics().clear())
+				.isInstanceOf(UnsupportedOperationException.class);
+		assertThatThrownBy(() -> snapshot.models().clear())
+				.isInstanceOf(UnsupportedOperationException.class);
+		assertThatThrownBy(() -> snapshot.models().get(0).symbols().clear())
+				.isInstanceOf(UnsupportedOperationException.class);
 	}
 
 	@Test

@@ -307,29 +307,38 @@ class DiagnosticReportTest {
 		assertThat(report()).isEqualTo(GOLDEN_REPORT);
 	}
 
-	/**
-	 * Written as explicit concatenation rather than a text block so that no
-	 * source formatter can silently re-indent the expectation and weaken the
-	 * assertion. {@code →} is the alias arrow.
-	 */
-	private static final String GOLDEN_REPORT = "=== Diagnostics ===\n"
-			+ "[ERROR] test.jd:12:4: [unknown-model] unknown model 'foo'\n"
-			+ "[ERROR] test.jd: model construction failed\n" + "\n"
-			+ "=== Action Statistics ===\n" + "commands: 4 total (1 macro)\n"
-			+ "deferrals: 2\n" + "\n" + "=== Model Summary ===\n"
-			+ "template \"base\"\n"
-			+ "  elements:  conclusion(1), strategy(1)\n"
-			+ "  used by:   \"impl\" @ 10:0\n" + "\n"
-			+ "justification \"impl\"  [implements \"base\"]\n"
-			+ "  elements:  conclusion(1), strategy(1), evidence(1)\n" + "\n"
-			+ "=== Symbol Table ===\n" + "template \"base\"  [test.jd:3:8]\n"
-			+ "  tc  4:2\n" + "  ts  5:4\n"
-			+ "justification \"impl\"  [test.jd:10:0]\n"
-			+ "  base:tc  [synthesized]\n" + "  base:ts  [synthesized]\n"
-			+ "  ev       11:6\n" + "  old  \u2192 new  [alias]\n" + "\n"
-			+ "=== Executed Actions ===\n"
-			+ "  1. create_justification('impl').\n"
-			+ "  2.   [macro] expand_base\n";
+	/** The exact report the fixture above must render, arrow included. */
+	private static final String GOLDEN_REPORT = """
+			=== Diagnostics ===
+			[ERROR] test.jd:12:4: [unknown-model] unknown model 'foo'
+			[ERROR] test.jd: model construction failed
+
+			=== Action Statistics ===
+			commands: 4 total (1 macro)
+			deferrals: 2
+
+			=== Model Summary ===
+			template "base"
+			  elements:  conclusion(1), strategy(1)
+			  used by:   "impl" @ 10:0
+
+			justification "impl"  [implements "base"]
+			  elements:  conclusion(1), strategy(1), evidence(1)
+
+			=== Symbol Table ===
+			template "base"  [test.jd:3:8]
+			  tc  4:2
+			  ts  5:4
+			justification "impl"  [test.jd:10:0]
+			  base:tc  [synthesized]
+			  base:ts  [synthesized]
+			  ev       11:6
+			  old  \u2192 new  [alias]
+
+			=== Executed Actions ===
+			  1. create_justification('impl').
+			  2.   [macro] expand_base
+			""";
 
 	// -------------------------------------------------------------------------
 	// Helpers

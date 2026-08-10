@@ -94,9 +94,9 @@ class InputOutputCommandTest {
 		PrintStream original = System.out;
 		ByteArrayOutputStream captured = new ByteArrayOutputStream();
 		int result;
-		try {
-			System.setOut(
-					new PrintStream(captured, true, StandardCharsets.UTF_8));
+		try (PrintStream redirected = new PrintStream(captured, true,
+				StandardCharsets.UTF_8)) {
+			System.setOut(redirected);
 			// Deliberately NOT --headless: the logo must step aside on its own,
 			// or every IDE integration would have to strip it.
 			result = Main.commandLine().execute("diagnostic", "-i", input, "-f",
@@ -116,9 +116,9 @@ class InputOutputCommandTest {
 		String input = resourcePath("test_minimal.jd");
 		PrintStream original = System.out;
 		ByteArrayOutputStream captured = new ByteArrayOutputStream();
-		try {
-			System.setOut(
-					new PrintStream(captured, true, StandardCharsets.UTF_8));
+		try (PrintStream redirected = new PrintStream(captured, true,
+				StandardCharsets.UTF_8)) {
+			System.setOut(redirected);
 			Main.commandLine().execute("diagnostic", "-i", input, "-o",
 					"<stdout>");
 		} finally {
