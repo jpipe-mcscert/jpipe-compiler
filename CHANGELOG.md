@@ -18,6 +18,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+---
+
+## [2.4.0] — 2026-08-10
+
 ### Added
 - `jpipe diagnostic` accepts `-f/--format text|json`. The JSON report carries
   the same content as the human-readable one — diagnostics, statistics, model
@@ -321,7 +325,8 @@ server.
 ### Added
 - Initial commit: first version of the compiler.
 
-[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.1...HEAD
+[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.1...v2.4.0
 [2.3.1]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.1.0...v2.2.0
