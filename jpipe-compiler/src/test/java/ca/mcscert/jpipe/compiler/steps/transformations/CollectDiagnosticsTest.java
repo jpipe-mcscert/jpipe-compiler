@@ -109,11 +109,15 @@ class CollectDiagnosticsTest {
 		ctx.error("boom");
 		DiagnosticSnapshot snapshot = collect();
 
-		assertThatThrownBy(() -> snapshot.diagnostics().clear())
+		var diagnostics = snapshot.diagnostics();
+		var models = snapshot.models();
+		var symbols = models.get(0).symbols();
+
+		assertThatThrownBy(diagnostics::clear)
 				.isInstanceOf(UnsupportedOperationException.class);
-		assertThatThrownBy(() -> snapshot.models().clear())
+		assertThatThrownBy(models::clear)
 				.isInstanceOf(UnsupportedOperationException.class);
-		assertThatThrownBy(() -> snapshot.models().get(0).symbols().clear())
+		assertThatThrownBy(symbols::clear)
 				.isInstanceOf(UnsupportedOperationException.class);
 	}
 
