@@ -17,6 +17,11 @@ jpipe-lang/src/main/java
 .java-version
 site/
 
+# Staged into docs/ by the docs workflow at build time; the source of truth is
+# jpipe-compiler/src/main/resources/schema/. Ignored so a stale copy can never
+# be committed alongside it.
+docs/schema/
+
 # Local agent instructions
 CLAUDE.md
 GEMINI.md

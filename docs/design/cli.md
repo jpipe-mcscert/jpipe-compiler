@@ -103,25 +103,87 @@ success, `1` if any ERROR or FATAL diagnostic was reported.
 
 ### `diagnostic`
 
-Parses and validates a `.jd` source file and prints a human-readable report
-without exporting any model. Useful for checking a file for errors or
-inspecting the symbol table.
+Parses and validates a `.jd` source file and reports on it without exporting
+any model. Useful for checking a file for errors, inspecting the symbol table,
+or feeding an IDE.
 
 ```
-jpipe diagnostic -i <file> [-o <output>]
+jpipe diagnostic -i <file> [-o <output>] [-f <format>]
 ```
 
-The report produced by `DiagnosticReport` has four sections:
+| Option | Values | Default |
+|--------|--------|---------|
+| `-f`, `--format` | `TEXT`, `JSON` (case-insensitive) | `TEXT` |
 
-1. **Diagnostics** — all ERROR and FATAL messages, with source locations.
+The report has five sections:
+
+1. **Diagnostics** — all ERROR and FATAL messages, with source locations and
+   their diagnostic code.
 2. **Action Statistics** — total command count, macro count, and deferral
    count from the `ExecutionEngine`.
 3. **Model Summary** — for each model: kind (justification/template), parent
    template (if any), element counts, and which justifications implement it.
 4. **Symbol Table** — all element ids with their source locations, plus alias
    mappings from composition operators.
+5. **Executed Actions** — the ordered model-construction command trace.
 
-Delegates to `CompilerFactory.buildDiagnosticCompiler(out)`.
+Sections whose data is absent (no statistics recorded, no actions executed)
+are omitted rather than printed empty.
+
+Both formats are produced from the same `DiagnosticSnapshot`, collected once by
+`CollectDiagnostics` and then rendered by either `DiagnosticReport` (text) or
+`JsonDiagnosticReport` (JSON), so the two can never describe different
+compilations. Delegates to
+`CompilerFactory.buildDiagnosticCompiler(format, out)`.
+
+#### JSON report
+
+```jsonc
+{
+  "schemaVersion": 1,
+  "source": "examples/foo.jd",
+  "status": "ok",                    // "ok" | "errors"
+  "diagnostics": [
+    { "severity": "error",           // "error" | "fatal"
+      "code": "unknown-model",       // omitted when the diagnostic has no code
+      "source": "foo.jd",
+      "line": 12, "column": 4,       // both omitted when the location is unknown
+      "message": "unknown model 'bar'" }
+  ],
+  "stats": { "commands": { "total": 42, "macros": 3 }, "deferrals": 1 },
+  "models": [
+    { "name": "m", "kind": "justification",
+      "implements": "t",             // omitted when the model implements nothing
+      "location": { "source": "foo.jd", "line": 3, "column": 0 },
+      "elements": { "conclusion": 1, "subConclusion": 2, "strategy": 1,
+                    "evidence": 3, "abstractSupport": 0 },
+      "usedBy":  [ { "name": "j", "location": { … } } ],  // templates only
+      "symbols": [ { "id": "e1", "kind": "evidence",
+                     "synthesized": false, "location": { … } } ],
+      "aliases": [ { "from": "a", "to": "b" } ] }
+  ],
+  "actions": [ { "index": 1, "depth": 0, "macro": false, "description": "…" } ]
+}
+```
+
+Optional keys are omitted rather than emitted as `null`. Arrays preserve order;
+object key order is not significant. `schemaVersion` is incremented whenever the
+set of members changes, additions included — the schema is strict, so no change
+is invisible to a consumer validating against it.
+
+The document is described by a published **[JSON Schema](diagnostic-schema.md)**
+that acts as the contract with consumers; it ships on the classpath at
+`/schema/diagnostic-report-v1.schema.json` and every report the test suite
+produces is validated against it.
+
+The ASCII logo is suppressed automatically when the JSON report goes to
+standard output, so `jpipe diagnostic -f json | jq .` works without
+`--headless`. Writing to a file with `-o` keeps the banner on stdout.
+
+**Limitation.** A *fatal* error (a syntax error, an unresolvable `load`) aborts
+the pipeline before any report is produced, in either format: nothing is
+written to the output stream, the message goes to standard error, and the exit
+code is 1. Tools must handle that case separately.
 
 ### `doctor`
 

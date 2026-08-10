@@ -1,6 +1,7 @@
-# ADR-0016: Error Management — Diagnostic Levels, Pipeline Interruption, and Exit Codes
+# ADR-0016: Error Management — Diagnostic Levels, Codes, Pipeline Interruption, and Exit Codes
 
 **Date:** 2026-04-01
+**Last revised:** 2026-08-09
 **Status:** Accepted
 
 ## Context
@@ -14,6 +15,10 @@ categories of problem can arise during compilation:
 2. **Semantic errors** — the model is structurally sound but violates domain rules
    (consistency, completeness). The model can still be exported; the errors are
    informational for the user.
+
+Diagnostics have two audiences: a person reading a terminal, and tooling that
+consumes the compiler's output (IDE integrations, CI dashboards). A diagnostic
+shaped only for the first forces the second to parse prose.
 
 Prior to this ADR:
 - `HaltAndCatchFire` checkpoints were placed after *both* parsing and semantic
@@ -40,6 +45,32 @@ and the user must see it", but allows the pipeline to continue and produce outpu
 `FATAL` means "continuing is meaningless or dangerous". It is promoted from `ERROR`
 only by `HaltAndCatchFire`, and only in contexts where downstream steps cannot
 function correctly on the resulting intermediate value.
+
+### Diagnostics carry a machine-readable code
+
+A `Diagnostic` is a level, an optional code, a source location, and a
+human-readable message. The code is a stable, bare kebab-case identifier —
+`unknown-model`, `no-duplicate-ids` — or `null` when the diagnostic has none;
+`hasCode()` reports its presence.
+
+Compiler codes are centralised in `DiagnosticCodes`. Validation rules reach the
+same field through `Violation.rule()` (ADR-0015), which is already bare
+kebab-case, so the two families are directly comparable and no translation layer
+sits between a validator and a diagnostic.
+
+The code is **data, not text**: it never appears inside `message()`, and each
+renderer chooses its own presentation.
+
+| Renderer | Presentation |
+|----------|--------------|
+| Human-readable diagnostic report | `[unknown-model] unknown model 'foo'` |
+| `ChainCompiler` stderr fallback | `[unknown-model] unknown model 'foo'` |
+| JSON diagnostic report | a separate `code` member |
+
+Codes are optional by design. Summary diagnostics such as `"model construction
+failed — see errors above"` name no specific rule, and none is invented for
+them. `FATAL` diagnostics carry no code: a fatal aborts the pipeline before any
+report is rendered, so nothing consumes one.
 
 ### HaltAndCatchFire is placed exclusively after parsing
 
@@ -97,6 +128,11 @@ outside the compiler's control.
 - **boolean return over exception.** Throwing a post-completion exception to signal
   "succeeded with errors" would cause the CLI to print a redundant error message on
   top of already-printed diagnostics. A boolean return keeps the separation clean.
+- **Codes as a field, not a message prefix.** Encoding the code inside the message
+  would make every consumer re-parse a string the compiler had just assembled, and
+  would discard at the checker boundary the identifier the validators already carry.
+  One representation, chosen by each renderer at display time, keeps the human and
+  machine readings of a diagnostic from drifting apart.
 
 ## Consequences
 
@@ -109,3 +145,9 @@ outside the compiler's control.
   there).
 - All CLI commands must check the boolean return of `compile()` and map `true` to
   `EXIT_JPIPE_ERROR`.
+- `Diagnostic.message()` never contains the code; consumers read `code()`. Tests and
+  tooling match on the code directly rather than searching the message text.
+- Introducing a diagnostic code means adding a constant to `DiagnosticCodes`, or
+  naming a rule in a validator — not editing a message string. A renderer that wants
+  to display it decides how.
+- Any renderer of diagnostics must handle a `null` code, since the field is optional.

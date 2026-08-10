@@ -278,16 +278,38 @@ in the caller thread, avoiding deadlock when the process pipe buffer is smaller
 than the input. Supports any format that `dot -T` accepts; the CLI uses
 `"png"`, `"jpeg"`, and `"svg"`.
 
-#### `DiagnosticReport`
+#### `CollectDiagnostics`
 
-**Type:** `Transformation<Unit, String>`  
+**Type:** `Transformation<Unit, DiagnosticSnapshot>`  
 **Package:** `compiler.steps.transformations`
 
-Produces a human-readable diagnostic report from the compiled `Unit` and
-`CompilationContext`. Used by the `diagnostic` CLI command instead of an
-export. The report has four sections: Diagnostics, Action Statistics, Model
-Summary (type, parent, element counts per model), and Symbol Table (element
-ids with source locations and alias mappings from composition operators).
+Gathers everything a diagnostic report shows — diagnostics, statistics, per
+model element counts, symbols with resolved locations, aliases, and the
+executed-action trace — into an immutable `DiagnosticSnapshot`. This is the
+only step that walks the `Unit` for reporting purposes; the renderers below
+consume the snapshot and never touch the model, which is what keeps the two
+report formats describing the same compilation.
+
+#### `DiagnosticReport`
+
+**Type:** `Transformation<DiagnosticSnapshot, String>`  
+**Package:** `compiler.steps.transformations`
+
+Renders the snapshot as the human-readable report printed by the `diagnostic`
+CLI command instead of an export. Five sections: Diagnostics, Action
+Statistics, Model Summary (type, parent, element counts per model), Symbol
+Table (element ids with source locations and alias mappings from composition
+operators), and Executed Actions. Sections whose data is absent are omitted.
+
+#### `JsonDiagnosticReport`
+
+**Type:** `Transformation<DiagnosticSnapshot, String>`  
+**Package:** `compiler.steps.transformations`
+
+Renders the same snapshot as JSON for tooling — selected by `diagnostic -f
+json`. Uses `org.json` internally as a builder for correct escaping while the
+pipeline type stays `String` (ADR-0013). The document declares a
+`schemaVersion`; see [`cli.md`](cli.md) for its shape.
 
 ---
 

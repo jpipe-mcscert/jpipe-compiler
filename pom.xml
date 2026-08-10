@@ -76,6 +76,7 @@
         <antlr4.version>4.13.2</antlr4.version>
         <picocli.version>4.7.7</picocli.version>
         <json.version>20260522</json.version>
+        <json-schema-validator.version>1.5.6</json-schema-validator.version>
         <log4j.version>2.24.3</log4j.version>
         <junit.version>5.14.2</junit.version>
         <junit-platform.version>1.14.2</junit-platform.version>
@@ -144,6 +145,17 @@
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
                 <version>${json.version}</version>
+            </dependency>
+            <!--
+              Test scope only: the published JSON Schema is validated against
+              real compiler output in CI, never at runtime. Keeping it out of
+              compile scope also keeps its Jackson dependency out of the fat JAR.
+            -->
+            <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${json-schema-validator.version}</version>
+                <scope>test</scope>
             </dependency>
 
             <!-- Logging -->

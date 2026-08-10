@@ -63,6 +63,35 @@ public final class CompilationContext {
 		report(Diagnostic.error(sourcePath, line, column, message));
 	}
 
+	/**
+	 * Convenience: append a coded non-fatal ERROR diagnostic.
+	 *
+	 * @param code
+	 *            stable kebab-case identifier, see {@link DiagnosticCodes}.
+	 * @param message
+	 *            human-readable description, without the code.
+	 */
+	public void error(String code, String message) {
+		report(Diagnostic.error(code, sourcePath, message));
+	}
+
+	/**
+	 * Convenience: append a coded non-fatal ERROR diagnostic with source
+	 * location.
+	 *
+	 * @param code
+	 *            stable kebab-case identifier, see {@link DiagnosticCodes}.
+	 * @param line
+	 *            1-based source line.
+	 * @param column
+	 *            0-based column offset.
+	 * @param message
+	 *            human-readable description, without the code.
+	 */
+	public void error(String code, int line, int column, String message) {
+		report(Diagnostic.error(code, sourcePath, line, column, message));
+	}
+
 	/** Convenience: append a FATAL diagnostic. */
 	public void fatal(String message) {
 		report(Diagnostic.fatal(sourcePath, message));

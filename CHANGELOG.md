@@ -18,6 +18,36 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- `jpipe diagnostic` accepts `-f/--format text|json`. The JSON report carries
+  the same content as the human-readable one — diagnostics, statistics, model
+  summary, symbol table, and executed actions — in a form tools can consume,
+  making IDE integration possible without scraping the text output. The
+  document declares a `schemaVersion` so consumers can detect its shape.
+- Diagnostics now carry a machine-readable `code` (e.g. `unknown-model`,
+  `no-duplicate-ids`) as a distinct field, exposed in the JSON report. Codes
+  cover both compiler errors and consistency/completeness rules.
+- A **published JSON Schema** documents the report as a stable contract for
+  consumers. It ships on the classpath at
+  `/schema/diagnostic-report-v1.schema.json`, is served from the documentation
+  site, and is described in [the schema
+  reference](https://ace-design.github.io/jpipe/design/diagnostic-schema/).
+  Documents declare `schemaVersion` so consumers can branch on the shape.
+
+### Changed
+- The logo is suppressed automatically when `diagnostic -f json` writes to
+  standard output, so the document is parseable without passing `--headless`.
+  Text output and output to a file are unaffected.
+- **For API consumers:** `Diagnostic.message()` no longer contains the
+  `[code]` prefix — the code moved to `Diagnostic.code()`. The rendered text
+  report is unchanged, but code reading `message()` programmatically should
+  read `code()` instead. `DiagnosticCodes` constants lost their brackets
+  accordingly (`"[unknown-model]"` → `"unknown-model"`).
+
+### Fixed
+- `diagnostic -f json` (and any future machine-readable output) no longer has
+  its first bytes corrupted by the ASCII banner on standard output.
+
 ---
 
 ## [2.3.1] — 2026-08-07

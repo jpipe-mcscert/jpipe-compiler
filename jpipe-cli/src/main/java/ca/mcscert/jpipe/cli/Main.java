@@ -96,9 +96,24 @@ public class Main {
 		return adjusted;
 	}
 
-	public static void main(String[] args) {
-		CommandLine cmd = new CommandLine(new Main())
+	/**
+	 * The configured CLI parser.
+	 *
+	 * <p>
+	 * Both {@link #main(String[])} and the acceptance tests go through here, so
+	 * that tests exercise the same parser configuration users get — notably
+	 * case-insensitive enum values, which let {@code -f json} work as well as
+	 * {@code -f JSON}.
+	 *
+	 * @return a {@link CommandLine} bound to a fresh {@link Main}.
+	 */
+	static CommandLine commandLine() {
+		return new CommandLine(new Main())
 				.setCaseInsensitiveEnumValuesAllowed(true);
+	}
+
+	public static void main(String[] args) {
+		CommandLine cmd = commandLine();
 		System.exit(cmd.execute(withDefaultSubcommand(args, cmd)));
 	}
 }

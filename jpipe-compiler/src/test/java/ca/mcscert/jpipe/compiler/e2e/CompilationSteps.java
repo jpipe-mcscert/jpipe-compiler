@@ -22,8 +22,15 @@ import ca.mcscert.jpipe.visitor.PythonExporter;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import ca.mcscert.jpipe.compiler.steps.transformations.CollectDiagnostics;
+import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticReport;
+import ca.mcscert.jpipe.compiler.steps.transformations.JsonDiagnosticReport;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /** Step definitions for end-to-end compilation scenarios. */
 public class CompilationSteps {
@@ -38,6 +45,8 @@ public class CompilationSteps {
 	private String dotOutput;
 	private String pythonOutput;
 	private String jsonOutput;
+	private String textReport;
+	private JSONObject jsonReport;
 
 	@Given("the source file {string}")
 	public void theSourceFile(String filename) {
@@ -184,6 +193,84 @@ public class CompilationSteps {
 		assertThat(loc.line()).isEqualTo(line);
 	}
 
+	// -------------------------------------------------------------------------
+	// Diagnostic reports
+	// -------------------------------------------------------------------------
+
+	@When("I produce a text diagnostic report")
+	public void iProduceATextDiagnosticReport() {
+		textReport = new CollectDiagnostics().andThen(new DiagnosticReport())
+				.fire(unit, ctx);
+	}
+
+	@When("I produce a JSON diagnostic report")
+	public void iProduceAJsonDiagnosticReport() {
+		jsonReport = new JSONObject(new CollectDiagnostics()
+				.andThen(new JsonDiagnosticReport()).fire(unit, ctx));
+	}
+
+	@Then("the text report contains {string}")
+	public void theTextReportContains(String fragment) {
+		assertThat(textReport).contains(fragment);
+	}
+
+	@Then("the JSON report status is {string}")
+	public void theJsonReportStatusIs(String status) {
+		assertThat(jsonReport.getString("status")).isEqualTo(status);
+	}
+
+	@Then("the JSON report declares a schema version")
+	public void theJsonReportDeclaresASchemaVersion() {
+		assertThat(jsonReport.getInt("schemaVersion")).isPositive();
+	}
+
+	@Then("the JSON report has a diagnostic with code {string}")
+	public void theJsonReportHasADiagnosticWithCode(String code) {
+		assertThat(codesIn(jsonReport)).contains(code);
+	}
+
+	@Then("no JSON diagnostic message contains its own code")
+	public void noJsonDiagnosticMessageContainsItsOwnCode() {
+		JSONArray diagnostics = jsonReport.getJSONArray("diagnostics");
+		for (int i = 0; i < diagnostics.length(); i++) {
+			JSONObject d = diagnostics.getJSONObject(i);
+			if (d.has("code")) {
+				assertThat(d.getString("message"))
+						.doesNotContain(d.getString("code"));
+			}
+		}
+	}
+
+	@Then("the JSON report describes a {string} named {string}")
+	public void theJsonReportDescribesAModelNamed(String kind, String name) {
+		JSONArray models = jsonReport.getJSONArray("models");
+		boolean found = false;
+		for (int i = 0; i < models.length(); i++) {
+			JSONObject model = models.getJSONObject(i);
+			found = found || (name.equals(model.getString("name"))
+					&& kind.equals(model.getString("kind")));
+		}
+		assertThat(found).as("a %s named %s", kind, name).isTrue();
+	}
+
+	@Then("both reports agree on the number of diagnostics")
+	public void bothReportsAgreeOnTheNumberOfDiagnostics() {
+		assertThat(jsonReport.getJSONArray("diagnostics").length())
+				.isEqualTo(ctx.diagnostics().size());
+	}
+
+	private static List<String> codesIn(JSONObject report) {
+		JSONArray diagnostics = report.getJSONArray("diagnostics");
+		List<String> codes = new ArrayList<>();
+		for (int i = 0; i < diagnostics.length(); i++) {
+			JSONObject d = diagnostics.getJSONObject(i);
+			if (d.has("code")) {
+				codes.add(d.getString("code"));
+			}
+		}
+		return codes;
+	}
+
 	@When("I export the current model to DOT format")
 	public void iExportTheCurrentModelToDotFormat() {
 		dotOutput = new DotExporter().export(currentModel);
@@ -241,8 +328,7 @@ public class CompilationSteps {
 	@Then("a validation error is reported for rule {string}")
 	public void aValidationErrorIsReportedForRule(String rule) {
 		assertThat(ctx.diagnostics()).filteredOn(Diagnostic::isError)
-				.extracting(Diagnostic::message)
-				.anySatisfy(msg -> assertThat(msg).contains("[" + rule + "]"));
+				.extracting(Diagnostic::code).contains(rule);
 	}
 
 	@Then("a validation error mentions {string}")
