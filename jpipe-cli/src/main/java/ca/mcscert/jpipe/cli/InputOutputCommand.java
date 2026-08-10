@@ -35,7 +35,7 @@ abstract class InputOutputCommand implements Callable<Integer> {
 	@SuppressWarnings("java:S106") // intentional: output stream and CLI error
 									// messages target stdout/stderr
 	public final Integer call() {
-		if (!parent.headless) {
+		if (!parent.headless && !suppressLogo()) {
 			Logo.sout();
 		}
 		try (FileOutputStream fileOut = output.equals(CompilationConfig.STDOUT)
@@ -50,6 +50,21 @@ abstract class InputOutputCommand implements Callable<Integer> {
 			System.err.println("unexpected error: " + e.getMessage());
 			return Main.EXIT_SYSTEM_ERROR;
 		}
+	}
+
+	/**
+	 * Whether this invocation must not print the logo, over and above the
+	 * global {@code --headless} flag.
+	 *
+	 * <p>
+	 * Subcommands override this when their output is machine-readable and the
+	 * banner would corrupt it. The default is {@code false}: the logo is shown
+	 * unless {@code --headless} was passed.
+	 *
+	 * @return true to suppress the logo for this invocation.
+	 */
+	protected boolean suppressLogo() {
+		return false;
 	}
 
 	/**

@@ -6,7 +6,7 @@
 
     <groupId>org.jpipe</groupId>
     <artifactId>jpipe</artifactId>
-    <version>2.3.1-SNAPSHOT</version>
+    <version>2.4.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>jPipe</name>
@@ -75,24 +75,26 @@
         <!-- Dependency versions -->
         <antlr4.version>4.13.2</antlr4.version>
         <picocli.version>4.7.7</picocli.version>
-        <json.version>20260522</json.version>
-        <log4j.version>2.24.3</log4j.version>
-        <junit.version>5.14.2</junit.version>
-        <junit-platform.version>1.14.2</junit-platform.version>
-        <assertj.version>3.27.3</assertj.version>
-        <cucumber.version>7.34.4</cucumber.version>
+        <json.version>20260719</json.version>
+        <json-schema-validator.version>1.5.9</json-schema-validator.version>
+        <log4j.version>2.26.1</log4j.version>
+        <junit.version>5.14.4</junit.version>
+        <junit-platform.version>1.14.4</junit-platform.version>
+        <assertj.version>3.27.7</assertj.version>
+        <cucumber.version>7.34.6</cucumber.version>
 
         <!-- Plugin versions -->
-        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
         <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
         <log4j-transform.version>0.1.0</log4j-transform.version>
-        <spotless-plugin.version>3.8.0</spotless-plugin.version>
+        <spotless-plugin.version>3.9.0</spotless-plugin.version>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
-        <checkstyle.version>13.8.0</checkstyle.version>
+        <checkstyle.version>13.10.0</checkstyle.version>
         <jacoco-plugin.version>0.8.15</jacoco-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
         <sonar-plugin.version>5.7.0.6970</sonar-plugin.version>
+        <versions-plugin.version>2.21.0</versions-plugin.version>
 
         <!-- SonarCloud -->
         <sonar.projectKey>jpipe-mcscert_jpipe-compiler</sonar.projectKey>
@@ -143,6 +145,17 @@
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
                 <version>${json.version}</version>
+            </dependency>
+            <!--
+              Test scope only: the published JSON Schema is validated against
+              real compiler output in CI, never at runtime. Keeping it out of
+              compile scope also keeps its Jackson dependency out of the fat JAR.
+            -->
+            <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${json-schema-validator.version}</version>
+                <scope>test</scope>
             </dependency>
 
             <!-- Logging -->
@@ -318,6 +331,14 @@
                             <phase>verify</phase>
                         </execution>
                     </executions>
+                </plugin>
+
+                <!-- Used by scripts/release.sh and by release.yml; pinned so a
+                     release never depends on whatever version resolves today. -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>versions-maven-plugin</artifactId>
+                    <version>${versions-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

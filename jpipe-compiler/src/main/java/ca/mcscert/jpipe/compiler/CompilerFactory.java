@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.compiler;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
+import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import ca.mcscert.jpipe.operators.equivalences.SameLabel;
@@ -16,11 +17,13 @@ import ca.mcscert.jpipe.compiler.steps.transformations.ActionListInterpretation;
 import ca.mcscert.jpipe.compiler.steps.transformations.ActionListProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.LoadResolver;
 import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
+import ca.mcscert.jpipe.compiler.steps.transformations.CollectDiagnostics;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticReport;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToDot;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJson;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJpipe;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToPython;
+import ca.mcscert.jpipe.compiler.steps.transformations.JsonDiagnosticReport;
 import ca.mcscert.jpipe.compiler.steps.transformations.Lexer;
 import ca.mcscert.jpipe.compiler.steps.transformations.Parser;
 import ca.mcscert.jpipe.compiler.steps.transformations.RenderWithDot;
@@ -89,8 +92,10 @@ public final class CompilerFactory {
 	}
 
 	/**
-	 * Build a diagnostic-mode compiler that parses the source and produces a
-	 * human-readable report without exporting any model.
+	 * Build a diagnostic-mode compiler producing a human-readable report.
+	 * Equivalent to
+	 * {@link #buildDiagnosticCompiler(DiagnosticFormat, OutputStream)} with
+	 * {@link DiagnosticFormat#TEXT}.
 	 *
 	 * @param stdout
 	 *            stream to use when the output target is
@@ -98,8 +103,32 @@ public final class CompilerFactory {
 	 * @return a ready-to-use {@link Compiler}.
 	 */
 	public static Compiler buildDiagnosticCompiler(OutputStream stdout) {
+		return buildDiagnosticCompiler(DiagnosticFormat.TEXT, stdout);
+	}
+
+	/**
+	 * Build a diagnostic-mode compiler that parses the source and reports on it
+	 * without exporting any model.
+	 *
+	 * <p>
+	 * Both formats share the {@link CollectDiagnostics} step and differ only in
+	 * their renderer, so they always describe the same compilation.
+	 *
+	 * @param format
+	 *            how to render the report.
+	 * @param stdout
+	 *            stream to use when the output target is
+	 *            {@link CompilationConfig#STDOUT}.
+	 * @return a ready-to-use {@link Compiler}.
+	 */
+	public static Compiler buildDiagnosticCompiler(DiagnosticFormat format,
+			OutputStream stdout) {
+		Transformation<DiagnosticSnapshot, String> renderer = switch (format) {
+			case TEXT -> new DiagnosticReport();
+			case JSON -> new JsonDiagnosticReport();
+		};
 		return parsingChain().andThen(unitBuilder())
-				.andThen(new DiagnosticReport())
+				.andThen(new CollectDiagnostics()).andThen(renderer)
 				.andThen(new StringSink(stdout));
 	}
 

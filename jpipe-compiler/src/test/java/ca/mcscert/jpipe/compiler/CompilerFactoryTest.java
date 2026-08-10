@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class CompilerFactoryTest {
 
@@ -21,6 +23,15 @@ class CompilerFactoryTest {
 	void buildDiagnosticCompiler_returns_non_null() {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		assertThat(CompilerFactory.buildDiagnosticCompiler(out)).isNotNull();
+	}
+
+	@ParameterizedTest
+	@EnumSource(DiagnosticFormat.class)
+	void buildDiagnosticCompiler_supports_every_format(
+			DiagnosticFormat format) {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		assertThat(CompilerFactory.buildDiagnosticCompiler(format, out))
+				.isNotNull();
 	}
 
 	@Test

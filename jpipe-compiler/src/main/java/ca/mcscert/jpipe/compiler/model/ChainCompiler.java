@@ -54,7 +54,9 @@ public final class ChainCompiler<I, O> implements Compiler {
 						? d.source() + ":" + d.line() + ":" + d.column() + ": "
 						: d.source() + ": ";
 				String level = d.level().name().toLowerCase();
-				String msg = d.message();
+				String msg = d.hasCode()
+						? "[" + d.code() + "] " + d.message()
+						: d.message();
 				logger.error("{}{}: {}", loc, level, msg);
 			}
 		}

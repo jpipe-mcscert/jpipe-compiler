@@ -42,11 +42,22 @@ jobs:
       - name: Copy Javadoc into docs
         run: cp -r target/reports/apidocs docs/api
 
+      - name: Copy the diagnostic report JSON Schema into docs
+        # The schema is a packaged compiler resource; it is staged here so the
+        # site serves it at the $id URL declared inside the file. Copied rather
+        # than duplicated in git, so there is only ever one source of truth.
+        run: |
+          mkdir -p docs/schema
+          cp jpipe-compiler/src/main/resources/schema/*.json docs/schema/
+
       - name: Prepare docs index from README
         run: |
+          # The README is read from the repository root on GitHub and from
+          # docs/ on the site, so docs-relative paths have to be re-anchored.
           sed \
-            -e 's|./docs/logo.svg|logo.svg|g' \
-            -e 's|./docs/sponsors/|sponsors/|g' \
+            -e 's|\./docs/logo\.svg|logo.svg|g' \
+            -e 's|\./docs/sponsors/|sponsors/|g' \
+            -e 's|](docs/|](|g' \
             -e 's|^  - |    - |g' \
             README.md > docs/index.md
 
