@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ace-design.github.io/jpipe/schema/diagnostic-report-v1.schema.json",
+  "title": "jPipe diagnostic report (v1)",
+  "description": "The document produced by `jpipe diagnostic -f json`. This schema is the contract between the compiler and its consumers; it describes exactly what version 1 emits. Optional members are omitted rather than emitted as null.",
+
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "source",
+    "status",
+    "diagnostics",
+    "stats",
+    "models",
+    "actions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this document shape. Bumped only on a breaking change; additive changes keep it stable.",
+      "const": 1
+    },
+    "source": {
+      "description": "Path of the compiled source file, as given to the compiler.",
+      "type": "string"
+    },
+    "status": {
+      "description": "Whether any ERROR or FATAL diagnostic was reported. Mirrors the process exit code: 'ok' is 0, 'errors' is 1.",
+      "enum": ["ok", "errors"]
+    },
+    "diagnostics": {
+      "description": "All diagnostics, in the order the compiler reported them.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/diagnostic" }
+    },
+    "stats": { "$ref": "#/$defs/stats" },
+    "models": {
+      "description": "One entry per model in the unit, in declaration order.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/model" }
+    },
+    "actions": {
+      "description": "The ordered model-construction command trace. Empty when interpretation did not run.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/action" }
+    }
+  },
+
+  "$defs": {
+    "code": {
+      "description": "A stable, bare kebab-case identifier: either a compiler diagnostic code (`unknown-model`) or a validation rule name (`no-duplicate-ids`). Never bracketed — presentation belongs to the renderer.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+
+    "location": {
+      "description": "A source position. Line is 1-based, column is 0-based. Present only when the position is known.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "column"],
+      "properties": {
+        "source": {
+          "description": "File the position belongs to. Omitted when the source is not tracked; differs from the report's top-level source for elements pulled in by a `load` directive.",
+          "type": "string"
+        },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "source", "message"],
+      "properties": {
+        "severity": {
+          "description": "'error' accumulates and sets the exit code (ADR-0016). 'fatal' is reserved: a fatal aborts the pipeline before any report is rendered, so it does not currently appear in a document — consumers should still handle it.",
+          "enum": ["error", "fatal"]
+        },
+        "code": { "$ref": "#/$defs/code" },
+        "source": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 0 },
+        "message": {
+          "description": "Human-readable description. Never carries the code — read `code` for that.",
+          "type": "string"
+        }
+      },
+      "dependentRequired": {
+        "line": ["column"],
+        "column": ["line"]
+      }
+    },
+
+    "stats": {
+      "description": "Compilation statistics. Always readable: the members are zero when interpretation did not run.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commands", "deferrals"],
+      "properties": {
+        "commands": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "macros"],
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "macros": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "deferrals": {
+          "description": "Number of execution-engine deferral rounds.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "elements", "usedBy", "symbols", "aliases"],
+      "properties": {
+        "name": { "type": "string" },
+        "kind": { "enum": ["justification", "template"] },
+        "implements": {
+          "description": "Name of the template this model implements. Omitted when it implements none.",
+          "type": "string"
+        },
+        "location": { "$ref": "#/$defs/location" },
+        "elements": {
+          "description": "Element census, matching the text report's `elements:` line.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "conclusion",
+            "subConclusion",
+            "strategy",
+            "evidence",
+            "abstractSupport"
+          ],
+          "properties": {
+            "conclusion": {
+              "description": "0 or 1: a model owns at most one conclusion.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "subConclusion": { "type": "integer", "minimum": 0 },
+            "strategy": { "type": "integer", "minimum": 0 },
+            "evidence": { "type": "integer", "minimum": 0 },
+            "abstractSupport": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "usedBy": {
+          "description": "Models implementing this one. Always empty for a justification.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "location": { "$ref": "#/$defs/location" }
+            }
+          }
+        },
+        "symbols": {
+          "description": "The model's elements, in stable display order: conclusion, sub-conclusions, strategies, evidence, abstract supports.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/symbol" }
+        },
+        "aliases": {
+          "description": "Element ids rewritten during composition.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" }
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": { "kind": { "const": "justification" } },
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": { "usedBy": { "maxItems": 0 } }
+      }
+    },
+
+    "symbol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "synthesized"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": {
+          "enum": [
+            "conclusion",
+            "sub-conclusion",
+            "strategy",
+            "evidence",
+            "abstract-support"
+          ]
+        },
+        "synthesized": {
+          "description": "True when the element has no source position of its own, because it was produced by template expansion or composition.",
+          "type": "boolean"
+        },
+        "location": { "$ref": "#/$defs/location" }
+      },
+      "if": {
+        "properties": { "synthesized": { "const": false } },
+        "required": ["synthesized"]
+      },
+      "then": {
+        "description": "A non-synthesized element always carries its position.",
+        "required": ["location"]
+      },
+      "else": {
+        "description": "A synthesized element never does.",
+        "not": { "required": ["location"] }
+      }
+    },
+
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "depth", "macro", "description"],
+      "properties": {
+        "index": {
+          "description": "1-based position in the execution order.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "depth": {
+          "description": "Nesting depth inside macro expansions.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "macro": { "type": "boolean" },
+        "description": { "type": "string" }
+      }
+    }
+  }
+}

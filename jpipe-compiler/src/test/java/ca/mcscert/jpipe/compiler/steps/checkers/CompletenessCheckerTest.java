@@ -46,14 +46,25 @@ class CompletenessCheckerTest {
 	}
 
 	@Test
-	void error_diagnostic_message_contains_rule_name() {
+	void error_diagnostic_carries_rule_name_as_code() {
+		Unit unit = new Unit("src");
+		unit.add(new Justification("j"));
+
+		new CompletenessChecker().fire(unit, ctx);
+
+		assertThat(ctx.diagnostics()).extracting(Diagnostic::code)
+				.contains("conclusion-present");
+	}
+
+	@Test
+	void error_diagnostic_message_excludes_the_rule_name() {
 		Unit unit = new Unit("src");
 		unit.add(new Justification("j"));
 
 		new CompletenessChecker().fire(unit, ctx);
 
 		assertThat(ctx.diagnostics()).extracting(Diagnostic::message)
-				.anyMatch(m -> m.contains("conclusion-present"));
+				.noneMatch(m -> m.contains("conclusion-present"));
 	}
 
 	// -------------------------------------------------------------------------

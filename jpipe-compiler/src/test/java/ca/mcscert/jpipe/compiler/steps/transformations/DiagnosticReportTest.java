@@ -10,6 +10,7 @@ import ca.mcscert.jpipe.commands.ExecutedAction;
 import ca.mcscert.jpipe.commands.MacroCommand;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
+import ca.mcscert.jpipe.compiler.model.DiagnosticCodes;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
@@ -48,7 +49,7 @@ class DiagnosticReportTest {
 
 		@Test
 		void sectionIsAbsentWhenNoActionsWereRecorded() {
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).doesNotContain("Executed Actions");
 		}
 
@@ -57,21 +58,21 @@ class DiagnosticReportTest {
 		void singleAction_reportContains(int depth, String expected) {
 			ctx.recordActions(
 					List.of(action(new CreateJustification("j1"), depth)));
-			assertThat(step.run(unit, ctx)).contains(expected);
+			assertThat(report()).contains(expected);
 		}
 
 		@Test
 		void actionsAreNumberedSequentially() {
 			ctx.recordActions(List.of(action(new CreateJustification("j1"), 0),
 					action(new CreateJustification("j2"), 0)));
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("  1.").contains("  2.");
 		}
 
 		@Test
 		void macroActionIsLabelledWithMacroPrefix() {
 			ctx.recordActions(List.of(action(macro("my_macro"), 0)));
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("[macro] my_macro");
 		}
 
@@ -79,7 +80,7 @@ class DiagnosticReportTest {
 		void depth2ActionIsIndentedMoreThanDepth1() {
 			ctx.recordActions(List.of(action(new CreateJustification("j1"), 1),
 					action(new CreateJustification("j2"), 2)));
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).containsSubsequence(
 					"  1.   create_justification('j1').",
 					"  2.     create_justification('j2').");
@@ -101,7 +102,7 @@ class DiagnosticReportTest {
 
 		@Test
 		void noDiagnostics_prints_none() {
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("=== Diagnostics ===")
 					.contains("(none)");
 		}
@@ -109,7 +110,7 @@ class DiagnosticReportTest {
 		@Test
 		void errorWithoutLocation_prints_level_source_message() {
 			ctx.error("something went wrong");
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("[ERROR]")
 					.contains("something went wrong");
 		}
@@ -117,13 +118,13 @@ class DiagnosticReportTest {
 		@Test
 		void errorWithLocation_includes_line_and_column() {
 			ctx.error(5, 10, "bad token");
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("5:10").contains("bad token");
 		}
 
 		@Test
 		void markDiagnosticsRendered_is_called_after_run() {
-			step.run(unit, ctx);
+			report();
 			assertThat(ctx.diagnosticsRendered()).isTrue();
 		}
 	}
@@ -137,7 +138,7 @@ class DiagnosticReportTest {
 
 		@Test
 		void sectionIsAbsentWhenNoStatsRecorded() {
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).doesNotContain("Action Statistics");
 		}
 
@@ -146,7 +147,7 @@ class DiagnosticReportTest {
 			ctx.recordStat(STAT_COMMANDS_TOTAL, 3L);
 			ctx.recordStat(STAT_COMMANDS_MACROS, 1L);
 			ctx.recordStat(STAT_COMMANDS_DEFERRALS, 0L);
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("=== Action Statistics ===");
 		}
 
@@ -155,7 +156,7 @@ class DiagnosticReportTest {
 			ctx.recordStat(STAT_COMMANDS_TOTAL, 5L);
 			ctx.recordStat(STAT_COMMANDS_MACROS, 2L);
 			ctx.recordStat(STAT_COMMANDS_DEFERRALS, 1L);
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("commands: 5 total (2 macro)")
 					.contains("deferrals: 1");
 		}
@@ -170,21 +171,21 @@ class DiagnosticReportTest {
 
 		@Test
 		void emptyUnit_shows_header_only() {
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("=== Model Summary ===");
 		}
 
 		@Test
 		void justification_shows_kind_and_name() {
 			unit.add(new Justification("myJ"));
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("justification \"myJ\"");
 		}
 
 		@Test
 		void template_shows_kind_and_name() {
 			unit.add(new Template("myT"));
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("template \"myT\"");
 		}
 
@@ -193,7 +194,7 @@ class DiagnosticReportTest {
 			Justification j = new Justification("j");
 			j.setConclusion(new Conclusion("c", "A conclusion"));
 			unit.add(j);
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("conclusion(1)");
 		}
 
@@ -204,7 +205,7 @@ class DiagnosticReportTest {
 			j.addElement(new Strategy("s", "A strategy"));
 			j.addElement(new Evidence("e", "An evidence"));
 			unit.add(j);
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("conclusion(1)").contains("strategy(1)")
 					.contains("evidence(1)");
 		}
@@ -216,7 +217,7 @@ class DiagnosticReportTest {
 			Justification j = new Justification("impl");
 			j.inline(t, "base");
 			unit.add(j);
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("used by").contains("\"impl\"");
 		}
 	}
@@ -230,7 +231,7 @@ class DiagnosticReportTest {
 
 		@Test
 		void emptyUnit_shows_empty_symbol_table() {
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("=== Symbol Table ===")
 					.contains("(empty)");
 		}
@@ -239,7 +240,7 @@ class DiagnosticReportTest {
 		void model_with_known_location_shows_location() {
 			unit.add(new Justification("j"));
 			unit.recordLocation("j", new SourceLocation("test.jd", 1, 1));
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("justification \"j\"");
 		}
 
@@ -250,7 +251,7 @@ class DiagnosticReportTest {
 			unit.add(j);
 			unit.recordLocation("j", new SourceLocation("test.jd", 1, 1));
 			unit.recordLocation("j", "c", new SourceLocation("test.jd", 2, 3));
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("2:3");
 		}
 
@@ -259,14 +260,89 @@ class DiagnosticReportTest {
 			unit.add(new Justification("j"));
 			unit.recordAlias("j", "oldId", "newId");
 			unit.recordLocation("j", new SourceLocation("test.jd", 1, 1));
-			String report = step.run(unit, ctx);
+			String report = report();
 			assertThat(report).contains("[alias]");
 		}
 	}
 
 	// -------------------------------------------------------------------------
+	// Whole-report golden text
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Pins the exact rendering of a report exercising every section at once.
+	 *
+	 * <p>
+	 * The per-section tests above assert on substrings and would not notice a
+	 * lost space, a reordered section or a stray blank line. This one would —
+	 * which is what makes it the guard for changes that move text around, such
+	 * as lifting diagnostic codes out of message strings into their own field.
+	 */
+	@Test
+	void wholeReport_rendersExactly() {
+		Template t = new Template("base");
+		t.setConclusion(new Conclusion("tc", "Template conclusion"));
+		t.addElement(new Strategy("ts", "Template strategy"));
+		unit.add(t);
+		unit.recordLocation("base", new SourceLocation("test.jd", 3, 8));
+		unit.recordLocation("base", "tc", new SourceLocation("test.jd", 4, 2));
+		unit.recordLocation("base", "ts", new SourceLocation("test.jd", 5, 4));
+
+		Justification j = new Justification("impl");
+		j.inline(t, "base");
+		j.addElement(new Evidence("ev", "Some evidence"));
+		unit.add(j);
+		unit.recordLocation("impl", new SourceLocation("test.jd", 10, 0));
+		unit.recordLocation("impl", "ev", new SourceLocation("test.jd", 11, 6));
+		unit.recordAlias("impl", "old", "new");
+
+		ctx.error(DiagnosticCodes.UNKNOWN_MODEL, 12, 4, "unknown model 'foo'");
+		ctx.error("model construction failed");
+		ctx.recordStat(STAT_COMMANDS_TOTAL, 4L);
+		ctx.recordStat(STAT_COMMANDS_MACROS, 1L);
+		ctx.recordStat(STAT_COMMANDS_DEFERRALS, 2L);
+		ctx.recordActions(List.of(action(new CreateJustification("impl"), 0),
+				action(macro("expand_base"), 1)));
+
+		assertThat(report()).isEqualTo(GOLDEN_REPORT);
+	}
+
+	/**
+	 * Written as explicit concatenation rather than a text block so that no
+	 * source formatter can silently re-indent the expectation and weaken the
+	 * assertion. {@code →} is the alias arrow.
+	 */
+	private static final String GOLDEN_REPORT = "=== Diagnostics ===\n"
+			+ "[ERROR] test.jd:12:4: [unknown-model] unknown model 'foo'\n"
+			+ "[ERROR] test.jd: model construction failed\n" + "\n"
+			+ "=== Action Statistics ===\n" + "commands: 4 total (1 macro)\n"
+			+ "deferrals: 2\n" + "\n" + "=== Model Summary ===\n"
+			+ "template \"base\"\n"
+			+ "  elements:  conclusion(1), strategy(1)\n"
+			+ "  used by:   \"impl\" @ 10:0\n" + "\n"
+			+ "justification \"impl\"  [implements \"base\"]\n"
+			+ "  elements:  conclusion(1), strategy(1), evidence(1)\n" + "\n"
+			+ "=== Symbol Table ===\n" + "template \"base\"  [test.jd:3:8]\n"
+			+ "  tc  4:2\n" + "  ts  5:4\n"
+			+ "justification \"impl\"  [test.jd:10:0]\n"
+			+ "  base:tc  [synthesized]\n" + "  base:ts  [synthesized]\n"
+			+ "  ev       11:6\n" + "  old  \u2192 new  [alias]\n" + "\n"
+			+ "=== Executed Actions ===\n"
+			+ "  1. create_justification('impl').\n"
+			+ "  2.   [macro] expand_base\n";
+
+	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
+
+	/**
+	 * Renders the current fixture the way the pipeline does: collect the
+	 * snapshot, then format it. Exercising the pair together is deliberate —
+	 * the renderer is only meaningful over a snapshot the collector produced.
+	 */
+	private String report() {
+		return step.run(new CollectDiagnostics().run(unit, ctx), ctx);
+	}
 
 	private static ExecutedAction action(Command command, int depth) {
 		return new ExecutedAction(command, depth);

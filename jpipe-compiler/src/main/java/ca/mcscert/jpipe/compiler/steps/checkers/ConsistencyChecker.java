@@ -16,11 +16,11 @@ public final class ConsistencyChecker extends Checker<Unit> {
 	@Override
 	protected void check(Unit unit, CompilationContext ctx) {
 		new ConsistencyValidator().validate(unit).forEach(v -> {
-			String msg = "[" + v.rule() + "] " + v.message();
 			if (v.location().isKnown()) {
-				ctx.error(v.location().line(), v.location().column(), msg);
+				ctx.error(v.rule(), v.location().line(), v.location().column(),
+						v.message());
 			} else {
-				ctx.error(msg);
+				ctx.error(v.rule(), v.message());
 			}
 		});
 	}

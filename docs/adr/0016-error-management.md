@@ -109,3 +109,48 @@ outside the compiler's control.
   there).
 - All CLI commands must check the boolean return of `compile()` and map `true` to
   `EXIT_JPIPE_ERROR`.
+
+## Amendment (2026-08-09): diagnostic codes are data, not a message prefix
+
+The original decision modelled a `Diagnostic` as a level, a source location, and
+a human-readable message. Codes existed — `DiagnosticCodes` listed ten of them —
+but only as bracketed *prefixes concatenated into the message*
+(`"[unknown-model] unknown model 'foo'"`), and validation rules were flattened
+the same way at the checker boundary, discarding the `Violation.rule()` field
+that already carried the identifier structurally.
+
+That was adequate while the only consumer was a human reading a terminal. It
+stopped being adequate once the diagnostic report gained a machine-readable
+rendering (`jpipe diagnostic -f json`): a consumer wanting to categorise, filter
+or map diagnostics onto IDE severities had to re-parse the prefix back out of a
+string the compiler had just assembled.
+
+### Amended decision
+
+- **`Diagnostic` carries a `code` component**: a stable, bare kebab-case
+  identifier, or `null` when the diagnostic has none. `hasCode()` reports its
+  presence.
+- **`DiagnosticCodes` constants lose their brackets** (`"[unknown-model]"` →
+  `"unknown-model"`), which also makes them directly comparable with
+  `Violation.rule()`, already bare kebab-case.
+- **Presentation belongs to the renderer.** The human-readable report and the
+  `ChainCompiler` stderr fallback re-add the `"[code] "` prefix, so their output
+  is byte-for-byte what it was; the JSON report emits `code` as its own field.
+- **Codes remain optional.** Several diagnostics are summary lines with no
+  meaningful code (`"model construction failed — see errors above"`), and no
+  code is invented for them. `FATAL` diagnostics carry no code today; giving
+  them one is a later, additive change.
+
+This is a refinement of the diagnostic *payload*. The two-level severity model,
+the fast-fail semantics of `fire()`, the `HaltAndCatchFire` placement, and the
+exit-code table are all unchanged.
+
+### Consequences
+
+- `Diagnostic.message()` no longer contains the code. Code reading it
+  programmatically must read `code()` instead — the one consumer-visible break,
+  recorded in the changelog.
+- The canonical `Diagnostic` constructor gained a component; the factory methods
+  absorb this for all in-tree callers.
+- Tests and tooling that matched `"[" + rule + "]"` inside a message now match
+  `code()` directly, which is both cheaper and stricter.

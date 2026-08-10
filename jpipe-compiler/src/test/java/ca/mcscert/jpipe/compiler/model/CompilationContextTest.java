@@ -64,4 +64,33 @@ class CompilationContextTest {
 				.containsExactly("first", "second");
 	}
 
+	@Test
+	void codedError_carriesTheCodeAndTheSourcePath() {
+		ctx.error(DiagnosticCodes.UNKNOWN_MODEL, "unknown model 'foo'");
+
+		Diagnostic d = ctx.diagnostics().get(0);
+		assertThat(d.code()).isEqualTo("unknown-model");
+		assertThat(d.source()).isEqualTo("file.jd");
+		assertThat(d.message()).isEqualTo("unknown model 'foo'");
+		assertThat(d.hasLocation()).isFalse();
+	}
+
+	@Test
+	void codedErrorWithLocation_carriesEverything() {
+		ctx.error(DiagnosticCodes.UNKNOWN_ELEMENT, 7, 3, "unknown element 'e'");
+
+		Diagnostic d = ctx.diagnostics().get(0);
+		assertThat(d.code()).isEqualTo("unknown-element");
+		assertThat(d.line()).isEqualTo(7);
+		assertThat(d.column()).isEqualTo(3);
+		assertThat(d.message()).isEqualTo("unknown element 'e'");
+	}
+
+	@Test
+	void uncodedError_hasNoCode() {
+		ctx.error(7, 3, "plain message");
+
+		assertThat(ctx.diagnostics().get(0).hasCode()).isFalse();
+	}
+
 }

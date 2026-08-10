@@ -174,6 +174,9 @@ the `dot` binary is on your `PATH` before using image formats.
 # Parse and validate without exporting — prints diagnostics, statistics, and the symbol table
 java -jar jpipe-cli/target/jpipe-cli-*.jar diagnostic -i my.jd
 
+# Same report as JSON, for IDEs and other tooling
+java -jar jpipe-cli/target/jpipe-cli-*.jar diagnostic -i my.jd -f json
+
 # Check runtime dependencies (Graphviz)
 java -jar jpipe-cli/target/jpipe-cli-*.jar doctor
 ```

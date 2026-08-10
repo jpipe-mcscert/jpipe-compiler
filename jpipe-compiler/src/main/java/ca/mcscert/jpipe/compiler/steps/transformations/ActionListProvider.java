@@ -274,8 +274,8 @@ public final class ActionListProvider
 					ctx.element().id.getStart().getCharPositionInLine());
 			String modelId = buildContext.justificationId;
 			if (!seenConclusionModels.add(modelId)) {
-				compilationCtx.error(loc.line(), loc.column(),
-						DiagnosticCodes.SINGLE_CONCLUSION + " Model '" + modelId
+				compilationCtx.error(DiagnosticCodes.SINGLE_CONCLUSION,
+						loc.line(), loc.column(), "Model '" + modelId
 								+ "' declares multiple conclusions");
 				return;
 			}
@@ -357,9 +357,9 @@ public final class ActionListProvider
 				SourceLocation loc) {
 			String parent = buildContext.parentTemplateName;
 			if (parent == null) {
-				compilationCtx.error(loc.line(), loc.column(),
-						DiagnosticCodes.UNRESOLVED_OVERRIDE + " '" + identifier
-								+ "' is qualified but model '"
+				compilationCtx.error(DiagnosticCodes.UNRESOLVED_OVERRIDE,
+						loc.line(), loc.column(),
+						"'" + identifier + "' is qualified but model '"
 								+ buildContext.justificationId
 								+ "' implements no template");
 				return false;
