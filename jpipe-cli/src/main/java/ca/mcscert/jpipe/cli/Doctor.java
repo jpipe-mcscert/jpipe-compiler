@@ -43,17 +43,23 @@ final class Doctor {
 	 *         missing.
 	 */
 	static boolean run() {
+		return run(TOOLS);
+	}
+
+	/**
+	 * Probes the given tools and prints a status line for each.
+	 *
+	 * @param tools
+	 *            the tools to probe, mapping a name to its probe command.
+	 * @return {@code true} if every tool is available, {@code false} if any is
+	 *         missing.
+	 */
+	static boolean run(Map<String, String[]> tools) {
 		boolean allOk = true;
-		for (Map.Entry<String, String[]> entry : TOOLS.entrySet()) {
-			String name = entry.getKey();
+		for (Map.Entry<String, String[]> entry : tools.entrySet()) {
 			Optional<String> banner = probe(entry.getValue());
-			if (banner.isPresent()) {
-				System.out.println(
-						"  " + name + ": OK (" + describe(banner.get()) + ")");
-			} else {
-				System.out.println("  " + name + ": NOT FOUND");
-				allOk = false;
-			}
+			System.out.println(statusLine(entry.getKey(), banner));
+			allOk = allOk && banner.isPresent();
 		}
 		return allOk;
 	}
@@ -61,27 +67,41 @@ final class Doctor {
 	/**
 	 * Runs a probe command and captures what it printed.
 	 *
+	 * <p>
+	 * The probe output is read to end-of-file, which the tool reaches when it
+	 * terminates; its exit code is deliberately ignored.
+	 *
 	 * @param command
 	 *            the command to run.
 	 * @return the (possibly empty) probe output, or {@link Optional#empty()} if
 	 *         the executable could not be launched.
 	 */
-	private static Optional<String> probe(String[] command) {
+	static Optional<String> probe(String[] command) {
 		try {
 			Process p = new ProcessBuilder(command).redirectErrorStream(true)
 					.start();
-			String output;
 			try (InputStream in = p.getInputStream()) {
-				output = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+				return Optional.of(
+						new String(in.readAllBytes(), StandardCharsets.UTF_8));
 			}
-			p.waitFor();
-			return Optional.of(output);
-		} catch (InterruptedException _) {
-			Thread.currentThread().interrupt();
-			return Optional.empty();
 		} catch (IOException _) {
 			return Optional.empty();
 		}
+	}
+
+	/**
+	 * Builds the status line reported for a tool.
+	 *
+	 * @param name
+	 *            the human-readable tool name.
+	 * @param banner
+	 *            the probe output, empty if the tool could not be launched.
+	 * @return the line to print for that tool.
+	 */
+	static String statusLine(String name, Optional<String> banner) {
+		String status = banner.map(b -> "OK (" + describe(b) + ")")
+				.orElse("NOT FOUND");
+		return "  " + name + ": " + status;
 	}
 
 	/**

@@ -3,14 +3,40 @@ package ca.mcscert.jpipe.cli;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class DoctorTest {
+
+	/** A name no executable on PATH is expected to have. */
+	private static final String MISSING_TOOL = "jpipe-no-such-tool-42";
+
+	/** The executable of the JVM running the tests: always available. */
+	private static String javaBinary() {
+		return System.getProperty("java.home") + File.separator + "bin"
+				+ File.separator + "java";
+	}
+
+	/** Runs the doctor on the given tools, capturing what it prints. */
+	private static String capturedRun(Map<String, String[]> tools) {
+		PrintStream original = System.out;
+		ByteArrayOutputStream captured = new ByteArrayOutputStream();
+		System.setOut(new PrintStream(captured, true, StandardCharsets.UTF_8));
+		try {
+			Doctor.run(tools);
+		} finally {
+			System.setOut(original);
+		}
+		return captured.toString(StandardCharsets.UTF_8);
+	}
 
 	@Test
 	void run_returns_boolean() {
@@ -20,17 +46,62 @@ class DoctorTest {
 
 	@Test
 	void run_reports_a_status_line_per_tool() {
-		PrintStream original = System.out;
-		ByteArrayOutputStream captured = new ByteArrayOutputStream();
-		System.setOut(new PrintStream(captured, true, StandardCharsets.UTF_8));
-		try {
-			Doctor.run();
-		} finally {
-			System.setOut(original);
-		}
-		assertThat(captured.toString(StandardCharsets.UTF_8))
-				.startsWith("  dot (Graphviz): ").containsPattern(
-						"dot \\(Graphviz\\): (OK \\(version .+\\)|NOT FOUND)");
+		String output = capturedRun(
+				Map.of("dot (Graphviz)", new String[]{"dot", "-V"}));
+		assertThat(output).startsWith("  dot (Graphviz): ").containsPattern(
+				"dot \\(Graphviz\\): (OK \\(version .+\\)|NOT FOUND)");
+	}
+
+	// The runtime tools are not guaranteed to be installed where the tests run,
+	// so the probe is exercised against the running JVM, which always is.
+
+	@Test
+	void run_reports_every_tool_and_fails_on_a_missing_one() {
+		Map<String, String[]> tools = new LinkedHashMap<>();
+		tools.put("java (JVM)", new String[]{javaBinary(), "-version"});
+		tools.put("ghost", new String[]{MISSING_TOOL});
+		String output = capturedRun(tools);
+		assertThat(output).contains("  java (JVM): OK (version ")
+				.contains("  ghost: NOT FOUND");
+	}
+
+	@Test
+	void run_succeeds_when_every_tool_is_available() {
+		boolean allOk = Doctor.run(
+				Map.of("java (JVM)", new String[]{javaBinary(), "-version"}));
+		assertThat(allOk).isTrue();
+	}
+
+	@Test
+	void run_fails_when_a_tool_is_missing() {
+		boolean allOk = Doctor.run(Map.of("ghost", new String[]{MISSING_TOOL}));
+		assertThat(allOk).isFalse();
+	}
+
+	@Test
+	void probe_captures_the_output_of_an_existing_tool() {
+		Optional<String> banner = Doctor
+				.probe(new String[]{javaBinary(), "-version"});
+		assertThat(banner).hasValueSatisfying(
+				b -> assertThat(b).containsIgnoringCase("version"));
+	}
+
+	@Test
+	void probe_is_empty_when_the_tool_cannot_be_launched() {
+		assertThat(Doctor.probe(new String[]{MISSING_TOOL})).isEmpty();
+	}
+
+	@Test
+	void statusLine_reports_the_version_of_an_available_tool() {
+		assertThat(Doctor.statusLine("dot (Graphviz)",
+				Optional.of("dot - graphviz version 12.2.1 (20241206.2353)")))
+				.isEqualTo("  dot (Graphviz): OK (version 12.2.1)");
+	}
+
+	@Test
+	void statusLine_reports_a_missing_tool() {
+		assertThat(Doctor.statusLine("dot (Graphviz)", Optional.empty()))
+				.isEqualTo("  dot (Graphviz): NOT FOUND");
 	}
 
 	@ParameterizedTest(name = "extracts {1} out of \"{0}\"")
