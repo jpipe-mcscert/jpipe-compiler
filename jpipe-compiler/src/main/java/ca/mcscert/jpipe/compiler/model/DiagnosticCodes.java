@@ -60,6 +60,12 @@ public final class DiagnosticCodes {
 	/** A command references an element ID that does not exist in its model. */
 	public static final String UNKNOWN_ELEMENT = "unknown-element";
 
+	/**
+	 * Unification grouped elements whose kinds cannot be merged into a single
+	 * element, e.g. a strategy and an evidence sharing the same label.
+	 */
+	public static final String INCOMPATIBLE_UNIFICATION = "incompatible-unification";
+
 	// ---- execution ----------------------------------------------------------
 
 	/** A command could not be executed (catch-all for unexpected failures). */

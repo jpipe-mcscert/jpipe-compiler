@@ -23,6 +23,19 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   (e.g. `dot (Graphviz): OK (version 12.2.1)`). Some operating systems ship an
   outdated Graphviz, which is a common explanation for rendering problems.
 
+### Fixed
+- Composition operators are now commutative when unification merges elements
+  of different kinds: a claim that one model argues (a sub-conclusion) and
+  another asserts (an evidence) merges into a sub-conclusion whichever order
+  the sources are listed in. `assemble(a, b)` and `assemble(b, a)` previously
+  produced the same model only by luck, and the unlucky order failed to
+  compile at all (#156).
+- A unification group whose element kinds genuinely cannot be merged (e.g. the
+  assembled conclusion colliding with a source evidence) is now reported as
+  `incompatible-unification`, pointing at the operator call and naming both
+  elements and their shared label, instead of surfacing as an unexplained
+  `invalid-support` further down the build.
+
 ---
 
 ## [2.4.0] — 2026-08-10

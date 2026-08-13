@@ -23,8 +23,13 @@ public final class CreateSubConclusion extends AbstractElementCreationCommand {
 	}
 
 	@Override
+	public SubConclusion element() {
+		return new SubConclusion(identifier, label);
+	}
+
+	@Override
 	public void doExecute(Unit context) {
-		context.addInto(container, new SubConclusion(identifier, label));
+		context.addInto(container, element());
 		context.recordLocation(container, identifier, location);
 	}
 

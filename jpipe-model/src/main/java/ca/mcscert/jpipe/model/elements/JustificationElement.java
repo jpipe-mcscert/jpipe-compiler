@@ -10,6 +10,15 @@ import ca.mcscert.jpipe.visitor.JustificationVisitor;
 public sealed interface JustificationElement extends ElementView
 		permits CommonElement, AbstractSupport {
 
+	/**
+	 * The kebab-case name of this element's kind, as used in user-facing
+	 * output: {@code conclusion}, {@code sub-conclusion}, {@code strategy},
+	 * {@code evidence}, {@code abstract-support}.
+	 *
+	 * @return the kind name of this element.
+	 */
+	String kind();
+
 	default <R> R accept(JustificationVisitor<R> visitor) {
 		return switch (this) {
 			case Conclusion c -> visitor.visit(c);

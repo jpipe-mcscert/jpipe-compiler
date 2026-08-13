@@ -6,10 +6,12 @@ import static org.assertj.core.api.InstanceOfAssertFactories.LIST;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
+import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateEvidence;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
+import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.RegisterAlias;
 import ca.mcscert.jpipe.model.Justification;
@@ -17,14 +19,26 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.operators.equivalences.SameLabel;
+import ca.mcscert.jpipe.operators.equivalences.SameShortId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class UnifierTest {
+
+	/** Label shared by the members of a merged group. */
+	private static final String SHARED = "A shared claim";
+
+	/** Name of the model under test; {@link #model()} for instance contexts. */
+	private static final String MODEL = "m";
 
 	private Unifier unifier;
 	private ExecutionEngine engine;
@@ -254,6 +268,151 @@ class UnifierTest {
 		}
 	}
 
+	// ── groups mixing element kinds
+	// ───────────────────────────────────────────────
+
+	@Nested
+	class MixedKinds {
+
+		/**
+		 * A group mixing a sub-conclusion and an evidence carrying the same
+		 * claim: one source argued it, the other still asserts it.
+		 */
+		private List<Command> argued(boolean subConclusionFirst) {
+			List<Command> elements = subConclusionFirst
+					? List.of(new CreateSubConclusion(model(), "sc", SHARED),
+							new CreateEvidence(model(), "e", SHARED))
+					: List.of(new CreateEvidence(model(), "e", SHARED),
+							new CreateSubConclusion(model(), "sc", SHARED));
+			List<Command> cmds = new ArrayList<>(
+					List.of(new CreateJustification(model())));
+			cmds.addAll(elements);
+			return cmds;
+		}
+
+		@ParameterizedTest(name = "sub-conclusion listed first: {0}")
+		@ValueSource(booleans = {true, false})
+		void subConclusionWinsWhateverTheOrder(boolean subConclusionFirst) {
+			List<Command> result = unifier.unify(model(),
+					argued(subConclusionFirst), Map.of());
+
+			assertThat(result).filteredOn(Unifier::isElement)
+					.filteredOn(cmd -> "unified_0".equals(Unifier.idOf(cmd)))
+					.singleElement().isInstanceOf(CreateSubConclusion.class)
+					.extracting(Unifier::labelOf).isEqualTo(SHARED);
+		}
+
+		@Test
+		void mergedElementKeepsThePositionOfItsFirstMember() {
+			// The evidence is listed first, so unified_0 takes its slot even
+			// though the sub-conclusion is the one it is built from.
+			List<Command> cmds = argued(false);
+			cmds.add(new CreateEvidence(model(), "last", "Something else"));
+
+			List<Command> result = unifier.unify(model(), cmds, Map.of());
+
+			assertThat(result).filteredOn(Unifier::isElement)
+					.extracting(Unifier::idOf)
+					.containsExactly("unified_0", "last");
+		}
+
+		@Test
+		void mergedSubConclusionCanCarryAStrategyAndSupportAnother() {
+			// The reason sub-conclusion must win: it is both supported by the
+			// strategy that argues it, and a supporter of the strategy that
+			// used to lean on the evidence.
+			List<Command> cmds = argued(false);
+			cmds.addAll(List.of(new CreateStrategy(model(), "arguing", "why"),
+					new CreateStrategy(model(), "leaning", "because"),
+					new AddSupport(model(), "sc", "arguing"),
+					new AddSupport(model(), "leaning", "e")));
+
+			Unit unit = engine.spawn("test",
+					unifier.unify(model(), cmds, Map.of()));
+			Justification result = (Justification) unit.get(model());
+
+			assertThat(result.subConclusions()).singleElement()
+					.satisfies(sc -> assertThat(sc.id()).isEqualTo("unified_0"))
+					.satisfies(sc -> assertThat(sc.getSupport()).get()
+							.extracting(JustificationElement::id)
+							.isEqualTo("arguing"));
+		}
+
+		static Stream<Arguments> incomparablePairs() {
+			return Stream.of(
+					Arguments.of("strategy and evidence",
+							new CreateStrategy(MODEL, "s", SHARED),
+							new CreateEvidence(MODEL, "e", SHARED)),
+					Arguments.of("conclusion and evidence",
+							new CreateConclusion(MODEL, "c", SHARED),
+							new CreateEvidence(MODEL, "e", SHARED)),
+					Arguments.of("conclusion and sub-conclusion",
+							new CreateConclusion(MODEL, "c", SHARED),
+							new CreateSubConclusion(MODEL, "sc", SHARED)),
+					Arguments.of("evidence and abstract support",
+							new CreateEvidence(MODEL, "e", SHARED),
+							new CreateAbstractSupport(MODEL, "as", SHARED)),
+					Arguments.of("sub-conclusion and abstract support",
+							new CreateSubConclusion(MODEL, "sc", SHARED),
+							new CreateAbstractSupport(MODEL, "as", SHARED)));
+		}
+
+		@ParameterizedTest(name = "{0}")
+		@MethodSource("incomparablePairs")
+		void incomparableKindsAreRejected(String label, Command first,
+				Command second) {
+			List<Command> cmds = List.of(new CreateJustification(model()),
+					first, second);
+			assertThatThrownBy(() -> unifier.unify(model(), cmds, Map.of()))
+					.isInstanceOf(IncompatibleUnificationException.class)
+					.hasMessageContaining("cannot unify")
+					.hasMessageContaining(SHARED)
+					.hasMessageContaining("element kinds are incompatible")
+					.hasMessageContaining(Unifier.UNIFY_EXCLUDE_KEY);
+		}
+
+		@Test
+		void theRejectionMessageIsTheSameWhateverTheOrder() {
+			Command strategy = new CreateStrategy(model(), "s", SHARED);
+			Command evidence = new CreateEvidence(model(), "e", SHARED);
+			List<Command> oneWay = List.of(new CreateJustification(model()),
+					strategy, evidence);
+			List<Command> theOther = List.of(new CreateJustification(model()),
+					evidence, strategy);
+
+			String first = messageOf(oneWay);
+			String second = messageOf(theOther);
+
+			assertThat(first).isEqualTo(second);
+		}
+
+		private String messageOf(List<Command> cmds) {
+			try {
+				unifier.unify(model(), cmds, Map.of());
+				throw new AssertionError("expected the group to be rejected");
+			} catch (IncompatibleUnificationException e) {
+				return e.getMessage();
+			}
+		}
+
+		@Test
+		void homogeneousGroupStillTakesTheFirstMembersLabel() {
+			// sameShortId ignores labels, so a group can hold two evidence
+			// elements with different labels: the first one still wins.
+			UnificationEquivalenceRegistry registry = new UnificationEquivalenceRegistry();
+			registry.register("sameShortId", new SameShortId());
+			List<Command> cmds = List.of(new CreateJustification(model()),
+					new CreateEvidence(model(), "a:e", "first label"),
+					new CreateEvidence(model(), "b:e", "second label"));
+
+			List<Command> result = new Unifier(registry).unify(model(), cmds,
+					Map.of("unifyBy", "sameShortId"));
+
+			assertThat(result).filteredOn(Unifier::isElement).singleElement()
+					.extracting(Unifier::labelOf).isEqualTo("first label");
+		}
+	}
+
 	// ── unknown unifyBy
 	// ───────────────────────────────────────────────────────────────
 
@@ -271,6 +430,6 @@ class UnifierTest {
 	}
 
 	private static String model() {
-		return "m";
+		return MODEL;
 	}
 }
