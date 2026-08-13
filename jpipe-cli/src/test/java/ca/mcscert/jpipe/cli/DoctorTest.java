@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
@@ -25,22 +26,31 @@ class DoctorTest {
 				+ File.separator + "java";
 	}
 
-	/** Runs the doctor on the given tools, capturing what it prints. */
+	/** Runs the doctor on the given tools, capturing what it reports. */
 	private static String capturedRun(Map<String, String[]> tools) {
-		PrintStream original = System.out;
 		ByteArrayOutputStream captured = new ByteArrayOutputStream();
-		System.setOut(new PrintStream(captured, true, StandardCharsets.UTF_8));
-		try {
-			Doctor.run(tools);
-		} finally {
-			System.setOut(original);
+		try (PrintStream out = new PrintStream(captured, true,
+				StandardCharsets.UTF_8)) {
+			Doctor.run(tools, out);
 		}
 		return captured.toString(StandardCharsets.UTF_8);
 	}
 
+	/** Runs the doctor on the given tools, discarding what it reports. */
+	private static boolean silentRun(Map<String, String[]> tools) {
+		try (PrintStream out = new PrintStream(OutputStream.nullOutputStream(),
+				true, StandardCharsets.UTF_8)) {
+			return Doctor.run(tools, out);
+		}
+	}
+
 	@Test
 	void run_returns_boolean() {
-		boolean result = Doctor.run();
+		boolean result;
+		try (PrintStream out = new PrintStream(OutputStream.nullOutputStream(),
+				true, StandardCharsets.UTF_8)) {
+			result = Doctor.run(out);
+		}
 		assertThat(result).isIn(true, false);
 	}
 
@@ -67,14 +77,14 @@ class DoctorTest {
 
 	@Test
 	void run_succeeds_when_every_tool_is_available() {
-		boolean allOk = Doctor.run(
+		boolean allOk = silentRun(
 				Map.of("java (JVM)", new String[]{javaBinary(), "-version"}));
 		assertThat(allOk).isTrue();
 	}
 
 	@Test
 	void run_fails_when_a_tool_is_missing() {
-		boolean allOk = Doctor.run(Map.of("ghost", new String[]{MISSING_TOOL}));
+		boolean allOk = silentRun(Map.of("ghost", new String[]{MISSING_TOOL}));
 		assertThat(allOk).isFalse();
 	}
 

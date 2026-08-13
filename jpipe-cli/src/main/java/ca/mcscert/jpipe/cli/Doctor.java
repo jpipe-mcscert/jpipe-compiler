@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.cli;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,7 +12,7 @@ import java.util.regex.Pattern;
 
 /**
  * Checks that external tools required by jPipe are available on {@code PATH}
- * and reports their status to standard output.
+ * and reports their status to a given stream.
  *
  * <p>
  * Each tool is probed by attempting to start a process. A tool is considered
@@ -37,28 +38,32 @@ final class Doctor {
 	}
 
 	/**
-	 * Probes all required external tools and prints a status line for each.
+	 * Probes all required external tools and reports a status line for each.
 	 *
+	 * @param out
+	 *            where the status lines are written.
 	 * @return {@code true} if every tool is available, {@code false} if any is
 	 *         missing.
 	 */
-	static boolean run() {
-		return run(TOOLS);
+	static boolean run(PrintStream out) {
+		return run(TOOLS, out);
 	}
 
 	/**
-	 * Probes the given tools and prints a status line for each.
+	 * Probes the given tools and reports a status line for each.
 	 *
 	 * @param tools
 	 *            the tools to probe, mapping a name to its probe command.
+	 * @param out
+	 *            where the status lines are written.
 	 * @return {@code true} if every tool is available, {@code false} if any is
 	 *         missing.
 	 */
-	static boolean run(Map<String, String[]> tools) {
+	static boolean run(Map<String, String[]> tools, PrintStream out) {
 		boolean allOk = true;
 		for (Map.Entry<String, String[]> entry : tools.entrySet()) {
 			Optional<String> banner = probe(entry.getValue());
-			System.out.println(statusLine(entry.getKey(), banner));
+			out.println(statusLine(entry.getKey(), banner));
 			allOk = allOk && banner.isPresent();
 		}
 		return allOk;
@@ -69,7 +74,9 @@ final class Doctor {
 	 *
 	 * <p>
 	 * The probe output is read to end-of-file, which the tool reaches when it
-	 * terminates; its exit code is deliberately ignored.
+	 * terminates; its exit code is deliberately ignored. A tool that starts but
+	 * whose output cannot be read is still reported as available, with an empty
+	 * banner.
 	 *
 	 * @param command
 	 *            the command to run.
@@ -77,15 +84,19 @@ final class Doctor {
 	 *         the executable could not be launched.
 	 */
 	static Optional<String> probe(String[] command) {
+		Process process;
 		try {
-			Process p = new ProcessBuilder(command).redirectErrorStream(true)
+			process = new ProcessBuilder(command).redirectErrorStream(true)
 					.start();
-			try (InputStream in = p.getInputStream()) {
-				return Optional.of(
-						new String(in.readAllBytes(), StandardCharsets.UTF_8));
-			}
 		} catch (IOException _) {
 			return Optional.empty();
+		}
+		try (InputStream in = process.getInputStream()) {
+			return Optional
+					.of(new String(in.readAllBytes(), StandardCharsets.UTF_8));
+		} catch (IOException _) {
+			process.destroy();
+			return Optional.of("");
 		}
 	}
 

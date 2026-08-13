@@ -46,7 +46,9 @@ package "cli" {
   }
 
   class Doctor <<utility>> {
-    + {static} run() : boolean
+    + {static} run(PrintStream) : boolean
+    ~ {static} probe(String[]) : Optional<String>
+    ~ {static} statusLine(String, Optional<String>) : String
     ~ {static} describe(String) : String
   }
 
