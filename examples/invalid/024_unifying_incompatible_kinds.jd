@@ -1,0 +1,23 @@
+justification base {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+    s supports c
+    e supports s
+}
+
+justification other {
+    conclusion c is "Another conclusion"
+    strategy   s is "Another strategy"
+    evidence   e is "Another evidence"
+    s supports c
+    e supports s
+}
+
+// The global conclusion carries the same label as an evidence of a source:
+// unification groups them, but no single element can be both the model's
+// conclusion and a leaf supporting a strategy.
+justification bad is assemble(base, other) {
+    conclusionLabel: "An evidence"
+    strategyLabel:   "An aggregating strategy"
+}

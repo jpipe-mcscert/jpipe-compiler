@@ -87,6 +87,49 @@ Feature: Composition operators
     And the sub-conclusion "hook" supports the strategy "both:second:s"
     And the strategy "refine_1:s" supports the sub-conclusion "hook"
 
+  Scenario: assemble is commutative when a merged group mixes element kinds
+    Given the source file "024_assemble_commutativity.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+    # "X" is argued in deep (a sub-conclusion) and asserted in other (an
+    # evidence). Whichever source comes first, the merged element must be the
+    # sub-conclusion: it carries the strategy that argues it, and supports the
+    # strategies that lean on it.
+    And the unit contains a justification named "left"
+    And it has a conclusion with id "assembleConclusion" and label "All"
+    And it has a strategy with id "assembleStrategy" and label "Both"
+    And it has a sub-conclusion with id "unified_0" and label "X"
+    And it has a sub-conclusion with id "deep:base:c" and label "Base holds"
+    And it has a sub-conclusion with id "other:c" and label "Other holds"
+    And it has evidence with id "deep:detail:y" and label "Y"
+    And the strategy "deep:detail:s" supports the sub-conclusion "unified_0"
+    And the sub-conclusion "unified_0" supports the strategy "deep:base:s"
+    And the sub-conclusion "unified_0" supports the strategy "other:s"
+    And the sub-conclusion "deep:base:c" supports the strategy "assembleStrategy"
+    And the sub-conclusion "other:c" supports the strategy "assembleStrategy"
+    And the strategy "assembleStrategy" supports the conclusion "assembleConclusion"
+    # Same assertions, sources listed the other way round.
+    And the unit contains a justification named "right"
+    And it has a conclusion with id "assembleConclusion" and label "All"
+    And it has a strategy with id "assembleStrategy" and label "Both"
+    And it has a sub-conclusion with id "unified_0" and label "X"
+    And it has a sub-conclusion with id "deep:base:c" and label "Base holds"
+    And it has a sub-conclusion with id "other:c" and label "Other holds"
+    And it has evidence with id "deep:detail:y" and label "Y"
+    And the strategy "deep:detail:s" supports the sub-conclusion "unified_0"
+    And the sub-conclusion "unified_0" supports the strategy "deep:base:s"
+    And the sub-conclusion "unified_0" supports the strategy "other:s"
+    And the sub-conclusion "deep:base:c" supports the strategy "assembleStrategy"
+    And the sub-conclusion "other:c" supports the strategy "assembleStrategy"
+    And the strategy "assembleStrategy" supports the conclusion "assembleConclusion"
+
+  Scenario: unifying incompatible element kinds reports a dedicated error
+    Given the source file "invalid/024_unifying_incompatible_kinds.jd"
+    When I compile it into a unit
+    Then the compilation has validation errors
+    And a validation error is reported for rule "incompatible-unification"
+    And a validation error mentions "cannot unify"
+
   Scenario: unknown unification method reports an execution error
     Given the source file "invalid/015_unknown_unification_method.jd"
     When I compile it into a unit

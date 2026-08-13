@@ -9,6 +9,8 @@ import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.DiagnosticCodes;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.operators.ApplyOperator;
+import ca.mcscert.jpipe.operators.IncompatibleUnificationException;
 import java.util.List;
 
 /**
@@ -57,6 +59,17 @@ final class ExecutionFailureDiagnostics {
 	 */
 	static void diagnoseExecutionFailure(Command cmd, Unit unit,
 			Throwable cause, CompilationContext ctx) {
+		if (cause instanceof IncompatibleUnificationException) {
+			// Raised while expanding an operator call: anchor the diagnostic on
+			// the call site rather than on the command's own text.
+			SourceLocation loc = cmd instanceof ApplyOperator op
+					? op.location()
+					: SourceLocation.UNKNOWN;
+			error(ctx, DiagnosticCodes.INCOMPATIBLE_UNIFICATION, loc,
+					cause.getMessage());
+			ctx.error("model construction failed — see errors above");
+			return;
+		}
 		switch (cmd) {
 			case ImplementsTemplate c -> {
 				SourceLocation loc = c.location();

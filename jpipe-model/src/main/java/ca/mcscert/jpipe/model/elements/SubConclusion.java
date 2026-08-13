@@ -10,4 +10,9 @@ public final class SubConclusion extends AbstractSupportedElement
 	public SubConclusion(String id, String label) {
 		super(id, label);
 	}
+
+	@Override
+	public String kind() {
+		return "sub-conclusion";
+	}
 }

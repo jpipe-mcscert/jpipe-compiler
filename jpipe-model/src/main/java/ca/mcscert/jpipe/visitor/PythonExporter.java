@@ -152,9 +152,8 @@ public class PythonExporter extends AbstractModelExporter {
 		builder.append("@jpipe(").append(decoratorArgs).append(")\n");
 		builder.append("def ").append(name).append("(").append(params)
 				.append(") -> bool:\n");
-		builder.append("    \"\"\"[").append(elementTypeName(element))
-				.append("] ").append(escapeDocstring(element.label()))
-				.append("\"\"\"\n");
+		builder.append("    \"\"\"[").append(element.kind()).append("] ")
+				.append(escapeDocstring(element.label())).append("\"\"\"\n");
 		if (element instanceof AbstractSupport) {
 			builder.append("    raise NotImplementedError(\"").append(qid)
 					.append(" is abstract and must be"
@@ -162,16 +161,6 @@ public class PythonExporter extends AbstractModelExporter {
 		} else {
 			builder.append("    pass\n\n\n");
 		}
-	}
-
-	private static String elementTypeName(JustificationElement element) {
-		return switch (element) {
-			case Conclusion _ -> "conclusion";
-			case SubConclusion _ -> "sub-conclusion";
-			case Strategy _ -> "strategy";
-			case Evidence _ -> "evidence";
-			case AbstractSupport _ -> "abstract-support";
-		};
 	}
 
 	private static String jpipeDecoratorArgs(JustificationElement element) {

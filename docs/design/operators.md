@@ -87,6 +87,25 @@ Controlled by two optional operator config parameters:
 | `unifyBy` | `"sameLabel"` | Name of the equivalence relation to use |
 | `unifyExclude` | *(empty)* | Comma-separated result-model element ids to exclude from unification |
 
+**Merging a group that mixes element kinds.** Because the default relation
+compares labels, a group can legitimately hold elements of different kinds:
+one source argued a claim (a sub-conclusion) while another still asserts it
+(an evidence). The merged element is built from the group's *dominant*
+member, not from whichever member appears first in the command list, so the
+result does not depend on the order the sources were listed in:
+
+| Group | Merged element |
+|-------|----------------|
+| sub-conclusion + evidence | **sub-conclusion** — being both `StrategyBacked` and `SupportLeaf`, it supports whatever the evidence supported and can additionally carry the strategy that argues it |
+| any other mix of kinds | rejected with the `incompatible-unification` diagnostic, naming both elements and their shared label |
+
+Among members of the same kind the first one wins, and provides the merged
+element's label and source location. Nothing else is comparable: a
+conclusion is the model's single root, a strategy is the support rather than
+a supporter, and an `@support` placeholder is discharged by an explicit
+override, never by a merge. Use `unifyExclude` to keep colliding elements
+apart.
+
 `UnificationEquivalenceRegistry` maps names to `EquivalenceRelation`
 instances. It is populated at compiler startup in
 `CompilerFactory.builtInUnificationEquivalences()`. `SameShortId` is

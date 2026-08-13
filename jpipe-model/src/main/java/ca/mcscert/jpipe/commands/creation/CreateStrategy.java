@@ -22,8 +22,13 @@ public final class CreateStrategy extends AbstractElementCreationCommand {
 	}
 
 	@Override
+	public Strategy element() {
+		return new Strategy(identifier, label);
+	}
+
+	@Override
 	public void doExecute(Unit context) {
-		context.addInto(container, new Strategy(identifier, label));
+		context.addInto(container, element());
 		context.recordLocation(container, identifier, location);
 	}
 

@@ -9,4 +9,9 @@ public final class Conclusion extends AbstractSupportedElement
 	public Conclusion(String id, String label) {
 		super(id, label);
 	}
+
+	@Override
+	public String kind() {
+		return "conclusion";
+	}
 }

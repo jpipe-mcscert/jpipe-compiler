@@ -22,8 +22,13 @@ public final class CreateConclusion extends AbstractElementCreationCommand {
 	}
 
 	@Override
+	public Conclusion element() {
+		return new Conclusion(identifier, label);
+	}
+
+	@Override
 	public void doExecute(Unit context) {
-		context.get(container).setConclusion(new Conclusion(identifier, label));
+		context.get(container).setConclusion(element());
 		context.recordLocation(container, identifier, location);
 	}
 

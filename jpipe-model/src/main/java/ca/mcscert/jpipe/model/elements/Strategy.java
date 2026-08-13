@@ -26,6 +26,11 @@ public final class Strategy implements CommonElement {
 		return label;
 	}
 
+	@Override
+	public String kind() {
+		return "strategy";
+	}
+
 	/**
 	 * Adds {@code supporter} to this strategy. A strategy can never
 	 * legitimately be supported twice by the same element id, so the call is

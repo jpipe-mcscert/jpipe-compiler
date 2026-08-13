@@ -7,8 +7,12 @@ import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class JustificationElementTest {
 
@@ -54,6 +58,21 @@ class JustificationElementTest {
 	}
 
 	private final RecordingVisitor visitor = new RecordingVisitor();
+
+	static Stream<Arguments> elementKinds() {
+		return Stream.of(Arguments.of(new Conclusion("c", "l"), "conclusion"),
+				Arguments.of(new SubConclusion("sc", "l"), "sub-conclusion"),
+				Arguments.of(new Strategy("s", "l"), "strategy"),
+				Arguments.of(new Evidence("e", "l"), "evidence"), Arguments.of(
+						new AbstractSupport("as", "l"), "abstract-support"));
+	}
+
+	@ParameterizedTest(name = "{1}")
+	@MethodSource("elementKinds")
+	void eachElementNamesItsOwnKind(JustificationElement element,
+			String expected) {
+		assertThat(element.kind()).isEqualTo(expected);
+	}
 
 	@Nested
 	class ConclusionTest {

@@ -22,8 +22,13 @@ public final class CreateEvidence extends AbstractElementCreationCommand {
 	}
 
 	@Override
+	public Evidence element() {
+		return new Evidence(identifier, label);
+	}
+
+	@Override
 	public void doExecute(Unit context) {
-		context.addInto(container, new Evidence(identifier, label));
+		context.addInto(container, element());
 		context.recordLocation(container, identifier, location);
 	}
 
