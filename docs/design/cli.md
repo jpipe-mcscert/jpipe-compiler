@@ -46,7 +46,10 @@ package "cli" {
   }
 
   class Doctor <<utility>> {
-    + {static} run() : boolean
+    + {static} run(PrintStream) : boolean
+    ~ {static} probe(String[]) : Optional<String>
+    ~ {static} statusLine(String, Optional<String>) : String
+    ~ {static} describe(String) : String
   }
 
   class Logo <<utility>> {
@@ -194,9 +197,17 @@ prints a status line for each. Also prints the jPipe version number.
 jpipe doctor
 ```
 
+```
+  dot (Graphviz): OK (version 12.2.1)
+```
+
 Currently checks: `dot` (Graphviz). A tool is considered available if the OS
-can launch the executable; the exit code of the probe is ignored. Returns exit
-code `0` if all tools are found, `1` otherwise.
+can launch the executable; the exit code of the probe is ignored. The probe
+output is scanned for a version number, which is reported next to the status —
+several operating systems ship an outdated Graphviz, and that shows up as
+rendering bugs. When no version can be read out of the banner, the status line
+reads `OK (version unknown)`. Returns exit code `0` if all tools are found, `1`
+otherwise.
 
 ## Shared infrastructure
 

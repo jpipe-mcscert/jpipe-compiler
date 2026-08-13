@@ -18,6 +18,11 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- `jpipe doctor` now reports the version of each external tool it finds
+  (e.g. `dot (Graphviz): OK (version 12.2.1)`). Some operating systems ship an
+  outdated Graphviz, which is a common explanation for rendering problems.
+
 ---
 
 ## [2.4.0] — 2026-08-10
