@@ -363,7 +363,8 @@ class UnifierTest {
 				Command second) {
 			List<Command> cmds = List.of(new CreateJustification(model()),
 					first, second);
-			assertThatThrownBy(() -> unifier.unify(model(), cmds, Map.of()))
+			Map<String, String> args = Map.of();
+			assertThatThrownBy(() -> unifier.unify(MODEL, cmds, args))
 					.isInstanceOf(IncompatibleUnificationException.class)
 					.hasMessageContaining("cannot unify")
 					.hasMessageContaining(SHARED)

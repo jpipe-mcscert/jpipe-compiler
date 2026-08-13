@@ -198,19 +198,22 @@ public final class Unifier {
 	 */
 	private static ElementCreationCommand dominant(String resultName,
 			List<ElementCreationCommand> group) {
-		ElementCreationCommand best = group.get(0);
-		for (ElementCreationCommand candidate : group) {
+		List<JustificationElement> elements = group.stream()
+				.map(ElementCreationCommand::element).toList();
+		int best = 0;
+		for (int i = 1; i < elements.size(); i++) {
 			// Strict upgrade only: among equals, the first member wins.
-			if (!subsumes(best.element(), candidate.element())) {
-				best = candidate;
+			if (!subsumes(elements.get(best), elements.get(i))) {
+				best = i;
 			}
 		}
-		for (ElementCreationCommand member : group) {
-			if (!subsumes(best.element(), member.element())) {
+		JustificationElement winner = elements.get(best);
+		for (JustificationElement element : elements) {
+			if (!subsumes(winner, element)) {
 				throw incompatible(resultName, group);
 			}
 		}
-		return best;
+		return group.get(best);
 	}
 
 	/**
