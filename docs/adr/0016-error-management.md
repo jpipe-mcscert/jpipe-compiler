@@ -69,8 +69,9 @@ renderer chooses its own presentation.
 
 Codes are optional by design. Summary diagnostics such as `"model construction
 failed — see errors above"` name no specific rule, and none is invented for
-them. `FATAL` diagnostics carry no code: a fatal aborts the pipeline before any
-report is rendered, so nothing consumes one.
+them. `FATAL` diagnostics carry no code either: a fatal names a
+compilation-level failure — the pipeline cannot continue — rather than a rule
+that was broken.
 
 ### HaltAndCatchFire is placed exclusively after parsing
 
@@ -102,6 +103,23 @@ points to inspect the outcome without access to `CompilationContext`.
 `ChainCompiler` returns `ctx.hasErrors()` after the pipeline completes. If the
 pipeline throws (e.g. due to a `FATAL`), the exception propagates naturally and the
 return value is never reached — the CLI catch blocks handle that path.
+
+### Reporting on a compilation that aborted
+
+The pipeline invariant above is absolute: no step runs after a `FATAL`. That
+makes a report assembled as the last steps of a pipeline unable to describe the
+very failures that stopped it — which is what the `diagnostic` command exists to
+do.
+
+The command therefore has its own `DiagnosticCompiler`, which runs the analysis
+as a pipeline and then writes the report whether that pipeline completed or
+aborted; when it aborted, on the empty unit it never got to build. Rendering is
+reachable outside `fire()` for that reason (`CollectDiagnostics.snapshot` and
+`DiagnosticRenderer.render`). The exit code is unchanged: `hasErrors()` counts a
+`FATAL`, so the command still exits 1.
+
+`process` keeps the original behaviour, because its output stream carries a
+model export and a report written into it would corrupt the artefact.
 
 ### CLI exit codes
 

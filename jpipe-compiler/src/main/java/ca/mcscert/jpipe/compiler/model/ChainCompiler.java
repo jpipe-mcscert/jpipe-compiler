@@ -39,9 +39,7 @@ public final class ChainCompiler<I, O> implements Compiler {
 			O output = chain.fire(input, ctx);
 			sink.pourInto(output);
 		} finally {
-			if (!ctx.diagnosticsRendered()) {
-				printDiagnostics(ctx);
-			}
+			printDiagnostics(ctx);
 		}
 		logger.info("Compilation finished [{}]", sourceFile);
 		return ctx.hasErrors();

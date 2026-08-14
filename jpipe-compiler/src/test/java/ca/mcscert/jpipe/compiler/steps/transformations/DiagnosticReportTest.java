@@ -122,11 +122,6 @@ class DiagnosticReportTest {
 			assertThat(report).contains("5:10").contains("bad token");
 		}
 
-		@Test
-		void markDiagnosticsRendered_is_called_after_run() {
-			report();
-			assertThat(ctx.diagnosticsRendered()).isTrue();
-		}
 	}
 
 	// -------------------------------------------------------------------------

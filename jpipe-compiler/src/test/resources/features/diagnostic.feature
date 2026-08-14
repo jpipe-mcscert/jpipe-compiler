@@ -60,3 +60,29 @@ Feature: Reporting on a compilation unit
     When I produce a JSON diagnostic report
     Then the JSON report describes a "template" named "t"
       And the JSON report status is "ok"
+
+  # A file being edited is syntactically broken most of the time, which is
+  # exactly when a tool needs something machine-readable back (#154).
+  Scenario: A syntax error is reported in JSON rather than aborting silently
+    Given the source file "invalid/025_syntax_error.jd"
+    When I run the diagnostic compiler with format "json"
+    Then the report signals errors
+      And the JSON report status is "errors"
+      And the JSON report declares a schema version
+      And the JSON report has a diagnostic with severity "fatal"
+      And the JSON report describes no model
+
+  Scenario: An unresolvable load is reported in JSON
+    Given the source file "invalid/011_missing_load.jd"
+    When I run the diagnostic compiler with format "json"
+    Then the report signals errors
+      And the JSON report has a diagnostic with severity "fatal"
+      And the JSON report describes no model
+
+  Scenario: An aborted compilation still renders the text report
+    Given the source file "invalid/025_syntax_error.jd"
+    When I run the diagnostic compiler with format "text"
+    Then the report signals errors
+      And the text report contains "[FATAL]"
+      And the text report contains "=== Symbol Table ==="
+      And the text report contains "(empty)"

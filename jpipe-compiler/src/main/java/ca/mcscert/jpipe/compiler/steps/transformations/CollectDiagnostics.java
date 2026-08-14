@@ -43,6 +43,25 @@ public final class CollectDiagnostics
 
 	@Override
 	protected DiagnosticSnapshot run(Unit input, CompilationContext ctx) {
+		return snapshot(input, ctx);
+	}
+
+	/**
+	 * Describes what a compilation produced and reported.
+	 *
+	 * <p>
+	 * Callable directly, and not only as a pipeline step, so that a compilation
+	 * which aborted on a fatal diagnostic can still be reported on — pass an
+	 * empty {@link Unit} for the models it never got to build.
+	 *
+	 * @param input
+	 *            the compiled unit; empty, never {@code null}, when the
+	 *            pipeline aborted.
+	 * @param ctx
+	 *            the context carrying diagnostics, statistics and actions.
+	 * @return the render-agnostic report payload.
+	 */
+	public DiagnosticSnapshot snapshot(Unit input, CompilationContext ctx) {
 		Map<String, List<ImplementorInfo>> implementors = implementorsOf(input);
 		Map<String, Map<String, String>> aliases = groupAliasesByModel(input);
 		List<ModelInfo> models = new ArrayList<>();

@@ -18,6 +18,12 @@ the only type that callers outside the module need to reference.
 `compiler.model`. It is not instantiated directly — `ChainBuilder.andThen(Sink)`
 produces it as the final step of pipeline construction.
 
+`DiagnosticCompiler` backs the `diagnostic` command. It runs the analysis as a
+pipeline but writes its report whether that pipeline completed or aborted, so a
+syntax error or an unresolvable `load` is reported rather than swallowed
+(ADR-0016). A report assembled as the tail of the chain could not do that: a
+fatal stops the chain before those steps run.
+
 ```plantuml
 @startuml compiler
 
@@ -38,7 +44,16 @@ package "compiler" {
     + compile(String, String) : boolean
   }
 
+  class DiagnosticCompiler {
+    - source : Source<InputStream>
+    - analysis : Transformation<InputStream, Unit>
+    - renderer : DiagnosticRenderer
+    - sink : Sink<String>
+    + compile(String, String) : boolean
+  }
+
   Compiler <|.. ChainCompiler
+  Compiler <|.. DiagnosticCompiler
 }
 
 @enduml

@@ -2,7 +2,6 @@ package ca.mcscert.jpipe.compiler;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
-import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import ca.mcscert.jpipe.operators.equivalences.SameLabel;
@@ -18,6 +17,7 @@ import ca.mcscert.jpipe.compiler.steps.transformations.ActionListProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.LoadResolver;
 import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.CollectDiagnostics;
+import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticRenderer;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticReport;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToDot;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJson;
@@ -114,6 +114,11 @@ public final class CompilerFactory {
 	 * Both formats share the {@link CollectDiagnostics} step and differ only in
 	 * their renderer, so they always describe the same compilation.
 	 *
+	 * <p>
+	 * The report is written by a {@link DiagnosticCompiler} rather than
+	 * assembled as the tail of the analysis chain, so that a compilation which
+	 * aborts on a fatal diagnostic is still reported on.
+	 *
 	 * @param format
 	 *            how to render the report.
 	 * @param stdout
@@ -123,13 +128,13 @@ public final class CompilerFactory {
 	 */
 	public static Compiler buildDiagnosticCompiler(DiagnosticFormat format,
 			OutputStream stdout) {
-		Transformation<DiagnosticSnapshot, String> renderer = switch (format) {
+		DiagnosticRenderer renderer = switch (format) {
 			case TEXT -> new DiagnosticReport();
 			case JSON -> new JsonDiagnosticReport();
 		};
-		return parsingChain().andThen(unitBuilder())
-				.andThen(new CollectDiagnostics()).andThen(renderer)
-				.andThen(new StringSink(stdout));
+		return new DiagnosticCompiler(new FileSource(),
+				parsingChain().andThen(unitBuilder()).asTransformation(),
+				renderer, new StringSink(stdout));
 	}
 
 	// -------------------------------------------------------------------------
