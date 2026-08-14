@@ -132,6 +132,78 @@ class ConsistencyValidatorTest {
 	// Helpers
 	// -------------------------------------------------------------------------
 
+	@Nested
+	class UniqueIdentifiers {
+
+		@Test
+		void merge_aliases_alone_produce_no_violations() {
+			Justification j = simpleJustification();
+			j.recordAlias("a:s", "s");
+			j.recordAlias("b:s", "s");
+
+			assertThat(validator.validateModel(j)).isEmpty();
+		}
+
+		@Test
+		void alias_colliding_with_another_elements_id_produces_violation() {
+			Justification j = simpleJustification();
+			j.recordAlias("e1", "s"); // "e1" is already the evidence's own id
+
+			List<Violation> violations = validator.validateModel(j);
+
+			assertThat(violations).extracting(Violation::rule)
+					.contains("unique-identifiers");
+		}
+
+		@Test
+		void violation_names_both_elements_the_identifier_designates() {
+			Justification j = simpleJustification();
+			j.recordAlias("e1", "s");
+
+			List<Violation> violations = validator.validateModel(j);
+
+			assertThat(violations).extracting(Violation::message).first()
+					.asString().contains("'e1'", "element 'e1'", "element 's'");
+		}
+
+		@Test
+		void alias_chain_is_followed_to_the_element_it_designates() {
+			Justification j = simpleJustification();
+			j.recordAlias("mid", "s");
+			j.recordAlias("e1", "mid"); // reaches "s" through "mid"
+
+			List<Violation> violations = validator.validateModel(j);
+
+			assertThat(violations).extracting(Violation::rule)
+					.contains("unique-identifiers");
+		}
+
+		@Test
+		void alias_leading_to_no_element_is_ignored() {
+			Justification j = simpleJustification();
+			j.recordAlias("e1", "nowhere");
+
+			assertThat(validator.validateModel(j)).isEmpty();
+		}
+
+		@Test
+		void cyclic_alias_chain_terminates_without_violation() {
+			Justification j = simpleJustification();
+			j.recordAlias("x", "y");
+			j.recordAlias("y", "x");
+
+			assertThat(validator.validateModel(j)).isEmpty();
+		}
+
+		@Test
+		void alias_pointing_at_its_own_element_is_not_a_collision() {
+			Justification j = simpleJustification();
+			j.recordAlias("s", "s");
+
+			assertThat(validator.validateModel(j)).isEmpty();
+		}
+	}
+
 	private static Justification simpleJustification() {
 		Justification j = new Justification("j");
 		Conclusion c = new Conclusion("c", "The system is correct");

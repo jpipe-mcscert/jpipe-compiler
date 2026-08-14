@@ -360,6 +360,31 @@ public class CompilationSteps {
 				.doesNotContain("# @jpipe_link(\"" + qualifiedId + "\")");
 	}
 
+	@Then("the Python output has @jpipe_link for id {string} commented out")
+	public void thePythonOutputHasJpipeLinkCommentedOut(String qualifiedId) {
+		assertThat(pythonOutput)
+				.contains("# @jpipe_link(\"" + qualifiedId + "\")");
+	}
+
+	@Then("the Python output declares {string} before {string}")
+	public void thePythonOutputDeclaresBefore(String first, String second) {
+		assertThat(pythonOutput).containsSubsequence("def " + first + "(",
+				"def " + second + "(");
+	}
+
+	@Then("the Python output has a namespace section for {string}")
+	public void thePythonOutputHasANamespaceSectionFor(String namespace) {
+		String edge = "###" + " ".repeat(namespace.length()) + "###";
+		assertThat(pythonOutput)
+				.contains(edge + "\n## " + namespace + " ##\n" + edge + "\n");
+	}
+
+	@Then("the Python output has no @jpipe_link for id {string}")
+	public void thePythonOutputHasNoJpipeLinkFor(String qualifiedId) {
+		assertThat(pythonOutput)
+				.doesNotContain("@jpipe_link(\"" + qualifiedId + "\")");
+	}
+
 	@Then("the compilation has validation errors")
 	public void theCompilationHasValidationErrors() {
 		assertThat(ctx.hasErrors()).isTrue();

@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.operators;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
+import ca.mcscert.jpipe.commands.linking.MarkUnified;
 import ca.mcscert.jpipe.commands.linking.RegisterAlias;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.SourceLocation;
@@ -267,6 +268,17 @@ public abstract class CompositionOperator {
 		// Persist aliases to Unit via RegisterAlias commands
 		aliases.aliases().forEach((oldId, newId) -> commands
 				.add(new RegisterAlias(resultName, oldId, newId)));
+
+		// Carry forward which ids unification minted in the sources. A source
+		// composed earlier may contribute a "unified_N" element; qualified into
+		// this result it stays an id no author wrote, whether it survives as an
+		// element or lives on only as an alias of a further merge.
+		for (JustificationModel<?> source : sources) {
+			for (String unified : source.unifiedIds()) {
+				commands.add(
+						new MarkUnified(resultName, qualId(source, unified)));
+			}
+		}
 
 		// Phase 2: link reconstruction
 		Set<String> seenEdges = new LinkedHashSet<>();

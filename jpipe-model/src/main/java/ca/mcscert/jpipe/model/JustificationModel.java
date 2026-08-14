@@ -13,9 +13,11 @@ import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Abstract base for all named justification models. Sealed to exactly two
@@ -49,6 +51,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	private Template parent = null;
 	private final List<E> elements = new ArrayList<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
+	private final Set<String> unifiedIds = new LinkedHashSet<>();
 
 	protected JustificationModel(String name) {
 		this.name = name;
@@ -94,6 +97,29 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 */
 	public void recordAlias(String oldId, String newId) {
 		aliases.put(oldId, newId);
+	}
+
+	/**
+	 * Records that {@code id} was minted by unification to stand for a group of
+	 * merged elements, rather than written in a source file.
+	 *
+	 * <p>
+	 * Unification names a merged group after a counter ({@code unified_0}), so
+	 * the id carries no meaning outside the compiler and cannot be traced back
+	 * to anything the author wrote. Exporters that address an audience, such as
+	 * the Python module a developer implements against, use this to name the
+	 * element by the ids it was merged from instead. Contrast the elements a
+	 * composition operator synthesises ({@code assembleConclusion}), which are
+	 * genuine elements of the composed model carrying labels the author
+	 * supplied in the operator call, and are <em>not</em> recorded here.
+	 */
+	public void recordUnifiedId(String id) {
+		unifiedIds.add(id);
+	}
+
+	/** Unmodifiable view of the ids unification minted within this model. */
+	public Set<String> unifiedIds() {
+		return Collections.unmodifiableSet(unifiedIds);
 	}
 
 	/**

@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.operators;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
+import ca.mcscert.jpipe.commands.linking.MarkUnified;
 import ca.mcscert.jpipe.commands.linking.RegisterAlias;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
@@ -31,7 +32,10 @@ import java.util.stream.Collectors;
  * id is {@code "unified_N"} (N = 0-based counter per merged group). All
  * original member ids are aliased to the new id via {@link RegisterAlias}
  * commands, and {@link AddSupport} commands referencing removed ids are
- * rewritten accordingly.
+ * rewritten accordingly. Each new id is also flagged via {@link MarkUnified},
+ * since it names a group by a counter and so appears in no source file;
+ * exporters that address a human audience name the element by its originals
+ * instead.
  *
  * <p>
  * A group may legitimately mix element kinds — one source argued a claim while
@@ -142,6 +146,8 @@ public final class Unifier {
 				phase4Aliases, prototypes);
 		phase4Aliases.forEach((oldId, newId) -> result
 				.add(new RegisterAlias(resultName, oldId, newId)));
+		prototypes.keySet()
+				.forEach(id -> result.add(new MarkUnified(resultName, id)));
 		return List.copyOf(result);
 	}
 
