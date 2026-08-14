@@ -4,6 +4,28 @@ on:
   push:
     branches:
       - dev
+    # The site is generated from more than docs/: the API reference comes from
+    # every module's main sources, the railroad diagrams from the grammar, and
+    # the schema page from a compiler resource. So this is a deny list, not an
+    # allow list — anything not named here still deploys. Listing what the site
+    # is built from instead would publish a stale site the day someone adds a
+    # new input and forgets this file.
+    paths-ignore:
+      - '**/src/test/**'
+      - 'examples/**'
+      - 'scripts/**'
+      - 'debian/**'
+      - 'bin/**'
+      - 'config/**'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/sonar.yml'
+      - '.github/workflows/release.yml'
+      - '.gitignore'
+      - 'CHANGELOG.md'
+      - 'CLAUDE.md'
+      - 'CITATION.cff'
+      - 'LICENSE'
+      - 'code-of-conduct.md'
 
 permissions:
   contents: write
