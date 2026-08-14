@@ -20,6 +20,10 @@ import java.util.function.Function;
  * Rules:
  * <ul>
  * <li>{@code no-duplicate-ids} — all element IDs within a model are unique.
+ * <li>{@code unique-identifiers}: no identifier an exported model can be
+ * addressed by designates two different elements. This covers the merge aliases
+ * as well as the ids: an alias that collides with another element's id would
+ * make a reference ambiguous.
  * <li>{@code acyclic-support} — the support graph contains no cycles (it must
  * be a DAG).
  * <li>{@code acyclic-implements} — the implements chain between models contains
@@ -49,6 +53,7 @@ public final class ConsistencyValidator {
 		List<Violation> violations = new ArrayList<>();
 		for (JustificationModel<?> model : unit.getModels()) {
 			violations.addAll(checkNoDuplicateIds(model, ctx));
+			violations.addAll(checkUniqueIdentifiers(model, ctx));
 			violations.addAll(checkAcyclicSupport(model, ctx));
 		}
 		violations.addAll(checkAcyclicImplements(unit, ctx));
@@ -63,6 +68,7 @@ public final class ConsistencyValidator {
 		ValidationContext ctx = ValidationContext.STANDALONE;
 		List<Violation> violations = new ArrayList<>();
 		violations.addAll(checkNoDuplicateIds(model, ctx));
+		violations.addAll(checkUniqueIdentifiers(model, ctx));
 		violations.addAll(checkAcyclicSupport(model, ctx));
 		violations.addAll(checkAcyclicImplements(model));
 		return violations;
@@ -91,6 +97,72 @@ public final class ConsistencyValidator {
 			}
 		});
 		return violations;
+	}
+
+	/**
+	 * Checks that no identifier designates two different elements.
+	 *
+	 * <p>
+	 * An exported model can be addressed by more than an element's own id:
+	 * every id merged into an element addresses it too, so that a reference
+	 * written before a composition keeps working afterwards. Consumers
+	 * therefore index ids and merge aliases into one namespace, and a key
+	 * landing on two elements leaves them no way to choose. jpipe-runner
+	 * rejects the whole model rather than guess. Element ids alone are covered
+	 * by {@code no-duplicate-ids}; what this adds is the aliases.
+	 */
+	private List<Violation> checkUniqueIdentifiers(JustificationModel<?> model,
+			ValidationContext ctx) {
+		Set<String> elementIds = elementIdsOf(model);
+		Map<String, String> designated = new HashMap<>();
+		elementIds.forEach(id -> designated.put(id, id));
+
+		List<Violation> violations = new ArrayList<>();
+		model.aliases().forEach((alias, target) -> {
+			String canonical = elementDesignatedBy(model, elementIds, target);
+			if (canonical == null) {
+				// The chain leads to no element of this model, so the alias is
+				// never exported and can collide with nothing.
+				return;
+			}
+			String existing = designated.putIfAbsent(alias, canonical);
+			if (existing != null && !existing.equals(canonical)) {
+				violations.add(new Violation("unique-identifiers",
+						"Identifier '" + alias + IN_MODEL + model.getName()
+								+ "' designates both element '" + existing
+								+ "' and element '" + canonical + "'",
+						ctx.locationOf(model.getName(), alias)));
+			}
+		});
+		return violations;
+	}
+
+	/** Element ids of {@code model}, conclusion included. */
+	private static Set<String> elementIdsOf(JustificationModel<?> model) {
+		Set<String> ids = new HashSet<>();
+		model.conclusion().ifPresent(c -> ids.add(c.id()));
+		model.getElements().forEach(element -> ids.add(element.id()));
+		return ids;
+	}
+
+	/**
+	 * Follows {@code id} through the alias map until it reaches an element of
+	 * {@code model}, or {@code null} if it reaches none or loops.
+	 */
+	private static String elementDesignatedBy(JustificationModel<?> model,
+			Set<String> elementIds, String id) {
+		Set<String> visited = new HashSet<>();
+		String current = id;
+		while (visited.add(current)) {
+			if (elementIds.contains(current)) {
+				return current;
+			}
+			current = model.aliases().get(current);
+			if (current == null) {
+				return null;
+			}
+		}
+		return null;
 	}
 
 	private List<Violation> checkAcyclicSupport(JustificationModel<?> model,

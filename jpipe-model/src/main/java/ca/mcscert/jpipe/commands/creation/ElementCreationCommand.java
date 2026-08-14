@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.commands.creation;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.elements.ElementView;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
 
 /**
  * Sealed interface common to all element-creation commands.
@@ -52,4 +53,19 @@ public sealed interface ElementCreationCommand extends Command, ElementView
 	 * identifier. The container, label, and location are preserved.
 	 */
 	ElementCreationCommand withId(String newId);
+
+	/**
+	 * The element this command creates, built from the command's own id and
+	 * label but not attached to any model.
+	 *
+	 * <p>
+	 * Lets callers reason about the kind of element a command produces using
+	 * the element hierarchy itself (e.g.
+	 * {@link ca.mcscert.jpipe.model.elements.SupportLeaf} and
+	 * {@link ca.mcscert.jpipe.model.elements.StrategyBacked}) instead of
+	 * matching on command types.
+	 *
+	 * @return a fresh element, as {@link #doExecute} would create it.
+	 */
+	JustificationElement element();
 }

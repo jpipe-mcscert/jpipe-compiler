@@ -1,13 +1,12 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ca.mcscert.jpipe.compiler.CompilationConfig;
 import ca.mcscert.jpipe.compiler.CompilerFactory;
+import ca.mcscert.jpipe.compiler.DiagnosticFormat;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
-import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.DiagnosticCodes;
-import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
@@ -22,14 +21,19 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
-import java.io.FileInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -107,19 +111,20 @@ class JsonDiagnosticReportSchemaTest {
 	}
 
 	/**
-	 * No fatal fixture exists above because one cannot: {@code fire()}
-	 * fast-fails on a fatal, so a report is never produced for a compilation
-	 * that has one. The schema still admits the value — see
-	 * {@link #schemaAdmitsFatalSeverityForFutureUse()}.
+	 * A compilation that aborted is reported on like any other, describing the
+	 * empty unit it never got to build (#154). Rendered directly rather than
+	 * through {@code fire()}, which still fast-fails on a fatal by design.
 	 */
 	@Test
-	void aFatalPreventsAnyReportFromBeingProduced() {
+	void aFatalStillProducesAConformingReport() {
 		CompilationContext ctx = new CompilationContext("test.jd");
 		ctx.fatal("unrecoverable");
-		Unit unit = new Unit("test.jd");
 
-		assertThatThrownBy(() -> reportOf(unit, ctx))
-				.isInstanceOf(CompilationException.class);
+		String report = renderedReportOf(new Unit("test.jd"), ctx);
+
+		assertConforms(report);
+		assertThat(new JSONObject(report).getJSONArray("diagnostics")
+				.getJSONObject(0).getString("severity")).isEqualTo("fatal");
 	}
 
 	@Test
@@ -143,25 +148,27 @@ class JsonDiagnosticReportSchemaTest {
 	}
 
 	/**
-	 * The whole example corpus, compiled for real. Sources that fail fatally
-	 * produce no report at all (documented behaviour), so they are skipped
-	 * rather than asserted on.
+	 * The whole example corpus, compiled through the production wiring — every
+	 * file, including the ones that abort on a fatal (#154).
 	 */
 	@ParameterizedTest(name = "{0}")
 	@MethodSource("exampleSources")
 	void everyExampleConformsToTheSchema(Path source) throws IOException {
-		Transformation<InputStream, Unit> pipeline = CompilerFactory
-				.parsingChain().andThen(CompilerFactory.unitBuilder())
-				.asTransformation();
-		CompilationContext ctx = new CompilationContext(source.toString());
-		Unit unit;
-		try (FileInputStream stream = new FileInputStream(source.toFile())) {
-			unit = pipeline.fire(stream, ctx);
-		} catch (CompilationException _) {
-			return; // fatal: no report is produced, in either format
-		}
+		assertConforms(compileToJsonReport(source));
+	}
 
-		assertConforms(reportOf(unit, ctx));
+	/**
+	 * Sources that abort still describe the failure: conformance alone would
+	 * pass on an empty document, which is the bug this guards against.
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("fatalExampleSources")
+	void everyFatalExampleReportsItsFatal(Path source) throws IOException {
+		JSONObject report = new JSONObject(compileToJsonReport(source));
+
+		assertThat(report.getString("status")).isEqualTo("errors");
+		assertThat(report.getJSONArray("models")).isEmpty();
+		assertThat(severitiesOf(report)).contains("fatal");
 	}
 
 	static Stream<Path> exampleSources() throws IOException {
@@ -170,6 +177,36 @@ class JsonDiagnosticReportSchemaTest {
 			return paths.filter(p -> p.toString().endsWith(".jd"))
 					.sorted(Comparator.naturalOrder()).toList().stream();
 		}
+	}
+
+	/** The examples that abort: a syntax error, and the unresolvable loads. */
+	static Stream<Path> fatalExampleSources() throws IOException {
+		return exampleSources().filter(JsonDiagnosticReportSchemaTest::isFatal);
+	}
+
+	private static boolean isFatal(Path source) {
+		try {
+			return new JSONObject(compileToJsonReport(source))
+					.getJSONArray("diagnostics").toList().stream()
+					.anyMatch(d -> "fatal"
+							.equals(((Map<?, ?>) d).get("severity")));
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
+	/** Compiles a source through the production diagnostic wiring. */
+	private static String compileToJsonReport(Path source) throws IOException {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		CompilerFactory.buildDiagnosticCompiler(DiagnosticFormat.JSON, out)
+				.compile(source.toString(), CompilationConfig.STDOUT);
+		return out.toString(StandardCharsets.UTF_8);
+	}
+
+	/** The severity of every diagnostic in a report. */
+	private static List<String> severitiesOf(JSONObject report) {
+		return report.getJSONArray("diagnostics").toList().stream()
+				.map(d -> (String) ((Map<?, ?>) d).get("severity")).toList();
 	}
 
 	// -------------------------------------------------------------------------
@@ -202,16 +239,22 @@ class JsonDiagnosticReportSchemaTest {
 	}
 
 	/**
-	 * The value is reserved rather than reachable today: a fatal aborts before
-	 * any report is rendered. Pinned so the schema stays ready if that
-	 * limitation is lifted.
+	 * A fatal carries no code and usually no location, both of which the schema
+	 * allows. Rendered from a real fatal rather than synthesised, so the schema
+	 * is held to what the emitter actually produces.
 	 */
 	@Test
-	void schemaAdmitsFatalSeverityForFutureUse() throws IOException {
-		JsonNode report = MAPPER.readTree(reportWithCode("unknown-model"));
-		((ObjectNode) report.at("/diagnostics/0")).put("severity", "fatal");
+	void schemaAcceptsARealFatalDiagnostic() throws IOException {
+		CompilationContext ctx = new CompilationContext("t.jd");
+		ctx.fatal("unrecoverable");
+
+		JsonNode report = MAPPER
+				.readTree(renderedReportOf(new Unit("t.jd"), ctx));
 
 		assertThat(SCHEMA.validate(report)).isEmpty();
+		assertThat(report.at("/diagnostics/0/severity").asText())
+				.isEqualTo("fatal");
+		assertThat(report.at("/diagnostics/0").has("code")).isFalse();
 	}
 
 	@Test
@@ -261,6 +304,15 @@ class JsonDiagnosticReportSchemaTest {
 	private static String reportOf(Unit unit, CompilationContext ctx) {
 		return new CollectDiagnostics().andThen(new JsonDiagnosticReport())
 				.fire(unit, ctx);
+	}
+
+	/**
+	 * Renders without going through {@code fire()}, the way the diagnostic
+	 * compiler does when a compilation aborted.
+	 */
+	private static String renderedReportOf(Unit unit, CompilationContext ctx) {
+		return new JsonDiagnosticReport()
+				.render(new CollectDiagnostics().snapshot(unit, ctx));
 	}
 
 	private static String reportWithCode(String code) {

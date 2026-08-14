@@ -26,6 +26,6 @@ class DoctorCommand implements Callable<Integer> {
 		}
 		System.out.println(spec.root().version()[0]);
 		System.out.println("Checking external tools:");
-		return Doctor.run() ? Main.EXIT_OK : Main.EXIT_JPIPE_ERROR;
+		return Doctor.run(System.out) ? Main.EXIT_OK : Main.EXIT_JPIPE_ERROR;
 	}
 }

@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.operators;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
+import ca.mcscert.jpipe.commands.linking.MarkUnified;
 import ca.mcscert.jpipe.commands.linking.RegisterAlias;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.SourceLocation;
@@ -268,6 +269,8 @@ public abstract class CompositionOperator {
 		aliases.aliases().forEach((oldId, newId) -> commands
 				.add(new RegisterAlias(resultName, oldId, newId)));
 
+		commands.addAll(carryForwardUnifiedIds(resultName, sources));
+
 		// Phase 2: link reconstruction
 		Set<String> seenEdges = new LinkedHashSet<>();
 		for (JustificationModel<?> source : sources) {
@@ -308,6 +311,22 @@ public abstract class CompositionOperator {
 			commands.add(
 					new AddSupport(resultName, newSupportable, newSupporter));
 		}
+	}
+
+	/**
+	 * Carries forward which ids unification minted in the sources. A source
+	 * composed earlier may contribute a {@code unified_N} element; qualified
+	 * into this result it stays an id no author wrote, whether it survives as
+	 * an element or lives on only as an alias of a further merge.
+	 */
+	private static List<Command> carryForwardUnifiedIds(String resultName,
+			List<JustificationModel<?>> sources) {
+		return sources.stream()
+				.flatMap(
+						source -> source.unifiedIds().stream()
+								.map(unified -> (Command) new MarkUnified(
+										resultName, qualId(source, unified))))
+				.toList();
 	}
 
 	private static String qualId(JustificationModel<?> source, String id) {

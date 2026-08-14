@@ -17,7 +17,7 @@ template t1 implements t2 {
 template t2 implements t1 {
     sub-conclusion t1:placeholder is "Second template sub-conclusion"
     strategy s is "Second template strategy"
-    s supports sc
+    s supports c
     @support placeholder is "Abstract support"
     placeholder supports s
 }

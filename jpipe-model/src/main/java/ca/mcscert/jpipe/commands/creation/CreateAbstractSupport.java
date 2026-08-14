@@ -25,8 +25,13 @@ public final class CreateAbstractSupport
 	}
 
 	@Override
+	public AbstractSupport element() {
+		return new AbstractSupport(identifier, label);
+	}
+
+	@Override
 	public void doExecute(Unit context) {
-		context.addInto(container, new AbstractSupport(identifier, label));
+		context.addInto(container, element());
 		context.recordLocation(container, identifier, location);
 	}
 

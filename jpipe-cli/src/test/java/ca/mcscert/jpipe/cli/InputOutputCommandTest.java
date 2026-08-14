@@ -28,9 +28,18 @@ class InputOutputCommandTest {
 	}
 
 	@Test
-	void call_missing_file_returns_system_error() {
+	void call_missing_file_is_reported_by_diagnostic() {
+		// `diagnostic` reports on a source rather than consuming it, so a file
+		// it cannot read is a fatal diagnostic like any other, not a crash.
 		int result = Main.commandLine().execute("--headless", "diagnostic",
 				"-i", "/no/such/file.jd", "-o", "<stdout>");
+		assertThat(result).isEqualTo(Main.EXIT_JPIPE_ERROR);
+	}
+
+	@Test
+	void call_missing_file_returns_system_error_when_processing() {
+		int result = Main.commandLine().execute("--headless", "process", "-i",
+				"/no/such/file.jd", "-m", "whatever", "-o", "<stdout>");
 		assertThat(result).isEqualTo(Main.EXIT_SYSTEM_ERROR);
 	}
 

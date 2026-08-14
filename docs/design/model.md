@@ -34,6 +34,7 @@ package "model.elements" {
   interface JustificationElement <<sealed>> {
     + id() : String
     + label() : String
+    + kind() : String
     + accept(JustificationVisitor<R>) : R
   }
 

@@ -3,7 +3,9 @@ package ca.mcscert.jpipe.compiler.e2e;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
+import ca.mcscert.jpipe.compiler.CompilationConfig;
 import ca.mcscert.jpipe.compiler.CompilerFactory;
+import ca.mcscert.jpipe.compiler.DiagnosticFormat;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Diagnostic;
@@ -25,10 +27,14 @@ import io.cucumber.java.en.When;
 import ca.mcscert.jpipe.compiler.steps.transformations.CollectDiagnostics;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticReport;
 import ca.mcscert.jpipe.compiler.steps.transformations.JsonDiagnosticReport;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -45,6 +51,7 @@ public class CompilationSteps {
 	private String dotOutput;
 	private String pythonOutput;
 	private String jsonOutput;
+	private boolean reportedErrors;
 	private String textReport;
 	private JSONObject jsonReport;
 
@@ -209,6 +216,42 @@ public class CompilationSteps {
 				.andThen(new JsonDiagnosticReport()).fire(unit, ctx));
 	}
 
+	/**
+	 * Runs the {@code diagnostic} command's own compiler, which reports on a
+	 * compilation whether it completed or aborted — unlike the steps above,
+	 * which need a unit and so cannot describe a fatal (#154).
+	 */
+	@When("I run the diagnostic compiler with format {string}")
+	public void iRunTheDiagnosticCompilerWithFormat(String format)
+			throws IOException {
+		DiagnosticFormat target = DiagnosticFormat
+				.valueOf(format.toUpperCase(Locale.ROOT));
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		reportedErrors = CompilerFactory.buildDiagnosticCompiler(target, out)
+				.compile(sourcePath, CompilationConfig.STDOUT);
+		String rendered = out.toString(StandardCharsets.UTF_8);
+		if (target == DiagnosticFormat.JSON) {
+			jsonReport = new JSONObject(rendered);
+		} else {
+			textReport = rendered;
+		}
+	}
+
+	@Then("the report signals errors")
+	public void theReportSignalsErrors() {
+		assertThat(reportedErrors).isTrue();
+	}
+
+	@Then("the JSON report has a diagnostic with severity {string}")
+	public void theJsonReportHasADiagnosticWithSeverity(String severity) {
+		assertThat(severitiesIn(jsonReport)).contains(severity);
+	}
+
+	@Then("the JSON report describes no model")
+	public void theJsonReportDescribesNoModel() {
+		assertThat(jsonReport.getJSONArray("models")).isEmpty();
+	}
+
 	@Then("the text report contains {string}")
 	public void theTextReportContains(String fragment) {
 		assertThat(textReport).contains(fragment);
@@ -259,6 +302,15 @@ public class CompilationSteps {
 				.isEqualTo(ctx.diagnostics().size());
 	}
 
+	private static List<String> severitiesIn(JSONObject report) {
+		JSONArray diagnostics = report.getJSONArray("diagnostics");
+		List<String> severities = new ArrayList<>();
+		for (int i = 0; i < diagnostics.length(); i++) {
+			severities.add(diagnostics.getJSONObject(i).getString("severity"));
+		}
+		return severities;
+	}
+
 	private static List<String> codesIn(JSONObject report) {
 		JSONArray diagnostics = report.getJSONArray("diagnostics");
 		List<String> codes = new ArrayList<>();
@@ -306,6 +358,31 @@ public class CompilationSteps {
 		assertThat(pythonOutput)
 				.contains("@jpipe_link(\"" + qualifiedId + "\")")
 				.doesNotContain("# @jpipe_link(\"" + qualifiedId + "\")");
+	}
+
+	@Then("the Python output has @jpipe_link for id {string} commented out")
+	public void thePythonOutputHasJpipeLinkCommentedOut(String qualifiedId) {
+		assertThat(pythonOutput)
+				.contains("# @jpipe_link(\"" + qualifiedId + "\")");
+	}
+
+	@Then("the Python output declares {string} before {string}")
+	public void thePythonOutputDeclaresBefore(String first, String second) {
+		assertThat(pythonOutput).containsSubsequence("def " + first + "(",
+				"def " + second + "(");
+	}
+
+	@Then("the Python output has a namespace section for {string}")
+	public void thePythonOutputHasANamespaceSectionFor(String namespace) {
+		String edge = "###" + " ".repeat(namespace.length()) + "###";
+		assertThat(pythonOutput)
+				.contains(edge + "\n## " + namespace + " ##\n" + edge + "\n");
+	}
+
+	@Then("the Python output has no @jpipe_link for id {string}")
+	public void thePythonOutputHasNoJpipeLinkFor(String qualifiedId) {
+		assertThat(pythonOutput)
+				.doesNotContain("@jpipe_link(\"" + qualifiedId + "\")");
 	}
 
 	@Then("the compilation has validation errors")

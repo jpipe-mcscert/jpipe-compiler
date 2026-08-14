@@ -9,6 +9,7 @@ import ca.mcscert.jpipe.commands.creation.CreateConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateEvidence;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
+import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.model.Justification;
@@ -16,13 +17,21 @@ import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Conclusion;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
+import ca.mcscert.jpipe.operators.IncompatibleUnificationException;
 import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
 import ca.mcscert.jpipe.operators.ModelKind;
+import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
+import ca.mcscert.jpipe.operators.Unifier;
+import ca.mcscert.jpipe.operators.equivalences.SameLabel;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -31,11 +40,15 @@ class AssembleOperatorTest {
 
 	private ExecutionEngine engine;
 	private AssembleOperator assemble;
+	private Unifier unifier;
 
 	@BeforeEach
 	void setUp() {
 		engine = new ExecutionEngine();
 		assemble = new AssembleOperator();
+		UnificationEquivalenceRegistry registry = new UnificationEquivalenceRegistry();
+		registry.register("sameLabel", new SameLabel());
+		unifier = new Unifier(registry);
 	}
 
 	private static final Map<String, String> ARGS = Map.of("conclusionLabel",
@@ -247,6 +260,112 @@ class AssembleOperatorTest {
 					.filter(s -> s.id().equals(AssembleOperator.STRATEGY_ID))
 					.findFirst().orElseThrow();
 			assertThat(assembleS.getSupports()).hasSize(3);
+		}
+	}
+
+	// ── Commutativity ────────────────────────────────────────────────────────
+
+	/**
+	 * Assembling the same bricks in either order must give the same model, even
+	 * when unification merges a group that mixes element kinds: one source
+	 * argues the claim (sub-conclusion), the other still asserts it (evidence).
+	 * See issue #156.
+	 */
+	@Nested
+	class Commutativity {
+
+		private static final String SHARED = "A shared claim";
+
+		/** A brick whose shared claim is argued: a sub-conclusion. */
+		private Justification arguing(String name) {
+			List<Command> cmds = new ArrayList<>();
+			cmds.add(new CreateJustification(name));
+			cmds.add(new CreateConclusion(name, "c", "Argued holds"));
+			cmds.add(new CreateStrategy(name, "s", "because the claim"));
+			cmds.add(new CreateSubConclusion(name, "sc", SHARED));
+			cmds.add(new CreateStrategy(name, "deeper", "because of details"));
+			cmds.add(new CreateEvidence(name, "e", "Some detail"));
+			cmds.add(new AddSupport(name, "c", "s"));
+			cmds.add(new AddSupport(name, "s", "sc"));
+			cmds.add(new AddSupport(name, "sc", "deeper"));
+			cmds.add(new AddSupport(name, "deeper", "e"));
+			return (Justification) engine.spawn("src", cmds).get(name);
+		}
+
+		/** A brick whose shared claim is asserted: a plain evidence. */
+		private Justification asserting(String name) {
+			return buildJustification(name, "Asserted holds", "also because it",
+					SHARED);
+		}
+
+		private Justification assembled(String name,
+				List<JustificationModel<?>> sources) {
+			List<Command> cmds = unifier.unify(name,
+					assemble.apply(name, sources, ARGS), ARGS);
+			return (Justification) engine.spawn("out", cmds).get(name);
+		}
+
+		@Test
+		void assemblingThePlainSourceFirstStillBuilds() {
+			// The regression: with the evidence met first, the merged element
+			// used to be created as an evidence, which the arguing strategy
+			// could not support.
+			Justification result = assembled("right",
+					List.of(asserting("other"), arguing("deep")));
+
+			assertThat(result.subConclusions()).extracting(SubConclusion::id)
+					.contains("unified_0");
+		}
+
+		@Test
+		void bothArgumentOrdersProduceTheSameModel() {
+			// Labels are pairwise distinct in these fixtures, so (kind, label)
+			// identifies an element and comparing the two sets below is an
+			// exact isomorphism check. Ids cannot be compared directly: the
+			// unified_N counter follows group-discovery order.
+			Justification left = assembled("left",
+					List.of(arguing("deep"), asserting("other")));
+			Justification right = assembled("right",
+					List.of(asserting("other"), arguing("deep")));
+
+			assertThat(nodes(left)).isEqualTo(nodes(right));
+			assertThat(edges(left)).isEqualTo(edges(right));
+		}
+
+		@Test
+		void mergingTheGlobalConclusionWithASourceElementIsRejected() {
+			List<JustificationModel<?>> sources = List.of(arguing("deep"),
+					asserting("other"));
+			Map<String, String> clashing = Map.of("conclusionLabel", SHARED,
+					"strategyLabel", "An aggregating strategy");
+			List<Command> composed = assemble.apply("clash", sources, clashing);
+
+			assertThatThrownBy(() -> unifier.unify("clash", composed, clashing))
+					.isInstanceOf(IncompatibleUnificationException.class)
+					.hasMessageContaining("cannot unify")
+					.hasMessageContaining(SHARED);
+		}
+
+		private Set<String> nodes(JustificationModel<?> model) {
+			Set<String> nodes = model.getElements().stream()
+					.map(e -> e.kind() + "|" + e.label())
+					.collect(Collectors.toCollection(HashSet::new));
+			model.conclusion()
+					.ifPresent(c -> nodes.add(c.kind() + "|" + c.label()));
+			return nodes;
+		}
+
+		private Set<String> edges(JustificationModel<?> model) {
+			Set<String> edges = new HashSet<>();
+			model.strategies().forEach(s -> s.getSupports().forEach(
+					leaf -> edges.add(((JustificationElement) leaf).label()
+							+ " -> " + s.label())));
+			model.subConclusions().forEach(sc -> sc.getSupport().ifPresent(
+					s -> edges.add(s.label() + " -> " + sc.label())));
+			model.conclusion().flatMap(Conclusion::getSupport)
+					.ifPresent(s -> edges.add(s.label() + " -> "
+							+ model.conclusion().orElseThrow().label()));
+			return edges;
 		}
 	}
 

@@ -6,4 +6,9 @@ package ca.mcscert.jpipe.model.elements;
  */
 public record AbstractSupport(String id,
 		String label) implements JustificationElement, SupportLeaf {
+
+	@Override
+	public String kind() {
+		return "abstract-support";
+	}
 }

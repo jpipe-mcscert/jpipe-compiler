@@ -54,6 +54,23 @@ class JsonExporterTest {
 	}
 
 	@Test
+	void export_chainedAliases_carriesEveryIdAlongTheChain() {
+		String json = new JsonExporter()
+				.export(ModelFixtures.chainedAliasJustification());
+
+		assertThat(json).contains("\"aliases\"", "\"j:outer:s\"",
+				"\"j:outer:a:s1\"", "\"j:outer:b:s2\"");
+	}
+
+	@Test
+	void export_keepsUnificationMintedIdsSoConsumersCanStillResolveThem() {
+		String json = new JsonExporter()
+				.export(ModelFixtures.siblingUnifiedIdJustification());
+
+		assertThat(json).contains("\"j:outer:unified_0\"", "\"j:outer:a:s1\"");
+	}
+
+	@Test
 	void export_withoutAliases_omitsAliasesKey() {
 		String json = new JsonExporter()
 				.export(ModelFixtures.simpleJustification());

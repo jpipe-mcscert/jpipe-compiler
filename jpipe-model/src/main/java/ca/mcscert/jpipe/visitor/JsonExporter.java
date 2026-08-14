@@ -37,7 +37,10 @@ import org.json.JSONObject;
  * <p>
  * The optional per-element {@code "aliases"} array lists the qualified original
  * ids that were merged into the element during composition/unification; it is
- * omitted for elements that are not the target of any alias.
+ * omitted for elements that are not the target of any alias. Merges compose, so
+ * the array is transitive: composing the result of a composition records a
+ * chain, and the array lists every id along it, down to those written in the
+ * original source models.
  */
 public class JsonExporter extends AbstractModelExporter {
 
@@ -139,7 +142,7 @@ public class JsonExporter extends AbstractModelExporter {
 		obj.put("id", qualify(element.id()));
 		obj.put("label", element.label());
 		obj.put("escaped", LabelEscaper.toMethodName(element.label()));
-		List<String> aliases = qualifiedAliasesOf(element.id());
+		List<String> aliases = qualifiedOriginalsOf(element.id());
 		if (!aliases.isEmpty()) {
 			obj.put("aliases", new JSONArray(aliases));
 		}

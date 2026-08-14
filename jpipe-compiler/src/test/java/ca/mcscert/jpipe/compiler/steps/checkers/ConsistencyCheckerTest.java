@@ -48,6 +48,36 @@ class ConsistencyCheckerTest {
 		assertThat(ctx.hasFatalErrors()).isFalse();
 	}
 
+	@Test
+	void ambiguous_identifier_produces_error_diagnostic() {
+		Unit unit = new Unit("src");
+		Justification j = new Justification("j");
+		j.setConclusion(new Conclusion("c", "C"));
+		j.addElement(new Strategy("s", "S"));
+		j.addElement(new Evidence("e", "E"));
+		// "e" would designate the evidence and, through the alias, the strategy
+		j.recordAlias("e", "s");
+		unit.add(j);
+
+		new ConsistencyChecker().fire(unit, ctx);
+
+		assertThat(ctx.hasErrors()).isTrue();
+		assertThat(ctx.hasFatalErrors()).isFalse();
+	}
+
+	@Test
+	void merge_aliases_produce_no_diagnostics() {
+		Unit unit = validUnit();
+		unit.getModels().forEach(m -> {
+			m.recordAlias("a:s", "s");
+			m.recordAlias("b:s", "s");
+		});
+
+		new ConsistencyChecker().fire(unit, ctx);
+
+		assertThat(ctx.hasErrors()).isFalse();
+	}
+
 	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------

@@ -4,12 +4,12 @@
  * @compiler 2.x                 *
  *********************************/
 
-// Top-level template, exposing abs1 and abs2 as abstract supports 
+// Top-level template, exposing abs1 and abs2 as abstract supports
 template root {
-    conclusion c is "A root conclusion"
-    strategy   s is "A root strategy"
-    @support abs1 is "A root abstract support #1"
-    @support abs2 is "A root abstract support #2"
+    conclusion c    is "A root conclusion"
+    strategy   s    is "A root strategy"
+    @support   abs1 is "A root abstract support #1"
+    @support   abs2 is "A root abstract support #2"
 
     s    supports c
     abs1 supports s

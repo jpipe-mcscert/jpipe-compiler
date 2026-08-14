@@ -1,14 +1,14 @@
 package ca.mcscert.jpipe.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.compiler.CompilationConfig;
 import ca.mcscert.jpipe.compiler.DiagnosticFormat;
-import ca.mcscert.jpipe.compiler.model.CompilationException;
 import java.io.ByteArrayOutputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -26,14 +26,44 @@ class DiagnosticCommandTest {
 	}
 
 	@Test
-	void doCall_invalid_syntax_throws_compilation_exception() {
+	void doCall_invalid_syntax_still_writes_a_report() throws Exception {
+		// A file being edited is broken most of the time: that is exactly when
+		// a tool needs a report rather than an empty stream (#154).
 		DiagnosticCommand cmd = new DiagnosticCommand();
 		cmd.input = resourcePath("test_invalid.jd");
 		cmd.output = CompilationConfig.STDOUT;
-
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		assertThatThrownBy(() -> cmd.doCall(out))
-				.isInstanceOf(CompilationException.class);
+
+		Integer result = cmd.doCall(out);
+
+		assertThat(result).isEqualTo(Main.EXIT_JPIPE_ERROR);
+		assertThat(out.toString(StandardCharsets.UTF_8))
+				.contains("=== Diagnostics ===").contains("[FATAL]");
+	}
+
+	@Test
+	void doCall_invalid_syntax_writes_a_parseable_json_report()
+			throws Exception {
+		DiagnosticCommand cmd = new DiagnosticCommand();
+		cmd.input = resourcePath("test_invalid.jd");
+		cmd.output = CompilationConfig.STDOUT;
+		cmd.format = DiagnosticFormat.JSON;
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+		Integer result = cmd.doCall(out);
+
+		JSONObject report = new JSONObject(
+				out.toString(StandardCharsets.UTF_8));
+		assertThat(result).isEqualTo(Main.EXIT_JPIPE_ERROR);
+		assertThat(report.getString("status")).isEqualTo("errors");
+		assertThat(report.getJSONArray("models")).isEmpty();
+		assertThat(severities(report)).contains("fatal");
+	}
+
+	/** The severity of every diagnostic in a JSON report. */
+	private static List<String> severities(JSONObject report) {
+		return report.getJSONArray("diagnostics").toList().stream()
+				.map(d -> (String) ((Map<?, ?>) d).get("severity")).toList();
 	}
 
 	@Test

@@ -290,9 +290,13 @@ only step that walks the `Unit` for reporting purposes; the renderers below
 consume the snapshot and never touch the model, which is what keeps the two
 report formats describing the same compilation.
 
+Also callable directly as `snapshot(Unit, CompilationContext)`. `DiagnosticCompiler`
+uses that entry point, with an empty `Unit`, to report on a compilation that
+aborted — a fatal stops the pipeline before this step would otherwise run.
+
 #### `DiagnosticReport`
 
-**Type:** `Transformation<DiagnosticSnapshot, String>`  
+**Type:** `DiagnosticRenderer` (a `Transformation<DiagnosticSnapshot, String>`)  
 **Package:** `compiler.steps.transformations`
 
 Renders the snapshot as the human-readable report printed by the `diagnostic`
@@ -303,13 +307,17 @@ operators), and Executed Actions. Sections whose data is absent are omitted.
 
 #### `JsonDiagnosticReport`
 
-**Type:** `Transformation<DiagnosticSnapshot, String>`  
+**Type:** `DiagnosticRenderer` (a `Transformation<DiagnosticSnapshot, String>`)  
 **Package:** `compiler.steps.transformations`
 
 Renders the same snapshot as JSON for tooling — selected by `diagnostic -f
 json`. Uses `org.json` internally as a builder for correct escaping while the
 pipeline type stays `String` (ADR-0013). The document declares a
 `schemaVersion`; see [`cli.md`](cli.md) for its shape.
+
+Both renderers extend `DiagnosticRenderer`, whose `render(DiagnosticSnapshot)`
+is reachable outside `fire()` for the same reason as `CollectDiagnostics.snapshot`
+above.
 
 ---
 

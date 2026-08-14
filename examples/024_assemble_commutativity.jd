@@ -1,0 +1,49 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// "X" is asserted here, as a plain evidence.
+justification base {
+    conclusion c is "Base holds"
+    strategy   s is "because X"
+    evidence   x is "X"
+    s supports c
+    x supports s
+}
+
+// ... and argued here, as a conclusion in its own right.
+justification detail {
+    conclusion c is "X"
+    strategy   s is "because Y"
+    evidence   y is "Y"
+    s supports c
+    y supports s
+}
+
+// A third brick that still asserts "X".
+justification other {
+    conclusion c is "Other holds"
+    strategy   s is "also because X"
+    evidence   x is "X"
+    s supports c
+    x supports s
+}
+
+// Refining turns "X" into a sub-conclusion inside deep.
+justification deep is refine(base, detail) { hook: "x" }
+
+// Assembling deep with other unifies a sub-conclusion ("X", argued) with an
+// evidence ("X", asserted). Both argument orders must give the same model:
+// the merged element is a sub-conclusion, which the detail's strategy can
+// support and which can itself support the other bricks' strategies.
+justification left is assemble(deep, other) {
+    conclusionLabel: "All"
+    strategyLabel:   "Both"
+}
+
+justification right is assemble(other, deep) {
+    conclusionLabel: "All"
+    strategyLabel:   "Both"
+}

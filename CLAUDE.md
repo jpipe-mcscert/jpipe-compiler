@@ -83,7 +83,7 @@ mvn test                                 # run all tests
 mvn test -pl jpipe-model                 # single module
 mvn test -pl jpipe-compiler              # E2E (Cucumber) tests
 mvn test -pl jpipe-compiler -Dtest=Foo   # single test class
-mvn verify                               # includes checkstyle and coverage
+mvn verify                               # + checkstyle, coverage, fat-JAR smoke tests
 mvn spotless:apply                       # auto-format (required before commit)
 mvn spotless:check                       # check formatting without applying
 ```
@@ -219,7 +219,10 @@ Architecture decisions live in `docs/adr/`. Notable ones:
   `ca.mcscert.jpipe.compiler.steps`.
 - **Testing:** New features must include Cucumber scenarios in
   `jpipe-compiler/src/test/resources/features` and JUnit Jupiter unit tests in
-  the relevant module.
+  the relevant module. Anything that only shows up once the fat JAR is
+  assembled — a dependency scope, a shade transformer, a packaged resource —
+  belongs in `jpipe-cli`'s `*IT` smoke tests, which run the built JAR itself;
+  unit tests resolve the module classpath and cannot see those failures.
 - **Logging:** Log4j 2; follow ADR-0006 conventions.
 - **Changelog:** Every user-facing change must be recorded in
   [`CHANGELOG.md`](CHANGELOG.md) under `## [Unreleased]` — see

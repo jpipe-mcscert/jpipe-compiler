@@ -20,6 +20,87 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [2.5.0] — 2026-08-14
+
+### Added
+- Python export now leaves out the conclusion entirely and emits sub-conclusions
+  commented out, with a line saying why. The runner requires only evidence and
+  strategies to be bound: it never executes a conclusion, so there was nothing to
+  implement there, and it passes an unbound sub-conclusion through. Commenting
+  the sub-conclusions keeps the shape of the argument visible and lets you turn
+  one into a real check by deleting the `# ` prefixes. Both remain in the JSON
+  and DOT exports, which describe the model rather than its execution.
+- Python export now groups functions by namespace, each section opening with a
+  banner comment naming it, so a module assembled from several sources reads as
+  the parts it was built from rather than one flat list. Sections are ordered
+  alphabetically; elements a composition created or merged carry no source
+  prefix and are grouped under the composed model itself. Within a section
+  elements run bottom-up (evidence, then strategies, then sub-conclusions), so
+  the file reads from the steps you implement toward the claim they support.
+
+  ```python
+  ###       ###
+  ## a_claim ##
+  ###       ###
+  ```
+- Python export now guarantees that every `@jpipe_link` in a generated module
+  names a distinct identifier, and refuses to write the module otherwise
+  rather than emitting one that cannot load. A runner keys its binding registry
+  by the link id, so the same id on two functions leaves it with two candidate
+  implementations and no way to choose.
+- New `unique-identifiers` consistency rule: compilation now fails if any
+  identifier an exported model can be referenced by would designate two
+  different elements. Element ids were already checked; this extends the
+  guarantee to the aliases a merge leaves behind, because an alias colliding
+  with another element's id makes a reference ambiguous. Consumers index ids
+  and aliases into one namespace and cannot resolve such a clash —
+  `jpipe-runner` discards the entire model rather than guess — so the compiler
+  now reports it as an error, with the source location, instead of emitting a
+  model that silently fails to load.
+
+### Changed
+- `jpipe doctor` now reports the version of each external tool it finds
+  (e.g. `dot (Graphviz): OK (version 12.2.1)`). Some operating systems ship an
+  outdated Graphviz, which is a common explanation for rendering problems.
+
+### Fixed
+- **Python export:** `@jpipe_link` now names elements the way you wrote them.
+  An element produced by a merge is linked by the ids it was merged from
+  instead of by the internal id unification minted for it (`unified_0`), and a
+  composition of a composition resolves all the way back to the ids in the
+  original source models. Links are also shortened — `@jpipe_link("a_claim:s1")`
+  rather than `@jpipe_link("assembled_2:a_claim:s1")` — but never below
+  `justification:id`, since a bare `s1` would leave a reader of the generated
+  module unable to tell what it refers to, and they lengthen again wherever a
+  shorter form would be ambiguous. Elements a composition operator creates in
+  its own right, such as `assembleConclusion`, keep their id: it is the only
+  name they have, and their label comes from the operator call.
+- **JSON export:** the per-element `aliases` array now lists every pre-merge id
+  rather than only the most recent one. Composing the result of a composition
+  records a chain of merges, and the earlier ids in that chain were dropped,
+  leaving elements that `jpipe-runner` could not bind by their original names.
+- `jpipe diagnostic` now reports an unreadable input file as a fatal diagnostic
+  and exits 1, instead of exiting 42 with only a message on standard error.
+  `jpipe process` is unchanged: a missing file there is still a system error.
+- `jpipe diagnostic` now writes a report even when compilation fails fatally —
+  a syntax error or an unresolvable `load` — in both `text` and `json`. The
+  report carries a diagnostic with `severity: "fatal"` and an empty `models`
+  list, and the exit code stays 1, so tooling no longer has to parse stderr for
+  the most common failure of a file being edited (#154).
+- Composition operators are now commutative when unification merges elements
+  of different kinds: a claim that one model argues (a sub-conclusion) and
+  another asserts (an evidence) merges into a sub-conclusion whichever order
+  the sources are listed in. `assemble(a, b)` and `assemble(b, a)` previously
+  produced the same model only by luck, and the unlucky order failed to
+  compile at all (#156).
+- A unification group whose element kinds genuinely cannot be merged (e.g. the
+  assembled conclusion colliding with a source evidence) is now reported as
+  `incompatible-unification`, pointing at the operator call and naming both
+  elements and their shared label, instead of surfacing as an unexplained
+  `invalid-support` further down the build.
+
+---
+
 ## [2.4.0] — 2026-08-10
 
 ### Added
@@ -325,7 +406,8 @@ server.
 ### Added
 - Initial commit: first version of the compiler.
 
-[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.1...v2.4.0
 [2.3.1]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.2.0...v2.3.0

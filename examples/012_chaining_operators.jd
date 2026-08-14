@@ -26,8 +26,8 @@ justification second {
 }
 
 justification both is assemble(first, second) {
-conclusionLabel: "an assembled conclusion"
-strategyLabel: "a assembled strategy"
+   conclusionLabel: "an assembled conclusion"
+   strategyLabel: "a assembled strategy"
 }
 
 justification refine_1 {

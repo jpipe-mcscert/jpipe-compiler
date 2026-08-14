@@ -28,7 +28,12 @@ mvn package -pl jpipe-cli --also-make
 
 # Run
 java -jar target/jpipe-cli-*.jar --help
+
+# Build it and smoke-test the JAR itself
+mvn verify -pl jpipe-cli --also-make
 ```
 
 The fat JAR is the only distributable artefact; all other modules are
-internal.
+internal. Because it is assembled after the tests run, packaging mistakes are
+invisible to them: `ShadedJarIT` therefore runs the built JAR through each
+output path, and is what `verify` adds over `package`.

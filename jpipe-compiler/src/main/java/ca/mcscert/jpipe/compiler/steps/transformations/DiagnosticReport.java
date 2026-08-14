@@ -1,6 +1,5 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
-import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import static ca.mcscert.jpipe.compiler.model.CompilationContext.STAT_COMMANDS_DEFERRALS;
 import static ca.mcscert.jpipe.compiler.model.CompilationContext.STAT_COMMANDS_MACROS;
 import static ca.mcscert.jpipe.compiler.model.CompilationContext.STAT_COMMANDS_TOTAL;
@@ -11,7 +10,6 @@ import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.AliasInfo;
 import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.ElementCounts;
 import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.ModelInfo;
 import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.SymbolInfo;
-import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,9 +37,7 @@ import java.util.stream.Collectors;
  * @see CollectDiagnostics
  * @see JsonDiagnosticReport
  */
-public final class DiagnosticReport
-		extends
-			Transformation<DiagnosticSnapshot, String> {
+public final class DiagnosticReport extends DiagnosticRenderer {
 
 	private static final String HDR_DIAGNOSTICS = "=== Diagnostics ===\n";
 	private static final String HDR_ACTION_STATS = "\n=== Action Statistics ===\n";
@@ -52,14 +48,13 @@ public final class DiagnosticReport
 	private static final String ARROW = "\u2192";
 
 	@Override
-	protected String run(DiagnosticSnapshot input, CompilationContext ctx) {
+	public String render(DiagnosticSnapshot input) {
 		StringBuilder sb = new StringBuilder();
 		appendDiagnostics(sb, input);
 		appendActionStats(sb, input);
 		appendModelSummary(sb, input);
 		appendSymbolTable(sb, input);
 		appendActionList(sb, input);
-		ctx.markDiagnosticsRendered();
 		return sb.toString();
 	}
 

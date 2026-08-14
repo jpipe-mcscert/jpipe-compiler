@@ -18,6 +18,12 @@ the only type that callers outside the module need to reference.
 `compiler.model`. It is not instantiated directly — `ChainBuilder.andThen(Sink)`
 produces it as the final step of pipeline construction.
 
+`DiagnosticCompiler` backs the `diagnostic` command. It runs the analysis as a
+pipeline but writes its report whether that pipeline completed or aborted, so a
+syntax error or an unresolvable `load` is reported rather than swallowed
+(ADR-0016). A report assembled as the tail of the chain could not do that: a
+fatal stops the chain before those steps run.
+
 ```plantuml
 @startuml compiler
 
@@ -38,7 +44,16 @@ package "compiler" {
     + compile(String, String) : boolean
   }
 
+  class DiagnosticCompiler {
+    - source : Source<InputStream>
+    - analysis : Transformation<InputStream, Unit>
+    - renderer : DiagnosticRenderer
+    - sink : Sink<String>
+    + compile(String, String) : boolean
+  }
+
   Compiler <|.. ChainCompiler
+  Compiler <|.. DiagnosticCompiler
 }
 
 @enduml
@@ -58,9 +73,10 @@ every step.
   sources can be expressed as lambdas via `Source.of(Provider)`.
 - **`Transformation<I, O>`** — middle step: a typed function `I → O`. Subclasses
   implement the protected `run` method; callers always go through the final
-  `fire` method, which handles logging, null-output detection, fast-fail on
-  accumulated fatal errors, and wrapping of checked exceptions into
-  `CompilationException`. Lightweight steps can be expressed as lambdas via
+  `fire` method, which handles logging, null-output detection, and fast-fail on
+  accumulated fatal errors. Exceptions from `run` propagate unchanged — a step
+  that cannot continue throws `CompilationException` itself. Lightweight steps
+  can be expressed as lambdas via
   `Transformation.of(Step)`. Steps are composed via `andThen`.
 - **`Checker<I>`** — a specialisation of `Transformation<I, I>` whose `run` is
   sealed to always return its input unchanged. Subclasses implement `check`,

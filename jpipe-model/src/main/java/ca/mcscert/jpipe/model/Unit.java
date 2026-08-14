@@ -135,6 +135,14 @@ public final class Unit {
 	}
 
 	/**
+	 * Records that {@code id} in model {@code modelName} was minted by
+	 * unification. See {@link JustificationModel#recordUnifiedId(String)}.
+	 */
+	public void recordUnifiedId(String modelName, String id) {
+		findModel(modelName).ifPresent(m -> m.recordUnifiedId(id));
+	}
+
+	/**
 	 * Returns the id that {@code id} resolves to in {@code modelName}, or
 	 * {@code id} itself if no alias was registered.
 	 */
