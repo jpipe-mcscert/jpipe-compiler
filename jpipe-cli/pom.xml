@@ -100,6 +100,32 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Runs the *IT smoke tests after `package`, so they exercise the
+                 shaded JAR that users actually run. Unit tests cannot: surefire
+                 resolves the module's own classpath, where a dependency the
+                 shade plugin dropped is still present (see issue #153). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- Shade replaces the main artifact, so this is the fat
+                             JAR; the pre-shade one is original-*.jar. -->
+                        <shaded.jar>${project.build.directory}/${project.build.finalName}.jar</shaded.jar>
+                        <examples.dir>${maven.multiModuleProjectDirectory}/examples</examples.dir>
+                        <project.version>${project.version}</project.version>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

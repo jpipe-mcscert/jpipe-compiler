@@ -52,8 +52,11 @@ jobs:
           [ -n "$VERSION" ] || { echo "ERROR: could not extract project version"; exit 1; }
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      # `verify`, not `package`: the shaded-JAR smoke tests (jpipe-cli's *IT)
+      # run after packaging, and only this phase reaches them. It also brings
+      # spotless, checkstyle and coverage into this job.
       - name: Build and test
-        run: mvn -B package
+        run: mvn -B verify
 
       # Locate the shaded fat JAR (exclude the *-original.jar that Shade leaves behind)
       - name: Locate fat JAR
