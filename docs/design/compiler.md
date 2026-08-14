@@ -73,9 +73,10 @@ every step.
   sources can be expressed as lambdas via `Source.of(Provider)`.
 - **`Transformation<I, O>`** — middle step: a typed function `I → O`. Subclasses
   implement the protected `run` method; callers always go through the final
-  `fire` method, which handles logging, null-output detection, fast-fail on
-  accumulated fatal errors, and wrapping of checked exceptions into
-  `CompilationException`. Lightweight steps can be expressed as lambdas via
+  `fire` method, which handles logging, null-output detection, and fast-fail on
+  accumulated fatal errors. Exceptions from `run` propagate unchanged — a step
+  that cannot continue throws `CompilationException` itself. Lightweight steps
+  can be expressed as lambdas via
   `Transformation.of(Step)`. Steps are composed via `andThen`.
 - **`Checker<I>`** — a specialisation of `Transformation<I, I>` whose `run` is
   sealed to always return its input unchanged. Subclasses implement `check`,

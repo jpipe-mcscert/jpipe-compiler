@@ -55,14 +55,17 @@ final class DiagnosticCompiler implements Compiler {
 			throws IOException {
 		logger.info("Compiling [{}]", sourceFile);
 		CompilationContext ctx = new CompilationContext(sourceFile);
-		InputStream input = source.provideFrom(sourceFile);
-		Unit unit;
+		Unit unit = new Unit(sourceFile);
 		try {
-			unit = analysis.fire(input, ctx);
+			unit = analysis.fire(source.provideFrom(sourceFile), ctx);
 		} catch (CompilationException _) {
 			// The abort is the subject of the report, not a reason to skip it.
 			// Only a fatal is caught here: a bug in a step still propagates.
-			unit = new Unit(sourceFile);
+		} catch (IOException e) {
+			// Same reasoning one step earlier: a source the command cannot read
+			// is something to report on, not something to die on. Failing to
+			// write the report is still an I/O error, and still propagates.
+			ctx.fatal("cannot read source: " + e.getMessage());
 		}
 		sink.pourInto(
 				renderer.render(new CollectDiagnostics().snapshot(unit, ctx)));

@@ -24,6 +24,9 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   outdated Graphviz, which is a common explanation for rendering problems.
 
 ### Fixed
+- `jpipe diagnostic` now reports an unreadable input file as a fatal diagnostic
+  and exits 1, instead of exiting 42 with only a message on standard error.
+  `jpipe process` is unchanged: a missing file there is still a system error.
 - `jpipe diagnostic` now writes a report even when compilation fails fatally —
   a syntax error or an unresolvable `load` — in both `text` and `json`. The
   report carries a diagnostic with `severity: "fatal"` and an empty `models`

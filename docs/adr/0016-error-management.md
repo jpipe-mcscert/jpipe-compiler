@@ -128,7 +128,15 @@ model export and a report written into it would corrupt the artefact.
 | Compilation succeeded, no errors | 0 |
 | Compilation succeeded, errors diagnosed | 1 |
 | Pipeline aborted (syntax errors or explicit FATAL) | 1 |
+| Source file unreadable, under `diagnostic` | 1 |
+| Source file unreadable, under `process` | 42 |
 | Unexpected exception (system error) | 42 |
+
+A source file that cannot be read is a `FATAL` under `diagnostic` for the same
+reason as an aborted pipeline: the command reports on a source rather than
+consuming it, so a tool gets a document naming the problem instead of an empty
+stream. Under `process` it stays a system error — there is no artefact to
+produce and nothing to report into.
 
 Exit code 42 is reserved for exceptions that escape all `CompilationException` and
 `UnsupportedOperationException` handlers — i.e., bugs or environmental failures

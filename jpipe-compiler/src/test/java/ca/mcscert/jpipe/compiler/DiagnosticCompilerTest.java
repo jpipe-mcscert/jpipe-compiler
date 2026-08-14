@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.compiler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Sink;
@@ -10,6 +11,7 @@ import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticReport;
 import ca.mcscert.jpipe.model.Unit;
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -76,6 +78,24 @@ class DiagnosticCompilerTest {
 		assertThat(hasErrors).isTrue();
 		assertThat(poured).contains("[FATAL]").contains("unrecoverable")
 				.contains("(empty)");
+	}
+
+	@Test
+	void anUnreadableSourceIsReportedRatherThanThrown() throws IOException {
+		Source<InputStream> missing = new Source<>() {
+			@Override
+			public InputStream provideFrom(String path) throws IOException {
+				throw new FileNotFoundException(path + " (No such file)");
+			}
+		};
+
+		boolean hasErrors = new DiagnosticCompiler(missing,
+				analysis(ctx -> fail("the analysis must not run")),
+				new DiagnosticReport(), sink()).compile("gone.jd", "<stdout>");
+
+		assertThat(hasErrors).isTrue();
+		assertThat(poured).contains("[FATAL]").contains("cannot read source")
+				.contains("gone.jd");
 	}
 
 	@Test

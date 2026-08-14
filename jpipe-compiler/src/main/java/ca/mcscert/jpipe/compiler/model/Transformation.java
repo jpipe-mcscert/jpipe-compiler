@@ -102,10 +102,14 @@ public abstract class Transformation<I, O> {
 	 * <ul>
 	 * <li>Fast-fails if the context already holds fatal errors (a previous step
 	 * marked the pipeline as broken).</li>
-	 * <li>Wraps any checked exception in {@link CompilationException}.</li>
 	 * <li>Rejects a {@code null} return from {@link #run} as a programming
 	 * error in the step implementation.</li>
 	 * </ul>
+	 *
+	 * <p>
+	 * Exceptions raised by {@link #run} propagate unchanged: a step that cannot
+	 * continue reports through {@code ctx} or throws
+	 * {@link CompilationException} itself.
 	 *
 	 * @param in
 	 *            the input value.

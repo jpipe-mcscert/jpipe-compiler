@@ -190,6 +190,10 @@ symbol table reads `(empty)`, because nothing could be built. The exit code is
 1. Consumers detect the case by finding a diagnostic with `severity: "fatal"`,
 and need no separate path for it.
 
+A source file that cannot be read at all is reported the same way, as a fatal
+diagnostic with exit code 1, rather than as the system error (42) it remains
+under `process`.
+
 This is why `diagnostic` has its own compiler rather than assembling the report
 as the tail of the analysis chain — a report produced as a pipeline step could
 never describe the failures that stopped that pipeline. `process` deliberately
