@@ -121,16 +121,6 @@ class CollectDiagnosticsTest {
 				.isInstanceOf(UnsupportedOperationException.class);
 	}
 
-	@Test
-	void collectingDoesNotMarkDiagnosticsRendered() {
-		collect();
-
-		// Only a renderer may claim the diagnostics were shown to the user;
-		// otherwise a failure between collect and render would silently
-		// swallow ChainCompiler's fallback dump.
-		assertThat(ctx.diagnosticsRendered()).isFalse();
-	}
-
 	// -------------------------------------------------------------------------
 	// Models
 	// -------------------------------------------------------------------------

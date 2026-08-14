@@ -1,6 +1,5 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
-import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import static ca.mcscert.jpipe.compiler.model.CompilationContext.STAT_COMMANDS_DEFERRALS;
 import static ca.mcscert.jpipe.compiler.model.CompilationContext.STAT_COMMANDS_MACROS;
 import static ca.mcscert.jpipe.compiler.model.CompilationContext.STAT_COMMANDS_TOTAL;
@@ -12,7 +11,6 @@ import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.ElementCounts;
 import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.ImplementorInfo;
 import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.ModelInfo;
 import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.SymbolInfo;
-import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.SourceLocation;
 import java.util.Map;
 import java.util.Optional;
@@ -59,9 +57,7 @@ import org.json.JSONObject;
  * @see CollectDiagnostics
  * @see DiagnosticReport
  */
-public final class JsonDiagnosticReport
-		extends
-			Transformation<DiagnosticSnapshot, String> {
+public final class JsonDiagnosticReport extends DiagnosticRenderer {
 
 	/** Version of the emitted document shape. */
 	public static final int SCHEMA_VERSION = 1;
@@ -74,7 +70,7 @@ public final class JsonDiagnosticReport
 	private static final String KEY_LOCATION = "location";
 
 	@Override
-	protected String run(DiagnosticSnapshot input, CompilationContext ctx) {
+	public String render(DiagnosticSnapshot input) {
 		JSONObject result = new JSONObject();
 		result.put("schemaVersion", SCHEMA_VERSION);
 		result.put(KEY_SOURCE, input.source());
@@ -83,7 +79,6 @@ public final class JsonDiagnosticReport
 		result.put("stats", stats(input.stats()));
 		result.put("models", models(input));
 		result.put("actions", actions(input));
-		ctx.markDiagnosticsRendered();
 		return result.toString(INDENT);
 	}
 

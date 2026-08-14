@@ -183,10 +183,19 @@ The ASCII logo is suppressed automatically when the JSON report goes to
 standard output, so `jpipe diagnostic -f json | jq .` works without
 `--headless`. Writing to a file with `-o` keeps the banner on stdout.
 
-**Limitation.** A *fatal* error (a syntax error, an unresolvable `load`) aborts
-the pipeline before any report is produced, in either format: nothing is
-written to the output stream, the message goes to standard error, and the exit
-code is 1. Tools must handle that case separately.
+**Reporting on a compilation that aborted.** A *fatal* error — a syntax error,
+an unresolvable `load` — stops the pipeline, but the report is still written in
+both formats: the diagnostics describe the failure, `models` is empty and the
+symbol table reads `(empty)`, because nothing could be built. The exit code is
+1. Consumers detect the case by finding a diagnostic with `severity: "fatal"`,
+and need no separate path for it.
+
+This is why `diagnostic` has its own compiler rather than assembling the report
+as the tail of the analysis chain — a report produced as a pipeline step could
+never describe the failures that stopped that pipeline. `process` deliberately
+keeps the old behaviour: its output stream carries a model export, so a report
+poured into it would corrupt the artefact. A fatal there still reaches standard
+error with exit code 1 and no output.
 
 ### `doctor`
 

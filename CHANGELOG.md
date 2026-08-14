@@ -24,6 +24,11 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   outdated Graphviz, which is a common explanation for rendering problems.
 
 ### Fixed
+- `jpipe diagnostic` now writes a report even when compilation fails fatally —
+  a syntax error or an unresolvable `load` — in both `text` and `json`. The
+  report carries a diagnostic with `severity: "fatal"` and an empty `models`
+  list, and the exit code stays 1, so tooling no longer has to parse stderr for
+  the most common failure of a file being edited (#154).
 - Composition operators are now commutative when unification merges elements
   of different kinds: a claim that one model argues (a sub-conclusion) and
   another asserts (an evidence) merges into a sub-conclusion whichever order

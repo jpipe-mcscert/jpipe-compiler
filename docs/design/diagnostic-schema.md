@@ -100,16 +100,22 @@ report.
 
 Instead `JsonDiagnosticReportSchemaTest` validates against the schema every
 report produced from the unit fixtures **and from every file in `examples/`**,
-so code and schema cannot drift apart without CI noticing. The same test also
+compiled through the same wiring the CLI uses — including the sources that
+abort, which are also asserted to carry their fatal — so code and schema cannot
+drift apart without CI noticing. The same test also
 asserts that the schema rejects malformed documents, so it cannot quietly decay
 into one that accepts anything.
 
 ## Note on fatal errors
 
-A *fatal* error — a syntax error, an unresolvable `load` — aborts the pipeline
-before any report is rendered. **Nothing is written to the output stream**, the
-message goes to standard error, and the exit code is 1. Consumers must handle
-that case outside the schema. `severity: "fatal"` is reserved in the schema but
-does not currently appear in any document.
+A *fatal* error — a syntax error, an unresolvable `load` — aborts the
+compilation, and the report describes exactly that: one or more diagnostics
+with `severity: "fatal"`, `status: "errors"`, an empty `models` array and zeroed
+statistics, because nothing could be built. The exit code is 1.
+
+Consumers therefore need no separate path for it: the document has the same
+shape as any other, and an aborted compilation is recognised by the severity.
+That matters most for editor integrations, since a file being edited is
+syntactically broken most of the time.
 
 See [`cli.md`](cli.md#diagnostic) for the command itself.

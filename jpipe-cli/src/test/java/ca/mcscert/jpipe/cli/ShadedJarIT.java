@@ -99,6 +99,20 @@ class ShadedJarIT {
 				.isNotEmpty();
 	}
 
+	@Test
+	void aFileThatFailsFatallyStillReportsAndExitsOne() throws IOException {
+		// The issue's own repro: an unresolvable load used to leave stdout
+		// empty, which is the case a tool most needs to read (#154).
+		Execution run = jpipe("--headless", "diagnostic", "-i",
+				example("invalid/021_load_glob_invalid.jd"), "-f", "json");
+
+		JSONObject report = new JSONObject(run.out());
+		assertThat(run.exitCode()).isEqualTo(1);
+		assertThat(report.getString("status")).isEqualTo("errors");
+		assertThat(report.getJSONArray("diagnostics").getJSONObject(0)
+				.getString("severity")).isEqualTo("fatal");
+	}
+
 	// ── packaging-sensitive plumbing ─────────────────────────────────────────
 
 	@Test
@@ -120,7 +134,7 @@ class ShadedJarIT {
 				"-i", MINIMAL);
 
 		assertThat(run.exitCode()).isZero();
-		assertThat(run.err()).contains("ChainCompiler");
+		assertThat(run.err()).contains("Compiling [");
 	}
 
 	@Test

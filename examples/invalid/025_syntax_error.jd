@@ -1,0 +1,16 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 2.x                 *
+ *********************************/
+
+// The parser reports each syntax error, then HaltAndCatchFire promotes them
+// into a fatal that aborts the pipeline. The diagnostic command still reports
+// on the aborted compilation: this is the state a file spends most of its time
+// in while being edited.
+justification broken {
+    conclusion c is "A conclusion"
+    strategy   s is
+    this is not valid jd syntax %%%
+    s supports c
+}

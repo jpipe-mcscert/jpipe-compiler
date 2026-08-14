@@ -82,11 +82,6 @@ class JsonDiagnosticReportTest {
 			assertThat(report().getString("status")).isEqualTo("errors");
 		}
 
-		@Test
-		void markDiagnosticsRenderedIsCalled() {
-			report();
-			assertThat(ctx.diagnosticsRendered()).isTrue();
-		}
 	}
 
 	// -------------------------------------------------------------------------

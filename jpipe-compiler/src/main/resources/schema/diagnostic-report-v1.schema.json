@@ -74,7 +74,7 @@
       "required": ["severity", "source", "message"],
       "properties": {
         "severity": {
-          "description": "'error' accumulates and sets the exit code (ADR-0016). 'fatal' is reserved: a fatal aborts the pipeline before any report is rendered, so it does not currently appear in a document — consumers should still handle it.",
+          "description": "'error' accumulates and sets the exit code (ADR-0016). 'fatal' aborts the compilation: the report still describes it, with an empty 'models' array, since nothing could be built.",
           "enum": ["error", "fatal"]
         },
         "code": { "$ref": "#/$defs/code" },
