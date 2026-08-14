@@ -105,6 +105,7 @@ misleading completeness results.
 | Rule | Description |
 |------|-------------|
 | `no-duplicate-ids` | All element IDs within a model are unique, including the conclusion's ID. |
+| `unique-identifiers` | No identifier an exported model can be addressed by designates two different elements. Beyond the element IDs this covers the merge aliases, since every ID merged into an element addresses that element too: an alias colliding with another element's ID would make a reference ambiguous. Consumers index IDs and aliases into a single namespace, so the ambiguity has no safe resolution — `jpipe-runner` discards the whole model rather than guess. |
 | `acyclic-support` | The support graph is acyclic. A cycle is detected when following support edges from any node visits a node already on the current traversal path. |
 
 Note: type constraints (Conclusion ← Strategy ← SupportLeaf only) are enforced by
