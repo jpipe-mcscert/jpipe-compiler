@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.model;
 
 import ca.mcscert.jpipe.compiler.Compiler;
+import java.io.Closeable;
 import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,10 +40,32 @@ public final class ChainCompiler<I, O> implements Compiler {
 			O output = chain.fire(input, ctx);
 			sink.pourInto(output);
 		} finally {
+			release(input);
 			printDiagnostics(ctx);
 		}
 		logger.info("Compilation finished [{}]", sourceFile);
 		return ctx.hasErrors();
+	}
+
+	/**
+	 * Closes the pipeline's input if it holds a resource, leaving
+	 * {@link System#in} open: the pipeline borrows standard input rather than
+	 * owning it, and closing it would break any later read. A source value that
+	 * is not {@link Closeable} needs no release.
+	 *
+	 * <p>
+	 * A failure to close is logged rather than raised, so it cannot mask the
+	 * outcome the compilation was run to produce.
+	 */
+	private void release(I input) {
+		if (!(input instanceof Closeable closeable) || input == System.in) {
+			return;
+		}
+		try {
+			closeable.close();
+		} catch (IOException e) {
+			logger.warn("Could not close the source: {}", e.getMessage());
+		}
 	}
 
 	private void printDiagnostics(CompilationContext ctx) {

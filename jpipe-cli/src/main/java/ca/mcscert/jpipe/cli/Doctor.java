@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -22,6 +23,9 @@ import java.util.regex.Pattern;
  * a common source of rendering issues.
  */
 final class Doctor {
+
+	/** How long a probed tool may take to exit before it is killed. */
+	private static final long PROBE_TIMEOUT_SECONDS = 5;
 
 	/** Maps a human-readable tool name to the command used to probe it. */
 	private static final Map<String, String[]> TOOLS = new LinkedHashMap<>();
@@ -97,6 +101,30 @@ final class Doctor {
 		} catch (IOException _) {
 			process.destroy();
 			return Optional.of("");
+		} finally {
+			awaitExit(process);
+		}
+	}
+
+	/**
+	 * Waits for a probed tool to finish, so no child outlives the probe that
+	 * started it. The exit code stays irrelevant: the banner has already
+	 * decided the outcome.
+	 *
+	 * <p>
+	 * The wait is bounded. A tool that closes its output without exiting must
+	 * not hang {@code jpipe doctor}, so one that overstays is killed rather
+	 * than waited on. An interrupt is passed on to the caller rather than
+	 * swallowed.
+	 */
+	private static void awaitExit(Process process) {
+		try {
+			if (!process.waitFor(PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+				process.destroyForcibly();
+			}
+		} catch (InterruptedException _) {
+			process.destroyForcibly();
+			Thread.currentThread().interrupt();
 		}
 	}
 

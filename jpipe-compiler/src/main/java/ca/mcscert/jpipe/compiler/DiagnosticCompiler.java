@@ -56,8 +56,10 @@ final class DiagnosticCompiler implements Compiler {
 		logger.info("Compiling [{}]", sourceFile);
 		CompilationContext ctx = new CompilationContext(sourceFile);
 		Unit unit = new Unit(sourceFile);
+		InputStream input = null;
 		try {
-			unit = analysis.fire(source.provideFrom(sourceFile), ctx);
+			input = source.provideFrom(sourceFile);
+			unit = analysis.fire(input, ctx);
 		} catch (CompilationException _) {
 			// The abort is the subject of the report, not a reason to skip it.
 			// Only a fatal is caught here: a bug in a step still propagates.
@@ -66,10 +68,34 @@ final class DiagnosticCompiler implements Compiler {
 			// is something to report on, not something to die on. Failing to
 			// write the report is still an I/O error, and still propagates.
 			ctx.fatal("cannot read source: " + e.getMessage());
+		} finally {
+			release(input);
 		}
 		sink.pourInto(
 				renderer.render(new CollectDiagnostics().snapshot(unit, ctx)));
 		logger.info("Compilation finished [{}]", sourceFile);
 		return ctx.hasErrors();
+	}
+
+	/**
+	 * Closes the source stream, leaving {@link System#in} open: the pipeline
+	 * borrows standard input rather than owning it, and closing it would break
+	 * any later read.
+	 *
+	 * <p>
+	 * A failure to close is logged rather than raised. The report still has to
+	 * be written, and whether the descriptor came back is no part of what the
+	 * command set out to say about the source.
+	 */
+	private void release(InputStream input) {
+		if (input == null || input == System.in) {
+			return;
+		}
+		try {
+			input.close();
+		} catch (IOException e) {
+			logger.warn("Could not close the source stream: {}",
+					e.getMessage());
+		}
 	}
 }

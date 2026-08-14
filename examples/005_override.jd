@@ -16,7 +16,7 @@ template a_template {
 
 // Immediately overriding the abstract support with an evidence.
 justification immediate implements a_template {
-    evidence a_template:abs is "An immediate evidence"   
+    evidence a_template:abs is "An immediate evidence"
 }
 
 // Providing an argumentation that leads to overriding the abstract support
