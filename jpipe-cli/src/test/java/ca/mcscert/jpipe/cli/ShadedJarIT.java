@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.JarFile;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -150,9 +151,23 @@ class ShadedJarIT {
 				List.of(javaBinary(), "-jar", jarPath()));
 		command.addAll(List.of(args));
 		Process process = new ProcessBuilder(command).start();
+
+		// Drain stderr in a virtual thread, as RenderWithDot does: reading the
+		// two streams one after the other lets a chatty stderr fill its pipe
+		// buffer and block the process before it can close stdout.
+		AtomicReference<String> stderr = new AtomicReference<>("");
+		Thread drain = Thread.ofVirtual().start(() -> {
+			try {
+				stderr.set(read(process.getErrorStream()));
+			} catch (IOException _) {
+				// Process died before stderr was fully read; safe to ignore.
+			}
+		});
+
 		String out = read(process.getInputStream());
-		String err = read(process.getErrorStream());
-		return new Execution(waitFor(process), out, err);
+		int exitCode = waitFor(process);
+		join(drain);
+		return new Execution(exitCode, out, stderr.get());
 	}
 
 	private static int waitFor(Process process) {
@@ -162,6 +177,15 @@ class ShadedJarIT {
 			Thread.currentThread().interrupt();
 			throw new IllegalStateException(
 					"interrupted while running the JAR");
+		}
+	}
+
+	private static void join(Thread thread) {
+		try {
+			thread.join();
+		} catch (InterruptedException _) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException("interrupted while reading stderr");
 		}
 	}
 
