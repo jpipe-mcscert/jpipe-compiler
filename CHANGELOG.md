@@ -18,6 +18,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+---
+
+## [2.5.0] — 2026-08-14
+
 ### Added
 - Python export now leaves out the conclusion entirely and emits sub-conclusions
   commented out, with a line saying why. The runner requires only evidence and
@@ -402,7 +406,8 @@ server.
 ### Added
 - Initial commit: first version of the compiler.
 
-[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.1...v2.4.0
 [2.3.1]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.2.0...v2.3.0
