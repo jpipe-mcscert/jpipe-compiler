@@ -65,6 +65,20 @@ jobs:
           JAR=$(find jpipe-cli/target -name "jpipe-cli-*.jar" ! -name "*-original.jar" -type f)
           echo "path=$JAR" >> "$GITHUB_OUTPUT"
 
+      # Contract with jpipe-runner (#165): the step libraries `-f PYTHON`
+      # writes must import on the runner major version they target, and a dry
+      # run must refuse them only for what a skeleton cannot know. A change on
+      # either side that breaks the generated code fails here, not for a user.
+      - name: Set up Python for the runner contract
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check generated step libraries against jpipe-runner 4
+        run: |
+          python -m pip install --quiet 'jpipe-runner>=4,<5'
+          scripts/runner-contract.sh "${{ steps.locate.outputs.path }}"
+
       # Always upload the fat JAR as a per-run artifact (available on the Actions run page)
       - name: Upload fat JAR artifact
         uses: actions/upload-artifact@v7

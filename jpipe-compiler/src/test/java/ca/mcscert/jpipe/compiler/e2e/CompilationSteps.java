@@ -35,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -353,17 +354,22 @@ public class CompilationSteps {
 		assertThat(pythonOutput).contains("def " + name + "(");
 	}
 
-	@Then("the Python output has @jpipe_link for id {string} active")
-	public void thePythonOutputHasJpipeLinkActive(String qualifiedId) {
-		assertThat(pythonOutput)
-				.contains("@jpipe_link(\"" + qualifiedId + "\")")
-				.doesNotContain("# @jpipe_link(\"" + qualifiedId + "\")");
+	@Then("the Python output has no method named {string}")
+	public void thePythonOutputHasNoMethodNamed(String name) {
+		assertThat(pythonOutput).doesNotContainPattern(
+				"(?m)^(# )?def " + Pattern.quote(name) + "\\(");
 	}
 
-	@Then("the Python output has @jpipe_link for id {string} commented out")
-	public void thePythonOutputHasJpipeLinkCommentedOut(String qualifiedId) {
-		assertThat(pythonOutput)
-				.contains("# @jpipe_link(\"" + qualifiedId + "\")");
+	@Then("the Python output binds id {string} on an active step")
+	public void thePythonOutputBindsIdOnAnActiveStep(String qualifiedId) {
+		assertThat(pythonOutput).containsPattern(bindingOf("", qualifiedId))
+				.doesNotContainPattern(bindingOf("# ", qualifiedId));
+	}
+
+	@Then("the Python output binds id {string} on a commented-out step")
+	public void thePythonOutputBindsIdOnACommentedOutStep(String qualifiedId) {
+		assertThat(pythonOutput).containsPattern(bindingOf("# ", qualifiedId))
+				.doesNotContainPattern(bindingOf("", qualifiedId));
 	}
 
 	@Then("the Python output declares {string} before {string}")
@@ -379,10 +385,21 @@ public class CompilationSteps {
 				.contains(edge + "\n## " + namespace + " ##\n" + edge + "\n");
 	}
 
-	@Then("the Python output has no @jpipe_link for id {string}")
-	public void thePythonOutputHasNoJpipeLinkFor(String qualifiedId) {
+	@Then("the Python output binds nothing to id {string}")
+	public void thePythonOutputBindsNothingToId(String qualifiedId) {
 		assertThat(pythonOutput)
-				.doesNotContain("@jpipe_link(\"" + qualifiedId + "\")");
+				.doesNotContainPattern(bindingOf("", qualifiedId))
+				.doesNotContainPattern(bindingOf("# ", qualifiedId));
+	}
+
+	/**
+	 * A step decorator line, behind {@code prefix}, that takes
+	 * {@code qualifiedId} among its positional ids.
+	 */
+	private static Pattern bindingOf(String prefix, String qualifiedId) {
+		return Pattern.compile(
+				"(?m)^" + Pattern.quote(prefix) + "@\\w+\\((?:\"[^\"]*\", )*"
+						+ Pattern.quote("\"" + qualifiedId + "\""));
 	}
 
 	@Then("the compilation has validation errors")

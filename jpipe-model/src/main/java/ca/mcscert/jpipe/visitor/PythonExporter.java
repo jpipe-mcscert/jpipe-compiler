@@ -11,34 +11,47 @@ import ca.mcscert.jpipe.util.LabelEscaper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.function.Function;
 
 /**
- * Serialises a single {@link JustificationModel} to a Python module: each
- * element becomes a decorated function named after the element's label
- * (snake_case via {@link LabelEscaper}), carrying:
+ * Serialises a single {@link JustificationModel} to a step library for <a href=
+ * "https://github.com/jpipe-mcscert/jpipe-runner/blob/main/docs/authoring.md">jpipe-runner
+ * 4</a>: each element becomes a function named after the element's label
+ * (snake_case via {@link LabelEscaper}, qualified where two would collide; see
+ * {@link #nameFunctions(List)}), returning an {@code Outcome}, under the one
+ * decorator its kind takes ({@code @evidence}, {@code @strategy},
+ * {@code @sub_conclusion} or {@code @conclusion}). The decorator carries:
  *
  * <ul>
- * <li>one or more {@code @jpipe_link("<id>")}, linking the function back to the
- * originating jPipe element. An element that resulted from a merge is linked by
- * the ids it was merged from rather than by its own, transitively, so a
- * composition of a composition still names the ids as the original source
- * models had them; ids unification minted along the way ({@code unified_0}) are
- * left out, having been written in no source file. Every id is then shortened
- * to the least qualified form that still designates the element unambiguously,
- * but never past {@code container:id}, because a bare id would leave a reader
- * of the generated module unable to tell what it refers to; see
+ * <li>as positional arguments, the ids binding the function to the originating
+ * jPipe element. An element that resulted from a merge is bound by the ids it
+ * was merged from rather than by its own, transitively, so a composition of a
+ * composition still names the ids as the original source models had them; ids
+ * unification minted along the way ({@code unified_0}) are left out, having
+ * been written in no source file. Every id is then shortened to the least
+ * qualified form that still designates the element unambiguously, but never
+ * past {@code container:id}, because a bare id would leave a reader of the
+ * generated module unable to tell what it refers to; see
  * {@link AbstractModelExporter#minimalLink(String)}.</li>
- * <li>{@code @jpipe(produce=[], consume=[])} — placeholder decorators to be
- * filled in by the developer.</li>
+ * <li>as keyword arguments, empty {@code observes}, {@code consumes} and
+ * {@code produces} declarations for the developer to fill in. The exporter
+ * cannot know what an evidence reads or what a step produces, and the runner
+ * refuses evidence that observes or produces nothing, so its validation of the
+ * generated module lists what is left to write.</li>
  * </ul>
  *
  * <p>
  * Each function carries a docstring with the original element label so the full
- * text is always recoverable regardless of escaping.
+ * text is always recoverable regardless of escaping, and raises
+ * {@code NotImplementedError} until it is written.
  *
  * <p>
  * This visitor operates on one model at a time. Use {@code SelectModel} in the
@@ -50,6 +63,20 @@ public class PythonExporter extends AbstractModelExporter {
 	/** Prefix that comments out a line of generated Python. */
 	private static final String COMMENT = "# ";
 
+	/** Where the step-library API the generated module targets is described. */
+	static final String AUTHORING_GUIDE = "https://github.com/jpipe-mcscert/"
+			+ "jpipe-runner/blob/main/docs/authoring.md";
+
+	/** Closing line of the note above a function emitted commented out. */
+	private static final String UNCOMMENT = " Uncomment to check it.\n";
+
+	/**
+	 * The decorators the module being written uses, commented-out functions
+	 * included, so that the preamble imports exactly those and uncommenting a
+	 * function needs no import added by hand.
+	 */
+	private final Set<String> decorators = new TreeSet<>();
+
 	/**
 	 * Link id &rarr; the function it has already been emitted on, for the
 	 * module being written. Consumers key their registry by the link id, so the
@@ -57,6 +84,25 @@ public class PythonExporter extends AbstractModelExporter {
 	 * {@link #claim(String, String)}.
 	 */
 	private final Map<String, String> boundTo = new LinkedHashMap<>();
+
+	/**
+	 * Names a generated function cannot take: the decorators the preamble
+	 * imports, which a function of the same name would replace for every step
+	 * declared below it, and Python's keywords, which are no function name at
+	 * all. Names are lower case, so only lower-case keywords can arise.
+	 */
+	private static final Set<String> RESERVED_NAMES = Set.of("conclusion",
+			"evidence", "strategy", "sub_conclusion", "and", "as", "assert",
+			"async", "await", "break", "class", "continue", "def", "del",
+			"elif", "else", "except", "finally", "for", "from", "global", "if",
+			"import", "in", "is", "lambda", "nonlocal", "not", "or", "pass",
+			"raise", "return", "try", "while", "with", "yield");
+
+	/**
+	 * Element id &rarr; the name of its function, for the module being written;
+	 * see {@link #nameFunctions(List)}.
+	 */
+	private final Map<String, String> functionNames = new HashMap<>();
 
 	/**
 	 * Serialise {@code model} to Python source text without a file header.
@@ -82,11 +128,17 @@ public class PythonExporter extends AbstractModelExporter {
 	 */
 	public String export(JustificationModel<?> model, String sourcePath) {
 		builder.setLength(0);
+		decorators.clear();
+		model.accept(this);
+		// The preamble imports the decorators the body uses, so it is known
+		// only once the body is written.
+		String body = builder.toString();
+		builder.setLength(0);
 		if (sourcePath != null) {
 			appendHeader(sourcePath);
 		}
 		appendPreamble();
-		model.accept(this);
+		builder.append(body);
 		return builder.toString();
 	}
 
@@ -94,14 +146,9 @@ public class PythonExporter extends AbstractModelExporter {
 	// Element visit methods
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Emits nothing. The runner never executes a conclusion: it concludes one
-	 * from whatever supports it, so a function here could never run and there
-	 * is nothing for a developer to implement. The conclusion remains in the
-	 * JSON and DOT exports, which describe the model rather than its execution.
-	 */
 	@Override
 	public Void visit(Conclusion conclusion) {
+		appendMethod(conclusion);
 		return null;
 	}
 
@@ -139,11 +186,13 @@ public class PythonExporter extends AbstractModelExporter {
 		initAliases(model);
 		boundTo.clear();
 
-		// The conclusion is deliberately absent: it is never executed, so it
-		// would open a section holding nothing a developer can implement.
 		Map<String, List<JustificationElement>> byNamespace = new TreeMap<>();
 		model.getElements()
 				.forEach(e -> group(byNamespace, e, currentModelName));
+		model.conclusion()
+				.ifPresent(c -> group(byNamespace, c, currentModelName));
+		nameFunctions(
+				byNamespace.values().stream().flatMap(List::stream).toList());
 
 		byNamespace.forEach((namespace, elements) -> {
 			appendNamespaceBanner(namespace);
@@ -178,6 +227,77 @@ public class PythonExporter extends AbstractModelExporter {
 			case SubConclusion _ -> 3;
 			case Conclusion _ -> 4;
 		};
+	}
+
+	/**
+	 * Gives every function in the module a name no other function takes.
+	 *
+	 * <p>
+	 * A function is named after its element's label. Two elements can carry the
+	 * same label, which is common once a composition brings several source
+	 * models together, and two functions of one name are one function in
+	 * Python: the second replaces the first, and the runner never sees the step
+	 * it held. Functions whose names would collide, or whose name is reserved
+	 * ({@link #RESERVED_NAMES}), are therefore named in a more qualified form,
+	 * each tried in turn until it is free:
+	 *
+	 * <ol>
+	 * <li>the label, alone;</li>
+	 * <li>the label behind the element's namespace, which tells apart the same
+	 * label in two source models ({@code a_claim_a_strategy});</li>
+	 * <li>the label behind the element's first bound id, for two elements with
+	 * one label in one namespace ({@code expected_minimal_s_a_strategy});</li>
+	 * <li>that form with a counter, should escaping fold two ids into one
+	 * name.</li>
+	 * </ol>
+	 *
+	 * <p>
+	 * Only the functions that collide are renamed, and every one of them is, so
+	 * that neither reads as the original. Commented-out functions count, so
+	 * that uncommenting one never clashes.
+	 */
+	private void nameFunctions(List<JustificationElement> elements) {
+		functionNames.clear();
+		Set<String> taken = new HashSet<>(RESERVED_NAMES);
+		Function<JustificationElement, String> byId = e -> LabelEscaper
+				.toMethodName(linksFor(e).getFirst() + " " + e.label());
+		List<JustificationElement> pending = elements;
+		pending = nameUnique(pending, e -> LabelEscaper.toMethodName(e.label()),
+				taken);
+		pending = nameUnique(pending, e -> LabelEscaper.toMethodName(
+				namespaceOf(e.id(), currentModelName) + " " + e.label()),
+				taken);
+		pending = nameUnique(pending, byId, taken);
+		for (JustificationElement element : pending) {
+			String base = byId.apply(element);
+			String name = base;
+			for (int n = 2; !taken.add(name); n++) {
+				name = base + "_" + n;
+			}
+			functionNames.put(element.id(), name);
+		}
+	}
+
+	/**
+	 * Names, in the given form, each pending element whose name in that form is
+	 * shared with no other pending element and not yet taken, and returns the
+	 * elements left unnamed.
+	 */
+	private List<JustificationElement> nameUnique(
+			List<JustificationElement> pending,
+			Function<JustificationElement, String> form, Set<String> taken) {
+		Map<String, List<JustificationElement>> byName = new LinkedHashMap<>();
+		pending.forEach(e -> byName
+				.computeIfAbsent(form.apply(e), _ -> new ArrayList<>()).add(e));
+		List<JustificationElement> clashing = new ArrayList<>();
+		byName.forEach((name, named) -> {
+			if (named.size() == 1 && taken.add(name)) {
+				functionNames.put(named.getFirst().id(), name);
+			} else {
+				clashing.addAll(named);
+			}
+		});
+		return clashing;
 	}
 
 	private static void group(
@@ -216,52 +336,62 @@ public class PythonExporter extends AbstractModelExporter {
 		builder.append(edge).append("\n\n");
 	}
 
+	/**
+	 * Names the runner the module is written for, so that a reader of a module
+	 * generated by an older jPipe can tell which API it targets.
+	 */
 	private void appendHeader(String sourcePath) {
 		builder.append("# Generated by jPipe\n");
 		builder.append("# Source : ").append(sourcePath).append("\n");
 		builder.append("# Date   : ").append(Instant.now()).append("\n");
+		builder.append("# Step library for jpipe-runner 4: ")
+				.append(AUTHORING_GUIDE).append("\n");
 		builder.append("\n");
 	}
 
+	/**
+	 * Imports from the package root, the only path the runner keeps stable: the
+	 * outcomes a step returns, and the decorators the module uses.
+	 */
 	private void appendPreamble() {
-		builder.append("from typing import Any, Callable\n");
-		builder.append("from jpipe_runner.framework.decorators")
-				.append(".jpipe_decorator import jpipe\n");
-		builder.append("from jpipe_runner.framework.decorators")
-				.append(".link_decorator import jpipe_link\n");
-		builder.append("\n");
-		builder.append("JpipeProduce = Callable[[str, Any], None]\n");
+		builder.append("from jpipe_runner import Fail, Outcome, Pass");
+		decorators.forEach(d -> builder.append(", ").append(d));
 		builder.append("\n\n");
 	}
 
 	private void appendMethod(JustificationElement element) {
 		List<String> links = linksFor(element);
-		String name = LabelEscaper.toMethodName(element.label());
-		String params = element instanceof Conclusion
-				? ""
-				: "produce: JpipeProduce";
+		String name = functionNames.get(element.id());
+		String decorator = decoratorOf(element);
+		decorators.add(decorator);
 
 		StringBuilder block = new StringBuilder();
+		block.append("@").append(decorator).append("(");
 		for (String link : links) {
 			claim(link, name);
-			block.append("@jpipe_link(\"").append(link).append("\")\n");
+			block.append("\"").append(link).append("\", ");
 		}
-		block.append("@jpipe(").append(jpipeDecoratorArgs(element))
-				.append(")\n");
-		block.append("def ").append(name).append("(").append(params)
-				.append(") -> bool:\n");
+		block.append(declarationsOf(element)).append(")\n");
+		block.append("def ").append(name).append("() -> Outcome:\n");
 		block.append("    \"\"\"[").append(element.kind()).append("] ")
 				.append(escapeDocstring(element.label())).append("\"\"\"\n");
-		if (element instanceof AbstractSupport) {
-			block.append("    raise NotImplementedError(\"")
-					.append(links.get(0)).append(" is abstract and must be"
-							+ " overridden before execution\")\n");
-		} else {
-			block.append("    pass\n");
-		}
+		block.append("    raise NotImplementedError(\"").append(links.get(0))
+				.append(notImplementedReason(element)).append("\")\n");
 
 		appendBlock(block.toString(), element);
 		builder.append("\n\n");
+	}
+
+	/**
+	 * Why the generated function does not run yet. Raising, rather than
+	 * returning, makes the runner fail the step with this message, which names
+	 * the element; a body that returned nothing would be reported as a step
+	 * that does not return an outcome.
+	 */
+	private static String notImplementedReason(JustificationElement element) {
+		return element instanceof AbstractSupport
+				? " is abstract and must be overridden before execution"
+				: " is not implemented yet";
 	}
 
 	/**
@@ -269,20 +399,27 @@ public class PythonExporter extends AbstractModelExporter {
 	 * implemented.
 	 *
 	 * <p>
-	 * Only evidence and strategies must be bound to run. A sub-conclusion
-	 * executes solely when it happens to be bound, so leaving it live would add
-	 * a function that never runs, while leaving it out would drop the claim it
-	 * states from the module. Emitting it commented keeps the shape of the
-	 * argument visible and lets a developer turn the check on by deleting the
-	 * prefixes.
+	 * Only evidence and strategies must be bound to run. A conclusion or
+	 * sub-conclusion takes its status from what supports it unless it is bound,
+	 * in which case its step runs after everything below it. Leaving it live
+	 * would make a developer implement a check the argument does not need,
+	 * while leaving it out would drop the claim it states from the module.
+	 * Emitting it commented keeps the shape of the argument visible and lets a
+	 * developer turn the check on by deleting the prefixes.
 	 */
 	private void appendBlock(String block, JustificationElement element) {
-		if (!(element instanceof SubConclusion)) {
+		String note = switch (element) {
+			case Conclusion _ -> "The runner concludes this claim from what"
+					+ " supports it unless it is bound.";
+			case SubConclusion _ ->
+				"The runner passes this claim through unless it is bound.";
+			default -> null;
+		};
+		if (note == null) {
 			builder.append(block);
 			return;
 		}
-		builder.append(COMMENT).append("The runner passes this claim through"
-				+ " unless it is bound. Uncomment to check it.\n");
+		builder.append(COMMENT).append(note).append(UNCOMMENT);
 		block.lines().forEach(
 				line -> builder.append(COMMENT).append(line).append("\n"));
 	}
@@ -318,9 +455,9 @@ public class PythonExporter extends AbstractModelExporter {
 	 * emit it a second time on a different one.
 	 *
 	 * <p>
-	 * A consumer keys its binding registry by the link id, so an id appearing
-	 * on two functions leaves it with two candidate implementations and no way
-	 * to choose. Every id emitted here designates exactly one element by
+	 * The runner binds functions to elements one to one, so an id appearing on
+	 * two functions leaves it with two candidate implementations and no way to
+	 * choose. Every id emitted here designates exactly one element by
 	 * construction, because {@link AbstractModelExporter#minimalLink(String)}
 	 * only shortens to a form that resolves uniquely, and falls back to a full
 	 * id, which resolves exactly. Two functions can therefore collide only when
@@ -333,19 +470,38 @@ public class PythonExporter extends AbstractModelExporter {
 	private void claim(String link, String function) {
 		String existing = boundTo.putIfAbsent(link, function);
 		if (existing != null && !existing.equals(function)) {
-			throw new IllegalStateException("@jpipe_link(\"" + link
-					+ "\") would be emitted on both '" + existing + "' and '"
+			throw new IllegalStateException("The id \"" + link
+					+ "\" would be bound to both '" + existing + "' and '"
 					+ function + "' in model '" + currentModelName
 					+ "': one identifier cannot designate two elements."
 					+ " Check the model against the unique-identifiers rule.");
 		}
 	}
 
-	private static String jpipeDecoratorArgs(JustificationElement element) {
+	/**
+	 * The runner decorator for an element's kind. An abstract support is a
+	 * placeholder for the evidence a justification implementing the template
+	 * puts in its place, so it is written as one.
+	 */
+	private static String decoratorOf(JustificationElement element) {
 		return switch (element) {
-			case Conclusion _ -> "consume=[]";
-			case Evidence _,AbstractSupport _ -> "produce=[]";
-			case Strategy _,SubConclusion _ -> "produce=[], consume=[]";
+			case Evidence _,AbstractSupport _ -> "evidence";
+			case Strategy _ -> "strategy";
+			case SubConclusion _ -> "sub_conclusion";
+			case Conclusion _ -> "conclusion";
+		};
+	}
+
+	/**
+	 * The empty declarations a step of this kind takes, for the developer to
+	 * fill in: evidence observes artifacts rather than consuming values, and a
+	 * conclusion is terminal, producing nothing.
+	 */
+	private static String declarationsOf(JustificationElement element) {
+		return switch (element) {
+			case Evidence _,AbstractSupport _ -> "observes={}, produces=[]";
+			case Strategy _,SubConclusion _ -> "consumes=[], produces=[]";
+			case Conclusion _ -> "consumes=[]";
 		};
 	}
 
