@@ -18,6 +18,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+---
+
+## [3.0.0] — 2026-11-10
+
 ### Changed
 - **Breaking:** `jpipe process -f PYTHON` now writes step libraries for
   [jpipe-runner 4.0 or later](https://github.com/jpipe-mcscert/jpipe-runner/blob/main/docs/authoring.md),
@@ -438,7 +442,8 @@ server.
 ### Added
 - Initial commit: first version of the compiler.
 
-[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.5.0...v3.0.0
 [2.5.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.1...v2.4.0
 [2.3.1]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.0...v2.3.1
