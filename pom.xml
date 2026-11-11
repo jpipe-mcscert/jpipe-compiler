@@ -101,6 +101,16 @@
         <sonar.projectKey>jpipe-mcscert_jpipe-compiler</sonar.projectKey>
         <sonar.organization>jpipe-mcscert</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <!--
+          build.yml installs jpipe-runner, unpinned, for the runner contract
+          check (#165). The runner and the compiler co-evolve within the
+          project, so CI trusts the latest runner release in the range the
+          exporter targets rather than locking it: that is what catches a
+          runner change breaking the generated step libraries.
+        -->
+        <sonar.issue.ignore.multicriteria>runner</sonar.issue.ignore.multicriteria>
+        <sonar.issue.ignore.multicriteria.runner.ruleKey>githubactions:S8544</sonar.issue.ignore.multicriteria.runner.ruleKey>
+        <sonar.issue.ignore.multicriteria.runner.resourceKey>.github/workflows/build.yml</sonar.issue.ignore.multicriteria.runner.resourceKey>
     </properties>
 
     <dependencyManagement>

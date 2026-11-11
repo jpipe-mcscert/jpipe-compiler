@@ -41,13 +41,14 @@ class PythonExporterTest {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(py).contains("# The runner concludes this claim from what"
-				+ " supports it unless it is bound. Uncomment to check it.\n"
-				+ "# @conclusion(\"j:c\", consumes=[])\n"
-				+ "# def the_system_is_correct() -> Outcome:\n"
-				+ "#     \"\"\"[conclusion] The system is correct\"\"\"\n"
-				+ "#     raise NotImplementedError(\"j:c is not implemented"
-				+ " yet\")\n");
+		assertThat(py).contains(
+				"""
+						# The runner concludes this claim from what supports it unless it is bound. Uncomment to check it.
+						# @conclusion("j:c", consumes=[])
+						# def the_system_is_correct() -> Outcome:
+						#     \"""[conclusion] The system is correct\"""
+						#     raise NotImplementedError("j:c is not implemented yet")
+						""");
 	}
 
 	@Test
@@ -73,9 +74,11 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py).contains("# The runner passes this claim through unless"
-				+ " it is bound. Uncomment to check it.\n"
-				+ "# @sub_conclusion(\"j:sc\", consumes=[], produces=[])\n");
+		assertThat(py).contains(
+				"""
+						# The runner passes this claim through unless it is bound. Uncomment to check it.
+						# @sub_conclusion("j:sc", consumes=[], produces=[])
+						""");
 	}
 
 	@Test
@@ -283,8 +286,11 @@ class PythonExporterTest {
 				.export(ModelFixtures.simpleJustification());
 
 		assertThat(py)
-				.startsWith("from jpipe_runner import Fail, Outcome, Pass,"
-						+ " conclusion, evidence, strategy\n\n")
+				.startsWith(
+						"""
+								from jpipe_runner import Fail, Outcome, Pass, conclusion, evidence, strategy
+
+								""")
 				.doesNotContain("sub_conclusion", "jpipe_runner.framework",
 						"JpipeProduce", "typing");
 	}
