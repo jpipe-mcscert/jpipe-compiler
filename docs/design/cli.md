@@ -102,7 +102,7 @@ success, `1` if any ERROR or FATAL diagnostic was reported.
 | `JPEG` | Rendered JPEG image | Yes |
 | `SVG` | Rendered SVG image | Yes |
 | `JSON` | JSON model dump | No |
-| `PYTHON` | Python object model | No |
+| `PYTHON` | Step-library skeleton for [jpipe-runner](https://github.com/jpipe-mcscert/jpipe-runner) 4 | No |
 
 ### `diagnostic`
 

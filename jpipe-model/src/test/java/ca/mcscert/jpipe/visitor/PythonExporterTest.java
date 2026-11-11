@@ -20,8 +20,7 @@ class PythonExporterTest {
 
 	@ParameterizedTest
 	@ValueSource(strings = {"def testing(", "def test_results(",
-			"def testing(produce: JpipeProduce) -> bool:",
-			"def test_results(produce: JpipeProduce) -> bool:"})
+			"def testing() -> Outcome:", "def test_results() -> Outcome:"})
 	void export_simpleJustificationMethodSignaturesArePresent(String expected) {
 		assertThat(new PythonExporter()
 				.export(ModelFixtures.simpleJustification()))
@@ -29,23 +28,36 @@ class PythonExporterTest {
 	}
 
 	@Test
-	void export_jpipeLinkIsActive() {
+	void export_evidenceAndStrategyAreActive() {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(py)
-				.contains("\n@jpipe_link(\"j:s\")", "\n@jpipe_link(\"j:e1\")")
-				.doesNotContain("\n# @jpipe_link(\"j:s\")",
-						"\n# @jpipe_link(\"j:e1\")");
+		assertThat(py).contains("\n@strategy(\"j:s\"", "\n@evidence(\"j:e1\"")
+				.doesNotContain("# @strategy(", "# @evidence(");
 	}
 
 	@Test
-	void export_conclusion_isNotGeneratedAtAll() {
+	void export_conclusion_isCommentedOutWithWhyAndHowToEnableIt() {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(py).doesNotContain("the_system_is_correct", "j:c",
-				"[conclusion]");
+		assertThat(py).contains(
+				"""
+						# The runner concludes this claim from what supports it unless it is bound. Uncomment to check it.
+						# @conclusion("j:c", consumes=[])
+						# def the_system_is_correct() -> Outcome:
+						#     \"""[conclusion] The system is correct\"""
+						#     raise NotImplementedError("j:c is not implemented yet")
+						""");
+	}
+
+	@Test
+	void export_conclusion_comesLastInItsNamespace() {
+		String py = new PythonExporter()
+				.export(ModelFixtures.simpleJustification());
+
+		assertThat(py).containsSubsequence("def test_results(", "def testing(",
+				"def the_system_is_correct(");
 	}
 
 	@Test
@@ -62,9 +74,11 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py)
-				.contains("Uncomment to check it.\n# @jpipe_link(\"j:sc\")")
-				.doesNotContain("j:c");
+		assertThat(py).contains(
+				"""
+						# The runner passes this claim through unless it is bound. Uncomment to check it.
+						# @sub_conclusion("j:sc", consumes=[], produces=[])
+						""");
 	}
 
 	@Test
@@ -75,10 +89,8 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py)
-				.contains(
-						"@jpipe_link(\"a:s1\")\n@jpipe_link(\"b:s2\")\n@jpipe(")
-				.doesNotContain("@jpipe_link(\"j:s\")");
+		assertThat(py).contains("@strategy(\"a:s1\", \"b:s2\", consumes=[]")
+				.doesNotContain("\"j:s\"");
 	}
 
 	@Test
@@ -86,9 +98,8 @@ class PythonExporterTest {
 		String py = new PythonExporter()
 				.export(ModelFixtures.unifiedJustification());
 
-		assertThat(py)
-				.contains("@jpipe_link(\"a:s\")\n@jpipe_link(\"b:s\")\n@jpipe(")
-				.doesNotContain("@jpipe_link(\"s\")");
+		assertThat(py).contains("@strategy(\"a:s\", \"b:s\", consumes=[]")
+				.doesNotContain("\"s\"");
 	}
 
 	@Test
@@ -99,8 +110,8 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py).contains("@jpipe_link(\"a:s\")\n@jpipe(")
-				.doesNotContain("@jpipe_link(\"a:s\")\n@jpipe_link(\"a:s\")");
+		assertThat(py).contains("@strategy(\"a:s\", consumes=[]")
+				.doesNotContain("\"a:s\", \"a:s\"");
 	}
 
 	@Test
@@ -108,11 +119,8 @@ class PythonExporterTest {
 		String py = new PythonExporter()
 				.export(ModelFixtures.chainedAliasJustification());
 
-		assertThat(py)
-				.contains(
-						"@jpipe_link(\"a:s1\")\n@jpipe_link(\"b:s2\")\n@jpipe(")
-				.doesNotContain("@jpipe_link(\"j:s\")",
-						"@jpipe_link(\"outer:s\")");
+		assertThat(py).contains("@strategy(\"a:s1\", \"b:s2\", consumes=[]")
+				.doesNotContain("\"j:s\"", "\"outer:s\"");
 	}
 
 	@Test
@@ -120,9 +128,7 @@ class PythonExporterTest {
 		String py = new PythonExporter()
 				.export(ModelFixtures.siblingUnifiedIdJustification());
 
-		assertThat(py)
-				.contains(
-						"@jpipe_link(\"a:s1\")\n@jpipe_link(\"b:s2\")\n@jpipe(")
+		assertThat(py).contains("@strategy(\"a:s1\", \"b:s2\", consumes=[]")
 				.doesNotContain("unified_0");
 	}
 
@@ -134,7 +140,7 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py).contains("@jpipe_link(\"j:s\")\n@jpipe(");
+		assertThat(py).contains("@strategy(\"j:s\", consumes=[]");
 	}
 
 	@Test
@@ -142,17 +148,21 @@ class PythonExporterTest {
 		String py = new PythonExporter()
 				.export(ModelFixtures.ambiguousShortIdJustification());
 
-		assertThat(py).contains("@jpipe_link(\"a:e\")", "@jpipe_link(\"b:e\")")
-				.doesNotContain("@jpipe_link(\"e\")", "@jpipe_link(\"j:e\")");
+		assertThat(py).contains("(\"a:e\", ", "(\"b:e\", ")
+				.doesNotContain("\"e\"", "\"j:e\"");
 	}
 
 	@Test
-	void export_everyJpipeLinkInTheModuleIsDistinct() {
+	void export_everyBoundIdInTheModuleIsDistinct() {
 		String py = new PythonExporter()
 				.export(ModelFixtures.chainedAliasJustification());
 
-		List<String> links = Pattern.compile("@jpipe_link\\(\"(.+)\"\\)")
-				.matcher(py).results().map(m -> m.group(1)).toList();
+		List<String> links = Pattern
+				.compile("^(?:# )?@\\w+\\((.*)\\)$", Pattern.MULTILINE)
+				.matcher(py).results()
+				.flatMap(m -> Pattern.compile("\"([^\"]+)\"")
+						.matcher(m.group(1)).results())
+				.map(m -> m.group(1)).toList();
 
 		assertThat(links).isNotEmpty().doesNotHaveDuplicates();
 	}
@@ -161,14 +171,14 @@ class PythonExporterTest {
 	void export_identifierDesignatingTwoElements_isRefusedNotEmitted() {
 		Justification j = ModelFixtures.simpleJustification();
 		// "e1" is the evidence's own id and, through this alias, also names the
-		// strategy, so both functions would claim @jpipe_link("e1").
+		// strategy, so both functions would be bound by "j:e1".
 		j.recordAlias("e1", "s");
 		PythonExporter exporter = new PythonExporter();
 
 		assertThatThrownBy(() -> exporter.export(j))
 				.isInstanceOf(IllegalStateException.class)
-				.hasMessageContainingAll("@jpipe_link(\"j:e1\")", "testing",
-						"test_results", "unique-identifiers");
+				.hasMessageContainingAll("\"j:e1\"", "testing", "test_results",
+						"unique-identifiers");
 	}
 
 	@Test
@@ -222,7 +232,7 @@ class PythonExporterTest {
 		String py = new PythonExporter().export(ModelFixtures.simpleTemplate());
 
 		assertThat(py).containsSubsequence("def abstract_step(",
-				"def strategy(");
+				"def t_strategy(");
 	}
 
 	@Test
@@ -246,26 +256,71 @@ class PythonExporterTest {
 	}
 
 	@Test
-	void export_decoratorArgsReflectElementRole() {
+	void export_decoratorDeclarationsReflectElementKind() {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());
 
 		assertThat(py).contains(
-				"@jpipe_link(\"j:s\")\n@jpipe(produce=[], consume=[])",
-				"@jpipe_link(\"j:e1\")\n@jpipe(produce=[])");
+				"@strategy(\"j:s\", consumes=[], produces=[])\n"
+						+ "def testing() -> Outcome:",
+				"@evidence(\"j:e1\", observes={}, produces=[])\n"
+						+ "def test_results() -> Outcome:");
 	}
 
 	@Test
-	void export_preambleContainsImportsAndTypeAlias() {
+	void export_everyStepRaisesUntilItIsWritten() {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(py).contains("from typing import Any, Callable",
-				"from jpipe_runner.framework.decorators"
-						+ ".jpipe_decorator import jpipe",
-				"from jpipe_runner.framework.decorators"
-						+ ".link_decorator import jpipe_link",
-				"JpipeProduce = Callable[[str, Any], None]");
+		assertThat(py).contains(
+				"raise NotImplementedError(\"j:s is not implemented"
+						+ " yet\")",
+				"raise NotImplementedError(\"j:e1 is not implemented"
+						+ " yet\")")
+				.doesNotContain("    pass\n");
+	}
+
+	@Test
+	void export_preambleImportsFromThePackageRootTheDecoratorsUsed() {
+		String py = new PythonExporter()
+				.export(ModelFixtures.simpleJustification());
+
+		assertThat(py)
+				.startsWith(
+						"""
+								from jpipe_runner import Fail, Outcome, Pass, conclusion, evidence, strategy
+
+								""")
+				.doesNotContain("sub_conclusion", "jpipe_runner.framework",
+						"JpipeProduce", "typing");
+	}
+
+	@Test
+	void export_preambleImportsTheDecoratorsOfCommentedOutSteps() {
+		Justification j = new Justification("j");
+		Conclusion c = new Conclusion("c", "Overall");
+		Strategy s = new Strategy("s", "By parts");
+		SubConclusion sc = new SubConclusion("sc", "Part holds");
+		j.setConclusion(c);
+		j.addElement(s);
+		j.addElement(sc);
+		sc.addSupport(s);
+		c.addSupport(s);
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py)
+				.startsWith("from jpipe_runner import Fail, Outcome, Pass,"
+						+ " conclusion, strategy, sub_conclusion\n");
+	}
+
+	@Test
+	void export_abstractSupportIsWrittenAsEvidence() {
+		String py = new PythonExporter().export(ModelFixtures.simpleTemplate());
+
+		assertThat(py).containsPattern(
+				"@evidence\\(\"[^\"]+\", observes=\\{}, produces=\\[]\\)\n"
+						+ "def abstract_step\\(\\) -> Outcome:");
 	}
 
 	@Test
@@ -274,7 +329,10 @@ class PythonExporterTest {
 				ModelFixtures.simpleJustification(), "examples/simple.jd");
 
 		assertThat(py).contains("# Generated by jPipe",
-				"# Source : examples/simple.jd", "# Date   :");
+				"# Source : examples/simple.jd", "# Date   :",
+				"# Step library for jpipe-runner 4: "
+						+ PythonExporter.AUTHORING_GUIDE + "\n\n"
+						+ "from jpipe_runner import ");
 	}
 
 	@Test
@@ -302,7 +360,7 @@ class PythonExporterTest {
 		assertThat(py)
 				.contains("raise NotImplementedError(\"t:abs is abstract"
 						+ " and must be overridden before execution\")")
-				.doesNotContain("def abstract_step():\n    pass");
+				.doesNotContain("t:abs is not implemented yet");
 	}
 
 	@Test
@@ -322,7 +380,96 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py).contains("def accuracy_0_85(produce: JpipeProduce)",
+		assertThat(py).contains("def accuracy_0_85() -> Outcome:",
 				"\"\"\"[evidence] Accuracy <= 0.85\"\"\"");
+	}
+
+	@Test
+	void export_sameLabelInTwoNamespaces_isPrefixedWithEachNamespace() {
+		Justification j = new Justification("j");
+		Conclusion c = new Conclusion("c", "Overall");
+		Strategy a = new Strategy("a:s", "A strategy");
+		Strategy b = new Strategy("b:s", "A strategy");
+		Evidence e = new Evidence("e", "Proof");
+		j.setConclusion(c);
+		j.addElement(a);
+		j.addElement(b);
+		j.addElement(e);
+		c.addSupport(a);
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py).contains("def a_a_strategy(", "def b_a_strategy(",
+				"def proof(").doesNotContain("def a_strategy(");
+	}
+
+	@Test
+	void export_sameLabelInOneNamespace_isPrefixedWithEachBoundId() {
+		Justification j = new Justification("j");
+		Conclusion c = new Conclusion("c", "Overall");
+		Strategy s1 = new Strategy("s1", "A strategy");
+		Strategy s2 = new Strategy("s2", "A strategy");
+		j.setConclusion(c);
+		j.addElement(s1);
+		j.addElement(s2);
+		c.addSupport(s1);
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py).contains("def j_s1_a_strategy(", "def j_s2_a_strategy(")
+				.doesNotContain("def a_strategy(", "def j_a_strategy(");
+	}
+
+	@Test
+	void export_namespacedNameTakenByAnotherFunction_fallsBackToTheBoundId() {
+		Justification j = new Justification("j");
+		Conclusion c = new Conclusion("c", "Overall");
+		Strategy a = new Strategy("a:s", "Check");
+		Strategy b = new Strategy("b:s", "Check");
+		Evidence taken = new Evidence("e", "A check");
+		j.setConclusion(c);
+		j.addElement(a);
+		j.addElement(b);
+		j.addElement(taken);
+		a.addSupport(taken);
+		c.addSupport(a);
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py).contains("def a_check(", "def a_s_check(",
+				"def b_check(");
+	}
+
+	@Test
+	void export_sameLabelOnACommentedOutStep_isPrefixedToo() {
+		Justification j = new Justification("j");
+		Conclusion c = new Conclusion("c", "Holds");
+		Strategy s = new Strategy("x:s", "Holds");
+		j.setConclusion(c);
+		j.addElement(s);
+		c.addSupport(s);
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py).contains("\ndef x_holds(", "# def j_holds(");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"Evidence", "Strategy", "Sub conclusion",
+			"Conclusion", "Pass", "If", "Import"})
+	void export_labelEscapingToAReservedName_isPrefixedWithItsNamespace(
+			String label) {
+		Justification j = new Justification("j");
+		Conclusion c = new Conclusion("c", "Overall");
+		Strategy s = new Strategy("s", label);
+		j.setConclusion(c);
+		j.addElement(s);
+		c.addSupport(s);
+		String reserved = label.toLowerCase().replace(' ', '_');
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py).contains("def j_" + reserved + "() -> Outcome:")
+				.doesNotContain("def " + reserved + "(");
 	}
 }

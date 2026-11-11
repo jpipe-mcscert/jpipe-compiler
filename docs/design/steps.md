@@ -264,7 +264,11 @@ Useful for normalisation or round-trip testing.
 **Type:** `Transformation<JustificationModel<?>, String>`  
 **Package:** `compiler.steps.transformations`
 
-Serializes a model as a Python object model using `PythonExporter`.
+Serializes a model as a step-library skeleton for jpipe-runner 4 using
+`PythonExporter`: one function per element, under the decorator its kind
+takes, raising `NotImplementedError` until written. The conclusion and
+sub-conclusions are emitted commented out, since the runner concludes them from
+what supports them unless they are bound.
 
 #### `RenderWithDot`
 
