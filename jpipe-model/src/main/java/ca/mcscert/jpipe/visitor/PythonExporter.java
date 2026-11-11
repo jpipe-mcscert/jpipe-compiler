@@ -11,8 +11,8 @@ import ca.mcscert.jpipe.util.LabelEscaper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,10 +99,12 @@ public class PythonExporter extends AbstractModelExporter {
 			"raise", "return", "try", "while", "with", "yield");
 
 	/**
-	 * Element id &rarr; the name of its function, for the module being written;
-	 * see {@link #nameFunctions(List)}.
+	 * Element &rarr; the name of its function, for the module being written;
+	 * see {@link #nameFunctions(List)}. Keyed by the element itself, not its
+	 * id: two elements sharing an id must still get two functions, so that
+	 * {@link #claim(String, String)} sees the id bound twice and refuses it.
 	 */
-	private final Map<String, String> functionNames = new HashMap<>();
+	private final Map<JustificationElement, String> functionNames = new IdentityHashMap<>();
 
 	/**
 	 * Serialise {@code model} to Python source text without a file header.
@@ -274,7 +276,7 @@ public class PythonExporter extends AbstractModelExporter {
 			for (int n = 2; !taken.add(name); n++) {
 				name = base + "_" + n;
 			}
-			functionNames.put(element.id(), name);
+			functionNames.put(element, name);
 		}
 	}
 
@@ -292,7 +294,7 @@ public class PythonExporter extends AbstractModelExporter {
 		List<JustificationElement> clashing = new ArrayList<>();
 		byName.forEach((name, named) -> {
 			if (named.size() == 1 && taken.add(name)) {
-				functionNames.put(named.getFirst().id(), name);
+				functionNames.put(named.getFirst(), name);
 			} else {
 				clashing.addAll(named);
 			}
@@ -361,7 +363,7 @@ public class PythonExporter extends AbstractModelExporter {
 
 	private void appendMethod(JustificationElement element) {
 		List<String> links = linksFor(element);
-		String name = functionNames.get(element.id());
+		String name = functionNames.get(element);
 		String decorator = decoratorOf(element);
 		decorators.add(decorator);
 
@@ -461,11 +463,12 @@ public class PythonExporter extends AbstractModelExporter {
 	 * construction, because {@link AbstractModelExporter#minimalLink(String)}
 	 * only shortens to a form that resolves uniquely, and falls back to a full
 	 * id, which resolves exactly. Two functions can therefore collide only when
-	 * a single identifier already designated two elements. That is the
-	 * {@code unique-identifiers} consistency rule, which fails compilation
-	 * before any export runs; this guard catches the same fault when the
-	 * exporter is driven directly, rather than writing a module that cannot
-	 * load.
+	 * a single identifier already designated two elements: two elements sharing
+	 * an id, or an alias landing on another element's id. The
+	 * {@code no-duplicate-ids} and {@code unique-identifiers} consistency rules
+	 * report that as an error, but the export step still runs after them, as it
+	 * does when the exporter is driven directly. This guard is what keeps it
+	 * from writing a module in which one function silently replaces another.
 	 */
 	private void claim(String link, String function) {
 		String existing = boundTo.putIfAbsent(link, function);
@@ -474,7 +477,8 @@ public class PythonExporter extends AbstractModelExporter {
 					+ "\" would be bound to both '" + existing + "' and '"
 					+ function + "' in model '" + currentModelName
 					+ "': one identifier cannot designate two elements."
-					+ " Check the model against the unique-identifiers rule.");
+					+ " Check the model against the no-duplicate-ids and"
+					+ " unique-identifiers rules.");
 		}
 	}
 

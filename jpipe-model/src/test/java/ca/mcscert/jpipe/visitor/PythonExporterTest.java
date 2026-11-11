@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class PythonExporterTest {
@@ -471,5 +472,20 @@ class PythonExporterTest {
 
 		assertThat(py).contains("def j_" + reserved + "() -> Outcome:")
 				.doesNotContain("def " + reserved + "(");
+	}
+
+	@ParameterizedTest
+	@CsvSource({"First proof, Second proof", "Proof, Proof"})
+	void export_twoElementsSharingAnId_isRefusedNotMergedIntoOneFunction(
+			String firstLabel, String secondLabel) {
+		Justification j = ModelFixtures.simpleJustification();
+		// Consistency reports the duplicate id, but does not stop the export.
+		j.addElement(new Evidence("dup", firstLabel));
+		j.addElement(new Evidence("dup", secondLabel));
+		PythonExporter exporter = new PythonExporter();
+
+		assertThatThrownBy(() -> exporter.export(j))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContainingAll("\"j:dup\"", "no-duplicate-ids");
 	}
 }
