@@ -163,7 +163,7 @@ java -jar jpipe-cli/target/jpipe-cli-*.jar process -i my.jd -d MyModel -f dot
 | `JPEG` | Rendered JPEG image | Yes |
 | `SVG` | Rendered SVG image | Yes |
 | `JSON` | JSON model dump | No |
-| `PYTHON` | Python object model | No |
+| `PYTHON` | Step-library skeleton for [jpipe-runner](https://github.com/jpipe-mcscert/jpipe-runner) 4 | No |
 
 Install [Graphviz](https://graphviz.org/) and run `jpipe doctor` to verify that
 the `dot` binary is on your `PATH` before using image formats.
