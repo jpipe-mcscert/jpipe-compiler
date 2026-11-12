@@ -76,7 +76,7 @@
         <antlr4.version>4.13.2</antlr4.version>
         <picocli.version>4.7.7</picocli.version>
         <json.version>20260814</json.version>
-        <json-schema-validator.version>1.5.9</json-schema-validator.version>
+        <json-schema-validator.version>3.0.9</json-schema-validator.version>
         <log4j.version>2.26.1</log4j.version>
         <junit.version>5.14.4</junit.version>
         <junit-platform.version>1.14.4</junit-platform.version>
