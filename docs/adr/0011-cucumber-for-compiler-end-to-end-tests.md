@@ -84,6 +84,6 @@ convention manually.
   allowed to call `CompilerFactory` from test code. Scenarios that need
   assertions beyond the existing steps must extend `CompilationSteps` with new
   `@Then` methods rather than adding ad-hoc JUnit tests.
-- Unit tests (JUnit 5 + AssertJ) remain the right tool for individual pipeline
+- Unit tests (JUnit Jupiter + AssertJ) remain the right tool for individual pipeline
   steps and model classes; Cucumber is reserved for scenarios that exercise the
   full `parsingChain + unitBuilder` path with a real `.jd` file.
