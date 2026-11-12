@@ -1,0 +1,96 @@
+# Dependency freshness (ADR-0007, after jpipe-vscode ADR-VSC-0013 and jpipe-runner ADR-0026):
+# weekly, grouped, against `dev` (the repository's default branch, ADR-0024).
+#
+# Two rules shape this file:
+#
+#   1. GROUPS CARRY MINOR AND PATCH ONLY, unless their members must move together. A grouped
+#      major takes the whole pull request down with it. A major arrives as its own pull
+#      request, which is where its migration happens (ADR-0007).
+#
+#   2. A MAJOR IS HELD ENTIRELY only where it is more than a bump, and the reason is written
+#      next to the hold.
+#
+# Pre-releases need no rule here. While the current version is stable, Dependabot drops every
+# version whose Maven qualifier is alpha/aN, beta/bN, milestone/mN, rc, cr or snapshot, and every
+# action tag that has a qualifier or is flagged a pre-release on GitHub. Checked on 2026-11-11
+# against the full history of each artifact declared here: all 170 qualified versions are
+# caught. A qualifier outside that list (`-preview`, `-ea`, …) would pass as a release, so a new
+# dependency that uses one needs an `ignore` entry.
+#
+# A dependency joins the FIRST group it matches, so the lockstep groups come first.
+
+version: 2
+
+updates:
+
+  # ---------------------------------------------------------------- maven
+  # Every version lives in a <properties> entry of the root pom; Dependabot edits the property.
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+
+    groups:
+      # `antlr4.version` drives both the runtime and the code-generating plugin: a mismatch is
+      # a parse error at runtime, so they are one dependency in two artifacts.
+      antlr:
+        applies-to: version-updates
+        patterns:
+          - "org.antlr:*"
+      # Jupiter and the Platform (`junit-platform-suite`, used by Cucumber) are released in
+      # lockstep, and since JUnit 6 under one version number. They move in one pull request,
+      # majors included.
+      junit:
+        applies-to: version-updates
+        update-types: [major, minor, patch]
+        patterns:
+          - "org.junit.jupiter:*"
+          - "org.junit.platform:*"
+      # org.json is versioned by date (20260719), so every release is a semver major: holding
+      # majors would hold it forever, and grouping it with minors would never include it.
+      json:
+        applies-to: version-updates
+        update-types: [major, minor, patch]
+        patterns:
+          - "org.json:json"
+      # Build plugins and their tools: what breaks here is the build, not the compiler.
+      build-plugins:
+        applies-to: version-updates
+        update-types: [minor, patch]
+        patterns:
+          - "*-maven-plugin"
+          - "org.apache.logging.log4j:log4j-transform-maven-shade-plugin-extensions"
+          - "com.puppycrawl.tools:checkstyle"
+      # Everything else, in one weekly pull request, so a red build names one week's changes.
+      dependencies:
+        applies-to: version-updates
+        update-types: [minor, patch]
+        patterns:
+          - "*"
+
+    ignore:
+      # ANTLR's major changes the generated parser and the grammar's target runtime: it is a
+      # migration of jpipe-lang, not a version bump.
+      - dependency-name: "org.antlr:*"
+        update-types: ["version-update:semver-major"]
+      # Log4j 3 changes the configuration format and the plugin model that the shade
+      # transformer in jpipe-cli rebuilds; only the fat-JAR smoke tests would notice.
+      - dependency-name: "org.apache.logging.log4j:log4j-api"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.apache.logging.log4j:log4j-core"
+        update-types: ["version-update:semver-major"]
+
+  # -------------------------------------------------------- github-actions
+  # Pinned by major tag, so what arrives here is a tag move such as `@v5` → `@v6`.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns:
+          - "*"
