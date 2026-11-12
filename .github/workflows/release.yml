@@ -17,7 +17,7 @@ jobs:
       sha256_zip: ${{ steps.sha256_zip.outputs.sha256 }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Verify tag is on main
         run: |
@@ -28,13 +28,13 @@ jobs:
           fi
 
       - name: Set up JDK 25
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: 25
           distribution: zulu
 
       - name: Cache Maven packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -124,7 +124,7 @@ jobs:
 
     steps:
       - name: Checkout Homebrew tap
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: jpipe-mcscert/homebrew-mcscert
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
@@ -164,7 +164,7 @@ jobs:
 
     steps:
       - name: Checkout Scoop bucket
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: jpipe-mcscert/scoop-mcscert
           token: ${{ secrets.SCOOP_BUCKET_TOKEN }}
@@ -203,7 +203,7 @@ jobs:
         distro: [noble, resolute, stonking]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Debian packaging tools
         run: sudo apt-get update -y && sudo apt-get install -y devscripts debhelper dput gnupg

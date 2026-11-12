@@ -18,6 +18,13 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- Updated build and test dependencies to their current majors: JUnit 6
+  (→ 6.1.3, Jupiter and Platform), Cucumber 8 (→ 8.0.4), Checkstyle 14
+  (→ 14.4.0) and `json-schema-validator` 3 (→ 3.0.9). This lifts the JUnit 6
+  deferral noted in 2.1.0: Cucumber 8 targets JUnit Platform 6. Every CI
+  workflow now runs the latest major of each GitHub Action.
+
 ---
 
 ## [3.0.0] — 2026-11-10

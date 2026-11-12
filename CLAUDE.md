@@ -53,7 +53,7 @@ defining justifications that support software maintenance and CI/CD activities.
 - **Language:** Java 25
 - **Build system:** Maven (multi-module)
 - **Key libraries:** ANTLR4 (grammar/parsing), PicoCLI (CLI), Cucumber (E2E
-  tests), JUnit 5 + AssertJ (unit tests), Log4j 2 (logging)
+  tests), JUnit 6 + AssertJ (unit tests), Log4j 2 (logging)
 - **Core patterns:** Typed pipeline DSL, Command pattern (model construction),
   Visitor pattern (model traversal), sealed type hierarchies
 
@@ -290,7 +290,7 @@ should pass the plain id when possible.
 
 ## Code Quality Conventions
 
-### Test code (AssertJ / JUnit 5)
+### Test code (AssertJ / JUnit 6)
 
 - **Chain assertions**: use one `assertThat(x)` chain with multiple matchers — never
   split into separate `assertThat(x).contains(a)` + `assertThat(x).contains(b)` (S5853)
