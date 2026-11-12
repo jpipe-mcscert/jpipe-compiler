@@ -91,7 +91,7 @@
         <log4j-transform.version>0.2.0</log4j-transform.version>
         <spotless-plugin.version>3.11.0</spotless-plugin.version>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
-        <checkstyle.version>13.10.0</checkstyle.version>
+        <checkstyle.version>14.4.0</checkstyle.version>
         <jacoco-plugin.version>0.8.16</jacoco-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
         <sonar-plugin.version>5.8.0.7211</sonar-plugin.version>
