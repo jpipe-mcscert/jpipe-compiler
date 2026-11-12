@@ -5,7 +5,8 @@
 #
 #   1. GROUPS CARRY MINOR AND PATCH ONLY, unless their members must move together. A grouped
 #      major takes the whole pull request down with it. A major arrives as its own pull
-#      request, which is where its migration happens (ADR-0007).
+#      request, which is where its migration happens (ADR-0007). GitHub Actions are the one
+#      other exception (see their entry below).
 #
 #   2. A MAJOR IS HELD ENTIRELY only where it is more than a bump, and the reason is written
 #      next to the hold.
@@ -60,6 +61,7 @@ updates:
         applies-to: version-updates
         update-types: [minor, patch]
         patterns:
+          - "org.apache.maven.plugins:*"
           - "*-maven-plugin"
           - "org.apache.logging.log4j:log4j-transform-maven-shade-plugin-extensions"
           - "com.puppycrawl.tools:checkstyle"
@@ -83,7 +85,10 @@ updates:
         update-types: ["version-update:semver-major"]
 
   # -------------------------------------------------------- github-actions
-  # Pinned by major tag, so what arrives here is a tag move such as `@v5` → `@v6`.
+  # Pinned by major tag, so every update here is a major: a tag move such as `@v5` → `@v6`.
+  # The group therefore takes majors, the exception to rule 1. Restricting it to minor and
+  # patch would leave it empty and ungroup the actions. Their majors are mostly runtime moves
+  # (Node, ESM); one pull request a week is where to read them.
   - package-ecosystem: github-actions
     directory: /
     schedule:

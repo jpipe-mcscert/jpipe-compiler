@@ -26,7 +26,8 @@ The project targets the **current Java LTS release**. When a new LTS is publishe
 Dependabot (`.github/dependabot.yml`) proposes updates **weekly**, as pull requests into `dev`, the repository's default branch ([ADR-0024](0024-git-branching-model.md)). It covers two ecosystems: Maven, through the version properties of the root `pom.xml`, and GitHub Actions.
 
 - **Only stable releases are proposed.** Alpha, beta, milestone, release-candidate and snapshot versions are never offered while the project is on a stable version: Dependabot recognises these Maven qualifiers itself. A dependency that marks its pre-releases some other way (`-preview`, `-ea`) is given an explicit `ignore` entry.
-- **Minor and patch updates arrive grouped**: one pull request for libraries, one for build plugins, one for actions, so a red build names one week's changes. They are merged as they arrive, once CI and the quality gate are green — not deferred to the next release.
+- **Minor and patch updates arrive grouped**: one pull request for libraries, one for build plugins, so a red build names one week's changes. They are merged as they arrive, once CI and the quality gate are green — not deferred to the next release.
+- **GitHub Actions arrive in one pull request, majors included.** The workflows pin each action by major tag, so every update is a major, and they are mostly runtime moves.
 - **Dependencies that must match move in one group, majors included**: the ANTLR runtime and its plugin (one `antlr4.version`), and JUnit Jupiter with the JUnit Platform.
 - **A date-versioned dependency** (`org.json`, versioned `YYYYMMDD`) has its own group that accepts every update, since each of its releases is a semver major.
 - **A major arrives as its own pull request** and is treated as a minor feature, not a routine update: the migration happens on that branch, and an ADR is updated when the change affects conventions.
