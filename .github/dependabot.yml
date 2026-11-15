@@ -19,6 +19,11 @@
 # dependency that uses one needs an `ignore` entry.
 #
 # A dependency joins the FIRST group it matches, so the lockstep groups come first.
+#
+# Both entries set `labels:`. Left unset, Dependabot adds a per-ecosystem label (`java`,
+# `github_actions`) next to `dependencies` whenever a file declares several ecosystems, and
+# creates it in the repository. Setting `labels:` replaces the defaults, so `dependencies` is
+# listed too, and `area: build` files the pull requests under the repository's label scheme.
 
 version: 2
 
@@ -32,6 +37,7 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    labels: ["dependencies", "area: build"]
 
     groups:
       # `antlr4.version` drives both the runtime and the code-generating plugin: a mismatch is
@@ -95,6 +101,7 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 3
+    labels: ["dependencies", "area: build"]
     groups:
       actions:
         patterns:
