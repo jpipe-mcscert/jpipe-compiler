@@ -147,6 +147,30 @@ class ShadedJarIT {
 				.doesNotContain("\tat ");
 	}
 
+	@Test
+	void anOutputThatIsTheInputIsRefused(@TempDir Path dir) throws IOException {
+		// An in-place reformat used to erase the source (#174).
+		Path source = Files.copy(Path.of(MINIMAL), dir.resolve("same.jd"));
+
+		Execution run = jpipe("--headless", "process", "-f", "jpipe", "-i",
+				source.toString(), "-m", "minimal", "-o", source.toString());
+
+		assertThat(run.exitCode()).isEqualTo(2);
+		assertThat(source).hasSameTextualContentAs(Path.of(MINIMAL));
+	}
+
+	@Test
+	void aFailedRunKeepsThePreviousOutput(@TempDir Path dir)
+			throws IOException {
+		Path previous = Files.writeString(dir.resolve("out.dot"), "precious");
+
+		Execution run = jpipe("--headless", "process", "-i", MINIMAL, "-m",
+				"nope", "-f", "dot", "-o", previous.toString());
+
+		assertThat(run.exitCode()).isEqualTo(Main.EXIT_JPIPE_ERROR);
+		assertThat(previous).hasContent("precious");
+	}
+
 	// ── packaging-sensitive plumbing ─────────────────────────────────────────
 
 	@Test

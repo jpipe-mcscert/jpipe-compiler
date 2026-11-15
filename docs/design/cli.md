@@ -30,6 +30,14 @@ package "cli" {
     + call() : Integer
   }
 
+  class OutputTarget <<Closeable>> {
+    ~ {static} open(String) : OutputTarget
+    ~ {static} sameFile(String, String) : boolean
+    ~ stream() : OutputStream
+    ~ commit() : void
+    + close() : void
+  }
+
   class ProcessCommand <<@Command name="process">> {
     - format : Format
     - model : String
@@ -69,6 +77,7 @@ package "cli" {
   }
 
   InputOutputCommand ..> Logo : calls (unless headless)
+  InputOutputCommand ..> OutputTarget : writes through
   Main ..> UnexpectedErrorHandler : installs
 }
 
@@ -236,11 +245,22 @@ Abstract base for `ProcessCommand` and `DiagnosticCommand`. Handles:
 
 - **Logo display** — calls `Logo.print()`, which writes to standard error,
   unless `--headless` is set.
-- **Output stream resolution** — opens a `FileOutputStream` when `--output` is
-  a file path; falls back to `System.out` for stdout.
+- **Output stream resolution** — through an `OutputTarget`. Standard output is
+  used as is. A file given with `-o` is never written in place: the output goes
+  to a hidden temporary file in the same directory, moved over the target only
+  once the command has returned, so a failed run leaves the previous file as it
+  was. The temporary file takes the permissions of the file it replaces, and a
+  symbolic link is written through rather than replaced. A target that is a
+  directory, is read-only or sits in a missing directory is refused before
+  compiling, as `error: cannot write '<path>': <reason>`.
+- **Same input and output** — an `-o` that names the input file is refused with
+  exit code `2` before anything runs, since the export (or the report) would
+  replace the source.
 - **Error reporting** — catches `CompilationException` and
   `UnsupportedOperationException` and prints a clean `error: …` message to
-  stderr.
+  stderr, with exit code `1`. An output that cannot be written, and a source
+  that cannot be read under `process`, print `error: …` naming the file, with
+  exit code `42`.
 
 Subclasses implement `doCall(OutputStream)` and receive the resolved output
 stream.
@@ -293,5 +313,5 @@ compilation error.
 |------|----------|---------|
 | `0` | `EXIT_OK` | Success |
 | `1` | `EXIT_JPIPE_ERROR` | Compilation error or missing tool |
-| `2` | `CommandLine.ExitCode.USAGE` | Invalid command line: unknown option, invalid value (picocli) |
-| `42` | `EXIT_SYSTEM_ERROR` | Unexpected exception |
+| `2` | `CommandLine.ExitCode.USAGE` | Invalid command line: unknown option, invalid value (picocli), or an output that is the input file |
+| `42` | `EXIT_SYSTEM_ERROR` | System error: a source that cannot be read (under `process`), an output that cannot be written, or an unexpected exception |

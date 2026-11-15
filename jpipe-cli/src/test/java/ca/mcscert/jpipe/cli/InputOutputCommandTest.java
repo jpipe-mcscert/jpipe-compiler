@@ -4,11 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.function.IntSupplier;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import picocli.CommandLine;
 
 class InputOutputCommandTest {
 
@@ -142,6 +147,63 @@ class InputOutputCommandTest {
 		assertThat(run.exitCode()).isEqualTo(Main.EXIT_OK);
 		assertThat(new JSONObject(run.out()).getString("name"))
 				.isEqualTo("minimal");
+	}
+
+	@Test
+	void an_output_that_is_the_input_is_refused_and_the_source_kept(
+			@TempDir Path dir) throws IOException {
+		// The output used to be truncated before the input was read, so the
+		// source was erased and the error blamed its syntax (#174).
+		Path source = dir.resolve("same.jd");
+		Files.copy(Path.of(resourcePath("test_minimal.jd")), source);
+		String before = Files.readString(source);
+
+		Captured run = capture(() -> Main.commandLine().execute("--headless",
+				"process", "-f", "jpipe", "-i", source.toString(), "-m",
+				"minimal", "-o", source.toString()));
+
+		assertThat(run.exitCode()).isEqualTo(CommandLine.ExitCode.USAGE);
+		assertThat(run.err()).contains("is also the input");
+		assertThat(source).hasContent(before);
+	}
+
+	@Test
+	void a_failed_run_leaves_the_previous_output_as_it_was(@TempDir Path dir)
+			throws IOException {
+		Path previous = Files.writeString(dir.resolve("out.dot"), "precious");
+
+		int exitCode = Main.commandLine().execute("--headless", "process", "-i",
+				resourcePath("test_minimal.jd"), "-m", "nope", "-f", "dot",
+				"-o", previous.toString());
+
+		assertThat(exitCode).isEqualTo(Main.EXIT_JPIPE_ERROR);
+		assertThat(previous).hasContent("precious");
+	}
+
+	@Test
+	void a_successful_run_writes_the_output_file(@TempDir Path dir) {
+		Path out = dir.resolve("out.json");
+
+		int exitCode = Main.commandLine().execute("--headless", "process", "-i",
+				resourcePath("test_minimal.jd"), "-m", "minimal", "-f", "json",
+				"-o", out.toString());
+
+		assertThat(exitCode).isEqualTo(Main.EXIT_OK);
+		assertThat(out).content().startsWith("{");
+	}
+
+	@Test
+	void an_output_that_cannot_be_written_is_named_in_the_error(
+			@TempDir Path dir) {
+		// It used to read `unexpected error: … (Is a directory)` (#186).
+		Captured run = capture(() -> Main.commandLine().execute("--headless",
+				"process", "-i", resourcePath("test_minimal.jd"), "-m",
+				"minimal", "-o", dir.toString()));
+
+		assertThat(run.exitCode()).isEqualTo(Main.EXIT_SYSTEM_ERROR);
+		assertThat(run.err())
+				.contains("error: cannot write '" + dir + "': is a directory")
+				.doesNotContain("unexpected");
 	}
 
 	/** What one invocation wrote to each stream, and how it exited. */
