@@ -84,8 +84,11 @@ already taken, changelog closed out, `mvn verify` green. It also reports whether
 `HEAD` is on `main` yet — expect a warning here, since the merge has not
 happened.
 
-Open a pull request from `dev` to `main` titled `Release vX.Y.Z`, and merge it
-once the checks are green. This is the one merge in the process that must go
+Open a pull request from `dev` to `main` titled `Release vX.Y.Z`, take it
+through the organization's
+[pull request steps](https://github.com/jpipe-mcscert/.github/blob/main/CONTRIBUTING.md#pull-requests)
+(draft, quality gate, one Copilot review, every comment answered), and merge it
+once it is ready. This is the one merge in the process that must go
 through a pull request: `main` is release-only, and every commit on it is a
 published version.
 
