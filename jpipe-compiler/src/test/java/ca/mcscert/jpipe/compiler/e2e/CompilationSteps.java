@@ -393,13 +393,14 @@ public class CompilationSteps {
 	}
 
 	/**
-	 * A step decorator line, behind {@code prefix}, that takes
-	 * {@code qualifiedId} among its positional ids.
+	 * A step decorator, behind {@code prefix}, that takes {@code qualifiedId}
+	 * among its positional ids, whether it is written on one line or wrapped
+	 * over several.
 	 */
 	private static Pattern bindingOf(String prefix, String qualifiedId) {
-		return Pattern.compile(
-				"(?m)^" + Pattern.quote(prefix) + "@\\w+\\((?:\"[^\"]*\", )*"
-						+ Pattern.quote("\"" + qualifiedId + "\""));
+		return Pattern.compile("(?m)^" + Pattern.quote(prefix)
+				+ "@\\w+\\((?:[\\s#]*\"[^\"]*\",)*[\\s#]*"
+				+ Pattern.quote("\"" + qualifiedId + "\""));
 	}
 
 	@Then("the compilation has validation errors")

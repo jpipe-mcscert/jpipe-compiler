@@ -24,6 +24,18 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   (→ 14.4.0) and `json-schema-validator` 3 (→ 3.0.9). This lifts the JUnit 6
   deferral noted in 2.1.0: Cucumber 8 targets JUnit Platform 6. Every CI
   workflow now runs the latest major of each GitHub Action.
+- Python export now imports `Path` from `pathlib` in every module that holds an
+  evidence, since jpipe-runner injects each artifact an evidence `observes` as a
+  `Path` parameter. Annotating those parameters no longer needs an import added
+  by hand.
+- Python export now hard-wraps the boilerplate of the generated module at 80
+  columns, commented-out steps included: `jpipe_runner` is imported on two
+  lines, one for the decorators and one for the outcomes; a long decorator,
+  docstring or `NotImplementedError` message is broken over several lines; and
+  the header and the note above a commented-out step each take two. What comes
+  from the model has nowhere to break and can still run past the limit: a
+  function name, which follows its label, an id, or the source path in the
+  header.
 
 ---
 
