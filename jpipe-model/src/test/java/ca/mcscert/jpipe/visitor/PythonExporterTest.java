@@ -287,13 +287,14 @@ class PythonExporterTest {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(py)
-				.startsWith("from pathlib import Path\n\n"
-						+ "from jpipe_runner import conclusion, evidence,"
-						+ " strategy\n"
-						+ "from jpipe_runner import Fail, Outcome, Pass\n\n")
-				.doesNotContain("sub_conclusion", "jpipe_runner.framework",
-						"JpipeProduce", "typing");
+		assertThat(py).startsWith("""
+				from pathlib import Path
+
+				from jpipe_runner import conclusion, evidence, strategy
+				from jpipe_runner import Fail, Outcome, Pass
+
+				""").doesNotContain("sub_conclusion", "jpipe_runner.framework",
+				"JpipeProduce", "typing");
 	}
 
 	@Test
@@ -317,11 +318,11 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py)
-				.startsWith("from jpipe_runner import conclusion, strategy,"
-						+ " sub_conclusion\n"
-						+ "from jpipe_runner import Fail, Outcome, Pass\n\n")
-				.doesNotContain("pathlib");
+		assertThat(py).startsWith("""
+				from jpipe_runner import conclusion, strategy, sub_conclusion
+				from jpipe_runner import Fail, Outcome, Pass
+
+				""").doesNotContain("pathlib");
 	}
 
 	@Test
@@ -332,9 +333,13 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py).contains("@strategy(\n"
-				+ "    \"first_source_model:s1\", \"second_source_model:s2\","
-				+ " consumes=[], produces=[]\n" + ")\ndef testing(");
+		assertThat(py).contains(
+				"""
+						@strategy(
+						    "first_source_model:s1", "second_source_model:s2", consumes=[], produces=[]
+						)
+						def testing(\
+						""");
 	}
 
 	@Test
@@ -345,10 +350,15 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py).contains("@strategy(\n"
-				+ "    \"a_first_and_rather_long_source_model:s1\",\n"
-				+ "    \"a_second_and_rather_long_source_model:s2\",\n"
-				+ "    consumes=[],\n    produces=[],\n)\ndef testing(");
+		assertThat(py).contains("""
+				@strategy(
+				    "a_first_and_rather_long_source_model:s1",
+				    "a_second_and_rather_long_source_model:s2",
+				    consumes=[],
+				    produces=[],
+				)
+				def testing(\
+				""");
 	}
 
 	@Test
@@ -360,9 +370,12 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py).contains("    \"\"\"[evidence] The nightly regression"
-				+ " suite passes on every supported\n"
-				+ "    platform and configuration\n    \"\"\"\n");
+		assertThat(py).contains(
+				"""
+						    \"""[evidence] The nightly regression suite passes on every supported
+						    platform and configuration
+						    \"""
+						""");
 	}
 
 	@Test
@@ -379,14 +392,17 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(t);
 
-		assertThat(py).contains(
-				"    raise NotImplementedError(\n"
-						+ "        \"a_template_with_a_long_name:s is not"
-						+ " implemented yet\"\n    )\n",
-				"    raise NotImplementedError(\n"
-						+ "        \"a_template_with_a_long_name:abs is abstract"
-						+ " and must be overridden\"\n"
-						+ "        \" before execution\"\n    )\n");
+		assertThat(py).contains("""
+				    raise NotImplementedError(
+				        "a_template_with_a_long_name:s is not implemented yet"
+				    )
+				""",
+				"""
+						    raise NotImplementedError(
+						        "a_template_with_a_long_name:abs is abstract and must be overridden"
+						        " before execution"
+						    )
+						""");
 	}
 
 	@Test
@@ -462,9 +478,12 @@ class PythonExporterTest {
 		String py = new PythonExporter().export(t);
 
 		assertThat(py)
-				.contains("raise NotImplementedError(\n        \"t:abs is"
-						+ " abstract and must be overridden before"
-						+ " execution\"\n    )\n")
+				.contains(
+						"""
+								    raise NotImplementedError(
+								        "t:abs is abstract and must be overridden before execution"
+								    )
+								""")
 				.doesNotContain("t:abs is not implemented yet");
 	}
 
