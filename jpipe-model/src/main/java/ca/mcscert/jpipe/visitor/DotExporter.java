@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.visitor;
 
+import static ca.mcscert.jpipe.util.QualifiedIds.qualifyIfPlain;
 import static java.util.stream.Collectors.toSet;
 
 import ca.mcscert.jpipe.model.Justification;
@@ -12,6 +13,7 @@ import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
+import ca.mcscert.jpipe.model.elements.SupportLeaf;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -200,12 +202,10 @@ public class DotExporter extends AbstractModelExporter {
 			Strategy strategy) {
 		if (!strategy.getSupports().isEmpty()) {
 			boolean isInherited = inheritedIds.contains(strategy.id());
-			return strategy.getSupports().stream()
-					.map(leaf -> ((JustificationElement) leaf).id())
-					.map(leafId -> (isInherited
-							&& allOverriddenIds.contains(leafId))
-									? qualify(leafId) + ABSTRACT_SUFFIX
-									: qualify(leafId))
+			return strategy.getSupports().stream().map(SupportLeaf::id).map(
+					leafId -> (isInherited && allOverriddenIds.contains(leafId))
+							? qualify(leafId) + ABSTRACT_SUFFIX
+							: qualify(leafId))
 					.toList();
 		}
 		return model.getParent().flatMap(parent -> {
@@ -214,9 +214,8 @@ public class DotExporter extends AbstractModelExporter {
 			return parent.findById(idInParent)
 					.filter(Strategy.class::isInstance)
 					.map(Strategy.class::cast)
-					.map(ps -> ps.getSupports().stream()
-							.map(leaf -> ((JustificationElement) leaf).id())
-							.map(leafId -> qualifyForChild(leafId,
+					.map(ps -> ps.getSupports().stream().map(SupportLeaf::id)
+							.map(leafId -> qualifyIfPlain(leafId,
 									parent.getName()))
 							.map(qid -> allOverriddenIds.contains(qid)
 									? qualify(qid) + ABSTRACT_SUFFIX
@@ -251,12 +250,14 @@ public class DotExporter extends AbstractModelExporter {
 		String inner = indent + INDENT;
 		if (ancestor.hasOwnConclusion()) {
 			ancestor.conclusion().ifPresent(c -> appendClusterNode(
-					qualifyForChild(c.id(), ancName), c, inner));
+					qualifyIfPlain(c.id(), ancName), c, inner));
 		}
-		ancestor.ownElements().forEach(e -> appendClusterNode(
-				qualifyForChild(e.id(), ancName), e, inner));
-		ancestor.concreteOverrides().forEach(e -> appendClusterNode(
-				qualifyForChild(e.id(), ancName), e, inner));
+		ancestor.ownElements()
+				.forEach(e -> appendClusterNode(qualifyIfPlain(e.id(), ancName),
+						e, inner));
+		ancestor.concreteOverrides()
+				.forEach(e -> appendClusterNode(qualifyIfPlain(e.id(), ancName),
+						e, inner));
 
 		// Recurse: grandparent cluster is nested inside this one
 		ancestor.getParent().ifPresent(gp -> appendAncestorCluster(gp, inner));
@@ -330,14 +331,5 @@ public class DotExporter extends AbstractModelExporter {
 	private static String stripParentPrefix(String id, String parentName) {
 		String prefix = parentName + ":";
 		return id.startsWith(prefix) ? id.substring(prefix.length()) : id;
-	}
-
-	/**
-	 * Mirrors {@link ca.mcscert.jpipe.model.JustificationModel#qualifiedCopy}:
-	 * plain ids become {@code prefix:id}; already-qualified ids (grandparent
-	 * elements) are kept as-is.
-	 */
-	private static String qualifyForChild(String id, String prefix) {
-		return id.contains(":") ? id : prefix + ":" + id;
 	}
 }

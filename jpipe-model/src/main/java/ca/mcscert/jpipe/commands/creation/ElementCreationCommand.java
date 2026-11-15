@@ -2,8 +2,13 @@ package ca.mcscert.jpipe.commands.creation;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.model.SourceLocation;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.ElementView;
+import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
+import ca.mcscert.jpipe.model.elements.Strategy;
+import ca.mcscert.jpipe.model.elements.SubConclusion;
 
 /**
  * Sealed interface common to all element-creation commands.
@@ -68,4 +73,27 @@ public sealed interface ElementCreationCommand extends Command, ElementView
 	 * @return a fresh element, as {@link #doExecute} would create it.
 	 */
 	JustificationElement element();
+
+	/**
+	 * Returns the command that creates, in {@code container}, an element of the
+	 * same kind and label as {@code prototype} under the id {@code id}. Lets
+	 * callers that copy elements from one model into another build the creation
+	 * command without matching on element types themselves.
+	 */
+	static ElementCreationCommand of(String container, String id,
+			JustificationElement prototype, SourceLocation location) {
+		String label = prototype.label();
+		return switch (prototype) {
+			case Conclusion _ ->
+				new CreateConclusion(container, id, label, location);
+			case SubConclusion _ ->
+				new CreateSubConclusion(container, id, label, location);
+			case Strategy _ ->
+				new CreateStrategy(container, id, label, location);
+			case Evidence _ ->
+				new CreateEvidence(container, id, label, location);
+			case AbstractSupport _ ->
+				new CreateAbstractSupport(container, id, label, location);
+		};
+	}
 }

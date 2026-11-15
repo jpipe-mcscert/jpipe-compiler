@@ -1,7 +1,6 @@
 package ca.mcscert.jpipe.model;
 
 import ca.mcscert.jpipe.model.elements.CommonElement;
-import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 
 /**
@@ -12,16 +11,6 @@ public final class Justification extends JustificationModel<CommonElement> {
 
 	public Justification(String name) {
 		super(name);
-	}
-
-	/**
-	 * Includes all template elements — including
-	 * {@link ca.mcscert.jpipe.model.elements.AbstractSupport} copies — so that
-	 * override commands can find and replace them after inlining.
-	 */
-	@Override
-	protected boolean includeInExpansion(JustificationElement copy) {
-		return true;
 	}
 
 	@Override

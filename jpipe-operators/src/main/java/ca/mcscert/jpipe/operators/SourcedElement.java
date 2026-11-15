@@ -28,4 +28,12 @@ public record SourcedElement(JustificationElement element,
 	public String label() {
 		return element().label();
 	}
+
+	/**
+	 * The element's id qualified with the name of its source model
+	 * ({@code source:id}), the form a composed model gives it by default.
+	 */
+	public String qualifiedId() {
+		return source.getName() + ":" + element.id();
+	}
 }

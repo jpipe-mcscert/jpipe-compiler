@@ -214,20 +214,16 @@ public abstract class CompositionOperator {
 		// element's original location from knownLocations when available.
 		List<SourcedElement> all = new ArrayList<>();
 		for (JustificationModel<?> source : sources) {
-			source.conclusion()
-					.ifPresent(c -> all.add(new SourcedElement(c, source,
-							knownLocations.getOrDefault(
-									source.getName() + "/" + c.id(),
-									SourceLocation.UNKNOWN))));
-			source.getElements()
-					.forEach(e -> all.add(new SourcedElement(e, source,
-							knownLocations.getOrDefault(
-									source.getName() + "/" + e.id(),
-									SourceLocation.UNKNOWN))));
+			for (JustificationElement e : source.allElements()) {
+				all.add(new SourcedElement(e, source,
+						knownLocations.getOrDefault(
+								source.getName() + "/" + e.id(),
+								SourceLocation.UNKNOWN)));
+			}
 		}
 
 		// Partition into equivalence classes
-		List<ElementGroup> groups = partition(all,
+		List<ElementGroup> groups = Partitions.partition(all,
 				equivalenceRelation(sources, args, knownAliases));
 		logger.debug("{} element(s) partitioned into {} group(s)", all.size(),
 				groups.size());
@@ -274,21 +270,9 @@ public abstract class CompositionOperator {
 		// Phase 2: link reconstruction
 		Set<String> seenEdges = new LinkedHashSet<>();
 		for (JustificationModel<?> source : sources) {
-			source.conclusion()
-					.ifPresent(c -> c.getSupport()
-							.ifPresent(s -> addEdge(commands, seenEdges,
-									resultName, aliases, source, c.id(),
-									s.id())));
-			source.subConclusions()
-					.forEach(sc -> sc.getSupport()
-							.ifPresent(s -> addEdge(commands, seenEdges,
-									resultName, aliases, source, sc.id(),
-									s.id())));
-			source.strategies().forEach(s -> s.getSupports().forEach(leaf -> {
-				String leafId = ((JustificationElement) leaf).id();
-				addEdge(commands, seenEdges, resultName, aliases, source,
-						s.id(), leafId);
-			}));
+			source.forEachSupportEdge(
+					(supported, supporter) -> addEdge(commands, seenEdges,
+							resultName, aliases, source, supported, supporter));
 		}
 
 		// Phase 3: operator-specific synthesized elements and edges
@@ -331,10 +315,5 @@ public abstract class CompositionOperator {
 
 	private static String qualId(JustificationModel<?> source, String id) {
 		return source.getName() + ":" + id;
-	}
-
-	private static List<ElementGroup> partition(List<SourcedElement> elements,
-			EquivalenceRelation rel) {
-		return Partitions.partition(elements, rel);
 	}
 }

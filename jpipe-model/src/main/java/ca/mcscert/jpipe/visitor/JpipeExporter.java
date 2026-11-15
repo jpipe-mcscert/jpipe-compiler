@@ -120,22 +120,11 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 				p -> builder.append(" implements ").append(p.getName()));
 		builder.append(" {").append(System.lineSeparator());
 
-		model.conclusion().ifPresent(c -> c.accept(this));
-		model.getElements().forEach(e -> e.accept(this));
-
-		exportSupports(model);
+		model.allElements().forEach(e -> e.accept(this));
+		model.forEachSupportEdge(
+				(supported, supporter) -> appendRelation(supporter, supported));
 
 		builder.append("}").append(System.lineSeparator());
-	}
-
-	private void exportSupports(JustificationModel<?> model) {
-		model.conclusion().ifPresent(c -> c.getSupport()
-				.ifPresent(s -> appendRelation(s.id(), c.id())));
-		model.subConclusions().forEach(sc -> sc.getSupport()
-				.ifPresent(s -> appendRelation(s.id(), sc.id())));
-		model.strategies().forEach(s -> s.getSupports().forEach(
-				leaf -> appendRelation(((JustificationElement) leaf).id(),
-						s.id())));
 	}
 
 	private void appendElement(String keyword, JustificationElement element) {

@@ -37,17 +37,11 @@ public final class ActionListInterpretation
 		} catch (DeadlockException ex) {
 			ExecutionFailureDiagnostics.diagnoseDeadlock(ex.stuckCommands(),
 					ex.partialUnit(), ctx);
-			ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,
-					engine.totalDeferrals());
-			ctx.recordActions(engine.executedCommands());
-			return ex.partialUnit();
+			unit = ex.partialUnit();
 		} catch (CommandExecutionException ex) {
 			ExecutionFailureDiagnostics.diagnoseExecutionFailure(
 					ex.failedCommand(), ex.partialUnit(), ex.getCause(), ctx);
-			ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,
-					engine.totalDeferrals());
-			ctx.recordActions(engine.executedCommands());
-			return ex.partialUnit();
+			unit = ex.partialUnit();
 		}
 
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,

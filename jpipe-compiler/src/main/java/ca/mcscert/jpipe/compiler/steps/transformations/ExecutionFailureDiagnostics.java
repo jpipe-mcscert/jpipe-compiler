@@ -65,7 +65,7 @@ final class ExecutionFailureDiagnostics {
 			SourceLocation loc = cmd instanceof ApplyOperator op
 					? op.location()
 					: SourceLocation.UNKNOWN;
-			error(ctx, DiagnosticCodes.INCOMPATIBLE_UNIFICATION, loc,
+			ctx.error(DiagnosticCodes.INCOMPATIBLE_UNIFICATION, loc,
 					cause.getMessage());
 			ctx.error("model construction failed — see errors above");
 			return;
@@ -76,12 +76,12 @@ final class ExecutionFailureDiagnostics {
 				boolean modelHasParent = unit.findModel(c.modelName())
 						.flatMap(m -> m.getParent()).isPresent();
 				if (modelHasParent) {
-					error(ctx, DiagnosticCodes.CYCLIC_IMPLEMENTS, loc,
+					ctx.error(DiagnosticCodes.CYCLIC_IMPLEMENTS, loc,
 							"cycle detected: '" + c.modelName() + "' and '"
 									+ c.templateName()
 									+ "' mutually implement each other");
 				} else {
-					error(ctx, DiagnosticCodes.IMPLEMENTS_ERROR, loc,
+					ctx.error(DiagnosticCodes.IMPLEMENTS_ERROR, loc,
 							"cannot apply 'implements' for '" + c.modelName()
 									+ "' extends '" + c.templateName() + "': "
 									+ cause.getMessage());
@@ -91,7 +91,7 @@ final class ExecutionFailureDiagnostics {
 				String code = cause instanceof ReferenceIntoTemplateException
 						? DiagnosticCodes.REFERENCE_INTO_TEMPLATE
 						: DiagnosticCodes.INVALID_SUPPORT;
-				error(ctx, code, c.location(), cause.getMessage());
+				ctx.error(code, c.location(), cause.getMessage());
 			}
 			default -> ctx.error(DiagnosticCodes.EXECUTION_ERROR,
 					cmd + ": " + cause.getMessage());
@@ -108,17 +108,17 @@ final class ExecutionFailureDiagnostics {
 		SourceLocation loc = c.location();
 		var modelOpt = unit.findModel(c.container());
 		if (modelOpt.isEmpty()) {
-			error(ctx, DiagnosticCodes.UNKNOWN_MODEL, loc,
+			ctx.error(DiagnosticCodes.UNKNOWN_MODEL, loc,
 					UNKNOWN_MODEL_MSG + c.container() + "'");
 			return;
 		}
 		var model = modelOpt.get();
 		if (model.findById(c.supportableId()).isEmpty()) {
-			error(ctx, DiagnosticCodes.UNKNOWN_ELEMENT, loc, UNKNOWN_ELEMENT_MSG
+			ctx.error(DiagnosticCodes.UNKNOWN_ELEMENT, loc, UNKNOWN_ELEMENT_MSG
 					+ c.supportableId() + IN_MODEL + c.container() + "'");
 		}
 		if (model.findById(c.supporterId()).isEmpty()) {
-			error(ctx, DiagnosticCodes.UNKNOWN_ELEMENT, loc, UNKNOWN_ELEMENT_MSG
+			ctx.error(DiagnosticCodes.UNKNOWN_ELEMENT, loc, UNKNOWN_ELEMENT_MSG
 					+ c.supporterId() + IN_MODEL + c.container() + "'");
 		}
 	}
@@ -127,12 +127,12 @@ final class ExecutionFailureDiagnostics {
 			Unit unit, CompilationContext ctx) {
 		SourceLocation loc = c.location();
 		if (unit.findModel(c.modelName()).isEmpty()) {
-			error(ctx, DiagnosticCodes.UNKNOWN_MODEL, loc,
+			ctx.error(DiagnosticCodes.UNKNOWN_MODEL, loc,
 					UNKNOWN_MODEL_MSG + c.modelName() + "'");
 			return;
 		}
 		if (unit.findModel(c.templateName()).isEmpty()) {
-			error(ctx, DiagnosticCodes.UNKNOWN_MODEL, loc,
+			ctx.error(DiagnosticCodes.UNKNOWN_MODEL, loc,
 					UNKNOWN_MODEL_MSG + c.templateName() + "'");
 		}
 	}
@@ -142,27 +142,14 @@ final class ExecutionFailureDiagnostics {
 		SourceLocation loc = c.location();
 		var modelOpt = unit.findModel(c.container());
 		if (modelOpt.isEmpty()) {
-			error(ctx, DiagnosticCodes.UNKNOWN_MODEL, loc,
+			ctx.error(DiagnosticCodes.UNKNOWN_MODEL, loc,
 					UNKNOWN_MODEL_MSG + c.container() + "'");
 			return;
 		}
 		var model = modelOpt.get();
 		if (model.findById(c.qualifiedId()).isEmpty()) {
-			error(ctx, DiagnosticCodes.UNKNOWN_ELEMENT, loc, UNKNOWN_ELEMENT_MSG
+			ctx.error(DiagnosticCodes.UNKNOWN_ELEMENT, loc, UNKNOWN_ELEMENT_MSG
 					+ c.qualifiedId() + IN_MODEL + c.container() + "'");
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// Utility
-	// -------------------------------------------------------------------------
-
-	private static void error(CompilationContext ctx, String code,
-			SourceLocation loc, String message) {
-		if (loc.isKnown()) {
-			ctx.error(code, loc.line(), loc.column(), message);
-		} else {
-			ctx.error(code, message);
 		}
 	}
 }

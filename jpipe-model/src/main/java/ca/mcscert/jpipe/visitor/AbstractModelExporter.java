@@ -104,8 +104,7 @@ public abstract class AbstractModelExporter
 				.computeIfAbsent(newId, _ -> new ArrayList<>()).add(oldId));
 		unifiedIds = model.unifiedIds();
 		linkIndex.clear();
-		model.conclusion().ifPresent(this::indexElement);
-		model.getElements().forEach(this::indexElement);
+		model.allElements().forEach(this::indexElement);
 	}
 
 	private void indexElement(JustificationElement element) {

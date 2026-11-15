@@ -81,8 +81,7 @@ public final class OverrideAbstractSupport implements MacroCommand {
 
 		String strategyId = model.strategies().stream()
 				.filter(s -> s.getSupports().stream()
-						.anyMatch(sl -> ((JustificationElement) sl).id()
-								.equals(old.id())))
+						.anyMatch(sl -> sl.id().equals(old.id())))
 				.map(JustificationElement::id).findFirst()
 				.orElseThrow(() -> new IllegalStateException(
 						"No strategy supports abstract support: "

@@ -1,18 +1,12 @@
 package ca.mcscert.jpipe.operators;
 
 import ca.mcscert.jpipe.commands.Command;
-import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
-import ca.mcscert.jpipe.commands.creation.CreateConclusion;
-import ca.mcscert.jpipe.commands.creation.CreateEvidence;
-import ca.mcscert.jpipe.commands.creation.CreateStrategy;
-import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
+import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.model.JustificationModel;
-import ca.mcscert.jpipe.model.elements.AbstractSupport;
-import ca.mcscert.jpipe.model.elements.Evidence;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
-import ca.mcscert.jpipe.model.elements.Strategy;
-import ca.mcscert.jpipe.model.elements.SubConclusion;
+import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,42 +43,17 @@ public final class ModelReplicator {
 		List<Command> commands = new ArrayList<>();
 
 		// Step 1 — element creation
-		source.conclusion().ifPresent(c -> {
-			String id = qualifiedId(c.id(), prefix);
-			commands.add(new CreateConclusion(targetModelName, id, c.label()));
-		});
-		for (JustificationElement elem : source.getElements()) {
-			String id = qualifiedId(elem.id(), prefix);
-			commands.add(switch (elem) {
-				case Strategy s ->
-					new CreateStrategy(targetModelName, id, s.label());
-				case Evidence e ->
-					new CreateEvidence(targetModelName, id, e.label());
-				case SubConclusion sc ->
-					new CreateSubConclusion(targetModelName, id, sc.label());
-				case AbstractSupport as ->
-					new CreateAbstractSupport(targetModelName, id, as.label());
-				default -> throw new IllegalStateException(
-						"Unhandled element type: " + elem);
-			});
+		for (JustificationElement elem : source.allElements()) {
+			commands.add(ElementCreationCommand.of(targetModelName,
+					qualifiedId(elem.id(), prefix), elem,
+					SourceLocation.UNKNOWN));
 		}
 
 		// Step 2 — support edges
-		source.conclusion()
-				.ifPresent(c -> c.getSupport()
-						.ifPresent(s -> commands.add(new AddSupport(
-								targetModelName, qualifiedId(c.id(), prefix),
-								qualifiedId(s.id(), prefix)))));
-		source.subConclusions()
-				.forEach(sc -> sc.getSupport()
-						.ifPresent(s -> commands.add(new AddSupport(
-								targetModelName, qualifiedId(sc.id(), prefix),
-								qualifiedId(s.id(), prefix)))));
-		source.strategies().forEach(s -> s.getSupports().forEach(leaf -> {
-			String leafId = ((JustificationElement) leaf).id();
-			commands.add(new AddSupport(targetModelName,
-					qualifiedId(s.id(), prefix), qualifiedId(leafId, prefix)));
-		}));
+		source.forEachSupportEdge((supported,
+				supporter) -> commands.add(new AddSupport(targetModelName,
+						qualifiedId(supported, prefix),
+						qualifiedId(supporter, prefix))));
 
 		return List.copyOf(commands);
 	}
@@ -93,6 +62,6 @@ public final class ModelReplicator {
 		if (prefix == null || prefix.isBlank()) {
 			return id;
 		}
-		return id.contains(":") ? id : prefix + ":" + id;
+		return QualifiedIds.qualifyIfPlain(id, prefix);
 	}
 }

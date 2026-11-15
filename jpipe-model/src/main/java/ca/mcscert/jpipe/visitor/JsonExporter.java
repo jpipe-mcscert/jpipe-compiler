@@ -109,9 +109,9 @@ public class JsonExporter extends AbstractModelExporter {
 		elements = new JSONArray();
 		relations = new JSONArray();
 
-		model.conclusion().ifPresent(c -> c.accept(this));
-		model.getElements().forEach(e -> e.accept(this));
-		exportRelations(model);
+		model.allElements().forEach(e -> e.accept(this));
+		model.forEachSupportEdge((supported, supporter) -> appendRelation(
+				qualify(supporter), qualify(supported)));
 
 		result = new JSONObject();
 		result.put("name", model.getName());
@@ -123,18 +123,6 @@ public class JsonExporter extends AbstractModelExporter {
 	// -------------------------------------------------------------------------
 	// Private helpers
 	// -------------------------------------------------------------------------
-
-	private void exportRelations(JustificationModel<?> model) {
-		model.conclusion().ifPresent(c -> c.getSupport().ifPresent(
-				s -> appendRelation(qualify(s.id()), qualify(c.id()))));
-		model.subConclusions().forEach(sc -> sc.getSupport().ifPresent(
-				s -> appendRelation(qualify(s.id()), qualify(sc.id()))));
-		model.strategies()
-				.forEach(s -> s.getSupports()
-						.forEach(leaf -> appendRelation(
-								qualify(((JustificationElement) leaf).id()),
-								qualify(s.id()))));
-	}
 
 	private void appendElement(String type, JustificationElement element) {
 		JSONObject obj = new JSONObject();

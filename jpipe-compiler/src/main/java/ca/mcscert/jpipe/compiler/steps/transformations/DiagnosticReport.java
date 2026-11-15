@@ -215,10 +215,6 @@ public final class DiagnosticReport extends DiagnosticRenderer {
 	}
 
 	private static String padEnd(String text, int width) {
-		StringBuilder sb = new StringBuilder(text);
-		while (sb.length() < width) {
-			sb.append(' ');
-		}
-		return sb.toString();
+		return text + " ".repeat(Math.max(0, width - text.length()));
 	}
 }

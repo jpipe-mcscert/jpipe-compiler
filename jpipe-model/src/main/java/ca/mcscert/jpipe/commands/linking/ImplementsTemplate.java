@@ -5,6 +5,7 @@ import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
+import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
@@ -67,19 +68,10 @@ public final class ImplementsTemplate extends RegularCommand {
 	 * for elements that were inherited rather than declared directly.
 	 */
 	private void propagateLocations(Unit context, Template template) {
-		template.conclusion().ifPresent(tc -> {
-			SourceLocation loc = context.locationOf(templateName, tc.id());
-			String key = tc.id().contains(":")
-					? tc.id()
-					: templateName + ":" + tc.id();
-			context.recordLocation(modelName, key, loc);
-		});
-		for (JustificationElement elem : template.getElements()) {
-			SourceLocation loc = context.locationOf(templateName, elem.id());
-			String key = elem.id().contains(":")
-					? elem.id()
-					: templateName + ":" + elem.id();
-			context.recordLocation(modelName, key, loc);
+		for (JustificationElement elem : template.allElements()) {
+			context.recordLocation(modelName,
+					QualifiedIds.qualifyIfPlain(elem.id(), templateName),
+					context.locationOf(templateName, elem.id()));
 		}
 	}
 
