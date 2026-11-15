@@ -1,21 +1,18 @@
 package ca.mcscert.jpipe.operators.builtin;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.commands.Command;
-import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
-import ca.mcscert.jpipe.commands.creation.CreateEvidence;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
+import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
-import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
-import ca.mcscert.jpipe.model.elements.Evidence;
-import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.operators.AliasRegistry;
@@ -79,9 +76,7 @@ public final class AssembleOperator extends CompositionOperator {
 	protected Command createResultModel(String name, SourceLocation location,
 			List<JustificationModel<?>> sources,
 			Map<String, String> arguments) {
-		boolean anyTemplate = sources.stream()
-				.anyMatch(Template.class::isInstance);
-		return anyTemplate
+		return resultKind(sources, arguments) == ModelKind.TEMPLATE
 				? new CreateTemplate(name, location)
 				: new CreateJustification(name, location);
 	}
@@ -97,25 +92,14 @@ public final class AssembleOperator extends CompositionOperator {
 	protected MergeFunction mergeFunction(List<JustificationModel<?>> sources,
 			Map<String, String> arguments) {
 		return (resultName, group, aliases) -> {
-			SourcedElement se = group.members().get(0);
-			JustificationElement e = se.element();
-			String newId = se.source().getName() + ":" + e.id();
-			SourceLocation loc = se.location();
-			return switch (e) {
-				// Conclusions are demoted to SubConclusions
-				case Conclusion c -> List.of(new CreateSubConclusion(resultName,
-						newId, c.label(), loc));
-				case Strategy s -> List.of(
-						new CreateStrategy(resultName, newId, s.label(), loc));
-				case Evidence ev -> List.of(
-						new CreateEvidence(resultName, newId, ev.label(), loc));
-				case SubConclusion sc ->
-					List.of(new CreateSubConclusion(resultName, newId,
-							sc.label(), loc));
-				case AbstractSupport as ->
-					List.of(new CreateAbstractSupport(resultName, newId,
-							as.label(), loc));
-			};
+			SourcedElement se = group.members().getFirst();
+			// Conclusions are demoted to SubConclusions
+			if (se.element() instanceof Conclusion c) {
+				return List.of(new CreateSubConclusion(resultName,
+						se.qualifiedId(), c.label(), se.location()));
+			}
+			return List.of(ElementCreationCommand.of(resultName,
+					se.qualifiedId(), se.element(), se.location()));
 		};
 	}
 
@@ -135,7 +119,8 @@ public final class AssembleOperator extends CompositionOperator {
 		for (JustificationModel<?> source : sources) {
 			source.conclusion()
 					.ifPresent(c -> commands.add(new AddSupport(resultName,
-							STRATEGY_ID, source.getName() + ":" + c.id())));
+							STRATEGY_ID,
+							QualifiedIds.qualify(source.getName(), c.id()))));
 		}
 
 		// New strategy supports new conclusion

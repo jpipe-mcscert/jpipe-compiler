@@ -1,18 +1,13 @@
 package ca.mcscert.jpipe.operators.builtin;
 
+import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.commands.Command;
-import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
-import ca.mcscert.jpipe.commands.creation.CreateConclusion;
-import ca.mcscert.jpipe.commands.creation.CreateEvidence;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
-import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
+import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
 import ca.mcscert.jpipe.model.JustificationModel;
-import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
-import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
-import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.operators.CompositionOperator;
 import ca.mcscert.jpipe.operators.EquivalenceRelation;
@@ -79,7 +74,7 @@ public final class RefineOperator extends CompositionOperator {
 		// Resolve through the unit alias map: the element may have been renamed
 		// by a prior composition step (e.g. unification after assemble).
 		String aliasedHookId = knownAliases.getOrDefault(
-				base.getName() + "/" + hookElementId, hookElementId);
+				Unit.registryKey(base.getName(), hookElementId), hookElementId);
 		// Normalize to the actual stored id via findById (which has a suffix
 		// fallback). This ensures isHookPair's id comparison matches even when
 		// the hook is referenced by its plain short id (e.g. "s" -> "t:s").
@@ -108,17 +103,16 @@ public final class RefineOperator extends CompositionOperator {
 				// Singleton: create element with source-name prefix.
 				// No alias registration needed — Phase 2 derives the same
 				// qualified id and resolve() returns it unchanged.
-				SourcedElement se = members.get(0);
-				String newId = se.source().getName() + ":" + se.element().id();
-				return elementCommand(resultName, newId, se);
+				SourcedElement se = members.getFirst();
+				return List.of(ElementCreationCommand.of(resultName,
+						se.qualifiedId(), se.element(), se.location()));
 			} else {
 				// Hook group: hook element + refinement conclusion →
 				// SubConclusion.
 				// Register qualified old ids so Phase 2 resolves both to
 				// HOOK_ID.
-				List<String> qualOldIds = members.stream().map(
-						se -> se.source().getName() + ":" + se.element().id())
-						.toList();
+				List<String> qualOldIds = members.stream()
+						.map(SourcedElement::qualifiedId).toList();
 				aliases.register(HOOK_ID, qualOldIds);
 				String label = labelFrom(members, refinement);
 				return List.of(
@@ -148,25 +142,5 @@ public final class RefineOperator extends CompositionOperator {
 			JustificationModel<?> source) {
 		return members.stream().filter(se -> se.source() == source)
 				.map(se -> se.element().label()).findFirst().orElseThrow();
-	}
-
-	/** Produces the appropriate creation command for a single element copy. */
-	private static List<Command> elementCommand(String resultName, String newId,
-			SourcedElement se) {
-		JustificationElement e = se.element();
-		SourceLocation loc = se.location();
-		return switch (e) {
-			case Conclusion c -> List.of(
-					new CreateConclusion(resultName, newId, c.label(), loc));
-			case Strategy s ->
-				List.of(new CreateStrategy(resultName, newId, s.label(), loc));
-			case Evidence ev ->
-				List.of(new CreateEvidence(resultName, newId, ev.label(), loc));
-			case SubConclusion sc -> List.of(new CreateSubConclusion(resultName,
-					newId, sc.label(), loc));
-			case AbstractSupport as ->
-				List.of(new CreateAbstractSupport(resultName, newId, as.label(),
-						loc));
-		};
 	}
 }

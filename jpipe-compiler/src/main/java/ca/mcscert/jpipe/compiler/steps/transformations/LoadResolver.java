@@ -1,5 +1,7 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
+import static ca.mcscert.jpipe.util.QualifiedIds.qualify;
+
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
@@ -409,10 +411,6 @@ public final class LoadResolver
 			result.add(rewrite(namespace, cmd));
 		}
 		return result;
-	}
-
-	private static String qualify(String ns, String name) {
-		return ns + ":" + name;
 	}
 
 	private static Command rewrite(String ns, Command cmd) {

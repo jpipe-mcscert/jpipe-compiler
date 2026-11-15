@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.operators.equivalences;
 
 import ca.mcscert.jpipe.model.elements.ElementView;
 import ca.mcscert.jpipe.operators.EquivalenceRelation;
+import ca.mcscert.jpipe.util.QualifiedIds;
 
 /**
  * Two elements are equivalent iff their ids are identical after stripping any
@@ -13,11 +14,7 @@ public final class SameShortId implements EquivalenceRelation {
 
 	@Override
 	public boolean areEquivalent(ElementView a, ElementView b) {
-		return shortId(a.id()).equals(shortId(b.id()));
-	}
-
-	private static String shortId(String id) {
-		int colon = id.lastIndexOf(':');
-		return colon >= 0 ? id.substring(colon + 1) : id;
+		return QualifiedIds.shortId(a.id())
+				.equals(QualifiedIds.shortId(b.id()));
 	}
 }

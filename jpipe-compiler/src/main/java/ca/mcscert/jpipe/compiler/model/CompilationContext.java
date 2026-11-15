@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.model;
 
 import ca.mcscert.jpipe.commands.ExecutedAction;
+import ca.mcscert.jpipe.model.SourceLocation;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -89,6 +90,25 @@ public final class CompilationContext {
 	 */
 	public void error(String code, int line, int column, String message) {
 		report(Diagnostic.error(code, sourcePath, line, column, message));
+	}
+
+	/**
+	 * Convenience: append a coded non-fatal ERROR diagnostic, located at
+	 * {@code location} when that location is known.
+	 *
+	 * @param code
+	 *            stable kebab-case identifier, see {@link DiagnosticCodes}.
+	 * @param location
+	 *            where the error was found, or {@link SourceLocation#UNKNOWN}.
+	 * @param message
+	 *            human-readable description, without the code.
+	 */
+	public void error(String code, SourceLocation location, String message) {
+		if (location.isKnown()) {
+			error(code, location.line(), location.column(), message);
+		} else {
+			error(code, message);
+		}
 	}
 
 	/** Convenience: append a FATAL diagnostic. */

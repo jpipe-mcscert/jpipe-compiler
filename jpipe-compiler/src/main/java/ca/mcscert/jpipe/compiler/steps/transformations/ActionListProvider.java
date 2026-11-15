@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
@@ -94,27 +95,31 @@ public final class ActionListProvider
 
 		@Override
 		public void enterEveryRule(ParserRuleContext ctx) {
-			String rule = JPipeParser.ruleNames[ctx.getRuleIndex()];
-			int line = ctx.start.getLine();
-			int col = ctx.start.getCharPositionInLine();
-			String model = buildContext.justificationId();
-			if (model != null) {
-				logger.debug("enter: {} @ {}:{} [{}]", rule, line, col, model);
-			} else {
-				logger.debug("enter: {} @ {}:{}", rule, line, col);
-			}
+			logRule("enter:", ctx);
 		}
 
 		@Override
 		public void exitEveryRule(ParserRuleContext ctx) {
+			logRule("exit: ", ctx);
+		}
+
+		/**
+		 * Traces one parse-tree node. Called on every enter and exit, so it
+		 * returns before computing anything when DEBUG is off.
+		 */
+		private void logRule(String event, ParserRuleContext ctx) {
+			if (!logger.isDebugEnabled()) {
+				return;
+			}
 			String rule = JPipeParser.ruleNames[ctx.getRuleIndex()];
 			int line = ctx.start.getLine();
 			int col = ctx.start.getCharPositionInLine();
 			String model = buildContext.justificationId();
 			if (model != null) {
-				logger.debug("exit:  {} @ {}:{} [{}]", rule, line, col, model);
+				logger.debug("{} {} @ {}:{} [{}]", event, rule, line, col,
+						model);
 			} else {
-				logger.debug("exit:  {} @ {}:{}", rule, line, col);
+				logger.debug("{} {} @ {}:{}", event, rule, line, col);
 			}
 		}
 
@@ -141,37 +146,8 @@ public final class ActionListProvider
 
 		@Override
 		public void enterJustification(JPipeParser.JustificationContext ctx) {
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.id.getLine(), ctx.id.getCharPositionInLine());
-			if (ctx.operator != null) {
-				List<String> sources = ctx.params_decl() != null
-						? ctx.params_decl().id.stream().map(t -> t.getText())
-								.toList()
-						: List.of();
-				var callConfig = new OperatorCallConfig(ctx.id.getText(),
-						ctx.operator.getText(), sources,
-						collectConfig(ctx.rule_config()), loc,
-						ModelKind.JUSTIFICATION);
-				result.add(new ApplyOperator(callConfig, operators,
-						unificationEquivalences));
-				return;
-			}
-			String parentName = ctx.parent != null
-					? ctx.parent.getText()
-					: null;
-			this.buildContext = buildContext
-					.updateCurrentJustification(ctx.id.getText(), parentName);
-			result.add(new CreateJustification(ctx.id.getText(), loc));
-			// ImplementsTemplate must be enqueued before body commands so that
-			// inherited elements exist when override commands run.
-			if (ctx.parent != null) {
-				SourceLocation parentLoc = new SourceLocation(
-						buildContext.unitFileName,
-						ctx.parent.getStart().getLine(),
-						ctx.parent.getStart().getCharPositionInLine());
-				result.add(new ImplementsTemplate(ctx.id.getText(),
-						ctx.parent.getText(), parentLoc));
-			}
+			enterModel(ctx.id, ctx.parent, ctx.operator, ctx.params_decl(),
+					ctx.rule_config(), ModelKind.JUSTIFICATION);
 		}
 
 		@Override
@@ -182,36 +158,46 @@ public final class ActionListProvider
 
 		@Override
 		public void enterTemplate(JPipeParser.TemplateContext ctx) {
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.id.getLine(), ctx.id.getCharPositionInLine());
-			if (ctx.operator != null) {
-				List<String> sources = ctx.params_decl() != null
-						? ctx.params_decl().id.stream().map(t -> t.getText())
+			enterModel(ctx.id, ctx.parent, ctx.operator, ctx.params_decl(),
+					ctx.rule_config(), ModelKind.TEMPLATE);
+		}
+
+		/**
+		 * Shared by justification and template declarations, which the grammar
+		 * shapes alike: a model is either the result of an operator call, or
+		 * declared with a body, optionally implementing a template.
+		 */
+		private void enterModel(Token id,
+				JPipeParser.Qualified_idContext parent,
+				JPipeParser.Qualified_idContext operator,
+				JPipeParser.Params_declContext params,
+				JPipeParser.Rule_configContext config, ModelKind kind) {
+			String name = id.getText();
+			SourceLocation loc = locationOf(id);
+			if (operator != null) {
+				List<String> sources = params != null
+						? params.id.stream().map(ParserRuleContext::getText)
 								.toList()
 						: List.of();
-				var callConfig = new OperatorCallConfig(ctx.id.getText(),
-						ctx.operator.getText(), sources,
-						collectConfig(ctx.rule_config()), loc,
-						ModelKind.TEMPLATE);
+				var callConfig = new OperatorCallConfig(name,
+						operator.getText(), sources, collectConfig(config), loc,
+						kind);
 				result.add(new ApplyOperator(callConfig, operators,
 						unificationEquivalences));
 				return;
 			}
-			String parentName = ctx.parent != null
-					? ctx.parent.getText()
-					: null;
-			this.buildContext = buildContext
-					.updateCurrentJustification(ctx.id.getText(), parentName);
-			result.add(new CreateTemplate(ctx.id.getText(), loc));
+			String parentName = parent != null ? parent.getText() : null;
+			this.buildContext = buildContext.updateCurrentJustification(name,
+					parentName);
+			result.add(switch (kind) {
+				case JUSTIFICATION -> new CreateJustification(name, loc);
+				case TEMPLATE -> new CreateTemplate(name, loc);
+			});
 			// ImplementsTemplate must be enqueued before body commands so that
 			// inherited elements exist when override commands run.
-			if (ctx.parent != null) {
-				SourceLocation parentLoc = new SourceLocation(
-						buildContext.unitFileName,
-						ctx.parent.getStart().getLine(),
-						ctx.parent.getStart().getCharPositionInLine());
-				result.add(new ImplementsTemplate(ctx.id.getText(),
-						ctx.parent.getText(), parentLoc));
+			if (parent != null) {
+				result.add(new ImplementsTemplate(name, parentName,
+						locationOf(parent.getStart())));
 			}
 		}
 
@@ -230,9 +216,7 @@ public final class ActionListProvider
 		public void enterEvidence(JPipeParser.EvidenceContext ctx) {
 			String identifier = ctx.element().id.getText();
 			String label = strip(ctx.element().name.getText());
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.element().id.getStart().getLine(),
-					ctx.element().id.getStart().getCharPositionInLine());
+			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			if (identifier.contains(":")) {
 				if (!validOverridePrefix(identifier, loc)) {
 					return;
@@ -249,9 +233,7 @@ public final class ActionListProvider
 		@Override
 		public void enterAbstract(JPipeParser.AbstractContext ctx) {
 			String identifier = ctx.element().id.getText();
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.element().id.getStart().getLine(),
-					ctx.element().id.getStart().getCharPositionInLine());
+			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			result.add(new CreateAbstractSupport(buildContext.justificationId,
 					identifier, strip(ctx.element().name.getText()), loc));
 		}
@@ -259,9 +241,7 @@ public final class ActionListProvider
 		@Override
 		public void enterStrategy(JPipeParser.StrategyContext ctx) {
 			String identifier = ctx.element().id.getText();
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.element().id.getStart().getLine(),
-					ctx.element().id.getStart().getCharPositionInLine());
+			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			result.add(new CreateStrategy(buildContext.justificationId,
 					identifier, strip(ctx.element().name.getText()), loc));
 		}
@@ -269,9 +249,7 @@ public final class ActionListProvider
 		@Override
 		public void enterConclusion(JPipeParser.ConclusionContext ctx) {
 			String identifier = ctx.element().id.getText();
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.element().id.getStart().getLine(),
-					ctx.element().id.getStart().getCharPositionInLine());
+			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			String modelId = buildContext.justificationId;
 			if (!seenConclusionModels.add(modelId)) {
 				compilationCtx.error(DiagnosticCodes.SINGLE_CONCLUSION,
@@ -287,9 +265,7 @@ public final class ActionListProvider
 		public void enterSub_conclusion(JPipeParser.Sub_conclusionContext ctx) {
 			String identifier = ctx.element().id.getText();
 			String label = strip(ctx.element().name.getText());
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.element().id.getStart().getLine(),
-					ctx.element().id.getStart().getCharPositionInLine());
+			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			if (identifier.contains(":")) {
 				if (!validOverridePrefix(identifier, loc)) {
 					return;
@@ -309,9 +285,7 @@ public final class ActionListProvider
 			// full id (e.g. "t:s")
 			String from = ctx.from.getText();
 			String to = ctx.to.getText();
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.from.getStart().getLine(),
-					ctx.from.getStart().getCharPositionInLine());
+			SourceLocation loc = locationOf(ctx.from.getStart());
 			if (from.contains(":") && !validOverridePrefix(from, loc)) {
 				return;
 			}
@@ -348,6 +322,12 @@ public final class ActionListProvider
 		/*
 		 * ******************** * * Helper functions * * ********************
 		 */
+
+		/** Where {@code token} sits in the file being compiled. */
+		private SourceLocation locationOf(Token token) {
+			return new SourceLocation(buildContext.unitFileName,
+					token.getLine(), token.getCharPositionInLine());
+		}
 
 		/**
 		 * Returns true if the qualified {@code identifier} is allowed in the

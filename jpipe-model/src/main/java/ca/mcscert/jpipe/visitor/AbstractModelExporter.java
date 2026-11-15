@@ -4,6 +4,7 @@ import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,7 +90,7 @@ public abstract class AbstractModelExporter
 	 * {@code "currentModelName:elementId"}.
 	 */
 	protected final String qualify(String elementId) {
-		return currentModelName + ":" + elementId;
+		return QualifiedIds.qualify(currentModelName, elementId);
 	}
 
 	/**
@@ -104,8 +105,7 @@ public abstract class AbstractModelExporter
 				.computeIfAbsent(newId, _ -> new ArrayList<>()).add(oldId));
 		unifiedIds = model.unifiedIds();
 		linkIndex.clear();
-		model.conclusion().ifPresent(this::indexElement);
-		model.getElements().forEach(this::indexElement);
+		model.allElements().forEach(this::indexElement);
 	}
 
 	private void indexElement(JustificationElement element) {

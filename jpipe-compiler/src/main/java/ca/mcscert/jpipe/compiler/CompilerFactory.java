@@ -4,6 +4,8 @@ import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
+import ca.mcscert.jpipe.operators.builtin.AssembleOperator;
+import ca.mcscert.jpipe.operators.builtin.RefineOperator;
 import ca.mcscert.jpipe.operators.equivalences.SameLabel;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.compiler.steps.checkers.CompletenessChecker;
@@ -157,10 +159,8 @@ public final class CompilerFactory {
 
 	private static OperatorRegistry builtInOperators() {
 		OperatorRegistry operators = new OperatorRegistry();
-		operators.register("refine",
-				new ca.mcscert.jpipe.operators.builtin.RefineOperator());
-		operators.register("assemble",
-				new ca.mcscert.jpipe.operators.builtin.AssembleOperator());
+		operators.register("refine", new RefineOperator());
+		operators.register("assemble", new AssembleOperator());
 		return operators;
 	}
 

@@ -1,5 +1,7 @@
 package ca.mcscert.jpipe.operators;
 
+import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.MarkUnified;
@@ -214,20 +216,16 @@ public abstract class CompositionOperator {
 		// element's original location from knownLocations when available.
 		List<SourcedElement> all = new ArrayList<>();
 		for (JustificationModel<?> source : sources) {
-			source.conclusion()
-					.ifPresent(c -> all.add(new SourcedElement(c, source,
-							knownLocations.getOrDefault(
-									source.getName() + "/" + c.id(),
-									SourceLocation.UNKNOWN))));
-			source.getElements()
-					.forEach(e -> all.add(new SourcedElement(e, source,
-							knownLocations.getOrDefault(
-									source.getName() + "/" + e.id(),
-									SourceLocation.UNKNOWN))));
+			for (JustificationElement e : source.allElements()) {
+				all.add(new SourcedElement(e, source,
+						knownLocations.getOrDefault(
+								Unit.registryKey(source.getName(), e.id()),
+								SourceLocation.UNKNOWN)));
+			}
 		}
 
 		// Partition into equivalence classes
-		List<ElementGroup> groups = partition(all,
+		List<ElementGroup> groups = Partitions.partition(all,
 				equivalenceRelation(sources, args, knownAliases));
 		logger.debug("{} element(s) partitioned into {} group(s)", all.size(),
 				groups.size());
@@ -256,8 +254,10 @@ public abstract class CompositionOperator {
 					continue;
 				}
 				String oldId = entry.getKey().substring(prefix.length());
-				String qualOldId = qualId(source, oldId);
-				String qualIntermId = qualId(source, entry.getValue());
+				String qualOldId = QualifiedIds.qualify(source.getName(),
+						oldId);
+				String qualIntermId = QualifiedIds.qualify(source.getName(),
+						entry.getValue());
 				String finalId = aliases.resolve(qualIntermId);
 				if (!qualOldId.equals(finalId)) {
 					aliases.register(finalId, qualOldId);
@@ -274,21 +274,9 @@ public abstract class CompositionOperator {
 		// Phase 2: link reconstruction
 		Set<String> seenEdges = new LinkedHashSet<>();
 		for (JustificationModel<?> source : sources) {
-			source.conclusion()
-					.ifPresent(c -> c.getSupport()
-							.ifPresent(s -> addEdge(commands, seenEdges,
-									resultName, aliases, source, c.id(),
-									s.id())));
-			source.subConclusions()
-					.forEach(sc -> sc.getSupport()
-							.ifPresent(s -> addEdge(commands, seenEdges,
-									resultName, aliases, source, sc.id(),
-									s.id())));
-			source.strategies().forEach(s -> s.getSupports().forEach(leaf -> {
-				String leafId = ((JustificationElement) leaf).id();
-				addEdge(commands, seenEdges, resultName, aliases, source,
-						s.id(), leafId);
-			}));
+			source.forEachSupportEdge(
+					(supported, supporter) -> addEdge(commands, seenEdges,
+							resultName, aliases, source, supported, supporter));
 		}
 
 		// Phase 3: operator-specific synthesized elements and edges
@@ -304,8 +292,10 @@ public abstract class CompositionOperator {
 			String resultName, AliasRegistry aliases,
 			JustificationModel<?> source, String supportableId,
 			String supporterId) {
-		String newSupportable = aliases.resolve(qualId(source, supportableId));
-		String newSupporter = aliases.resolve(qualId(source, supporterId));
+		String newSupportable = aliases
+				.resolve(QualifiedIds.qualify(source.getName(), supportableId));
+		String newSupporter = aliases
+				.resolve(QualifiedIds.qualify(source.getName(), supporterId));
 		String key = newSupportable + "->" + newSupporter;
 		if (seen.add(key)) {
 			commands.add(
@@ -321,20 +311,10 @@ public abstract class CompositionOperator {
 	 */
 	private static List<Command> carryForwardUnifiedIds(String resultName,
 			List<JustificationModel<?>> sources) {
-		return sources.stream()
-				.flatMap(
-						source -> source.unifiedIds().stream()
-								.map(unified -> (Command) new MarkUnified(
-										resultName, qualId(source, unified))))
+		return sources.stream().flatMap(source -> source.unifiedIds().stream()
+				.map(unified -> (Command) new MarkUnified(resultName,
+						QualifiedIds.qualify(source.getName(), unified))))
 				.toList();
 	}
 
-	private static String qualId(JustificationModel<?> source, String id) {
-		return source.getName() + ":" + id;
-	}
-
-	private static List<ElementGroup> partition(List<SourcedElement> elements,
-			EquivalenceRelation rel) {
-		return Partitions.partition(elements, rel);
-	}
 }
