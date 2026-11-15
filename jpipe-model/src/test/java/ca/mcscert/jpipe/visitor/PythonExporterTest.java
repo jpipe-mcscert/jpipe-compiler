@@ -379,6 +379,32 @@ class PythonExporterTest {
 	}
 
 	@Test
+	void export_wrappedLabel_keepsTheSpacingWithinALine() {
+		Justification j = new Justification("j");
+		j.setConclusion(new Conclusion("c", "Overall"));
+		j.addElement(new Evidence("e", "The nightly  regression suite passes"
+				+ " on every supported platform and configuration"));
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py).contains(
+				"""
+						    \"""[evidence] The nightly  regression suite passes on every supported
+						    platform and configuration
+						    \"""
+						""");
+	}
+
+	@Test
+	void export_modelWithNoElement_importsOnlyTheOutcomes() {
+		String py = new PythonExporter().export(new Justification("j"));
+
+		assertThat(py)
+				.startsWith("from jpipe_runner import Fail, Outcome, Pass\n")
+				.doesNotContain("import \n", "pathlib");
+	}
+
+	@Test
 	void export_longRaise_putsItsMessageOnLinesOfItsOwn() {
 		Template t = new Template("a_template_with_a_long_name");
 		Conclusion c = new Conclusion("c", "Conclusion");

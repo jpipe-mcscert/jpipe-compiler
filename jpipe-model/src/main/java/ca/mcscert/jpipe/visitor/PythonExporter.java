@@ -52,7 +52,9 @@ import java.util.function.Function;
  * <p>
  * Each function carries a docstring with the original element label so the full
  * text is always recoverable regardless of escaping, and raises
- * {@code NotImplementedError} until it is written.
+ * {@code NotImplementedError} until it is written. A label too long for one
+ * line is wrapped between words, a line break standing for the space it
+ * replaces.
  *
  * <p>
  * The module is hard-wrapped at {@value #LINE_WIDTH} columns, commented-out
@@ -384,7 +386,12 @@ public class PythonExporter extends AbstractModelExporter {
 			builder.append("from pathlib import Path\n\n");
 		}
 		String from = "from jpipe_runner import ";
-		builder.append(from).append(String.join(", ", decorators)).append("\n");
+		// A model with no element uses no decorator, and an import of
+		// nothing does not parse.
+		if (!decorators.isEmpty()) {
+			builder.append(from).append(String.join(", ", decorators))
+					.append("\n");
+		}
 		builder.append(from).append("Fail, Outcome, Pass\n\n");
 	}
 
@@ -489,13 +496,14 @@ public class PythonExporter extends AbstractModelExporter {
 	/**
 	 * Breaks {@code text} between words into lines of at most {@code first}
 	 * characters for the first and {@code rest} for the others. A word longer
-	 * than a line stays whole.
+	 * than a line stays whole. Only the space a line is broken at is dropped:
+	 * runs of spaces within a line are kept as written.
 	 */
 	private static List<String> wrap(String text, int first, int rest) {
 		List<String> lines = new ArrayList<>();
 		StringBuilder line = new StringBuilder();
 		int room = first;
-		for (String word : text.split(" +")) {
+		for (String word : text.split(" ", -1)) {
 			if (!line.isEmpty() && line.length() + 1 + word.length() > room) {
 				lines.add(line.toString());
 				line.setLength(0);
