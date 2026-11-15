@@ -122,6 +122,7 @@
                              JAR; the pre-shade one is original-*.jar. -->
                         <shaded.jar>${project.build.directory}/${project.build.finalName}.jar</shaded.jar>
                         <examples.dir>${maven.multiModuleProjectDirectory}/examples</examples.dir>
+                        <launchers.dir>${maven.multiModuleProjectDirectory}/bin</launchers.dir>
                         <project.version>${project.version}</project.version>
                     </systemPropertyVariables>
                 </configuration>

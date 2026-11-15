@@ -128,6 +128,7 @@ model export and a report written into it would corrupt the artefact.
 | Compilation succeeded, no errors | 0 |
 | Compilation succeeded, errors diagnosed | 1 |
 | Pipeline aborted (syntax errors or explicit FATAL) | 1 |
+| Invalid command line (unknown option, invalid value) | 2 |
 | Source file unreadable, under `diagnostic` | 1 |
 | Source file unreadable, under `process` | 42 |
 | Unexpected exception (system error) | 42 |

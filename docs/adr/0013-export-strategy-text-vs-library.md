@@ -37,9 +37,9 @@ When the output cannot be produced as text by the JVM alone, jPipe shells out to
 command-line tool (e.g. `dot` for Graphviz rendering). The tool is a declared system dependency,
 documented in the project README alongside its minimum version and installation instructions.
 
-A `--doctor` CLI option will be added when the first rendering format is implemented. Its sole
-responsibility is to verify that declared external tools are available on `PATH` and report
-clearly if they are not. Input-argument consistency (e.g. `--format png` requires `--output
+A `jpipe doctor` command is added with the first rendering format. Its sole responsibility is
+to verify that declared external tools are available on `PATH` and report clearly if they are
+not. A missing tool only fails the formats that need it: nothing else checks for it up front. Input-argument consistency (e.g. `--format png` requires `--output
 <file>`) is handled separately.
 
 ## Rationale
@@ -50,7 +50,7 @@ clearly if they are not. Input-argument consistency (e.g. `--format png` require
 - The rendering capability of `guru.nidi.graphviz` (in-process PNG/SVG via Batik and V8) is the
   only part that cannot be replicated with a StringBuilder. Shelling out to `dot` achieves the
   same rendering quality, since `dot` is the canonical Graphviz renderer. The only trade-off is
-  a runtime rather than compile-time dependency — mitigated by `--doctor`.
+  a runtime rather than compile-time dependency — mitigated by `jpipe doctor`.
 - Text generation is straightforward to test: string assertions on the output are simpler and
   more readable than assertions on a library-specific object graph.
 - Keeping the library off the classpath removes a class of Shade transformer problems (see
@@ -62,9 +62,8 @@ clearly if they are not. Input-argument consistency (e.g. `--format png` require
   (ADR-0010), with no format-library dependency.
 - PNG and SVG export, when implemented, will invoke `dot` as a subprocess. `CompilerFactory`
   will build a pipeline that ends with a process-invocation sink rather than a `StringSink`.
-- External tool requirements are documented in the README. `--doctor` will check PATH
-  availability for each declared tool; it will be introduced alongside the first rendering
-  format.
+- External tool requirements are documented in the README. `jpipe doctor` checks PATH
+  availability for each declared tool; it is introduced alongside the first rendering format.
 - `guru.nidi.graphviz` is not added to any module's `pom.xml`. If a future need arises that
   cannot be satisfied by process invocation (e.g. embedding jPipe in an environment without
   a shell), the decision should be revisited with a new ADR.

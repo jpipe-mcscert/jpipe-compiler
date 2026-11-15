@@ -19,6 +19,16 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Changed
+- The compilation errors of `jpipe process` are now printed on standard error as
+  bare `file:line:column: error: message` lines, without a timestamp or logger
+  name, and no `--log-level` hides them: `--log-level OFF` used to leave only
+  `Compilation failed`, with no line or column (#186).
+- **Breaking:** `--log-level` now rejects an unknown level with exit code 2, as
+  `-f` does. It used to fall back to `ERROR` without a word (#186).
+- The `jpipe` launchers installed by Homebrew, Scoop and the Debian package no
+  longer refuse to start when Graphviz is missing. That blocked `jpipe doctor`,
+  which exists to diagnose it, and every format that does not need it; the image
+  formats still report a missing `dot` (#186).
 - Updated build and test dependencies to their current majors: JUnit 6
   (→ 6.1.3, Jupiter and Platform), Cucumber 8 (→ 8.0.4), Checkstyle 14
   (→ 14.4.0) and `json-schema-validator` 3 (→ 3.0.9). This lifts the JUnit 6
@@ -48,6 +58,14 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - `jpipe process -f PYTHON` on a model in which two elements share an id now
   fails like any other compile error, with exit code 1 and no stack trace
   (#182).
+- `jpipe --log-level=INFO …`, the form `--help` shows, is accepted when no
+  subcommand is given; it used to fail as an unknown option (#186).
+- An argument that happens to be a subcommand name, such as a model called
+  `doctor`, no longer stops `process` from being the default subcommand (#186).
+- `-V` on a subcommand (`jpipe process -V`) prints the version; it printed
+  nothing (#186).
+- The error for a missing Graphviz now suggests `jpipe doctor`; it suggested
+  `jpipe --doctor`, which does not exist (#186).
 
 ---
 

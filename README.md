@@ -138,8 +138,8 @@ After building from source, the fat JAR is at `jpipe-cli/target/jpipe-cli-*.jar`
 `process` subcommand is the default, so these two invocations are equivalent:
 
 ```bash
-java -jar jpipe-cli/target/jpipe-cli-*.jar -i my.jd -d MyModel -f dot
-java -jar jpipe-cli/target/jpipe-cli-*.jar process -i my.jd -d MyModel -f dot
+java -jar jpipe-cli/target/jpipe-cli-*.jar -i my.jd -m MyModel -f dot
+java -jar jpipe-cli/target/jpipe-cli-*.jar process -i my.jd -m MyModel -f dot
 ```
 
 ### Common flags
@@ -148,10 +148,10 @@ java -jar jpipe-cli/target/jpipe-cli-*.jar process -i my.jd -d MyModel -f dot
 |------|-------|-------------|
 | `--input FILE` | `-i` | Input `.jd` source file (default: stdin) |
 | `--output FILE` | `-o` | Output file (default: stdout) |
-| `--diagram NAME` | `-d` | Name of the model to export (required) |
+| `--model NAME` | `-m` | Name of the model to export (required) |
 | `--format FORMAT` | `-f` | Output format — see table below (default: `JPIPE`) |
 | `--headless` | | Suppress the logo banner (printed on stderr) |
-| `--log-level LEVEL` | | Log verbosity: `OFF` `ERROR` `WARN` `INFO` `DEBUG` `TRACE` |
+| `--log-level LEVEL` | | Log verbosity: `OFF` `ERROR` `WARN` `INFO` `DEBUG` `TRACE`. Compilation errors are shown at every level |
 
 ### Output formats
 
@@ -199,7 +199,7 @@ justification MyModel {
 Compile it to a DOT diagram:
 
 ```bash
-java -jar jpipe-cli/target/jpipe-cli-*.jar -i my.jd -d MyModel -f dot -o my.dot
+java -jar jpipe-cli/target/jpipe-cli-*.jar -i my.jd -m MyModel -f dot -o my.dot
 dot -Tpng my.dot -o my.png
 ```
 

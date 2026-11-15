@@ -12,7 +12,7 @@ import picocli.CommandLine.Option;
  * Parses a {@code .jd} source file and reports on it without exporting any
  * model, either as a human-readable report or as JSON for tooling.
  */
-@Command(name = "diagnostic", description = "Parse and report diagnostics without exporting.", mixinStandardHelpOptions = true)
+@Command(name = "diagnostic", description = "Parse and report diagnostics without exporting.", mixinStandardHelpOptions = true, versionProvider = Main.ManifestVersionProvider.class)
 class DiagnosticCommand extends InputOutputCommand {
 
 	/**

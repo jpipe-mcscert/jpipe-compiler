@@ -230,8 +230,8 @@ edge is reachable.
 **Type:** `Transformation<Unit, JustificationModel<?>>`  
 **Package:** `compiler.steps.transformations`
 
-Extracts one `JustificationModel` from the `Unit` by name (from the `-d` /
-`--diagram` CLI flag). When no name is given and the unit contains exactly one
+Extracts one `JustificationModel` from the `Unit` by name (from the `-m` /
+`--model` CLI flag). When no name is given and the unit contains exactly one
 model, that model is auto-selected. If the unit contains multiple models and no
 name is given, a `CompilationException` is thrown listing the available names.
 
@@ -282,7 +282,7 @@ module in which one function silently replaces the other.
 **Package:** `compiler.steps.transformations`
 
 Shells out to the `dot` command-line tool (Graphviz) to render DOT source to a
-binary image. The `dot` binary must be on `PATH`; `jpipe --doctor` checks for
+binary image. The `dot` binary must be on `PATH`; `jpipe doctor` checks for
 it. DOT source is written to `stdin` in a virtual thread while `stdout` is read
 in the caller thread, avoiding deadlock when the process pipe buffer is smaller
 than the input. Supports any format that `dot -T` accepts; the CLI uses

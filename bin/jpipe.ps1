@@ -14,13 +14,11 @@ if ($java -like '@@*@@') { $java = 'java' }
 $prefix = '@@PREFIX@@'
 if ($prefix -like '@@*@@') { $prefix = $PSScriptRoot }
 
+# Graphviz is deliberately not checked here: only the image formats need it,
+# the JAR reports a missing `dot` when one of them is asked for, and
+# `jpipe doctor`, which diagnoses exactly that, must be able to run.
 if (-not (Get-Command $java -ErrorAction SilentlyContinue)) {
-    Write-Host '[jpipe] Java not found'
-    exit 1
-}
-
-if (-not (Get-Command 'dot' -ErrorAction SilentlyContinue)) {
-    Write-Host '[jpipe] Graphviz not found'
+    [Console]::Error.WriteLine('[jpipe] Java not found')
     exit 1
 }
 

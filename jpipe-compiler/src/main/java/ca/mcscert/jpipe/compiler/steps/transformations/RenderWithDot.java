@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * <p>
  * The {@code dot} binary must be available on {@code PATH}. Use
- * {@code jpipe --doctor} to verify before running.
+ * {@code jpipe doctor} to verify before running.
  *
  * <p>
  * stdin is written in a virtual thread while stdout is read in the caller
@@ -41,7 +41,7 @@ public class RenderWithDot extends Transformation<String, byte[]> {
 			process = new ProcessBuilder("dot", "-T" + dotFormat).start();
 		} catch (IOException _) {
 			throw new CompilationException(stepName(),
-					"dot not found on PATH — install Graphviz or run 'jpipe --doctor'");
+					"dot not found on PATH — install Graphviz or run 'jpipe doctor'");
 		}
 
 		// Write dot source in a virtual thread to avoid deadlock when the

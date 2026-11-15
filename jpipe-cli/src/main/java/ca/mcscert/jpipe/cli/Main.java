@@ -43,23 +43,42 @@ public class Main {
 	boolean headless;
 
 	@Option(names = {
-			"--log-level"}, description = "Log verbosity: OFF, ERROR, WARN, INFO, DEBUG, TRACE (default: ERROR).")
-	void setLogLevel(String level) {
-		Configurator.setLevel("ca.mcscert.jpipe",
-				Level.toLevel(level, Level.ERROR));
+			"--log-level"}, paramLabel = "LEVEL", description = "Log verbosity: ${COMPLETION-CANDIDATES} (default: ERROR). Compilation errors are always shown.")
+	void setLogLevel(LogLevel level) {
+		Configurator.setLevel("ca.mcscert.jpipe", level.toLog4j());
 	}
 
 	/**
-	 * Inserts {@code "process"} into {@code args} when no subcommand name is
-	 * present, making {@code process} the effective default subcommand.
+	 * The levels {@code --log-level} accepts. Declared as an enum so that
+	 * picocli rejects anything else, as it does for {@code -f}, instead of
+	 * silently falling back to {@code ERROR} (#186).
+	 */
+	enum LogLevel {
+		OFF, ERROR, WARN, INFO, DEBUG, TRACE;
+
+		Level toLog4j() {
+			return Level.valueOf(name());
+		}
+	}
+
+	/**
+	 * Inserts {@code "process"} into {@code args} when no subcommand is given,
+	 * making {@code process} the effective default subcommand.
 	 *
 	 * <p>
 	 * Picocli 4.x has no built-in default-subcommand API, so we pre-process the
-	 * argument list. Subcommand names, help, and version flags are derived from
-	 * {@code cmd} at call time, so this method stays correct when subcommands
-	 * or parent options are added. The insertion point is placed after any
-	 * parent-level flags so that picocli attributes them to the parent command
-	 * correctly.
+	 * argument list. Parent-level flags come first, in either the
+	 * {@code --log-level INFO} or the {@code --log-level=INFO} form. The token
+	 * right after them decides: a subcommand name, or the help or version flag,
+	 * leaves the arguments as they are; anything else gets {@code process}
+	 * inserted in front of it. Only that position counts, so a model or a file
+	 * named like a subcommand further down the line is just an argument (#186).
+	 *
+	 * <p>
+	 * Subcommand names, help and version flags and the arity of each parent
+	 * flag are derived from {@code cmd} at call time, so this method stays
+	 * correct when subcommands or parent options are added. A parent flag
+	 * missing its value is left for picocli to report.
 	 */
 	static String[] withDefaultSubcommand(String[] args, CommandLine cmd) {
 		Set<String> shortCircuit = new HashSet<>(cmd.getSubcommands().keySet());
@@ -75,17 +94,15 @@ public class Main {
 			}
 		}
 
-		for (String arg : args) {
-			if (shortCircuit.contains(arg)) {
-				return args;
-			}
-		}
-
 		int insertAt = 0;
-		int i = 0;
-		while (i < args.length && parentFlags.containsKey(args[i])) {
-			i += 1 + parentFlags.get(args[i]);
-			insertAt = i;
+		int length = parentFlagLength(args, insertAt, parentFlags);
+		while (length > 0) {
+			insertAt += length;
+			length = parentFlagLength(args, insertAt, parentFlags);
+		}
+		if (insertAt > args.length || (insertAt < args.length
+				&& shortCircuit.contains(args[insertAt]))) {
+			return args;
 		}
 
 		String[] adjusted = new String[args.length + 1];
@@ -94,6 +111,27 @@ public class Main {
 		System.arraycopy(args, insertAt, adjusted, insertAt + 1,
 				args.length - insertAt);
 		return adjusted;
+	}
+
+	/**
+	 * How many tokens the parent flag at {@code args[at]} spans: one for
+	 * {@code --flag=value}, one plus its arity for {@code --flag value}, and
+	 * {@code 0} when that token is not a parent flag or is past the end.
+	 */
+	private static int parentFlagLength(String[] args, int at,
+			Map<String, Integer> parentFlags) {
+		if (at >= args.length) {
+			return 0;
+		}
+		String arg = args[at];
+		Integer arity = parentFlags.get(arg);
+		if (arity != null) {
+			return 1 + arity;
+		}
+		int equals = arg.indexOf('=');
+		return equals > 0 && parentFlags.containsKey(arg.substring(0, equals))
+				? 1
+				: 0;
 	}
 
 	/**

@@ -9,7 +9,7 @@ import picocli.CommandLine.Spec;
 /**
  * Checks that external tools required by jPipe are available on {@code PATH}.
  */
-@Command(name = "doctor", description = "Check that required external tools are available on PATH.", mixinStandardHelpOptions = true)
+@Command(name = "doctor", description = "Check that required external tools are available on PATH.", mixinStandardHelpOptions = true, versionProvider = Main.ManifestVersionProvider.class)
 class DoctorCommand implements Callable<Integer> {
 
 	@Spec

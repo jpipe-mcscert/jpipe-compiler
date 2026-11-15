@@ -264,11 +264,28 @@ error.
 ### Default subcommand
 
 PicoCLI 4.x has no built-in default-subcommand API. `Main.withDefaultSubcommand()`
-pre-processes the argument array: if no subcommand name (and no short-circuit
-flag like `--help` or `--version`) is found, it inserts `"process"` at the
-correct position — after any parent-level flags with their arguments. Subcommand
-names and parent flag arities are derived from the live `CommandLine` object at
-call time, so the method stays correct when the command tree changes.
+pre-processes the argument array. It skips the parent-level flags, in either the
+`--log-level INFO` or the `--log-level=INFO` form, and looks at the token right
+after them: a subcommand name, `--help` or `--version` leaves the arguments
+unchanged; anything else gets `"process"` inserted in front of it. Only that
+position counts, so `jpipe -i doc.jd -m doctor` exports a model named `doctor`.
+Subcommand names and parent flag arities are derived from the live
+`CommandLine` object at call time, so the method stays correct when the command
+tree changes.
+
+### Global options
+
+| Option | Description |
+|--------|-------------|
+| `--headless` | Do not print the logo. |
+| `--log-level LEVEL` | Verbosity of the compiler's trace on stderr: `OFF`, `ERROR` (default), `WARN`, `INFO`, `DEBUG`, `TRACE`, case-insensitive. Any other value is rejected. |
+| `-h`, `--help` / `-V`, `--version` | On the root command and on every subcommand. |
+
+**Diagnostics are not logs.** The diagnostics of a `process` run are printed on
+stderr as `file:line:column: severity: [code] message` through the dedicated
+`jpipe.diagnostics` logger (`ChainCompiler.DIAGNOSTICS_LOGGER`). It sits outside
+the `ca.mcscert.jpipe` hierarchy that `--log-level` tunes, so no level hides a
+compilation error.
 
 ## Exit codes
 
@@ -276,4 +293,5 @@ call time, so the method stays correct when the command tree changes.
 |------|----------|---------|
 | `0` | `EXIT_OK` | Success |
 | `1` | `EXIT_JPIPE_ERROR` | Compilation error or missing tool |
+| `2` | `CommandLine.ExitCode.USAGE` | Invalid command line: unknown option, invalid value (picocli) |
 | `42` | `EXIT_SYSTEM_ERROR` | Unexpected exception |
