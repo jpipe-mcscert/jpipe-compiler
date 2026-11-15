@@ -270,6 +270,12 @@ takes, raising `NotImplementedError` until written. The conclusion and
 sub-conclusions are emitted commented out, since the runner concludes them from
 what supports them unless they are bound.
 
+A model in which one id designates two elements cannot be exported, since both
+functions would be bound to that id. The consistency checker reports the cause
+(`no-duplicate-ids`, `unique-identifiers`) as a non-fatal error, so the step
+still runs; it then fails with a `CompilationException` rather than writing a
+module in which one function silently replaces the other.
+
 #### `RenderWithDot`
 
 **Type:** `Transformation<String, byte[]>`  

@@ -103,13 +103,15 @@ public class Main {
 	 * Both {@link #main(String[])} and the acceptance tests go through here, so
 	 * that tests exercise the same parser configuration users get — notably
 	 * case-insensitive enum values, which let {@code -f json} work as well as
-	 * {@code -f JSON}.
+	 * {@code -f JSON}, and the handler that turns an unexpected exception into
+	 * exit code 42.
 	 *
 	 * @return a {@link CommandLine} bound to a fresh {@link Main}.
 	 */
 	static CommandLine commandLine() {
 		return new CommandLine(new Main())
-				.setCaseInsensitiveEnumValuesAllowed(true);
+				.setCaseInsensitiveEnumValuesAllowed(true)
+				.setExecutionExceptionHandler(new UnexpectedErrorHandler());
 	}
 
 	public static void main(String[] args) {

@@ -126,6 +126,21 @@ class ShadedJarIT {
 				.getString("severity")).isEqualTo("fatal");
 	}
 
+	@Test
+	void aModelThePythonExportRefusesFailsWithoutAStackTrace()
+			throws IOException {
+		// Two elements share an id: the export refuses the model, and used to
+		// do so with a 40-line stack trace and exit 1 (#182).
+		Execution run = jpipe("--headless", "process", "-i",
+				example("invalid/000_duplicate_ids.jd"), "-m", "j", "-f",
+				"python");
+
+		assertThat(run.exitCode()).isEqualTo(Main.EXIT_JPIPE_ERROR);
+		assertThat(run.out()).isEmpty();
+		assertThat(run.err()).contains("[no-duplicate-ids]", "\"j:e\"")
+				.doesNotContain("\tat ");
+	}
+
 	// ── packaging-sensitive plumbing ─────────────────────────────────────────
 
 	@Test

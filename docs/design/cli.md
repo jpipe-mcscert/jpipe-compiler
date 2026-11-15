@@ -64,7 +64,12 @@ package "cli" {
   Main +-- DoctorCommand
 
   DoctorCommand ..> Doctor : calls
+  class UnexpectedErrorHandler <<IExecutionExceptionHandler>> {
+    + handleExecutionException(Exception, CommandLine, ParseResult) : int
+  }
+
   InputOutputCommand ..> Logo : calls (unless headless)
+  Main ..> UnexpectedErrorHandler : installs
 }
 
 @enduml
@@ -235,8 +240,7 @@ Abstract base for `ProcessCommand` and `DiagnosticCommand`. Handles:
   a file path; falls back to `System.out` for stdout.
 - **Error reporting** — catches `CompilationException` and
   `UnsupportedOperationException` and prints a clean `error: …` message to
-  stderr; any other exception produces `unexpected error: …` and returns exit
-  code `42`.
+  stderr.
 
 Subclasses implement `doCall(OutputStream)` and receive the resolved output
 stream.
@@ -246,6 +250,16 @@ stream.
 Package-private utility that probes each required external tool by attempting
 `ProcessBuilder` launch. Tools are configured in a static `LinkedHashMap` so
 that new dependencies can be added without changing `DoctorCommand`.
+
+### `UnexpectedErrorHandler`
+
+Installed on the root `CommandLine` by `Main.commandLine()`, so it covers every
+subcommand. Any exception a command did not handle — a bug, or a failure outside
+the compiler's control — is reported as one `internal error: …` line on stderr,
+with a pointer to the issue tracker, and exit code `42`. The stack trace is
+logged at `DEBUG`, so `--log-level DEBUG` shows it. Without the handler, picocli
+would print the trace and exit `1`, which reads as an ordinary compilation
+error.
 
 ### Default subcommand
 

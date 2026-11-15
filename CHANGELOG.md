@@ -41,6 +41,13 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - The logo banner is now printed on standard error. It used to start every
   export written to standard output, so `jpipe process` without `--headless`
   produced JSON, Python and images that could not be read (#175).
+- An unexpected failure now prints one `internal error: …` line and exits with
+  code 42, as documented, instead of a Java stack trace and exit code 1, which
+  looked like an ordinary compile error. `--log-level DEBUG` shows the trace
+  (#182).
+- `jpipe process -f PYTHON` on a model in which two elements share an id now
+  fails like any other compile error, with exit code 1 and no stack trace
+  (#182).
 
 ---
 
