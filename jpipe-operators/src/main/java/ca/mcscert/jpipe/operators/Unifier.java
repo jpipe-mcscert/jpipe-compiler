@@ -158,13 +158,12 @@ public final class Unifier {
 		Set<String> insertedUnified = new LinkedHashSet<>();
 		Set<String> seenEdges = new LinkedHashSet<>();
 		for (Command cmd : commands) {
-			if (cmd instanceof ElementCreationCommand ecc) {
-				appendElement(result, ecc, phase4Aliases, prototypes,
-						insertedUnified);
-			} else if (cmd instanceof AddSupport as) {
-				appendEdge(result, resultName, as, phase4Aliases, seenEdges);
-			} else {
-				result.add(cmd);
+			switch (cmd) {
+				case ElementCreationCommand ecc -> appendElement(result, ecc,
+						phase4Aliases, prototypes, insertedUnified);
+				case AddSupport as -> appendEdge(result, resultName, as,
+						phase4Aliases, seenEdges);
+				default -> result.add(cmd);
 			}
 		}
 		return result;
