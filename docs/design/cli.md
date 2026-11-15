@@ -53,7 +53,7 @@ package "cli" {
   }
 
   class Logo <<utility>> {
-    + {static} sout() : void
+    + {static} print() : void
   }
 
   InputOutputCommand <|-- ProcessCommand
@@ -179,9 +179,10 @@ that acts as the contract with consumers; it ships on the classpath at
 `/schema/diagnostic-report-v1.schema.json` and every report the test suite
 produces is validated against it.
 
-The ASCII logo is suppressed automatically when the JSON report goes to
-standard output, so `jpipe diagnostic -f json | jq .` works without
-`--headless`. Writing to a file with `-o` keeps the banner on stdout.
+The ASCII logo goes to standard error, so it never corrupts a report or an
+export written to standard output. It is also left out when the JSON report
+goes to standard output, since that is how tools call the command. Writing to a
+file with `-o` keeps it.
 
 **Reporting on a compilation that aborted.** A *fatal* error — a syntax error,
 an unresolvable `load` — stops the pipeline, but the report is still written in
@@ -228,7 +229,8 @@ otherwise.
 
 Abstract base for `ProcessCommand` and `DiagnosticCommand`. Handles:
 
-- **Logo display** — calls `Logo.sout()` unless `--headless` is set.
+- **Logo display** — calls `Logo.print()`, which writes to standard error,
+  unless `--headless` is set.
 - **Output stream resolution** — opens a `FileOutputStream` when `--output` is
   a file path; falls back to `System.out` for stdout.
 - **Error reporting** — catches `CompilationException` and

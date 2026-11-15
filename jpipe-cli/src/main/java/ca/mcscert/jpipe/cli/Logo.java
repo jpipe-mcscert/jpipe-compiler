@@ -1,6 +1,13 @@
 package ca.mcscert.jpipe.cli;
 
-/** Prints the jPipe ASCII-art logo to standard output. */
+/**
+ * Prints the jPipe ASCII-art logo to standard error.
+ *
+ * <p>
+ * The banner is a greeting for a human, never part of what a command produces:
+ * on standard output it would sit in front of every export and report written
+ * there, and corrupt the JSON, Python or image a caller pipes elsewhere (#175).
+ */
 final class Logo {
 
 	private static final String BANNER = """
@@ -16,7 +23,7 @@ final class Logo {
 	private Logo() {
 	}
 
-	static void sout() {
-		System.out.println(BANNER);
+	static void print() {
+		System.err.println(BANNER);
 	}
 }

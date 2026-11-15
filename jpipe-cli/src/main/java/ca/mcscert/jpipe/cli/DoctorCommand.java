@@ -22,7 +22,7 @@ class DoctorCommand implements Callable<Integer> {
 	@SuppressWarnings("java:S106") // intentional: doctor output goes to stdout
 	public Integer call() {
 		if (!parent.headless) {
-			Logo.sout();
+			Logo.print();
 		}
 		System.out.println(spec.root().version()[0]);
 		System.out.println("Checking external tools:");

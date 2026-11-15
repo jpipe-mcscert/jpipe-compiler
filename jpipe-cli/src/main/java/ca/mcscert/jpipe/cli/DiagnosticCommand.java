@@ -32,9 +32,10 @@ class DiagnosticCommand extends InputOutputCommand {
 	}
 
 	/**
-	 * The logo would sit in front of the JSON document and make it unparseable,
-	 * so it is suppressed whenever a machine-readable report goes to standard
-	 * output. Writing to a file keeps the banner: the two streams are separate.
+	 * The logo goes to standard error, so it can no longer corrupt the report.
+	 * It is still left out when a JSON report goes to standard output: that is
+	 * how tools call this command, and a tool that captures both streams has no
+	 * use for the banner. Writing to a file keeps it.
 	 */
 	@Override
 	protected boolean suppressLogo() {

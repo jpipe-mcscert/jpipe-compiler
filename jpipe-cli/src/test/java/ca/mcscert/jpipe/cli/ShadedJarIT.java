@@ -90,6 +90,19 @@ class ShadedJarIT {
 	}
 
 	@Test
+	void anExportToStdoutStaysParseableWithoutHeadless() throws IOException {
+		// The logo used to sit in front of every export written to stdout,
+		// and every test here ran with --headless, so none saw it (#175).
+		Execution run = jpipe("process", "-i", MINIMAL, "-m", "minimal", "-f",
+				"json");
+
+		assertThat(run.exitCode()).isZero();
+		assertThat(new JSONObject(run.out()).getString("name"))
+				.isEqualTo("minimal");
+		assertThat(run.err()).contains("McMaster");
+	}
+
+	@Test
 	void aFileWithValidationErrorsStillReportsAndExitsOne() throws IOException {
 		Execution run = jpipe("--headless", "diagnostic", "-i",
 				example("invalid/001_no_conclusion.jd"), "-f", "json");

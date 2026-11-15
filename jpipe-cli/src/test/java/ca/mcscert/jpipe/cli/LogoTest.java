@@ -9,15 +9,20 @@ import org.junit.jupiter.api.Test;
 class LogoTest {
 
 	@Test
-	void sout_prints_banner_to_stdout() {
-		PrintStream original = System.out;
-		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-		System.setOut(new PrintStream(buffer));
+	void print_writes_the_banner_to_stderr_and_nothing_to_stdout() {
+		PrintStream originalOut = System.out;
+		PrintStream originalErr = System.err;
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		ByteArrayOutputStream err = new ByteArrayOutputStream();
+		System.setOut(new PrintStream(out));
+		System.setErr(new PrintStream(err));
 		try {
-			Logo.sout();
+			Logo.print();
 		} finally {
-			System.setOut(original);
+			System.setOut(originalOut);
+			System.setErr(originalErr);
 		}
-		assertThat(buffer.toString()).contains("McSCert");
+		assertThat(err.toString()).contains("McSCert");
+		assertThat(out.toString()).isEmpty();
 	}
 }

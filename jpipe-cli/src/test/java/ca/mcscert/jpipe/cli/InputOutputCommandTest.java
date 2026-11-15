@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.function.IntSupplier;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -121,21 +122,52 @@ class InputOutputCommandTest {
 	}
 
 	@Test
-	void diagnostic_text_to_stdout_still_shows_the_logo() {
+	void the_logo_goes_to_stderr_and_never_to_stdout() {
 		String input = resourcePath("test_minimal.jd");
-		PrintStream original = System.out;
-		ByteArrayOutputStream captured = new ByteArrayOutputStream();
-		try (PrintStream redirected = new PrintStream(captured, true,
-				StandardCharsets.UTF_8)) {
-			System.setOut(redirected);
-			Main.commandLine().execute("diagnostic", "-i", input, "-o",
-					"<stdout>");
-		} finally {
-			System.setOut(original);
-		}
+		Captured run = capture(() -> Main.commandLine().execute("diagnostic",
+				"-i", input, "-o", "<stdout>"));
 
-		assertThat(captured.toString(StandardCharsets.UTF_8))
-				.contains("McMaster");
+		assertThat(run.err()).contains("McMaster");
+		assertThat(run.out()).doesNotContain("McMaster")
+				.startsWith("=== Diagnostics ===");
+	}
+
+	@Test
+	void process_json_to_stdout_emits_a_parseable_document_without_headless() {
+		// Every export written to stdout used to start with the logo (#175).
+		String input = resourcePath("test_minimal.jd");
+		Captured run = capture(() -> Main.commandLine().execute("process", "-i",
+				input, "-m", "minimal", "-f", "json"));
+
+		assertThat(run.exitCode()).isEqualTo(Main.EXIT_OK);
+		assertThat(new JSONObject(run.out()).getString("name"))
+				.isEqualTo("minimal");
+	}
+
+	/** What one invocation wrote to each stream, and how it exited. */
+	private record Captured(int exitCode, String out, String err) {
+	}
+
+	/** Runs {@code command} with both standard streams captured. */
+	private static Captured capture(IntSupplier command) {
+		PrintStream originalOut = System.out;
+		PrintStream originalErr = System.err;
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		ByteArrayOutputStream err = new ByteArrayOutputStream();
+		int exitCode;
+		try (PrintStream outStream = new PrintStream(out, true,
+				StandardCharsets.UTF_8);
+				PrintStream errStream = new PrintStream(err, true,
+						StandardCharsets.UTF_8)) {
+			System.setOut(outStream);
+			System.setErr(errStream);
+			exitCode = command.getAsInt();
+		} finally {
+			System.setOut(originalOut);
+			System.setErr(originalErr);
+		}
+		return new Captured(exitCode, out.toString(StandardCharsets.UTF_8),
+				err.toString(StandardCharsets.UTF_8));
 	}
 
 	private static String resourcePath(String name) {

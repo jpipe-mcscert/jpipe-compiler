@@ -36,7 +36,7 @@ abstract class InputOutputCommand implements Callable<Integer> {
 									// messages target stdout/stderr
 	public final Integer call() {
 		if (!parent.headless && !suppressLogo()) {
-			Logo.sout();
+			Logo.print();
 		}
 		try (FileOutputStream fileOut = output.equals(CompilationConfig.STDOUT)
 				? null

@@ -150,7 +150,7 @@ java -jar jpipe-cli/target/jpipe-cli-*.jar process -i my.jd -d MyModel -f dot
 | `--output FILE` | `-o` | Output file (default: stdout) |
 | `--diagram NAME` | `-d` | Name of the model to export (required) |
 | `--format FORMAT` | `-f` | Output format — see table below (default: `JPIPE`) |
-| `--headless` | | Suppress the logo banner |
+| `--headless` | | Suppress the logo banner (printed on stderr) |
 | `--log-level LEVEL` | | Log verbosity: `OFF` `ERROR` `WARN` `INFO` `DEBUG` `TRACE` |
 
 ### Output formats

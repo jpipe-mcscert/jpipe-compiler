@@ -37,6 +37,11 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   function name, which follows its label, an id, or the source path in the
   header.
 
+### Fixed
+- The logo banner is now printed on standard error. It used to start every
+  export written to standard output, so `jpipe process` without `--headless`
+  produced JSON, Python and images that could not be read (#175).
+
 ---
 
 ## [3.0.0] — 2026-11-10
