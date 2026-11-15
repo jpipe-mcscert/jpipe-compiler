@@ -16,7 +16,7 @@ class QualifiedIdsTest {
 	@ParameterizedTest
 	@CsvSource({"s, t:s", "u:s, u:s", "ns:u:s, ns:u:s"})
 	void qualifyIfPlain_qualifiesOnlyAPlainId(String id, String expected) {
-		assertThat(QualifiedIds.qualifyIfPlain(id, "t")).isEqualTo(expected);
+		assertThat(QualifiedIds.qualifyIfPlain("t", id)).isEqualTo(expected);
 	}
 
 	@ParameterizedTest

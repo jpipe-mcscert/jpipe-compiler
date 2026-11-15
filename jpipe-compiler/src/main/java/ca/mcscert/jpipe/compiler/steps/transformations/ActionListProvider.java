@@ -103,7 +103,14 @@ public final class ActionListProvider
 			logRule("exit: ", ctx);
 		}
 
+		/**
+		 * Traces one parse-tree node. Called on every enter and exit, so it
+		 * returns before computing anything when DEBUG is off.
+		 */
 		private void logRule(String event, ParserRuleContext ctx) {
+			if (!logger.isDebugEnabled()) {
+				return;
+			}
 			String rule = JPipeParser.ruleNames[ctx.getRuleIndex()];
 			int line = ctx.start.getLine();
 			int col = ctx.start.getCharPositionInLine();

@@ -112,7 +112,7 @@ public final class Unit {
 	public void recordLocation(String modelName, String elementId,
 			SourceLocation loc) {
 		if (loc.isKnown()) {
-			locations.put(key(modelName, elementId), loc);
+			locations.put(registryKey(modelName, elementId), loc);
 		}
 	}
 
@@ -121,7 +121,7 @@ public final class Unit {
 	 * {@link SourceLocation#UNKNOWN}.
 	 */
 	public SourceLocation locationOf(String modelName, String elementId) {
-		return locations.getOrDefault(key(modelName, elementId),
+		return locations.getOrDefault(registryKey(modelName, elementId),
 				SourceLocation.UNKNOWN);
 	}
 
@@ -130,7 +130,7 @@ public final class Unit {
 	 * {@code newId}.
 	 */
 	public void recordAlias(String modelName, String oldId, String newId) {
-		aliases.put(key(modelName, oldId), newId);
+		aliases.put(registryKey(modelName, oldId), newId);
 		findModel(modelName).ifPresent(m -> m.recordAlias(oldId, newId));
 	}
 
@@ -147,7 +147,7 @@ public final class Unit {
 	 * {@code id} itself if no alias was registered.
 	 */
 	public String resolveAlias(String modelName, String id) {
-		return aliases.getOrDefault(key(modelName, id), id);
+		return aliases.getOrDefault(registryKey(modelName, id), id);
 	}
 
 	public <R> R accept(JustificationVisitor<R> visitor) {
@@ -157,7 +157,7 @@ public final class Unit {
 	/**
 	 * Registry key of an element inside a model: {@code "modelName/elementId"}.
 	 */
-	private static String key(String modelName, String elementId) {
+	public static String registryKey(String modelName, String elementId) {
 		return modelName + "/" + elementId;
 	}
 }

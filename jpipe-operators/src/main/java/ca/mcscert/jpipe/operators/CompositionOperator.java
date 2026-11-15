@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.operators;
 
+import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
@@ -218,7 +219,7 @@ public abstract class CompositionOperator {
 			for (JustificationElement e : source.allElements()) {
 				all.add(new SourcedElement(e, source,
 						knownLocations.getOrDefault(
-								source.getName() + "/" + e.id(),
+								Unit.registryKey(source.getName(), e.id()),
 								SourceLocation.UNKNOWN)));
 			}
 		}

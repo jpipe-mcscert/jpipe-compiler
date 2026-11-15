@@ -62,6 +62,6 @@ public final class ModelReplicator {
 		if (prefix == null || prefix.isBlank()) {
 			return id;
 		}
-		return QualifiedIds.qualifyIfPlain(id, prefix);
+		return QualifiedIds.qualifyIfPlain(prefix, id);
 	}
 }

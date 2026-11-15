@@ -20,7 +20,7 @@ public final class QualifiedIds {
 	 * the rule template expansion applies: an id inherited from a grandparent
 	 * template already carries its qualifier and must not be qualified twice.
 	 */
-	public static String qualifyIfPlain(String id, String prefix) {
+	public static String qualifyIfPlain(String prefix, String id) {
 		return id.contains(":") ? id : qualify(prefix, id);
 	}
 

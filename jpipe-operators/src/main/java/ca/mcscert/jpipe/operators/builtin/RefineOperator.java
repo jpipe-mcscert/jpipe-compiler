@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.operators.builtin;
 
+import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
@@ -73,7 +74,7 @@ public final class RefineOperator extends CompositionOperator {
 		// Resolve through the unit alias map: the element may have been renamed
 		// by a prior composition step (e.g. unification after assemble).
 		String aliasedHookId = knownAliases.getOrDefault(
-				base.getName() + "/" + hookElementId, hookElementId);
+				Unit.registryKey(base.getName(), hookElementId), hookElementId);
 		// Normalize to the actual stored id via findById (which has a suffix
 		// fallback). This ensures isHookPair's id comparison matches even when
 		// the hook is referenced by its plain short id (e.g. "s" -> "t:s").

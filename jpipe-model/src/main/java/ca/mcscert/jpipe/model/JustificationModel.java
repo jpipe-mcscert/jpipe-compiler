@@ -366,9 +366,15 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		}
 		String parentName = parent.getName();
 		Map<String, Class<? extends JustificationElement>> map = new LinkedHashMap<>();
-		parent.allElements()
+		// Reads the parent's fields directly rather than through allElements(),
+		// which copies them: AddSupport calls this on every edge.
+		parent.conclusion()
+				.ifPresent(c -> map.put(
+						QualifiedIds.qualifyIfPlain(parentName, c.id()),
+						c.getClass()));
+		parent.getElements()
 				.forEach(e -> map.put(
-						QualifiedIds.qualifyIfPlain(e.id(), parentName),
+						QualifiedIds.qualifyIfPlain(parentName, e.id()),
 						e.getClass()));
 		return map;
 	}
@@ -432,7 +438,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 */
 	protected static JustificationElement qualifiedCopy(
 			JustificationElement elem, String prefix) {
-		String qualifiedId = QualifiedIds.qualifyIfPlain(elem.id(), prefix);
+		String qualifiedId = QualifiedIds.qualifyIfPlain(prefix, elem.id());
 		return switch (elem) {
 			case Evidence e -> new Evidence(qualifiedId, e.label());
 			case Strategy s -> new Strategy(qualifiedId, s.label());

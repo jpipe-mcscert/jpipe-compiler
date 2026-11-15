@@ -70,7 +70,7 @@ public final class ImplementsTemplate extends RegularCommand {
 	private void propagateLocations(Unit context, Template template) {
 		for (JustificationElement elem : template.allElements()) {
 			context.recordLocation(modelName,
-					QualifiedIds.qualifyIfPlain(elem.id(), templateName),
+					QualifiedIds.qualifyIfPlain(templateName, elem.id()),
 					context.locationOf(templateName, elem.id()));
 		}
 	}

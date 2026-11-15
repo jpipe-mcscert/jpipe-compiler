@@ -216,8 +216,8 @@ public class DotExporter extends AbstractModelExporter {
 					.filter(Strategy.class::isInstance)
 					.map(Strategy.class::cast)
 					.map(ps -> ps.getSupports().stream().map(SupportLeaf::id)
-							.map(leafId -> qualifyIfPlain(leafId,
-									parent.getName()))
+							.map(leafId -> qualifyIfPlain(parent.getName(),
+									leafId))
 							.map(qid -> leafNode(qid, true)).toList());
 		}).orElse(List.of());
 	}
@@ -259,13 +259,13 @@ public class DotExporter extends AbstractModelExporter {
 		String inner = indent + INDENT;
 		if (ancestor.hasOwnConclusion()) {
 			ancestor.conclusion().ifPresent(c -> appendClusterNode(
-					qualifyIfPlain(c.id(), ancName), c, inner));
+					qualifyIfPlain(ancName, c.id()), c, inner));
 		}
 		ancestor.ownElements()
-				.forEach(e -> appendClusterNode(qualifyIfPlain(e.id(), ancName),
+				.forEach(e -> appendClusterNode(qualifyIfPlain(ancName, e.id()),
 						e, inner));
 		ancestor.concreteOverrides()
-				.forEach(e -> appendClusterNode(qualifyIfPlain(e.id(), ancName),
+				.forEach(e -> appendClusterNode(qualifyIfPlain(ancName, e.id()),
 						e, inner));
 
 		// Recurse: grandparent cluster is nested inside this one
