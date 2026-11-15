@@ -79,6 +79,14 @@ Feature: Reporting on a compilation unit
       And the JSON report has a diagnostic with severity "fatal"
       And the JSON report describes no model
 
+  # Invalid bytes used to be replaced with U+FFFD and reach every export (#179).
+  Scenario: A source that is not UTF-8 is reported where the first invalid byte sits
+    Given the source file "invalid/026_not_utf8.jd"
+    When I run the diagnostic compiler with format "json"
+    Then the report signals errors
+      And the JSON report has a "fatal" diagnostic at line 11, column 28
+      And the JSON report describes no model
+
   Scenario: An aborted compilation still renders the text report
     Given the source file "invalid/025_syntax_error.jd"
     When I run the diagnostic compiler with format "text"

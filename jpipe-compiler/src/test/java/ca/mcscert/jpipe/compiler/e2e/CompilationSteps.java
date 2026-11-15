@@ -248,6 +248,19 @@ public class CompilationSteps {
 		assertThat(severitiesIn(jsonReport)).contains(severity);
 	}
 
+	@Then("the JSON report has a {string} diagnostic at line {int}, column {int}")
+	public void theJsonReportHasADiagnosticAt(String severity, int line,
+			int column) {
+		JSONArray diagnostics = jsonReport.getJSONArray("diagnostics");
+		List<String> located = new ArrayList<>();
+		for (int i = 0; i < diagnostics.length(); i++) {
+			JSONObject d = diagnostics.getJSONObject(i);
+			located.add(d.getString("severity") + "@" + d.optInt("line", -1)
+					+ ":" + d.optInt("column", -1));
+		}
+		assertThat(located).contains(severity + "@" + line + ":" + column);
+	}
+
 	@Then("the JSON report describes no model")
 	public void theJsonReportDescribesNoModel() {
 		assertThat(jsonReport.getJSONArray("models")).isEmpty();

@@ -99,8 +99,10 @@ Opens the source `.jd` file path supplied to `compile()` as a raw
 **Type:** `Transformation<InputStream, CharStream>`  
 **Package:** `compiler.steps.transformations`
 
-Wraps the raw `InputStream` in an ANTLR `CharStream` (UTF-8). Required before
-ANTLR lexing can proceed.
+Decodes the raw `InputStream` into an ANTLR `CharStream`. Required before
+ANTLR lexing can proceed. The source must be UTF-8: the first byte sequence
+that is not valid UTF-8 is a `FATAL`, located at its line and column (counted
+in code points, as the lexer counts them), rather than replaced with U+FFFD.
 
 #### `Lexer`
 
@@ -338,8 +340,9 @@ above.
 **Type:** `Sink<String>`  
 **Package:** `compiler.steps.io.sinks`
 
-Writes a `String` result to an `OutputStream` (typically `stdout`). Used by
-all text-format pipelines.
+Writes a `String` result to an `OutputStream` (typically `stdout`), always
+encoded as UTF-8, so that an export reads the same on standard output as in a
+file whatever the platform's charset. Used by all text-format pipelines.
 
 #### `ByteSink`
 
@@ -348,3 +351,7 @@ all text-format pipelines.
 
 Writes a `byte[]` result to an `OutputStream`. Used by image-format pipelines
 (`RenderWithDot` output).
+
+Both sinks flush the stream and raise a failed write as an `IOException`,
+including on a `PrintStream` such as `System.out`, which records errors rather
+than throwing them. The CLI reports it as a system error (exit code 42).

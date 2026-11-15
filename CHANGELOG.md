@@ -29,6 +29,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   longer refuse to start when Graphviz is missing. That blocked `jpipe doctor`,
   which exists to diagnose it, and every format that does not need it; the image
   formats still report a missing `dot` (#186).
+- **Breaking:** a source file that is not valid UTF-8 is now a fatal error,
+  located at the first invalid byte. Its bytes used to be replaced with `�`
+  without a word, so a file saved in Latin-1 compiled with mangled labels
+  (#179).
 - Updated build and test dependencies to their current majors: JUnit 6
   (→ 6.1.3, Jupiter and Platform), Cucumber 8 (→ 8.0.4), Checkstyle 14
   (→ 14.4.0) and `json-schema-validator` 3 (→ 3.0.9). This lifts the JUnit 6
@@ -73,6 +77,12 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - An `-o` that cannot be written (a directory, a read-only file, a missing
   directory) is reported as `error: cannot write '<path>': <reason>` before
   compiling, instead of `unexpected error: …` (#186).
+- Text exports and reports written to standard output are now always UTF-8.
+  They followed the terminal's encoding, so on a non-UTF-8 console, the Windows
+  console included, every non-ASCII letter became `?` (#179).
+- A failure to write an export or a report, such as a full disk or a closed
+  pipe, is now an error with exit code 42. Text formats used to exit 0 with an
+  empty or missing file (#179).
 
 ---
 

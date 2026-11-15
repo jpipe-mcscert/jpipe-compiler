@@ -171,6 +171,29 @@ class ShadedJarIT {
 		assertThat(previous).hasContent("precious");
 	}
 
+	@Test
+	void anExportToANonUtf8TerminalIsStillUtf8(@TempDir Path dir)
+			throws IOException {
+		// Output to stdout used to follow the terminal's charset, so on a
+		// non-UTF-8 console every non-ASCII letter became '?' (#179).
+		// No em dash: org.json writes that one as an escape sequence.
+		String label = "Le système est sûr, 安全";
+		Path source = Files.writeString(dir.resolve("accents.jd"),
+				"justification acc {\n    conclusion c is \"" + label
+						+ "\"\n    strategy s is \"S\"\n    evidence e is \"E\"\n"
+						+ "    s supports c\n    e supports s\n}\n",
+				StandardCharsets.UTF_8);
+
+		Execution run = run(
+				List.of(javaBinary(), "-Dstdout.encoding=US-ASCII", "-jar",
+						jarPath(), "--headless", "process", "-i",
+						source.toString(), "-m", "acc", "-f", "json"),
+				Map.of());
+
+		assertThat(run.exitCode()).isZero();
+		assertThat(run.out()).contains(label);
+	}
+
 	// ── packaging-sensitive plumbing ─────────────────────────────────────────
 
 	@Test
