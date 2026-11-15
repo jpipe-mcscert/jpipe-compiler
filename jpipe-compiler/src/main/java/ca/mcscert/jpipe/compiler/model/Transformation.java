@@ -9,9 +9,9 @@ import org.apache.logging.log4j.Logger;
  *
  * <p>
  * Concrete steps implement {@link #run}. Callers always go through
- * {@link #fire}, which adds logging, null-output detection, fast-fail on
- * accumulated fatal errors, and uniform error wrapping. Steps are composed via
- * {@link #andThen}.
+ * {@link #fire}, which adds logging, null-output detection and fast-fail on
+ * accumulated fatal errors. Exceptions raised by {@link #run} propagate
+ * unchanged. Steps are composed via {@link #andThen}.
  *
  * @param <I>
  *            input type.

@@ -124,7 +124,8 @@ The four roles:
 - **`Source<I>`** — reads the source file, produces the initial pipeline value
 - **`Transformation<I,O>`** — converts one type to another; subclasses
   implement `protected run(I, ctx)`, callers use `final fire(I, ctx)` which
-  handles logging, null detection, fatal fast-fail, and exception wrapping
+  handles logging, null detection and fatal fast-fail; exceptions from `run`
+  propagate unchanged
 - **`Checker<I>`** — `Transformation<I,I>`; guaranteed not to modify its input;
   used for validation steps
 - **`Sink<O>`** — serialises the final value to a file or stream
@@ -212,8 +213,9 @@ Architecture decisions live in `docs/adr/`. Notable ones:
 ## Development Conventions
 
 - **Diagnostics:** Use `CompilationContext` to report `ERROR` or `FATAL`
-  diagnostics. Avoid throwing raw exceptions; prefer wrapping in
-  `CompilationException` via the pipeline's `fire()` method.
+  diagnostics. Avoid throwing raw exceptions: `fire()` does not wrap them, so
+  a step that cannot continue reports through the context or throws
+  `CompilationException` itself.
 - **Pipeline steps:** New compilation phases must be implemented as
   `Transformation<I,O>` or `Checker<I>` subclasses and placed under
   `ca.mcscert.jpipe.compiler.steps`.

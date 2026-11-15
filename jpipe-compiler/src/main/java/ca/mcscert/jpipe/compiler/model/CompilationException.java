@@ -1,9 +1,13 @@
 package ca.mcscert.jpipe.compiler.model;
 
 /**
- * Unchecked exception thrown when a compilation step fails unexpectedly.
- * Checked exceptions thrown inside {@link Transformation#run} are wrapped here
- * so the pipeline can propagate them without polluting every call-site.
+ * Unchecked exception thrown when a compilation step cannot continue.
+ *
+ * <p>
+ * {@link Transformation#fire} throws it to fast-fail once the context holds a
+ * fatal error. A step throws it itself, wrapping any checked exception it
+ * meets, since {@link Transformation#run} declares none. {@code fire} does no
+ * wrapping: any other exception raised by {@code run} propagates unchanged.
  */
 public class CompilationException extends RuntimeException {
 
