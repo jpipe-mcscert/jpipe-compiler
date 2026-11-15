@@ -6,6 +6,7 @@ import static org.assertj.core.api.InstanceOfAssertFactories.LIST;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
+import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
 import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateEvidence;
@@ -111,9 +112,9 @@ class UnifierTest {
 			List<Command> result = unifier.unify(model(), cmds, Map.of());
 
 			// No e1 or e2 in result; unified_0 replaces both
-			assertThat(result.stream().filter(Unifier::isElement)
-					.map(Unifier::idOf)).doesNotContain("e1", "e2")
-					.contains("unified_0");
+			assertThat(
+					elementsOf(result).map(ElementCreationCommand::identifier))
+					.doesNotContain("e1", "e2").contains("unified_0");
 		}
 
 		@Test
@@ -124,8 +125,8 @@ class UnifierTest {
 							new CreateEvidence(model(), "e2", "shared")));
 			List<Command> result = unifier.unify(model(), cmds, Map.of());
 
-			assertThat(result.stream().filter(Unifier::isElement)
-					.map(Unifier::labelOf)).containsExactly("shared");
+			assertThat(elementsOf(result).map(ElementCreationCommand::label))
+					.containsExactly("shared");
 		}
 
 		@Test
@@ -195,8 +196,8 @@ class UnifierTest {
 							new CreateEvidence(model(), "e4", "group B")));
 			List<Command> result = unifier.unify(model(), cmds, Map.of());
 
-			assertThat(result.stream().filter(Unifier::isElement)
-					.map(Unifier::idOf))
+			assertThat(
+					elementsOf(result).map(ElementCreationCommand::identifier))
 					.containsExactlyInAnyOrder("unified_0", "unified_1");
 		}
 
@@ -262,9 +263,9 @@ class UnifierTest {
 			// Exclude e1 → e2 and e3 still form a group and get merged
 			List<Command> result = unifier.unify(model(), cmds,
 					Map.of("unifyExclude", "e1"));
-			assertThat(result.stream().filter(Unifier::isElement)
-					.map(Unifier::idOf)).contains("e1", "unified_0")
-					.doesNotContain("e2", "e3");
+			assertThat(
+					elementsOf(result).map(ElementCreationCommand::identifier))
+					.contains("e1", "unified_0").doesNotContain("e2", "e3");
 		}
 	}
 
@@ -296,10 +297,11 @@ class UnifierTest {
 			List<Command> result = unifier.unify(model(),
 					argued(subConclusionFirst), Map.of());
 
-			assertThat(result).filteredOn(Unifier::isElement)
-					.filteredOn(cmd -> "unified_0".equals(Unifier.idOf(cmd)))
+			assertThat(elementsOf(result).toList())
+					.filteredOn(cmd -> "unified_0".equals(cmd.identifier()))
 					.singleElement().isInstanceOf(CreateSubConclusion.class)
-					.extracting(Unifier::labelOf).isEqualTo(SHARED);
+					.extracting(ElementCreationCommand::label)
+					.isEqualTo(SHARED);
 		}
 
 		@Test
@@ -311,8 +313,8 @@ class UnifierTest {
 
 			List<Command> result = unifier.unify(model(), cmds, Map.of());
 
-			assertThat(result).filteredOn(Unifier::isElement)
-					.extracting(Unifier::idOf)
+			assertThat(elementsOf(result).toList())
+					.extracting(ElementCreationCommand::identifier)
 					.containsExactly("unified_0", "last");
 		}
 
@@ -409,8 +411,9 @@ class UnifierTest {
 			List<Command> result = new Unifier(registry).unify(model(), cmds,
 					Map.of("unifyBy", "sameShortId"));
 
-			assertThat(result).filteredOn(Unifier::isElement).singleElement()
-					.extracting(Unifier::labelOf).isEqualTo("first label");
+			assertThat(elementsOf(result).toList()).singleElement()
+					.extracting(ElementCreationCommand::label)
+					.isEqualTo("first label");
 		}
 	}
 
@@ -432,5 +435,13 @@ class UnifierTest {
 
 	private static String model() {
 		return MODEL;
+	}
+
+	/** The element-creation commands among {@code commands}, in order. */
+	private static Stream<ElementCreationCommand> elementsOf(
+			List<Command> commands) {
+		return commands.stream()
+				.filter(ElementCreationCommand.class::isInstance)
+				.map(ElementCreationCommand.class::cast);
 	}
 }

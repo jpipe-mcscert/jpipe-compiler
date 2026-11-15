@@ -8,6 +8,8 @@ import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -561,6 +563,91 @@ class JustificationModelTest {
 			assertThatThrownBy(() -> unit.get("nonexistent"))
 					.isInstanceOf(NoSuchElementException.class)
 					.hasMessageContaining("nonexistent");
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// JustificationModel: allElements, forEachSupportEdge
+	// -------------------------------------------------------------------------
+
+	@Nested
+	@DisplayName("Element and edge traversal (allElements, forEachSupportEdge)")
+	class Traversal {
+
+		private Justification model;
+
+		@BeforeEach
+		void setUp() {
+			model = new Justification("j");
+			Conclusion c = new Conclusion("c", "Overall");
+			Strategy s1 = new Strategy("s1", "By parts");
+			Strategy s2 = new Strategy("s2", "By part one");
+			SubConclusion sc = new SubConclusion("sc", "Part one holds");
+			Evidence e1 = new Evidence("e1", "Proof one");
+			Evidence e2 = new Evidence("e2", "Proof two");
+			model.setConclusion(c);
+			model.addElement(s1);
+			model.addElement(sc);
+			model.addElement(s2);
+			model.addElement(e1);
+			model.addElement(e2);
+			c.addSupport(s1);
+			sc.addSupport(s2);
+			s1.addSupport(sc);
+			s1.addSupport(e2);
+			s2.addSupport(e1);
+		}
+
+		@Test
+		@DisplayName("allElements lists the conclusion first, then the elements in model order")
+		void allElementsListsTheConclusionFirst() {
+			assertThat(model.allElements()).extracting(e -> e.id())
+					.containsExactly("c", "s1", "sc", "s2", "e1", "e2");
+		}
+
+		@Test
+		@DisplayName("allElements without a conclusion lists only the elements")
+		void allElementsWithoutAConclusion() {
+			Justification noConclusion = new Justification("j");
+			noConclusion.addElement(new Evidence("e", "Proof"));
+
+			assertThat(noConclusion.allElements()).extracting(e -> e.id())
+					.containsExactly("e");
+		}
+
+		@Test
+		@DisplayName("allElements is read-only")
+		void allElementsIsReadOnly() {
+			List<?> all = model.allElements();
+
+			assertThatThrownBy(() -> all.add(null))
+					.isInstanceOf(UnsupportedOperationException.class);
+		}
+
+		@Test
+		@DisplayName("forEachSupportEdge visits the conclusion, then sub-conclusions, then strategies")
+		void forEachSupportEdgeVisitsEdgesInOrder() {
+			List<String> edges = new ArrayList<>();
+
+			model.forEachSupportEdge((supported, supporter) -> edges
+					.add(supported + "<-" + supporter));
+
+			assertThat(edges).containsExactly("c<-s1", "sc<-s2", "s1<-sc",
+					"s1<-e2", "s2<-e1");
+		}
+
+		@Test
+		@DisplayName("forEachSupportEdge skips elements with no support")
+		void forEachSupportEdgeSkipsUnsupportedElements() {
+			Justification bare = new Justification("j");
+			bare.setConclusion(new Conclusion("c", "Overall"));
+			bare.addElement(new Strategy("s", "By parts"));
+			List<String> edges = new ArrayList<>();
+
+			bare.forEachSupportEdge((supported, supporter) -> edges
+					.add(supported + "<-" + supporter));
+
+			assertThat(edges).isEmpty();
 		}
 	}
 }

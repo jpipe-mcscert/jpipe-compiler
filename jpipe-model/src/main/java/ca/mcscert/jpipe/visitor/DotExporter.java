@@ -191,22 +191,23 @@ public class DotExporter extends AbstractModelExporter {
 	 * nodes.
 	 *
 	 * <p>
-	 * When the support list is empty — because {@link AbstractSupport} leaves
-	 * were excluded during template expansion for {@link Justification} models
-	 * — the parent template is consulted. Leaves that were overridden in the
-	 * current model resolve to the abstract ghost node
-	 * ({@link #ABSTRACT_SUFFIX}) because the template structural edge points to
-	 * the placeholder, not the concrete fulfilment.
+	 * Template expansion copies every leaf, {@link AbstractSupport}
+	 * placeholders included, so an inherited strategy keeps its supports and
+	 * takes the first branch. Only a strategy with no support at all in this
+	 * model falls back to the parent template's strategy of the same id, and
+	 * borrows its leaves.
+	 *
+	 * <p>
+	 * Either way, a leaf overridden in the current model resolves to the
+	 * abstract ghost node ({@link #ABSTRACT_SUFFIX}), because the template
+	 * structural edge points to the placeholder, not the concrete fulfilment.
 	 */
 	private List<String> leafEdgeSources(JustificationModel<?> model,
 			Strategy strategy) {
 		if (!strategy.getSupports().isEmpty()) {
 			boolean isInherited = inheritedIds.contains(strategy.id());
-			return strategy.getSupports().stream().map(SupportLeaf::id).map(
-					leafId -> (isInherited && allOverriddenIds.contains(leafId))
-							? qualify(leafId) + ABSTRACT_SUFFIX
-							: qualify(leafId))
-					.toList();
+			return strategy.getSupports().stream().map(SupportLeaf::id)
+					.map(leafId -> leafNode(leafId, isInherited)).toList();
 		}
 		return model.getParent().flatMap(parent -> {
 			String idInParent = stripParentPrefix(strategy.id(),
@@ -217,11 +218,19 @@ public class DotExporter extends AbstractModelExporter {
 					.map(ps -> ps.getSupports().stream().map(SupportLeaf::id)
 							.map(leafId -> qualifyIfPlain(leafId,
 									parent.getName()))
-							.map(qid -> allOverriddenIds.contains(qid)
-									? qualify(qid) + ABSTRACT_SUFFIX
-									: qualify(qid))
-							.toList());
+							.map(qid -> leafNode(qid, true)).toList());
 		}).orElse(List.of());
+	}
+
+	/**
+	 * The DOT node id of a strategy leaf: its abstract ghost node when it may
+	 * stand for an overridden placeholder ({@code inherited}) and was
+	 * overridden in the current model, its own node otherwise.
+	 */
+	private String leafNode(String leafId, boolean inherited) {
+		return inherited && allOverriddenIds.contains(leafId)
+				? qualify(leafId) + ABSTRACT_SUFFIX
+				: qualify(leafId);
 	}
 
 	// -------------------------------------------------------------------------

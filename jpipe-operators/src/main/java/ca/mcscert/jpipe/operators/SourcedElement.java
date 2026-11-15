@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.operators;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.elements.ElementView;
@@ -34,6 +35,6 @@ public record SourcedElement(JustificationElement element,
 	 * ({@code source:id}), the form a composed model gives it by default.
 	 */
 	public String qualifiedId() {
-		return source.getName() + ":" + element.id();
+		return QualifiedIds.qualify(source.getName(), element.id());
 	}
 }

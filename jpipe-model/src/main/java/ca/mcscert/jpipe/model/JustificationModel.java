@@ -376,10 +376,19 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	/**
 	 * Searches both the conclusion field and the elements list, so callers do
 	 * not need to know how the conclusion is stored.
+	 *
+	 * <p>
+	 * Command conditions call this on every pass of the execution engine, so it
+	 * reads the fields directly rather than going through
+	 * {@link #allElements()}, which copies the model's elements.
 	 */
 	public Optional<JustificationElement> findById(String id) {
-		Optional<JustificationElement> exact = allElements().stream()
-				.filter(e -> e.id().equals(id)).findFirst();
+		if (conclusion != null && conclusion.id().equals(id)) {
+			return Optional.of(conclusion);
+		}
+		Optional<JustificationElement> exact = elements.stream()
+				.filter(e -> e.id().equals(id))
+				.map(JustificationElement.class::cast).findFirst();
 		if (exact.isPresent()) {
 			return exact;
 		}

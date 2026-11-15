@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.compiler.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ca.mcscert.jpipe.model.SourceLocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -93,4 +94,28 @@ class CompilationContextTest {
 		assertThat(ctx.diagnostics().get(0).hasCode()).isFalse();
 	}
 
+	@Test
+	void errorAtAKnownLocation_carriesItsLineAndColumn() {
+		ctx.error("some-rule", new SourceLocation(12, 4), "broken");
+
+		assertThat(ctx.diagnostics()).singleElement()
+				.extracting(Diagnostic::level, Diagnostic::code,
+						Diagnostic::line, Diagnostic::column,
+						Diagnostic::message)
+				.containsExactly(Diagnostic.Level.ERROR, "some-rule", 12, 4,
+						"broken");
+	}
+
+	@Test
+	void errorAtAnUnknownLocation_isReportedWithoutOne() {
+		ctx.error("some-rule", SourceLocation.UNKNOWN, "broken");
+
+		assertThat(ctx.diagnostics()).singleElement()
+				.extracting(Diagnostic::code, Diagnostic::source,
+						Diagnostic::line, Diagnostic::column)
+				.containsExactly("some-rule", "file.jd",
+						Diagnostic.UNKNOWN_LOCATION,
+						Diagnostic.UNKNOWN_LOCATION);
+		assertThat(ctx.hasFatalErrors()).isFalse();
+	}
 }

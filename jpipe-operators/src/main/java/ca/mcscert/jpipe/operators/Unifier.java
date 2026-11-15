@@ -293,24 +293,6 @@ public final class Unifier {
 				.collect(Collectors.toUnmodifiableSet());
 	}
 
-	/**
-	 * Returns true for commands that create a model element (not a model
-	 * itself).
-	 */
-	static boolean isElement(Command cmd) {
-		return cmd instanceof ElementCreationCommand;
-	}
-
-	/** Extracts the element id from an element-creation command. */
-	static String idOf(Command cmd) {
-		return ((ElementCreationCommand) cmd).identifier();
-	}
-
-	/** Extracts the label from an element-creation command. */
-	static String labelOf(Command cmd) {
-		return ((ElementCreationCommand) cmd).label();
-	}
-
 	private static String resolve(String id, Map<String, String> aliases) {
 		return aliases.getOrDefault(id, id);
 	}

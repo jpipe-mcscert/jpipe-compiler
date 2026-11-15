@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.operators;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.MarkUnified;
@@ -252,8 +253,10 @@ public abstract class CompositionOperator {
 					continue;
 				}
 				String oldId = entry.getKey().substring(prefix.length());
-				String qualOldId = qualId(source, oldId);
-				String qualIntermId = qualId(source, entry.getValue());
+				String qualOldId = QualifiedIds.qualify(source.getName(),
+						oldId);
+				String qualIntermId = QualifiedIds.qualify(source.getName(),
+						entry.getValue());
 				String finalId = aliases.resolve(qualIntermId);
 				if (!qualOldId.equals(finalId)) {
 					aliases.register(finalId, qualOldId);
@@ -288,8 +291,10 @@ public abstract class CompositionOperator {
 			String resultName, AliasRegistry aliases,
 			JustificationModel<?> source, String supportableId,
 			String supporterId) {
-		String newSupportable = aliases.resolve(qualId(source, supportableId));
-		String newSupporter = aliases.resolve(qualId(source, supporterId));
+		String newSupportable = aliases
+				.resolve(QualifiedIds.qualify(source.getName(), supportableId));
+		String newSupporter = aliases
+				.resolve(QualifiedIds.qualify(source.getName(), supporterId));
 		String key = newSupportable + "->" + newSupporter;
 		if (seen.add(key)) {
 			commands.add(
@@ -305,15 +310,10 @@ public abstract class CompositionOperator {
 	 */
 	private static List<Command> carryForwardUnifiedIds(String resultName,
 			List<JustificationModel<?>> sources) {
-		return sources.stream()
-				.flatMap(
-						source -> source.unifiedIds().stream()
-								.map(unified -> (Command) new MarkUnified(
-										resultName, qualId(source, unified))))
+		return sources.stream().flatMap(source -> source.unifiedIds().stream()
+				.map(unified -> (Command) new MarkUnified(resultName,
+						QualifiedIds.qualify(source.getName(), unified))))
 				.toList();
 	}
 
-	private static String qualId(JustificationModel<?> source, String id) {
-		return source.getName() + ":" + id;
-	}
 }

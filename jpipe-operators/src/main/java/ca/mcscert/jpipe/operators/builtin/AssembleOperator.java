@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.operators.builtin;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
@@ -118,7 +119,8 @@ public final class AssembleOperator extends CompositionOperator {
 		for (JustificationModel<?> source : sources) {
 			source.conclusion()
 					.ifPresent(c -> commands.add(new AddSupport(resultName,
-							STRATEGY_ID, source.getName() + ":" + c.id())));
+							STRATEGY_ID,
+							QualifiedIds.qualify(source.getName(), c.id()))));
 		}
 
 		// New strategy supports new conclusion

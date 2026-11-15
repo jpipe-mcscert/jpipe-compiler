@@ -9,6 +9,11 @@ public final class QualifiedIds {
 	private QualifiedIds() {
 	}
 
+	/** Returns {@code id} qualified with {@code prefix}: {@code prefix:id}. */
+	public static String qualify(String prefix, String id) {
+		return prefix + ":" + id;
+	}
+
 	/**
 	 * Returns {@code id} qualified with {@code prefix} when it is a plain id
 	 * (no colon), or {@code id} unchanged when it is already qualified. This is
@@ -16,7 +21,7 @@ public final class QualifiedIds {
 	 * template already carries its qualifier and must not be qualified twice.
 	 */
 	public static String qualifyIfPlain(String id, String prefix) {
-		return id.contains(":") ? id : prefix + ":" + id;
+		return id.contains(":") ? id : qualify(prefix, id);
 	}
 
 	/** Returns the last colon-separated segment of {@code id}. */
