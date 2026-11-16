@@ -63,8 +63,8 @@ PC --> CompilerFactory : List<Command>
 CompilerFactory -> UB : DuplicateModelFilter → … → CompletenessChecker
 UB --> CompilerFactory : Unit
 CompilerFactory -> SelectModel : run(Unit)
-SelectModel --> CompilerFactory : JustificationModel<?>
-CompilerFactory -> ExportToDot : run(JustificationModel<?>)
+SelectModel --> CompilerFactory : JustificationModel
+CompilerFactory -> ExportToDot : run(JustificationModel)
 ExportToDot --> CompilerFactory : String (DOT source)
 
 note over CompilerFactory
@@ -290,7 +290,7 @@ edge is reachable.
 
 #### `SelectModel`
 
-**Type:** `Transformation<Unit, JustificationModel<?>>`  
+**Type:** `Transformation<Unit, JustificationModel>`  
 **Package:** `compiler.steps.transformations`
 
 Extracts one `JustificationModel` from the `Unit` by name (from the `-m` /
@@ -300,7 +300,7 @@ name is given, a `CompilationException` is thrown listing the available names.
 
 #### `ExportToDot`
 
-**Type:** `Transformation<JustificationModel<?>, String>`  
+**Type:** `Transformation<JustificationModel, String>`  
 **Package:** `compiler.steps.transformations`
 
 Serializes a model to a Graphviz DOT string using `DotExporter` (a
@@ -309,14 +309,14 @@ colorblind-safe (see ADR-0014).
 
 #### `ExportToJson`
 
-**Type:** `Transformation<JustificationModel<?>, String>`  
+**Type:** `Transformation<JustificationModel, String>`  
 **Package:** `compiler.steps.transformations`
 
 Serializes a model to a JSON string using `JsonExporter`.
 
 #### `ExportToJpipe`
 
-**Type:** `Transformation<JustificationModel<?>, String>`  
+**Type:** `Transformation<JustificationModel, String>`  
 **Package:** `compiler.steps.transformations`
 
 Serializes a model back to canonical jPipe source syntax using `JpipeExporter`.
@@ -324,7 +324,7 @@ Useful for normalisation or round-trip testing.
 
 #### `ExportToPython`
 
-**Type:** `Transformation<JustificationModel<?>, String>`  
+**Type:** `Transformation<JustificationModel, String>`  
 **Package:** `compiler.steps.transformations`
 
 Serializes a model as a step-library skeleton for jpipe-runner 4 using

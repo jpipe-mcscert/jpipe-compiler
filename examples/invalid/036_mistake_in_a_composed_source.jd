@@ -1,0 +1,35 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// 'a' has a mistake of its own (line 16). It is reported there, and 'a' is
+// still composed as far as it got: 'r' and 'q' are built, and nothing else is
+// reported.
+justification a {
+    conclusion c is "C"
+    strategy   s is "S"
+    evidence   e is "E"
+    s supports c
+    e supports s
+    typo supports s
+}
+
+justification b {
+    conclusion c is "Another C"
+    strategy   s is "Another S"
+    evidence   e is "Another E"
+    s supports c
+    e supports s
+}
+
+justification r is assemble(a, b) {
+    conclusionLabel: "R"
+    strategyLabel:   "SR"
+}
+
+justification q is assemble(r, b) {
+    conclusionLabel: "Q"
+    strategyLabel:   "SQ"
+}

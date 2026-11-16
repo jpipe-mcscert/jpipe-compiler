@@ -30,28 +30,26 @@ class ApplyOperatorTest {
 
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
-				List<JustificationModel<?>> sources,
-				Map<String, String> arguments,
+				List<JustificationModel> sources, Map<String, String> arguments,
 				Map<String, String> knownAliases) {
 			return (a, b) -> false;
 		}
 
 		@Override
-		protected MergeFunction mergeFunction(
-				List<JustificationModel<?>> sources,
+		protected MergeFunction mergeFunction(List<JustificationModel> sources,
 				Map<String, String> arguments) {
 			return (r, g, a) -> List.of();
 		}
 
 		@Override
 		protected Command createResultModel(String name,
-				SourceLocation location, List<JustificationModel<?>> sources,
+				SourceLocation location, List<JustificationModel> sources,
 				Map<String, String> arguments) {
 			return new CreateJustification(name);
 		}
 
 		@Override
-		public ModelKind resultKind(List<JustificationModel<?>> sources,
+		public ModelKind resultKind(List<JustificationModel> sources,
 				Map<String, String> args) {
 			return kind;
 		}

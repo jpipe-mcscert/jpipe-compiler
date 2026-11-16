@@ -52,7 +52,7 @@ public final class ConsistencyValidator {
 	public List<Violation> validate(Unit unit) {
 		ValidationContext ctx = ValidationContext.of(unit);
 		List<Violation> violations = new ArrayList<>();
-		for (JustificationModel<?> model : unit.getModels()) {
+		for (JustificationModel model : unit.getModels()) {
 			// A model that could not be built in full has its cause reported
 			// already: see Unit.markIncomplete.
 			if (unit.isComplete(model.getName())) {
@@ -67,7 +67,7 @@ public final class ConsistencyValidator {
 	 * Validates a single model without location data. All violations carry
 	 * {@link SourceLocation#UNKNOWN}.
 	 */
-	public List<Violation> validateModel(JustificationModel<?> model) {
+	public List<Violation> validateModel(JustificationModel model) {
 		ValidationContext ctx = ValidationContext.STANDALONE;
 		List<Violation> violations = new ArrayList<>(checkModel(model, ctx));
 		violations.addAll(checkAcyclicImplements(List.of(model), ctx));
@@ -77,7 +77,7 @@ public final class ConsistencyValidator {
 	// -------------------------------------------------------------------------
 
 	/** The rules that inspect one model on its own. */
-	private List<Violation> checkModel(JustificationModel<?> model,
+	private List<Violation> checkModel(JustificationModel model,
 			ValidationContext ctx) {
 		List<Violation> violations = new ArrayList<>();
 		violations.addAll(checkNoDuplicateIds(model, ctx));
@@ -86,7 +86,7 @@ public final class ConsistencyValidator {
 		return violations;
 	}
 
-	private List<Violation> checkNoDuplicateIds(JustificationModel<?> model,
+	private List<Violation> checkNoDuplicateIds(JustificationModel model,
 			ValidationContext ctx) {
 		List<Violation> violations = new ArrayList<>();
 		Set<String> seen = new HashSet<>();
@@ -113,7 +113,7 @@ public final class ConsistencyValidator {
 	 * rejects the whole model rather than guess. Element ids alone are covered
 	 * by {@code no-duplicate-ids}; what this adds is the aliases.
 	 */
-	private List<Violation> checkUniqueIdentifiers(JustificationModel<?> model,
+	private List<Violation> checkUniqueIdentifiers(JustificationModel model,
 			ValidationContext ctx) {
 		Set<String> elementIds = elementIdsOf(model);
 		Map<String, String> designated = new HashMap<>();
@@ -140,7 +140,7 @@ public final class ConsistencyValidator {
 	}
 
 	/** Element ids of {@code model}, conclusion included. */
-	private static Set<String> elementIdsOf(JustificationModel<?> model) {
+	private static Set<String> elementIdsOf(JustificationModel model) {
 		Set<String> ids = new HashSet<>();
 		model.allElements().forEach(element -> ids.add(element.id()));
 		return ids;
@@ -150,7 +150,7 @@ public final class ConsistencyValidator {
 	 * Follows {@code id} through the alias map until it reaches an element of
 	 * {@code model}, or {@code null} if it reaches none or loops.
 	 */
-	private static String elementDesignatedBy(JustificationModel<?> model,
+	private static String elementDesignatedBy(JustificationModel model,
 			Set<String> elementIds, String id) {
 		Set<String> visited = new HashSet<>();
 		String current = id;
@@ -166,7 +166,7 @@ public final class ConsistencyValidator {
 		return null;
 	}
 
-	private List<Violation> checkAcyclicSupport(JustificationModel<?> model,
+	private List<Violation> checkAcyclicSupport(JustificationModel model,
 			ValidationContext ctx) {
 		// Build a support-edge map: id → list of ids of the elements it is
 		// supported by
@@ -187,7 +187,7 @@ public final class ConsistencyValidator {
 	}
 
 	private List<Violation> checkAcyclicImplements(
-			Collection<JustificationModel<?>> models, ValidationContext ctx) {
+			Collection<JustificationModel> models, ValidationContext ctx) {
 		List<Violation> violations = new ArrayList<>();
 		GraphCycles
 				.detect(models, JustificationModel::getName,
@@ -202,9 +202,9 @@ public final class ConsistencyValidator {
 	/**
 	 * Returns the direct parent of {@code model} as a singleton list, or empty.
 	 */
-	private static List<JustificationModel<?>> parentsOf(
-			JustificationModel<?> model) {
-		List<JustificationModel<?>> result = new ArrayList<>(1);
+	private static List<JustificationModel> parentsOf(
+			JustificationModel model) {
+		List<JustificationModel> result = new ArrayList<>(1);
 		model.getParent().ifPresent(result::add);
 		return result;
 	}

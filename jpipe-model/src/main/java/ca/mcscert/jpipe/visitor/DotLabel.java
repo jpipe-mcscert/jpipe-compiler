@@ -64,7 +64,7 @@ final class DotLabel {
 	 * with {@code <<template>>} to distinguish them from concrete
 	 * justifications.
 	 */
-	static String display(JustificationModel<?> model) {
+	static String display(JustificationModel model) {
 		return model instanceof Template
 				? "<<template>> " + model.getName()
 				: model.getName();

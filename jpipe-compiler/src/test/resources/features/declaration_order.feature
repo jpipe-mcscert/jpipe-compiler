@@ -33,8 +33,9 @@ Feature: The order of declarations does not change what a model means
     Given the source file "invalid/034_own_conclusion_when_implementing.jd"
     When I run the diagnostic compiler with format "json"
     Then the report signals errors
-      And the JSON report has a diagnostic with code "inherited-conclusion" at line 18
-      And the JSON report has a diagnostic with code "inherited-conclusion" at line 31
+      And the JSON report has a diagnostic with code "inherited-conclusion" at line 19
+      And the JSON report has a diagnostic with code "inherited-conclusion" at line 32
+      And the JSON report has no diagnostic with code "unknown-element"
 
   Scenario: A short id that names several inherited elements is an error
     Given the source file "invalid/035_ambiguous_short_id.jd"

@@ -126,8 +126,7 @@ public final class AddSupport extends RegularCommand {
 	 * id, or the one inherited element whose id ends with it. Several inherited
 	 * ones are an ambiguity, reported rather than settled by order (#177).
 	 */
-	private JustificationElement resolve(JustificationModel<?> model,
-			String id) {
+	private JustificationElement resolve(JustificationModel model, String id) {
 		if (!id.contains(":")) {
 			List<JustificationElement> inherited = model.inheritedMatches(id);
 			boolean own = model.getElements().stream()

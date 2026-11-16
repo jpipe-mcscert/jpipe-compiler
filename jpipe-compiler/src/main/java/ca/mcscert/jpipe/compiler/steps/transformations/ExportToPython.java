@@ -17,12 +17,10 @@ import ca.mcscert.jpipe.visitor.PythonExporter;
  * already reported the cause as an error, so the refusal ends the compilation
  * like any other failed step, rather than as an unexpected exception (#182).
  */
-public class ExportToPython
-		extends
-			Transformation<JustificationModel<?>, String> {
+public class ExportToPython extends Transformation<JustificationModel, String> {
 
 	@Override
-	protected String run(JustificationModel<?> input, CompilationContext ctx) {
+	protected String run(JustificationModel input, CompilationContext ctx) {
 		try {
 			return new PythonExporter().export(input, ctx.sourcePath());
 		} catch (AmbiguousIdentifierException e) {

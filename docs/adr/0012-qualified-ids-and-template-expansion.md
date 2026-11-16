@@ -87,8 +87,11 @@ When `ImplementsTemplate(modelName, templateName)` executes:
 `JustificationModel.findById(id)` resolves in two passes:
 
 1. **Exact match** — returns the element whose id equals `id`.
-2. **Short-name fallback** — if no exact match, returns the inherited element,
-   the inherited conclusion included, whose id ends with `:{id}`.
+2. **Short-name fallback** — if no exact match, returns the inherited element
+   whose id ends with `:{id}`, the inherited conclusion last. A model that
+   implements a template may only reach, among inherited elements, the
+   `@support` placeholders it overrides: naming the inherited conclusion or a
+   strategy is a `reference-into-template` error.
 
 This makes source-level plain ids transparent in `AddSupport` and similar
 commands: `e1 supports s` resolves correctly whether `s` is own or inherited.

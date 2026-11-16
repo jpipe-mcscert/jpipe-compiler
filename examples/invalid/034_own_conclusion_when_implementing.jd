@@ -5,7 +5,8 @@
  *********************************/
 
 // A model that implements a template inherits its conclusion: declaring its
-// own is an error (lines 18 and 31), whichever of the two is declared first.
+// own is an error (lines 19 and 32), whichever of the two is declared first.
+// A relation into the rejected conclusion adds no error of its own.
 template t {
     conclusion c   is "A conclusion"
     strategy   s   is "A strategy"
@@ -30,4 +31,8 @@ template u {
 justification after implements t {
     conclusion mine is "My own conclusion"
     evidence t:abs is "An evidence"
+    strategy   own is "A strategy for the rejected conclusion"
+    evidence   why is "An evidence for it"
+    own supports mine
+    why supports own
 }

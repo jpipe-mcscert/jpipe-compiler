@@ -9,17 +9,14 @@ import java.util.function.Predicate;
 @FunctionalInterface
 public interface PendingCommands {
 
-	/** Whether some pending command satisfies {@code filter}. */
-	boolean any(Predicate<? super Command> filter);
+	/** No command pending: what a command sees when nothing holds it back. */
+	PendingCommands NONE = (model, except) -> false;
 
 	/**
-	 * Whether some pending command creates or changes {@code model}, other than
-	 * those {@code except} accepts.
+	 * Whether some pending command creates or changes {@code model} (see
+	 * {@link Command#target()}), other than those {@code except} accepts.
 	 */
-	default boolean target(String model, Predicate<? super Command> except) {
-		return any(c -> c.target().filter(model::equals).isPresent()
-				&& !except.test(c));
-	}
+	boolean target(String model, Predicate<? super Command> except);
 
 	/** Whether some pending command creates or changes {@code model}. */
 	default boolean target(String model) {

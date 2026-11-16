@@ -76,7 +76,7 @@ public final class OverrideAbstractSupport implements MacroCommand {
 
 	@Override
 	public List<Command> expand(Unit unit) {
-		JustificationModel<?> model = unit.get(container);
+		JustificationModel model = unit.get(container);
 		AbstractSupport old = (AbstractSupport) model.findById(qualifiedId)
 				.orElseThrow(() -> new NoSuchElementException(
 						"No abstract support with id: " + qualifiedId));

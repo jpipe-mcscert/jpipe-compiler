@@ -60,7 +60,7 @@ public final class AssembleOperator extends CompositionOperator {
 	public static final String CONCLUSION_ID = "assembleConclusion";
 
 	@Override
-	public ModelKind resultKind(List<JustificationModel<?>> sources,
+	public ModelKind resultKind(List<JustificationModel> sources,
 			Map<String, String> args) {
 		return sources.stream().anyMatch(Template.class::isInstance)
 				? ModelKind.TEMPLATE
@@ -74,8 +74,7 @@ public final class AssembleOperator extends CompositionOperator {
 
 	@Override
 	protected Command createResultModel(String name, SourceLocation location,
-			List<JustificationModel<?>> sources,
-			Map<String, String> arguments) {
+			List<JustificationModel> sources, Map<String, String> arguments) {
 		return resultKind(sources, arguments) == ModelKind.TEMPLATE
 				? new CreateTemplate(name, location)
 				: new CreateJustification(name, location);
@@ -83,13 +82,13 @@ public final class AssembleOperator extends CompositionOperator {
 
 	@Override
 	protected EquivalenceRelation equivalenceRelation(
-			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			List<JustificationModel> sources, Map<String, String> arguments,
 			Map<String, String> knownAliases) {
 		return (a, b) -> false; // no merging — every element is its own group
 	}
 
 	@Override
-	protected MergeFunction mergeFunction(List<JustificationModel<?>> sources,
+	protected MergeFunction mergeFunction(List<JustificationModel> sources,
 			Map<String, String> arguments) {
 		return (resultName, group, aliases) -> {
 			SourcedElement se = group.members().getFirst();
@@ -105,7 +104,7 @@ public final class AssembleOperator extends CompositionOperator {
 
 	@Override
 	protected List<Command> additionalCommands(String resultName,
-			List<JustificationModel<?>> sources, AliasRegistry aliases,
+			List<JustificationModel> sources, AliasRegistry aliases,
 			Map<String, String> args) {
 		List<Command> commands = new ArrayList<>();
 
@@ -116,7 +115,7 @@ public final class AssembleOperator extends CompositionOperator {
 				args.get("conclusionLabel")));
 
 		// Each demoted conclusion supports the new aggregating strategy
-		for (JustificationModel<?> source : sources) {
+		for (JustificationModel source : sources) {
 			source.conclusion()
 					.ifPresent(c -> commands.add(new AddSupport(resultName,
 							STRATEGY_ID,

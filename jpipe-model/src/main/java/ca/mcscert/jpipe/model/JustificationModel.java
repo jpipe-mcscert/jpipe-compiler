@@ -27,7 +27,6 @@ import java.util.function.BiConsumer;
  * (abstract/reusable).
  *
  * <p>
- * The type parameter {@code E} is the type of the elements the model holds.
  * Both kinds of model hold any {@link JustificationElement}: a
  * {@link Justification} that implements a template holds the template's
  * {@link ca.mcscert.jpipe.model.elements.AbstractSupport} placeholders until
@@ -47,13 +46,13 @@ import java.util.function.BiConsumer;
  * {@link ca.mcscert.jpipe.model.validation.ConsistencyValidator} and
  * {@link ca.mcscert.jpipe.model.validation.CompletenessValidator} directly.
  */
-public abstract sealed class JustificationModel<E extends JustificationElement>
+public abstract sealed class JustificationModel
 		permits Justification, Template {
 
 	private final String name;
 	private Conclusion conclusion;
 	private Template parent = null;
-	private final List<E> elements = new ArrayList<>();
+	private final List<JustificationElement> elements = new ArrayList<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
 	private final Set<String> unifiedIds = new LinkedHashSet<>();
 
@@ -138,7 +137,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Rejects {@link Conclusion} — use {@link #setConclusion(Conclusion)}
 	 * instead.
 	 */
-	public void addElement(E element) {
+	public void addElement(JustificationElement element) {
 		if (element instanceof Conclusion) {
 			throw new IllegalArgumentException(
 					"Use setConclusion() to assign the conclusion of a model");
@@ -188,15 +187,8 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 
 		// Step 3: add copies to this model
 		copies.values().stream().filter(c -> !(c instanceof Conclusion))
-				.forEach(this::addInlined);
+				.forEach(this::addElement);
 	}
-
-	/**
-	 * Adds an element copied from a template by {@link #inline}. Both kinds of
-	 * model hold any {@link JustificationElement}, placeholders included, so
-	 * each adds it as it is (#190).
-	 */
-	protected abstract void addInlined(JustificationElement copy);
 
 	private void rewireEdges(Template template,
 			Map<String, JustificationElement> copies) {
@@ -258,7 +250,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		elements.removeIf(e -> e.id().equals(id));
 	}
 
-	public List<E> getElements() {
+	public List<JustificationElement> getElements() {
 		return Collections.unmodifiableList(elements);
 	}
 
@@ -305,7 +297,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Elements defined directly in this model — their id has no counterpart in
 	 * any ancestor template.
 	 */
-	public List<E> ownElements() {
+	public List<JustificationElement> ownElements() {
 		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
 		return elements.stream().filter(e -> !pt.containsKey(e.id())).toList();
 	}
@@ -314,7 +306,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Elements copied from an ancestor template whose runtime type is unchanged
 	 * (not overridden).
 	 */
-	public List<E> inheritedElements() {
+	public List<JustificationElement> inheritedElements() {
 		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
 		return elements.stream().filter(e -> pt.get(e.id()) == e.getClass())
 				.toList();
@@ -329,7 +321,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Together with {@link #ownElements()} and {@link #inheritedElements()},
 	 * these three lists partition {@link #getElements()}.
 	 */
-	public List<E> concreteOverrides() {
+	public List<JustificationElement> concreteOverrides() {
 		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
 		return elements.stream().filter(
 				e -> pt.containsKey(e.id()) && pt.get(e.id()) != e.getClass())
@@ -418,11 +410,13 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	public List<JustificationElement> inheritedMatches(String id) {
 		String suffix = ":" + id;
 		List<JustificationElement> matches = new ArrayList<>();
+		elements.stream().filter(e -> e.id().endsWith(suffix))
+				.forEach(matches::add);
+		// Last, so that the conclusion never takes the place of the element
+		// the fallback picked before it was considered.
 		if (conclusion != null && conclusion.id().endsWith(suffix)) {
 			matches.add(conclusion);
 		}
-		elements.stream().filter(e -> e.id().endsWith(suffix))
-				.forEach(matches::add);
 		return matches;
 	}
 

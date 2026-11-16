@@ -11,6 +11,10 @@ import java.util.function.Predicate;
 import java.util.Optional;
 import ca.mcscert.jpipe.commands.PendingCommands;
 import java.util.function.UnaryOperator;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A deferred {@link MacroCommand} that expands an operator call into the
@@ -38,15 +42,32 @@ public final class ApplyOperator implements MacroCommand {
 
 	/**
 	 * This call with every model name it refers to, its result and its sources,
-	 * passed through {@code rename}: how a file loaded under a namespace refers
-	 * to its own models (#178).
+	 * passed through {@code rename}, and every element id its arguments hold
+	 * (see {@link CompositionOperator#elementArguments()} and
+	 * {@code unifyExclude}) through {@code renameElement}: how a file loaded
+	 * under a namespace refers to its own models and elements (#178).
 	 */
-	public ApplyOperator withModelNames(UnaryOperator<String> rename) {
-		OperatorCallConfig renamed = new OperatorCallConfig(
+	public ApplyOperator withModelNames(UnaryOperator<String> rename,
+			UnaryOperator<String> renameElement) {
+		Set<String> elementKeys = operators.find(config.operatorName())
+				.map(CompositionOperator::elementArguments).orElse(Set.of());
+		Map<String, String> arguments = new LinkedHashMap<>();
+		config.arguments().forEach((key, value) -> {
+			String renamed = value;
+			if (elementKeys.contains(key)) {
+				renamed = renameElement.apply(value.strip());
+			} else if (key.equals(Unifier.UNIFY_EXCLUDE_KEY)) {
+				renamed = Arrays.stream(value.split(",")).map(String::strip)
+						.map(renameElement).collect(Collectors.joining(","));
+			}
+			arguments.put(key, renamed);
+		});
+		OperatorCallConfig renamedConfig = new OperatorCallConfig(
 				rename.apply(config.resultName()), config.operatorName(),
-				config.sourceNames().stream().map(rename).toList(),
-				config.arguments(), config.location(), config.declaredKind());
-		return new ApplyOperator(renamed, operators, unificationEquivalences);
+				config.sourceNames().stream().map(rename).toList(), arguments,
+				config.location(), config.declaredKind());
+		return new ApplyOperator(renamedConfig, operators,
+				unificationEquivalences);
 	}
 
 	public String resultName() {
@@ -83,8 +104,8 @@ public final class ApplyOperator implements MacroCommand {
 						"unknown operator '" + config.operatorName()
 								+ "'; registered: "
 								+ operators.registeredNames()));
-		List<JustificationModel<?>> sources = config.sourceNames().stream()
-				.<JustificationModel<?>>map(context::get).toList();
+		List<JustificationModel> sources = config.sourceNames().stream()
+				.<JustificationModel>map(context::get).toList();
 		ModelKind actualKind = op.resultKind(sources, config.arguments());
 		if (actualKind != config.declaredKind()) {
 			throw new InvalidOperatorCallException("operator '"
@@ -107,6 +128,18 @@ public final class ApplyOperator implements MacroCommand {
 	public boolean ready(Unit unit, PendingCommands pending) {
 		return condition().test(unit)
 				&& config.sourceNames().stream().noneMatch(pending::target)
+				&& config.sourceNames().stream().allMatch(unit::isComplete);
+	}
+
+	/**
+	 * When its sources exist and none failed to be built: a source still held
+	 * back by a mistake of its own is composed as far as it got, so that the
+	 * mistake is reported once, where it is, rather than as a result that is
+	 * never built (#177).
+	 */
+	@Override
+	public boolean runWhenStuck(Unit unit) {
+		return condition().test(unit)
 				&& config.sourceNames().stream().allMatch(unit::isComplete);
 	}
 

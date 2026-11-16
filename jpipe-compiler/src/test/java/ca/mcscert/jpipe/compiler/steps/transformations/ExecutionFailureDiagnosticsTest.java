@@ -135,17 +135,21 @@ class ExecutionFailureDiagnosticsTest {
 		}
 
 		@Test
-		void implementsTemplate_with_parent_emits_cyclic_error() {
-			Template t = new Template("base");
-			unit.add(t);
-			Justification j = new Justification("j");
-			j.inline(t, "base");
-			unit.add(j);
-			ImplementsTemplate cmd = new ImplementsTemplate("j", "base");
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd, unit,
-					new RuntimeException("cycle"), ctx);
-			assertThat(ctx.diagnostics()).extracting(d -> d.message())
-					.anyMatch(m -> m.contains("cycle") || m.contains("cyclic"));
+		void a_cycle_of_implements_is_reported_once_as_cyclic() {
+			// A cycle never runs: each implements waits on the other.
+			unit.add(new Template("t1"));
+			unit.add(new Template("t2"));
+			ExecutionFailureDiagnostics
+					.diagnoseDeadlock(
+							List.of(new ImplementsTemplate("t1", "t2"),
+									new ImplementsTemplate("t2", "t1")),
+							unit, ctx);
+			assertThat(ctx.diagnostics()).filteredOn(d -> d.code() != null)
+					.singleElement().satisfies(d -> {
+						assertThat(d.code()).isEqualTo("cyclic-implements");
+						assertThat(d.message()).isEqualTo(
+								"cycle detected: t1 implements t2 implements t1");
+					});
 		}
 
 		@Test

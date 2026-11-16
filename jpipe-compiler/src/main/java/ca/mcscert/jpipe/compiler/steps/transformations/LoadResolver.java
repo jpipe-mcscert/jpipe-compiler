@@ -187,7 +187,8 @@ public final class LoadResolver
 				.getParent();
 		try {
 			if (!isGlob(load.path())) {
-				Path resolved = identity(base.resolve(load.path()));
+				Path resolved = base.resolve(load.path()).toAbsolutePath()
+						.normalize();
 				return expandOne(resolved, load, ctx, visited, loaded, prefix);
 			}
 			return expandGlob(load, ctx, base, visited, loaded, prefix);
@@ -203,7 +204,9 @@ public final class LoadResolver
 	/**
 	 * What a file is, as opposed to how it is written: its real path once it
 	 * exists, so that a symbolic link or another spelling on a case-insensitive
-	 * file system is the same file, loaded once (#178).
+	 * file system is the same file, loaded once (#178). Used only to compare
+	 * files: a file is still read, reported and resolved from the path it is
+	 * written as.
 	 */
 	private static Path identity(Path path) {
 		Path normalized = path.toAbsolutePath().normalize();
@@ -279,7 +282,11 @@ public final class LoadResolver
 	private List<Command> expandOne(Path resolved, LoadDirective load,
 			CompilationContext ctx, Set<Path> visited, Set<String> loaded,
 			String prefix) {
-		if (visited.contains(resolved)) {
+		// The file as written is where it is read from, and what its own
+		// relative loads resolve against; its real path is what it is, for
+		// telling a cycle or a duplicate (#178).
+		Path file = identity(resolved);
+		if (visited.contains(file)) {
 			logger.debug("Circular load detected: [{}], skipping", resolved);
 			ctx.fatal(load.location(), "Circular load detected: " + resolved);
 			return List.of();
@@ -289,7 +296,7 @@ public final class LoadResolver
 		// same file loaded under the same name from two namespaced files is
 		// two copies, not a duplicate (#178).
 		String namespace = nested(prefix, load.namespace());
-		String loadKey = resolved + "|" + namespace;
+		String loadKey = file + "|" + namespace;
 		if (loaded.contains(loadKey)) {
 			logger.warn(
 					"File '{}' already loaded under namespace '{}', skipping duplicate",
@@ -308,7 +315,7 @@ public final class LoadResolver
 			List<Command> subCommands = parseFile(resolved, subCtx);
 
 			Set<Path> newVisited = new HashSet<>(visited);
-			newVisited.add(resolved);
+			newVisited.add(file);
 			subCommands = resolve(subCommands, subCtx, newVisited, loaded,
 					namespace);
 			if (load.namespace() != null) {
@@ -428,7 +435,7 @@ public final class LoadResolver
 		try (Stream<Path> walk = Files.walk(root)) {
 			return walk.filter(Files::isRegularFile)
 					.filter(p -> matcher.matches(root.relativize(p)))
-					.map(LoadResolver::identity).sorted().toList();
+					.map(p -> p.toAbsolutePath().normalize()).sorted().toList();
 		}
 	}
 
@@ -546,7 +553,8 @@ public final class LoadResolver
 				new OverrideAbstractSupport(qualify(ns, c.container()),
 						qualifyElement(ns, c.qualifiedId()), c.newType(),
 						c.label(), c.location());
-			case ApplyOperator c -> c.withModelNames(name -> qualify(ns, name));
+			case ApplyOperator c -> c.withModelNames(name -> qualify(ns, name),
+					id -> qualifyElement(ns, id));
 			default -> cmd;
 		};
 	}

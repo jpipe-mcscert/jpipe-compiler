@@ -326,6 +326,22 @@ class LoadResolverGlobTest {
 	}
 
 	@Test
+	@DisabledOnOs(OS.WINDOWS)
+	void aLinkedFileResolvesItsLoadsFromWhereItIsLinked() throws IOException {
+		// Its real path is only its identity: its own relative loads resolve
+		// from the link's directory, as when it is compiled through the link.
+		writeSource("sub/real.jd", "load \"helper.jd\"\n");
+		writeTemplate("helper.jd", "helper");
+		Files.createSymbolicLink(dir.resolve("link.jd"),
+				dir.resolve("sub/real.jd"));
+
+		CompilationContext ctx = compile("link.jd", null);
+
+		assertThat(ctx.hasErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("helper");
+	}
+
+	@Test
 	void anInvalidPathIsAFatalAtTheLoad() throws IOException {
 		// A NUL in a path used to escape as an InvalidPathException (#178).
 		CompilationContext ctx = compile("a\u0000b.jd", null);

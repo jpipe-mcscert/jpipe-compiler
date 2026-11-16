@@ -17,7 +17,7 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
  * a separate adapter.
  */
 public record SourcedElement(JustificationElement element,
-		JustificationModel<?> source,
+		JustificationModel source,
 		SourceLocation location) implements ElementView {
 
 	@Override

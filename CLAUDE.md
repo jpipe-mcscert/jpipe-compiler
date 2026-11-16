@@ -180,7 +180,7 @@ JustificationElement (sealed)
 SupportLeaf (marker interface) — implemented by SubConclusion, Evidence, AbstractSupport
 ```
 
-`JustificationModel<E>` (sealed abstract base):
+`JustificationModel` (sealed abstract base):
 - `Justification` — concrete justification; declares only `CommonElement`s,
   but holds a template's `AbstractSupport` placeholders until they are overridden
 - `Template` — accepts any `JustificationElement`; abstract/reusable structure

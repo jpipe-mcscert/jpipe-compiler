@@ -55,7 +55,7 @@ public class JsonExporter extends AbstractModelExporter {
 	 *            the justification or template to serialise.
 	 * @return JSON string.
 	 */
-	public String export(JustificationModel<?> model) {
+	public String export(JustificationModel model) {
 		result = null;
 		model.accept(this);
 		return result.toString(2);
@@ -100,7 +100,7 @@ public class JsonExporter extends AbstractModelExporter {
 	// -------------------------------------------------------------------------
 
 	@Override
-	protected void exportModel(JustificationModel<?> model) {
+	protected void exportModel(JustificationModel model) {
 		String type = model instanceof Justification
 				? "justification"
 				: "template";

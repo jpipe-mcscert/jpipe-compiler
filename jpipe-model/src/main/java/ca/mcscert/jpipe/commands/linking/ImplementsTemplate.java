@@ -90,6 +90,16 @@ public final class ImplementsTemplate extends RegularCommand {
 				&& unit.isComplete(templateName);
 	}
 
+	/**
+	 * Never: a template that never completes is never copied, so that a model
+	 * never inherits half a template. The model is left unbuilt, and the reason
+	 * the template never completes is reported where it is.
+	 */
+	@Override
+	public boolean runWhenStuck(Unit unit) {
+		return false;
+	}
+
 	@Override
 	public Optional<String> target() {
 		return Optional.of(modelName);

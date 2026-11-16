@@ -20,7 +20,7 @@ import java.util.Set;
 public final class Unit {
 
 	private final String source;
-	private final Map<String, JustificationModel<?>> models = new LinkedHashMap<>();
+	private final Map<String, JustificationModel> models = new LinkedHashMap<>();
 	private final Map<String, SourceLocation> locations = new LinkedHashMap<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
 	private final Set<String> incomplete = new LinkedHashSet<>();
@@ -33,7 +33,7 @@ public final class Unit {
 		return source;
 	}
 
-	public void add(JustificationModel<?> model) {
+	public void add(JustificationModel model) {
 		if (models.containsKey(model.getName())) {
 			throw new IllegalStateException(
 					"Duplicate model name: '" + model.getName() + "'");
@@ -55,16 +55,16 @@ public final class Unit {
 		return !incomplete.contains(modelName);
 	}
 
-	public Collection<JustificationModel<?>> getModels() {
+	public Collection<JustificationModel> getModels() {
 		return Collections.unmodifiableCollection(models.values());
 	}
 
-	public Optional<JustificationModel<?>> findModel(String name) {
+	public Optional<JustificationModel> findModel(String name) {
 		return Optional.ofNullable(models.get(name));
 	}
 
 	@SuppressWarnings("java:S1452")
-	public JustificationModel<?> get(String name) {
+	public JustificationModel get(String name) {
 		return findModel(name).orElseThrow(
 				() -> new NoSuchElementException("Unknown model: " + name));
 	}

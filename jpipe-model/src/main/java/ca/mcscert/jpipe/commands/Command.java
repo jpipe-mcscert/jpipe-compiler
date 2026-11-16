@@ -31,6 +31,18 @@ public interface Command {
 	}
 
 	/**
+	 * Whether this command may still run once nothing in the queue is ready,
+	 * every command waiting on another. The engine then runs, best effort, the
+	 * first one that may, so that one mistake does not hold back everything
+	 * waiting on it. By default, when its {@link #condition()} holds: what it
+	 * needs exists, complete or not. A command that must never act on an
+	 * incomplete model refuses.
+	 */
+	default boolean runWhenStuck(Unit unit) {
+		return condition().test(unit);
+	}
+
+	/**
 	 * The model this command creates or changes, if any. Other commands read it
 	 * to wait until a model is complete.
 	 */

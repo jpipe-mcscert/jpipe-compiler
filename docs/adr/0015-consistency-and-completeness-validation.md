@@ -44,7 +44,7 @@ Each exposes two entry points:
 
 ```java
 List<Violation> validate(Unit unit)          // location-aware; used by the pipeline
-List<Violation> validateModel(JustificationModel<?> model)  // standalone; used by JustificationModel.validate()
+List<Violation> validateModel(JustificationModel model)  // standalone; used by JustificationModel.validate()
 ```
 
 `validate(Unit)` resolves source locations from `Unit`'s location registry

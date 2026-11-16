@@ -48,7 +48,7 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 	 *            the model to serialise.
 	 * @return well-formed {@code .jd} text for this model only.
 	 */
-	public String export(JustificationModel<?> model) {
+	public String export(JustificationModel model) {
 		builder.setLength(0);
 		model.accept(this);
 		return builder.toString();
@@ -114,7 +114,7 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 	// Private helpers
 	// -------------------------------------------------------------------------
 
-	private void exportModelBody(String keyword, JustificationModel<?> model) {
+	private void exportModelBody(String keyword, JustificationModel model) {
 		builder.append(keyword).append(" ").append(model.getName());
 		model.getParent().ifPresent(
 				p -> builder.append(" implements ").append(p.getName()));

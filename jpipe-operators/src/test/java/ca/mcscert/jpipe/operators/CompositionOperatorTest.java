@@ -47,15 +47,13 @@ class CompositionOperatorTest {
 
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
-				List<JustificationModel<?>> sources,
-				Map<String, String> arguments,
+				List<JustificationModel> sources, Map<String, String> arguments,
 				Map<String, String> knownAliases) {
 			return new SameShortId();
 		}
 
 		@Override
-		protected MergeFunction mergeFunction(
-				List<JustificationModel<?>> sources,
+		protected MergeFunction mergeFunction(List<JustificationModel> sources,
 				Map<String, String> arguments) {
 			return (resultName, group, aliases) -> {
 				// Use the first member's label and derive id from first
@@ -83,13 +81,13 @@ class CompositionOperatorTest {
 
 		@Override
 		protected Command createResultModel(String name,
-				SourceLocation location, List<JustificationModel<?>> sources,
+				SourceLocation location, List<JustificationModel> sources,
 				Map<String, String> arguments) {
 			return new CreateJustification(name);
 		}
 
 		@Override
-		public ModelKind resultKind(List<JustificationModel<?>> sources,
+		public ModelKind resultKind(List<JustificationModel> sources,
 				Map<String, String> args) {
 			return ModelKind.JUSTIFICATION;
 		}
@@ -99,7 +97,7 @@ class CompositionOperatorTest {
 			return colon >= 0 ? id.substring(colon + 1) : id;
 		}
 
-		private static String qualId(JustificationModel<?> source, String id) {
+		private static String qualId(JustificationModel source, String id) {
 			return source.getName() + ":" + id;
 		}
 	}
@@ -114,22 +112,20 @@ class CompositionOperatorTest {
 
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
-				List<JustificationModel<?>> sources,
-				Map<String, String> arguments,
+				List<JustificationModel> sources, Map<String, String> arguments,
 				Map<String, String> knownAliases) {
 			return (a, b) -> false;
 		}
 
 		@Override
-		protected MergeFunction mergeFunction(
-				List<JustificationModel<?>> sources,
+		protected MergeFunction mergeFunction(List<JustificationModel> sources,
 				Map<String, String> arguments) {
 			return (r, g, a) -> List.of();
 		}
 
 		@Override
 		protected Command createResultModel(String name,
-				SourceLocation location, List<JustificationModel<?>> sources,
+				SourceLocation location, List<JustificationModel> sources,
 				Map<String, String> arguments) {
 			return new CreateJustification(name);
 		}
@@ -293,7 +289,7 @@ class CompositionOperatorTest {
 			Justification j = buildJustification("j",
 					List.of(new CreateConclusion("j", "c", "C")));
 			var op = new RequiresArgOperator();
-			List<JustificationModel<?>> sources = List.of(j);
+			List<JustificationModel> sources = List.of(j);
 			Map<String, String> args = Map.of();
 			assertThatThrownBy(() -> op.apply("result", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)

@@ -134,7 +134,7 @@ public class PythonExporter extends AbstractModelExporter {
 	 *            the justification or template to serialise.
 	 * @return Python source text.
 	 */
-	public String export(JustificationModel<?> model) {
+	public String export(JustificationModel model) {
 		return export(model, null);
 	}
 
@@ -149,7 +149,7 @@ public class PythonExporter extends AbstractModelExporter {
 	 *            header comment; may be {@code null} to omit the header.
 	 * @return Python source text.
 	 */
-	public String export(JustificationModel<?> model, String sourcePath) {
+	public String export(JustificationModel model, String sourcePath) {
 		builder.setLength(0);
 		decorators.clear();
 		model.accept(this);
@@ -204,7 +204,7 @@ public class PythonExporter extends AbstractModelExporter {
 	// -------------------------------------------------------------------------
 
 	@Override
-	protected void exportModel(JustificationModel<?> model) {
+	protected void exportModel(JustificationModel model) {
 		currentModelName = model.getName();
 		initAliases(model);
 		boundTo.clear();

@@ -122,7 +122,7 @@ hide empty members
 interface Command
 interface MacroCommand
 class Unit
-abstract class JustificationModel<E>
+abstract class JustificationModel
 class JustificationElement <<sealed>>
 class SourceLocation
 
@@ -131,6 +131,7 @@ package "operators" {
   abstract class CompositionOperator {
     + resultKind() : ModelKind
     # requiredArguments() : Set<String>
+    + elementArguments() : Set<String>
     # {abstract} equivalenceRelation(sources, args) : EquivalenceRelation
     # {abstract} mergeFunction(sources, args) : MergeFunction
     # {abstract} createResultModel(name, loc, sources, args) : Command
@@ -407,10 +408,15 @@ public final class MyOperator extends CompositionOperator {
     @Override
     protected Set<String> requiredArguments() { return Set.of("myParam"); }
 
+    // Optional: the arguments that hold an element id, renamed with the models
+    // when the file is loaded under a namespace (`load "f.jd" as ns`).
+    @Override
+    public Set<String> elementArguments() { return Set.of(); }
+
     // (3) How source elements are partitioned into equivalence classes
     @Override
     protected EquivalenceRelation equivalenceRelation(
-            List<JustificationModel<?>> sources,
+            List<JustificationModel> sources,
             Map<String, String> args) {
         return new SameShortId();   // Phase 1 only — not registered for unification
     }
@@ -418,7 +424,7 @@ public final class MyOperator extends CompositionOperator {
     // (4) How each equivalence class is merged into a new element
     @Override
     protected MergeFunction mergeFunction(
-            List<JustificationModel<?>> sources,
+            List<JustificationModel> sources,
             Map<String, String> args) {
         return (resultName, group, aliases) -> {
             // Build Create* commands; call aliases.register(newId, oldIds)
@@ -429,7 +435,7 @@ public final class MyOperator extends CompositionOperator {
     // (5) The command that creates the result model itself
     @Override
     protected Command createResultModel(String name, SourceLocation loc,
-            List<JustificationModel<?>> sources,
+            List<JustificationModel> sources,
             Map<String, String> args) {
         return new CreateJustification(name, loc);
     }
@@ -437,7 +443,7 @@ public final class MyOperator extends CompositionOperator {
     // (6) Optional: synthesize elements/edges with no counterpart in any source
     @Override
     protected List<Command> additionalCommands(String name,
-            List<JustificationModel<?>> sources,
+            List<JustificationModel> sources,
             AliasRegistry aliases,
             Map<String, String> args) {
         return List.of(/* synthesized Create* and AddSupport commands */);

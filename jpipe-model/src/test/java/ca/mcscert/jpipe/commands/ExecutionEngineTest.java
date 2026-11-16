@@ -342,6 +342,30 @@ class ExecutionEngineTest {
 		}
 
 		@Test
+		void a_stuck_command_does_not_hold_back_the_rest_of_its_model() {
+			// The override never becomes possible; the relation, which waits
+			// for it, still runs once nothing else can.
+			List<Command> cmds = List
+					.of(new CreateJustification("j"),
+							new CreateStrategy("j", "s2", "S2"),
+							new CreateEvidence("j", "e2", "E2"),
+							new OverrideAbstractSupport("j", "t:missing",
+									"evidence", "E"),
+							new AddSupport("j", "s2", "e2"));
+
+			assertThatThrownBy(() -> engine.spawn("src", cmds))
+					.isInstanceOf(DeadlockException.class).satisfies(ex -> {
+						DeadlockException d = (DeadlockException) ex;
+						assertThat(d.stuckCommands()).singleElement()
+								.isInstanceOf(OverrideAbstractSupport.class);
+						Strategy s2 = (Strategy) d.partialUnit().get("j")
+								.findById("s2").orElseThrow();
+						assertThat(s2.getSupports()).extracting(e -> e.id())
+								.containsExactly("e2");
+					});
+		}
+
+		@Test
 		void implements_waits_on_an_incomplete_template_forever() {
 			Unit unit = new Unit("src");
 			unit.add(new Template("t"));

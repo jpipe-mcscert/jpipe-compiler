@@ -44,7 +44,7 @@ public final class RewireStrategySupport extends RegularCommand {
 
 	@Override
 	protected void doExecute(Unit context) {
-		JustificationModel<?> model = context.get(container);
+		JustificationModel model = context.get(container);
 		Strategy strategy = (Strategy) model.findById(strategyId)
 				.orElseThrow(() -> new NoSuchElementException(
 						"No strategy with id: " + strategyId));

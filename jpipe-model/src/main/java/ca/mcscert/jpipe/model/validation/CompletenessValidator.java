@@ -70,13 +70,13 @@ public final class CompletenessValidator {
 	 * Validates a single model without location data. All violations carry
 	 * {@link SourceLocation#UNKNOWN}.
 	 */
-	public List<Violation> validateModel(JustificationModel<?> model) {
+	public List<Violation> validateModel(JustificationModel model) {
 		return checkModel(model, ValidationContext.STANDALONE);
 	}
 
 	// -------------------------------------------------------------------------
 
-	private List<Violation> checkModel(JustificationModel<?> model,
+	private List<Violation> checkModel(JustificationModel model,
 			ValidationContext ctx) {
 		List<Violation> violations = new ArrayList<>();
 		String name = model.getName();

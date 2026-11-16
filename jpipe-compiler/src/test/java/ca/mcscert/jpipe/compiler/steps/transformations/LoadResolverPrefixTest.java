@@ -16,6 +16,7 @@ import ca.mcscert.jpipe.operators.ModelKind;
 import ca.mcscert.jpipe.operators.OperatorCallConfig;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
+import ca.mcscert.jpipe.operators.builtin.RefineOperator;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -97,15 +98,19 @@ class LoadResolverPrefixTest {
 	void prefixesTheResultAndSourcesOfAnOperatorCall() {
 		// An operator call was left as is: it waited for its unprefixed
 		// sources forever (#178).
+		OperatorRegistry operators = new OperatorRegistry();
+		operators.register("refine", new RefineOperator());
 		var cmd = new ApplyOperator(
 				new OperatorCallConfig("r", "refine", List.of("a", "b"),
-						Map.of("hook", "e"), SourceLocation.UNKNOWN,
-						ModelKind.JUSTIFICATION),
-				new OperatorRegistry(), new UnificationEquivalenceRegistry());
+						Map.of("hook", "first:e", "unifyExclude", "a:x, y"),
+						SourceLocation.UNKNOWN, ModelKind.JUSTIFICATION),
+				operators, new UnificationEquivalenceRegistry());
 		var result = (ApplyOperator) prefixOne("ns", cmd);
 		assertThat(result.resultName()).isEqualTo("ns:r");
 		assertThat(result.sourceNames()).containsExactly("ns:a", "ns:b");
-		assertThat(result.arguments()).containsEntry("hook", "e");
+		// A qualified id names an element of a model of the file: prefixed.
+		assertThat(result.arguments()).containsEntry("hook", "ns:first:e")
+				.containsEntry("unifyExclude", "ns:a:x,y");
 	}
 
 	@Test

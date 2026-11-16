@@ -194,22 +194,14 @@ final class ExecutionFailureDiagnostics {
 			return;
 		}
 		switch (cmd) {
-			case ImplementsTemplate c -> {
-				SourceLocation loc = c.location();
-				boolean modelHasParent = unit.findModel(c.modelName())
-						.flatMap(m -> m.getParent()).isPresent();
-				if (modelHasParent) {
-					ctx.error(DiagnosticCodes.CYCLIC_IMPLEMENTS, loc,
-							"cycle detected: '" + c.modelName() + "' and '"
-									+ c.templateName()
-									+ "' mutually implement each other");
-				} else {
-					ctx.error(DiagnosticCodes.IMPLEMENTS_ERROR, loc,
-							"cannot apply 'implements' for '" + c.modelName()
-									+ "' extends '" + c.templateName() + "': "
-									+ describe(cause));
-				}
-			}
+			// A cycle of `implements` never runs: it deadlocks, and is reported
+			// by diagnoseImplementsTemplate. What fails here is the rest, such
+			// as a template that is a justification.
+			case ImplementsTemplate c ->
+				ctx.error(DiagnosticCodes.IMPLEMENTS_ERROR, c.location(),
+						"cannot apply 'implements' for '" + c.modelName()
+								+ "' extends '" + c.templateName() + "': "
+								+ describe(cause));
 			case AddSupport c -> {
 				String code = switch (cause) {
 					case ReferenceIntoTemplateException _ ->

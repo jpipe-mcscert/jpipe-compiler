@@ -18,7 +18,7 @@ Support relationships are encoded directly via typed fields and one marker inter
 - `Conclusion` and `SubConclusion` each hold a single `supporter : Strategy`. Cardinality is enforced via `addSupport` which prevents multiple assignments.
 - `Strategy` holds a list of supporters (`List<SupportLeaf>`). Multiple elements can support a single strategy (e.g., shared evidence or convergence).
 
-`JustificationModel<E>` is the sealed base for `Justification` and `Template`,
+`JustificationModel` is the sealed base for `Justification` and `Template`,
 both of which hold any `JustificationElement`. A justification only *declares*
 `CommonElement`s (`Unit.addInto` refuses an `AbstractSupport`), but implementing
 a template copies the template's `AbstractSupport` placeholders into it until
@@ -98,7 +98,7 @@ package "model.elements" {
 
 package "model" {
 
-  abstract class JustificationModel<E extends JustificationElement> {
+  abstract class JustificationModel {
     - name : String
     - conclusion : Conclusion
     - parent : Template

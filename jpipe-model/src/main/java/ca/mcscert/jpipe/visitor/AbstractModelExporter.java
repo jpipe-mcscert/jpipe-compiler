@@ -99,7 +99,7 @@ public abstract class AbstractModelExporter
 	 * {@link #exportModel(JustificationModel)}, after setting
 	 * {@link #currentModelName}.
 	 */
-	protected final void initAliases(JustificationModel<?> model) {
+	protected final void initAliases(JustificationModel model) {
 		aliasesByTarget.clear();
 		model.aliases().forEach((oldId, newId) -> aliasesByTarget
 				.computeIfAbsent(newId, _ -> new ArrayList<>()).add(oldId));
@@ -296,5 +296,5 @@ public abstract class AbstractModelExporter
 	 * set {@link #currentModelName}{@code = model.getName()} before calling any
 	 * element visit methods.
 	 */
-	protected abstract void exportModel(JustificationModel<?> model);
+	protected abstract void exportModel(JustificationModel model);
 }

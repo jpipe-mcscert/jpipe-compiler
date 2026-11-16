@@ -83,6 +83,14 @@ public final class ActionListProvider
 		 */
 		private boolean conclusionDeclared;
 
+		/**
+		 * The conclusion the declaration being read declared although it
+		 * inherits one, and which was therefore dropped. A relation that uses
+		 * it is dropped too: reporting it as an unknown element would only
+		 * repeat the inherited-conclusion error (#177).
+		 */
+		private String rejectedConclusion;
+
 		public ActionBuilder(String name, CompilationContext compilationCtx,
 				OperatorRegistry operators,
 				UnificationEquivalenceRegistry unificationEquivalences) {
@@ -195,6 +203,7 @@ public final class ActionListProvider
 			this.buildContext = buildContext.updateCurrentJustification(name,
 					parentName);
 			this.conclusionDeclared = false;
+			this.rejectedConclusion = null;
 			result.add(switch (kind) {
 				case JUSTIFICATION -> new CreateJustification(name, loc);
 				case TEMPLATE -> new CreateTemplate(name, loc);
@@ -264,6 +273,7 @@ public final class ActionListProvider
 				// A model that implements a template inherits its conclusion
 				// (ADR-0012). Decided here, from the declaration alone, it no
 				// longer depends on which of the two is declared first (#177).
+				rejectedConclusion = identifier;
 				compilationCtx.error(DiagnosticCodes.INHERITED_CONCLUSION, loc,
 						"Model '" + modelId + "' implements '" + parent
 								+ "' and inherits its conclusion: it cannot"
@@ -310,6 +320,10 @@ public final class ActionListProvider
 				return;
 			}
 			if (to.contains(":") && !validOverridePrefix(to, loc)) {
+				return;
+			}
+			if (from.equals(rejectedConclusion)
+					|| to.equals(rejectedConclusion)) {
 				return;
 			}
 			result.add(new AddSupport(buildContext.justificationId, to, from,

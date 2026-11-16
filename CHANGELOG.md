@@ -111,8 +111,13 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
     element is declared after the relation, instead of to an inherited one;
   - a relation into an abstract support may be written before its override;
   - an operator call composes its source models once they are complete.
-- A relation can name the inherited conclusion by its short id
-  (`s2 supports c`), as it can any other inherited element (#177).
+- A relation naming the inherited conclusion by its short id (`s2 supports c`)
+  is reported as `reference-into-template`, as for any element of the template
+  other than a `@support`, instead of as an unknown element (#177).
+- A mistake in one model no longer holds back what does not depend on it: a
+  model with a broken relation is still composed by the operator calls that use
+  it, and a stuck override no longer blocks the other relations of its model
+  (#177).
 - A model whose `implements` fails or never completes, such as two templates
   implementing each other, is reported once. Its other statements and its
   completeness are no longer reported as mistakes of their own, and no operator

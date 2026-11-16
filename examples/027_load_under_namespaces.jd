@@ -8,8 +8,10 @@
 // namespace: every model it names, its operator calls and the qualified ids of
 // its overrides and relations included, is prefixed.
 
-// Operator calls in a namespaced file
+// Operator calls in a namespaced file, including a refine whose hook is a
+// qualified id ('first:e')
 load "009_refine.jd" as r
+load "012_chaining_operators.jd" as c
 
 // Overrides of a template the loaded file itself loads under a namespace
 load "007_load_user.jd" as u

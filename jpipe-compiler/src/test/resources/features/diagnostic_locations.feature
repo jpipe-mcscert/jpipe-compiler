@@ -35,6 +35,17 @@ Feature: Every diagnostic says where, and only once
       And the JSON report has a diagnostic with code "abstract-support-used" at line 14
       And the JSON report has a diagnostic with code "unresolved-override" at line 21
       And the JSON report has a diagnostic with code "execution-error" at line 22
+      And the JSON report has no diagnostic with code "strategy-supported"
+
+  Scenario: A source with a mistake of its own is still composed
+    Given the source file "invalid/036_mistake_in_a_composed_source.jd"
+    When I compile it into a unit
+    Then the compilation has validation errors
+      And the unit contains a justification named "r"
+      And the unit contains a justification named "q"
+    When I produce a JSON diagnostic report
+    Then the JSON report has a diagnostic with code "unknown-element" at line 16
+      And the JSON report has no diagnostic with code "unresolved-symbol"
 
   Scenario: A model declared again in another file is reported, and leaves the first untouched
     Given the source file "invalid/033_duplicate_across_files.jd"

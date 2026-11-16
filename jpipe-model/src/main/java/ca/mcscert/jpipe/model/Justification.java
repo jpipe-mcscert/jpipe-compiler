@@ -17,17 +17,10 @@ import ca.mcscert.jpipe.visitor.JustificationVisitor;
  * so, rather than an unchecked cast hiding it (#190). One left unreplaced is
  * reported by the completeness check ({@code no-abstract-support}).
  */
-public final class Justification
-		extends
-			JustificationModel<JustificationElement> {
+public final class Justification extends JustificationModel {
 
 	public Justification(String name) {
 		super(name);
-	}
-
-	@Override
-	protected void addInlined(JustificationElement copy) {
-		addElement(copy);
 	}
 
 	@Override

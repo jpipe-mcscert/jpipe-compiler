@@ -58,7 +58,7 @@ public final class CollectDiagnostics
 		Map<String, List<ImplementorInfo>> implementors = implementorsOf(input);
 		Map<String, Map<String, String>> aliases = groupAliasesByModel(input);
 		List<ModelInfo> models = new ArrayList<>();
-		for (JustificationModel<?> model : input.getModels()) {
+		for (JustificationModel model : input.getModels()) {
 			models.add(describe(input, model, implementors, aliases));
 		}
 		return new DiagnosticSnapshot(ctx.sourcePath(), ctx.diagnostics(),
@@ -69,7 +69,7 @@ public final class CollectDiagnostics
 	// Models
 	// -------------------------------------------------------------------------
 
-	private ModelInfo describe(Unit unit, JustificationModel<?> model,
+	private ModelInfo describe(Unit unit, JustificationModel model,
 			Map<String, List<ImplementorInfo>> implementors,
 			Map<String, Map<String, String>> aliasesByModel) {
 		String name = model.getName();
@@ -91,7 +91,7 @@ public final class CollectDiagnostics
 	/** Maps each template name to the models implementing it. */
 	private Map<String, List<ImplementorInfo>> implementorsOf(Unit unit) {
 		Map<String, List<ImplementorInfo>> implementors = new LinkedHashMap<>();
-		for (JustificationModel<?> model : unit.getModels()) {
+		for (JustificationModel model : unit.getModels()) {
 			model.getParent()
 					.ifPresent(t -> implementors
 							.computeIfAbsent(t.getName(),
@@ -102,7 +102,7 @@ public final class CollectDiagnostics
 		return implementors;
 	}
 
-	private ElementCounts countElements(JustificationModel<?> model) {
+	private ElementCounts countElements(JustificationModel model) {
 		return new ElementCounts(model.conclusion().isPresent() ? 1 : 0,
 				model.subConclusions().size(), model.strategies().size(),
 				model.evidence().size(),
@@ -118,7 +118,7 @@ public final class CollectDiagnostics
 	 * sub-conclusions, strategies, evidence, abstract supports.
 	 */
 	private List<SymbolInfo> collectSymbols(Unit unit,
-			JustificationModel<?> model) {
+			JustificationModel model) {
 		List<JustificationElement> ordered = new ArrayList<>();
 		model.conclusion().ifPresent(ordered::add);
 		ordered.addAll(model.subConclusions());
