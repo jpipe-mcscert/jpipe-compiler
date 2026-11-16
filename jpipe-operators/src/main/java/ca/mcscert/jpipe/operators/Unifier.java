@@ -103,8 +103,8 @@ public final class Unifier {
 		String equivName = args.getOrDefault(UNIFY_BY_KEY, DEFAULT_UNIFY_BY);
 		EquivalenceRelation equiv = registry.find(equivName)
 				.orElseThrow(() -> new InvalidOperatorCallException(
-						"[execution-error] unknown unification method '"
-								+ equivName + "'; registered: "
+						"unknown unification method '" + equivName
+								+ "'; registered: "
 								+ registry.registeredNames()));
 
 		Set<String> excluded = parseExcludeList(

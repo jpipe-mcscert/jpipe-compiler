@@ -41,6 +41,12 @@ Prior to this ADR:
 
 `ERROR` is the default level for diagnosed problems. It signals "something is wrong
 and the user must see it", but allows the pipeline to continue and produce output.
+Within model construction, a statement whose command fails is an `ERROR` too: the
+execution engine records it and runs the remaining commands, so that one mistake
+yields one diagnostic, not a cascade about statements that never ran.
+
+Every diagnostic tied to a statement is located at that statement, in the file it
+is written in, which for a `load`-ed file is not the file being compiled.
 
 `FATAL` means "continuing is meaningless or dangerous". It is promoted from `ERROR`
 only by `HaltAndCatchFire`, and only in contexts where downstream steps cannot

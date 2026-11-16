@@ -25,6 +25,14 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   quote compiles back to itself (#176).
 
 ### Changed
+- **Breaking:** a template's `@support` that supports no strategy is now an error
+  in that template (completeness rule `abstract-support-used`). It compiled, but
+  no justification could override it, and the failure was only reported, without
+  a line, in each one that tried (#183).
+- A model declared twice in one file is reported once, at the second
+  declaration, with the new code `duplicate-model`; it used to be an
+  `execution-error`, plus a misleading `single-conclusion` error. Nothing in the
+  second declaration is added to the first model (#183).
 - **Breaking:** a string now ends at its first unescaped double quote. It used
   to run to the last quote on its line, so a trailing `// see "doc"` comment
   became part of the label, and two declarations written on one line were
@@ -66,6 +74,25 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   header.
 
 ### Fixed
+- An error in a `load`-ed file is reported in that file, at its own line. It was
+  reported against the file being compiled, often at a line that file does not
+  have, so the IDE pointed at the wrong place (#173).
+- One failing statement no longer stops the construction of its model: the
+  statements after it still run, so they are no longer reported as missing, as
+  in `Strategy 's2' has no supporting element` after a conclusion was given two
+  strategies (#183).
+- Diagnostics carry the line of the statement that caused them (#183):
+  - a failing operator call is reported at the call, names the operator
+    (`'assemble' for 'r'`, not `AssembleOperator`), and no longer repeats
+    `[execution-error]` in its message;
+  - a call to a model that does not exist names that model;
+  - a `load` that fails is reported at its `load` statement, naming the path as
+    written;
+  - duplicate models, a second conclusion and other failing statements give
+    their line.
+- Overriding an abstract support twice, or overriding an element that is not
+  one, is reported as `unresolved-override` at the override, instead of only
+  `unresolved symbol(s) — model cannot be built` (#183).
 - `jpipe diagnostic` no longer reports `"status": "ok"` and exits 0 on a source
   it never read, such as standard input redirected from a directory: the
   failure is a fatal diagnostic, with exit code 1. Under `process`, that source

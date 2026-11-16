@@ -1,0 +1,17 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// The error is in the loaded file: it is reported there, at its own line, not
+// against this file, which has no such line.
+load "029_loaded_with_error.jd"
+
+justification m {
+    conclusion c is "C"
+    strategy   s is "S"
+    evidence   e is "E"
+    s supports c
+    e supports s
+}

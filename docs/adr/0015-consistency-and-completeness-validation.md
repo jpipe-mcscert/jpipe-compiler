@@ -124,6 +124,7 @@ others apply to both.
 | `sub-conclusion-supported` | J + T | Every `SubConclusion` has an assigned `Strategy`. |
 | `no-abstract-support` | J | No `AbstractSupport` placeholder remains; all must have been replaced by override commands before the completeness check runs. |
 | `has-abstract-support` | T | The template declares at least one `AbstractSupport`; a template with none is a justification in disguise. |
+| `abstract-support-used` | T | Every `AbstractSupport` supports a `Strategy`. One that supports none can never be overridden, so it is reported in the template rather than in every justification that implements it. |
 
 ## Rationale
 

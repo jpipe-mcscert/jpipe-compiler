@@ -157,9 +157,17 @@ Walks the `ParseTree` using an internal ANTLR `JPipeBaseListener` and emits one
   operator calls
 - `LoadResolver.LoadDirective` (an internal sentinel) for `load` directives
 
-All string labels are unquoted at this stage. Duplicate `conclusion`
-declarations within one model are caught here and reported as `ERROR`
-diagnostics.
+All string labels are unquoted at this stage, their `\"` and `\\` escapes
+resolved (`StringLiteral`). Two problems that are visible in a single file are
+caught here and reported as `ERROR` diagnostics, at their location:
+
+- a second `conclusion` in one model declaration (`single-conclusion`);
+- a second model declaration with a name already declared in the file
+  (`duplicate-model`). The commands of that second declaration are dropped, so
+  that nothing it contains is added to the first model.
+
+Each `load` directive carries the location of its statement, where any failure
+to load it is reported.
 
 #### `LoadResolver`
 
@@ -170,8 +178,11 @@ Eliminates every `LoadDirective` by recursively parsing the referenced file
 and splicing its prefixed commands in place. Each referenced file is parsed
 through the chain `CharStreamProvider → Lexer → Parser → HaltAndCatchFire →
 ActionListProvider` using a fresh `CompilationContext`; diagnostics from the
-sub-file are forwarded to the parent context. Cycles are detected by tracking
-resolved absolute paths in a `Set<Path>` threaded through the recursion.
+sub-file are forwarded to the parent context, each naming the file it is in.
+Cycles are detected by tracking resolved absolute paths in a `Set<Path>`
+threaded through the recursion. Every failure to load — a missing or unreadable
+file, a cycle, a glob that is invalid or matches nothing — is a FATAL reported
+in the file that loads it, at its `load` statement.
 
 When `load "path" as ns` carries a namespace alias, every model-name reference
 in the expanded sub-list is qualified with `ns:` so that loaded models do not
@@ -203,11 +214,22 @@ Feeds the flat command list to the `ExecutionEngine`, which handles deferred
 execution and macro expansion (see `model.md` — Commands). The result is a
 fully populated `Unit`.
 
+A command that fails does not stop the execution: the engine is given a
+failure handler that records it, and the rest of the queue still runs, so that
+one mistake gives one error rather than a cascade of reports about statements
+that never ran. `ExecutionFailureDiagnostics` then reports each failure at the
+location of its command (an operator call names the operator and the model it
+builds), followed by one summary `ERROR`.
+
 If execution deadlocks (deferred commands that can never run because their
 conditions remain unsatisfied), `ExecutionFailureDiagnostics` maps each stuck
-command to a specific semantic `ERROR` (e.g. `[unknown-element]`) rather than
-propagating a raw exception. The partial `Unit` built so far is returned so
-that downstream diagnostic steps can still run.
+command to a specific semantic `ERROR` (e.g. `[unknown-element]`; for an
+operator call, `[unknown-model]` naming each source model that does not exist)
+rather than propagating a raw exception. The partial `Unit` built so far is
+returned so that downstream diagnostic steps can still run.
+
+Every diagnostic names the file its location is in: an element of a
+`load`-ed file is reported in that file, not in the one being compiled.
 
 #### `ConsistencyChecker`
 

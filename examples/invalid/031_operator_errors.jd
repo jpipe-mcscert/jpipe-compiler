@@ -1,0 +1,22 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// Each failing operator call is reported at the call, naming the operator.
+justification a {
+    conclusion c is "C"
+    strategy   s is "S"
+    evidence   e is "E"
+    s supports c
+    e supports s
+}
+
+// line 17: 'typo' is no model
+justification r is refine(a, typo) {
+    hook: "e"
+}
+
+// line 22: there is no such operator
+justification z is frobnicate(a)

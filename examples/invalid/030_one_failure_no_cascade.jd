@@ -1,0 +1,19 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// One mistake, one error: a conclusion takes a single strategy, so line 16
+// fails. The relations after it still run, so neither strategy is reported as
+// unsupported.
+justification j {
+    conclusion c  is "C"
+    strategy   s1 is "S1"
+    strategy   s2 is "S2"
+    evidence   e  is "E"
+    s1 supports c
+    s2 supports c
+    e supports s1
+    e supports s2
+}

@@ -8,6 +8,7 @@ import ca.mcscert.jpipe.commands.MacroCommand;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.Unit;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -15,9 +16,10 @@ import java.util.List;
  * through the {@link ExecutionEngine}.
  *
  * <p>
- * If execution deadlocks, each stuck command is analysed to emit a specific
- * semantic diagnostic (e.g. {@code [unknown-element]}) rather than propagating
- * an unexpected exception.
+ * A command that fails is reported and the others still run. If execution
+ * deadlocks, each stuck command is analysed to emit a specific semantic
+ * diagnostic (e.g. {@code [unknown-element]}) rather than propagating an
+ * unexpected exception.
  */
 public final class ActionListInterpretation
 		extends
@@ -30,18 +32,23 @@ public final class ActionListInterpretation
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_TOTAL, input.size());
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_MACROS, macros);
 
-		ExecutionEngine engine = new ExecutionEngine();
+		// A failing command is recorded and the rest still run, so that one
+		// error does not hide the others, or make the checkers report as
+		// missing what the source declares (#183).
+		List<CommandExecutionException> failures = new ArrayList<>();
+		ExecutionEngine engine = new ExecutionEngine(failures::add);
 		Unit unit;
+		DeadlockException deadlock = null;
 		try {
 			unit = engine.spawn(ctx.sourcePath(), input);
 		} catch (DeadlockException ex) {
-			ExecutionFailureDiagnostics.diagnoseDeadlock(ex.stuckCommands(),
-					ex.partialUnit(), ctx);
+			deadlock = ex;
 			unit = ex.partialUnit();
-		} catch (CommandExecutionException ex) {
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(
-					ex.failedCommand(), ex.partialUnit(), ex.getCause(), ctx);
-			unit = ex.partialUnit();
+		}
+		ExecutionFailureDiagnostics.diagnoseExecutionFailures(failures, ctx);
+		if (deadlock != null) {
+			ExecutionFailureDiagnostics
+					.diagnoseDeadlock(deadlock.stuckCommands(), unit, ctx);
 		}
 
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,

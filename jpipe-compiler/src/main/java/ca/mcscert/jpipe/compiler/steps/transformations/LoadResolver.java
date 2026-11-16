@@ -21,13 +21,16 @@ import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ca.mcscert.jpipe.compiler.steps.checkers.HaltAndCatchFire;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.FileSystemException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
@@ -113,8 +116,16 @@ public final class LoadResolver
 	 * @param namespace
 	 *            alias under which the loaded file's models are registered, or
 	 *            {@code null} for a flat (no-prefix) import.
+	 * @param location
+	 *            where the {@code load} statement is written: every failure to
+	 *            load is reported there (#183).
 	 */
-	record LoadDirective(String path, String namespace) implements Command {
+	record LoadDirective(String path, String namespace,
+			SourceLocation location) implements Command {
+
+		LoadDirective(String path, String namespace) {
+			this(path, namespace, SourceLocation.UNKNOWN);
+		}
 
 		@Override
 		public Predicate<Unit> condition() {
@@ -187,18 +198,20 @@ public final class LoadResolver
 			matcher = FileSystems.getDefault()
 					.getPathMatcher("glob:" + anchored.pattern());
 		} catch (PatternSyntaxException e) {
-			ctx.fatal("Invalid glob in load pattern '" + load.path() + "': "
-					+ e.getDescription());
+			ctx.fatal(load.location(), "Invalid glob in load pattern '"
+					+ load.path() + "': " + e.getDescription());
 			return List.of();
 		}
 		if (hasUpwardSegment(anchored.pattern())) {
-			ctx.fatal("'..' may only appear before the first wildcard in load"
-					+ " pattern '" + load.path() + "'");
+			ctx.fatal(load.location(),
+					"'..' may only appear before the first wildcard in load"
+							+ " pattern '" + load.path() + "'");
 			return List.of();
 		}
 		if (!Files.isDirectory(anchored.root())) {
-			ctx.fatal("Cannot expand load pattern '" + load.path() + "': '"
-					+ anchored.root() + "' is not a directory");
+			ctx.fatal(load.location(),
+					"Cannot expand load pattern '" + load.path() + "': '"
+							+ anchored.root() + "' is not a directory");
 			return List.of();
 		}
 
@@ -206,12 +219,13 @@ public final class LoadResolver
 		try {
 			matches = matchGlob(anchored.root(), matcher);
 		} catch (IOException | UncheckedIOException e) {
-			ctx.fatal("Cannot expand load pattern '" + load.path() + "': "
-					+ e.getMessage());
+			ctx.fatal(load.location(), "Cannot expand load pattern '"
+					+ load.path() + "': " + e.getMessage());
 			return List.of();
 		}
 		if (matches.isEmpty()) {
-			ctx.fatal("No file matches load pattern '" + load.path() + "'");
+			ctx.fatal(load.location(),
+					"No file matches load pattern '" + load.path() + "'");
 			return List.of();
 		}
 		List<Command> result = new ArrayList<>();
@@ -231,7 +245,7 @@ public final class LoadResolver
 			CompilationContext ctx, Set<Path> visited, Set<String> loaded) {
 		if (visited.contains(resolved)) {
 			logger.debug("Circular load detected: [{}], skipping", resolved);
-			ctx.fatal("Circular load detected: " + resolved);
+			ctx.fatal(load.location(), "Circular load detected: " + resolved);
 			return List.of();
 		}
 
@@ -258,8 +272,10 @@ public final class LoadResolver
 			return subCommands;
 
 		} catch (IOException e) {
-			subCtx.fatal("Cannot open loaded file '" + resolved + "': "
-					+ e.getMessage());
+			// Reported on the file that loads it, at its `load` statement: the
+			// missing file has no line to point at.
+			ctx.fatal(load.location(), "Cannot open loaded file '" + load.path()
+					+ "' (" + resolved + "): " + reason(e));
 			return List.of();
 		} catch (CompilationException _) {
 			// sub-pipeline already recorded its diagnostics in subCtx
@@ -384,9 +400,20 @@ public final class LoadResolver
 				.andThen(new HaltAndCatchFire<ParseTree>())
 				.andThen(new ActionListProvider(operators,
 						unificationEquivalences));
-		try (FileInputStream fis = new FileInputStream(path.toFile())) {
-			return chain.fire(fis, subCtx);
+		try (InputStream in = Files.newInputStream(path)) {
+			return chain.fire(in, subCtx);
 		}
+	}
+
+	/** Why a file could not be opened, in words rather than an exception. */
+	private static String reason(IOException e) {
+		return switch (e) {
+			case NoSuchFileException _ -> "no such file";
+			case AccessDeniedException _ -> "permission denied";
+			case FileSystemException fse when fse.getReason() != null ->
+				fse.getReason();
+			default -> e.getMessage();
+		};
 	}
 
 	// -------------------------------------------------------------------------

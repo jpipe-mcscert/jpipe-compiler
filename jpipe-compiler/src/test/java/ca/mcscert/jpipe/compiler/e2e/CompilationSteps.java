@@ -32,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -259,6 +260,38 @@ public class CompilationSteps {
 					+ ":" + d.optInt("column", -1));
 		}
 		assertThat(located).contains(severity + "@" + line + ":" + column);
+	}
+
+	@Then("the JSON report has a diagnostic with code {string} in {string} at line {int}")
+	public void theJsonReportHasACodedDiagnosticInFileAt(String code,
+			String file, int line) {
+		assertThat(locatedCodes()).contains(code + "@" + file + ":" + line);
+	}
+
+	@Then("the JSON report has a diagnostic with code {string} at line {int}")
+	public void theJsonReportHasACodedDiagnosticAt(String code, int line) {
+		assertThat(locatedCodes())
+				.anyMatch(entry -> entry.startsWith(code + "@")
+						&& entry.endsWith(":" + line));
+	}
+
+	@Then("the JSON report has no diagnostic with code {string}")
+	public void theJsonReportHasNoDiagnosticWithCode(String code) {
+		assertThat(codesIn(jsonReport)).doesNotContain(code);
+	}
+
+	/** Every coded diagnostic as {@code code@file-name:line}. */
+	private List<String> locatedCodes() {
+		JSONArray diagnostics = jsonReport.getJSONArray("diagnostics");
+		List<String> located = new ArrayList<>();
+		for (int i = 0; i < diagnostics.length(); i++) {
+			JSONObject d = diagnostics.getJSONObject(i);
+			String file = Path.of(d.getString("source")).getFileName()
+					.toString();
+			located.add(d.optString("code", "") + "@" + file + ":"
+					+ d.optInt("line", -1));
+		}
+		return located;
 	}
 
 	@Then("the JSON report describes no model")
