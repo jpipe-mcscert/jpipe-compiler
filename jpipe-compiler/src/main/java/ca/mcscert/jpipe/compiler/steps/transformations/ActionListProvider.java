@@ -131,7 +131,7 @@ public final class ActionListProvider
 		@Override
 		public void enterLoad(JPipeParser.LoadContext ctx) {
 			String raw = ctx.path.getText();
-			String path = strip(raw);
+			String path = StringLiteral.value(raw);
 			String namespace = ctx.namespace != null
 					? ctx.namespace.getText()
 					: null;
@@ -215,7 +215,7 @@ public final class ActionListProvider
 		@Override
 		public void enterEvidence(JPipeParser.EvidenceContext ctx) {
 			String identifier = ctx.element().id.getText();
-			String label = strip(ctx.element().name.getText());
+			String label = StringLiteral.value(ctx.element().name.getText());
 			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			if (identifier.contains(":")) {
 				if (!validOverridePrefix(identifier, loc)) {
@@ -235,7 +235,8 @@ public final class ActionListProvider
 			String identifier = ctx.element().id.getText();
 			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			result.add(new CreateAbstractSupport(buildContext.justificationId,
-					identifier, strip(ctx.element().name.getText()), loc));
+					identifier,
+					StringLiteral.value(ctx.element().name.getText()), loc));
 		}
 
 		@Override
@@ -243,7 +244,8 @@ public final class ActionListProvider
 			String identifier = ctx.element().id.getText();
 			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			result.add(new CreateStrategy(buildContext.justificationId,
-					identifier, strip(ctx.element().name.getText()), loc));
+					identifier,
+					StringLiteral.value(ctx.element().name.getText()), loc));
 		}
 
 		@Override
@@ -258,13 +260,13 @@ public final class ActionListProvider
 				return;
 			}
 			result.add(new CreateConclusion(modelId, identifier,
-					strip(ctx.element().name.getText()), loc));
+					StringLiteral.value(ctx.element().name.getText()), loc));
 		}
 
 		@Override
 		public void enterSub_conclusion(JPipeParser.Sub_conclusionContext ctx) {
 			String identifier = ctx.element().id.getText();
-			String label = strip(ctx.element().name.getText());
+			String label = StringLiteral.value(ctx.element().name.getText());
 			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			if (identifier.contains(":")) {
 				if (!validOverridePrefix(identifier, loc)) {
@@ -314,7 +316,8 @@ public final class ActionListProvider
 			}
 			Map<String, String> map = new LinkedHashMap<>();
 			for (var kv : ctx.key_val_decl()) {
-				map.put(kv.key.getText(), strip(kv.value.getText()));
+				map.put(kv.key.getText(),
+						StringLiteral.value(kv.value.getText()));
 			}
 			return Collections.unmodifiableMap(map);
 		}
@@ -348,24 +351,6 @@ public final class ActionListProvider
 			// The actual resolution is deferred to command execution via
 			// findById.
 			return true;
-		}
-
-		/**
-		 * Removes the surrounding double-quote characters from a STRING lexer
-		 * token. The grammar guarantees that every label and path token is
-		 * quoted, so receiving an unquoted string here indicates a
-		 * grammar/parser mismatch.
-		 *
-		 * @throws IllegalArgumentException
-		 *             if {@code s} is not a properly quoted string literal.
-		 */
-		private static String strip(String s) {
-			if (s.length() < 2 || s.charAt(0) != '"'
-					|| s.charAt(s.length() - 1) != '"') {
-				throw new IllegalArgumentException(
-						"Expected a quoted string literal, got: " + s);
-			}
-			return s.substring(1, s.length() - 1);
 		}
 	}
 }

@@ -110,8 +110,11 @@ in code points, as the lexer counts them), rather than replaced with U+FFFD.
 **Package:** `compiler.steps.transformations`
 
 Runs the ANTLR-generated `JPipeLexer` over the character stream and produces a
-`CommonTokenStream`. Lexer errors are recorded as non-fatal `ERROR` diagnostics
-so that parsing can still run and collect further errors.
+`CommonTokenStream`. A character no token matches is a lexer error ("token
+recognition error"), recorded as a non-fatal `ERROR` diagnostic with its
+location, so that parsing can still run and collect further errors;
+`HaltAndCatchFire` then aborts the compilation. The grammar has no catch-all
+rule that would drop such characters silently.
 
 #### `Parser`
 

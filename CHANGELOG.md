@@ -18,7 +18,21 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- Strings accept two escapes: `\"` for a double quote and `\\` for a backslash.
+  Any other backslash is kept as written, so paths such as `"dir\file.jd"` need
+  no change. The JPIPE export escapes labels the same way, so a label holding a
+  quote compiles back to itself (#176).
+
 ### Changed
+- **Breaking:** a string now ends at its first unescaped double quote. It used
+  to run to the last quote on its line, so a trailing `// see "doc"` comment
+  became part of the label, and two declarations written on one line were
+  merged into one element. A label that holds a double quote must now write it
+  `\"` (#176).
+- **Breaking:** a character the language does not know, such as the `-` in
+  `e-1` or the `é` in `café`, is now a syntax error reported where it sits. It
+  used to be dropped without a word, so `e-1` and `e-2` both became `e` (#176).
 - The compilation errors of `jpipe process` are now printed on standard error as
   bare `file:line:column: error: message` lines, without a timestamp or logger
   name, and no `--log-level` hides them: `--log-level OFF` used to leave only
@@ -52,6 +66,9 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   header.
 
 ### Fixed
+- A single-quoted label (`'A label'`) is now a syntax error at its location,
+  instead of a crash with a Java stack trace and no diagnostic report. Strings
+  are written between double quotes only (#172).
 - The logo banner is now printed on standard error. It used to start every
   export written to standard output, so `jpipe process` without `--headless`
   produced JSON, Python and images that could not be read (#175).

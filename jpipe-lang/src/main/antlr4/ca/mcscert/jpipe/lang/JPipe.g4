@@ -72,7 +72,10 @@ LINE_COMMENT: '//' ~[\r\n]*         -> channel(HIDDEN);
 // Symbols & strings
 fragment INTEGER : [0-9]+;
 ID               : [A-Za-z_] [A-Za-z0-9_]*;
-STRING           : '"' STRING_CHAR* '"' | '\'' STRING_CHAR* '\'' ;
+// A string ends at its first unescaped double quote, on the line it opened.
+// `\"` and `\\` are its only escapes; any other backslash is kept as is, so a
+// Windows path such as "dir\file.jd" needs no escaping.
+STRING           : '"' STRING_CHAR* '"';
 OPEN             : '{';
 CLOSE            : '}';
 OPEN_P           : '(';
@@ -80,7 +83,7 @@ CLOSE_P          : ')';
 COMMA            : ',';
 COLON            : ':';
 
-fragment STRING_CHAR : ~('\r' | '\n');
+fragment STRING_CHAR : '\\' ["\\] | '\\' ~["\\\r\n] | ~["\\\r\n];
 
-// Catch-all: skip unrecognized characters, error reporting handled by the error listener
-ERROR_TOKEN : . -> skip;
+// No catch-all rule: a character no rule matches is a "token recognition
+// error", which the lexer's error listener reports with its location.
