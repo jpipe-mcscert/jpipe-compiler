@@ -27,11 +27,13 @@ import java.util.function.BiConsumer;
  * (abstract/reusable).
  *
  * <p>
- * The type parameter {@code E} constrains which elements can be added:
- * {@link Justification} accepts only
- * {@link ca.mcscert.jpipe.model.elements.CommonElement}, while {@link Template}
- * accepts any {@link JustificationElement} including
- * {@link ca.mcscert.jpipe.model.elements.AbstractSupport}.
+ * The type parameter {@code E} is the type of the elements the model holds.
+ * Both kinds of model hold any {@link JustificationElement}: a
+ * {@link Justification} that implements a template holds the template's
+ * {@link ca.mcscert.jpipe.model.elements.AbstractSupport} placeholders until
+ * they are overridden. What a justification may <em>declare</em> is narrower,
+ * and enforced where elements are declared ({@link Unit#addInto}) and by the
+ * completeness check ({@code no-abstract-support}).
  *
  * <p>
  * Every model has exactly one {@link Conclusion}, set via
@@ -186,12 +188,15 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 
 		// Step 3: add copies to this model
 		copies.values().stream().filter(c -> !(c instanceof Conclusion))
-				.forEach(copy -> {
-					@SuppressWarnings("unchecked")
-					E typed = (E) copy;
-					addElement(typed);
-				});
+				.forEach(this::addInlined);
 	}
+
+	/**
+	 * Adds an element copied from a template by {@link #inline}. Both kinds of
+	 * model hold any {@link JustificationElement}, placeholders included, so
+	 * each adds it as it is (#190).
+	 */
+	protected abstract void addInlined(JustificationElement copy);
 
 	private void rewireEdges(Template template,
 			Map<String, JustificationElement> copies) {

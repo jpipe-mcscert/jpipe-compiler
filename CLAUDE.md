@@ -181,7 +181,8 @@ SupportLeaf (marker interface) — implemented by SubConclusion, Evidence, Abstr
 ```
 
 `JustificationModel<E>` (sealed abstract base):
-- `Justification` — accepts only `CommonElement`; concrete justification
+- `Justification` — concrete justification; declares only `CommonElement`s,
+  but holds a template's `AbstractSupport` placeholders until they are overridden
 - `Template` — accepts any `JustificationElement`; abstract/reusable structure
 
 Model construction uses the **Command pattern** (ADR-0005). Traversal uses the

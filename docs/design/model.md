@@ -18,9 +18,12 @@ Support relationships are encoded directly via typed fields and one marker inter
 - `Conclusion` and `SubConclusion` each hold a single `supporter : Strategy`. Cardinality is enforced via `addSupport` which prevents multiple assignments.
 - `Strategy` holds a list of supporters (`List<SupportLeaf>`). Multiple elements can support a single strategy (e.g., shared evidence or convergence).
 
-`JustificationModel<E>` is the sealed base for `Justification` (accepts only
-`CommonElement`) and `Template` (accepts any `JustificationElement`). A `Unit`
-is the root produced by compiling one `.jd` file.
+`JustificationModel<E>` is the sealed base for `Justification` and `Template`,
+both of which hold any `JustificationElement`. A justification only *declares*
+`CommonElement`s (`Unit.addInto` refuses an `AbstractSupport`), but implementing
+a template copies the template's `AbstractSupport` placeholders into it until
+they are overridden; one left over is reported by `no-abstract-support`. A
+`Unit` is the root produced by compiling one `.jd` file.
 
 ```plantuml
 @startuml model

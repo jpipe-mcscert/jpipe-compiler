@@ -55,12 +55,14 @@ public final class Unit {
 	public void addInto(String modelName, JustificationElement element) {
 		switch (get(modelName)) {
 			case Justification j -> {
-				if (!(element instanceof CommonElement ce)) {
+				// A justification declares common elements only; placeholders
+				// reach it through template expansion, not through here.
+				if (!(element instanceof CommonElement)) {
 					throw new IllegalArgumentException("Justification '"
 							+ modelName + "' only accepts CommonElement; got "
 							+ element.getClass().getSimpleName());
 				}
-				j.addElement(ce);
+				j.addElement(element);
 			}
 			case Template t -> t.addElement(element);
 		}

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -431,6 +432,29 @@ class JustificationModelTest {
 			assertThat(j.inheritedElements()).extracting(e -> e.id())
 					.containsExactlyInAnyOrder("t:s", "t:e");
 			assertThat(j.concreteOverrides()).isEmpty();
+		}
+
+		@Test
+		@DisplayName("after inline into Justification: placeholders are held as what they are")
+		void inlinedPlaceholdersAreTypedElementsOfAJustification() {
+			// They used to sit in a List<CommonElement> through an unchecked
+			// cast: reading them as CommonElement threw (#190).
+			Template t = new Template("t");
+			t.setConclusion(new Conclusion("c", "conclusion"));
+			Strategy ts = new Strategy("s", "strategy");
+			AbstractSupport abs = new AbstractSupport("abs", "placeholder");
+			t.addElement(ts);
+			t.addElement(abs);
+			ts.addSupport(abs);
+
+			Justification j = new Justification("j");
+			j.inline(t, "t");
+
+			List<JustificationElement> elements = j.getElements();
+			assertThat(elements).extracting(JustificationElement::id)
+					.containsExactlyInAnyOrder("t:s", "t:abs");
+			assertThat(elements)
+					.hasAtLeastOneElementOfType(AbstractSupport.class);
 		}
 
 		@Test

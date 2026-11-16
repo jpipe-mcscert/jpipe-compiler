@@ -15,6 +15,11 @@ public final class Template extends JustificationModel<JustificationElement> {
 		super(name);
 	}
 
+	@Override
+	protected void addInlined(JustificationElement copy) {
+		addElement(copy);
+	}
+
 	public List<AbstractSupport> abstractSupports() {
 		return elementsOfType(AbstractSupport.class);
 	}

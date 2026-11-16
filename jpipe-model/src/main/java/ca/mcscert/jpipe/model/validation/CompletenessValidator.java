@@ -125,10 +125,6 @@ public final class CompletenessValidator {
 			ValidationContext ctx, List<Violation> violations) {
 		// no-abstract-support: AbstractSupports must have been replaced by
 		// override commands before the completeness check runs.
-		// Note: elementsOfType() accesses the raw elements list from within
-		// JustificationModel (where E is erased to JustificationElement),
-		// avoiding ClassCastException when AbstractSupport is stored in a
-		// Justification's List<CommonElement> via unchecked cast.
 		justification.elementsOfType(AbstractSupport.class).forEach(
 				as -> violations.add(new Violation("no-abstract-support",
 						"Abstract support '" + as.id() + "' in justification '"
