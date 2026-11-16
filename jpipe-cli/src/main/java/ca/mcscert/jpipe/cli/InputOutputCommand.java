@@ -20,9 +20,10 @@ import picocli.CommandLine.ParentCommand;
  *
  * <p>
  * The output goes through an {@link OutputTarget}: a file given with {@code -o}
- * is replaced only once the command has returned, so a run that fails leaves
- * the previous file as it was. An output that is the input file is refused
- * before anything runs (#174).
+ * is written only once the command has produced its output, so a run that
+ * aborts leaves the previous file as it was. A run that reports non-fatal
+ * errors still writes its export, as ADR-0016 requires. An output that is the
+ * input file is refused before anything runs (#174).
  */
 abstract class InputOutputCommand implements Callable<Integer> {
 
@@ -42,14 +43,15 @@ abstract class InputOutputCommand implements Callable<Integer> {
 									// messages target stdout/stderr
 	public final Integer call() {
 		if (!parent.headless && !suppressLogo()) {
-			Logo.print();
+			System.err.println(Logo.BANNER);
 		}
 		if (OutputTarget.sameFile(input, output)) {
 			System.err.println("error: '" + output
 					+ "' is also the input: writing to it would replace the source");
 			return CommandLine.ExitCode.USAGE;
 		}
-		try (OutputTarget target = OutputTarget.open(output)) {
+		try {
+			OutputTarget target = OutputTarget.open(output);
 			Integer exitCode = doCall(target.stream());
 			target.commit();
 			return exitCode;
@@ -84,7 +86,7 @@ abstract class InputOutputCommand implements Callable<Integer> {
 	 * Performs the command-specific compilation work.
 	 *
 	 * @param out
-	 *            the resolved output stream (a temporary file standing for the
+	 *            the resolved output stream (a buffer standing for the
 	 *            {@code -o} file, or {@code System.out}). Not to be closed.
 	 * @return exit code ({@link Main#EXIT_OK} or
 	 *         {@link Main#EXIT_JPIPE_ERROR}).

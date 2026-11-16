@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.compiler.CompilationConfig;
@@ -24,28 +25,26 @@ class OutputTargetTest {
 	Path dir;
 
 	@Test
-	void a_committed_output_replaces_the_file() throws IOException {
+	void the_file_is_written_only_by_the_commit() throws IOException {
 		Path file = Files.writeString(dir.resolve("out.json"), "previous");
+		OutputTarget target = OutputTarget.open(file.toString());
 
-		try (OutputTarget target = OutputTarget.open(file.toString())) {
-			target.stream().write(bytes("new"));
-			assertThat(file).hasContent("previous");
-			target.commit();
-		}
+		target.stream().write(bytes("new"));
+		assertThat(file).hasContent("previous");
+		target.commit();
 
 		assertThat(file).hasContent("new");
 		assertThat(entries()).containsExactly(file);
 	}
 
 	@Test
-	void an_output_closed_without_a_commit_leaves_the_previous_file()
+	void an_output_never_committed_leaves_the_previous_file()
 			throws IOException {
 		// A failed run used to leave the file truncated to 0 bytes (#174).
 		Path file = Files.writeString(dir.resolve("out.dot"), "precious");
+		OutputTarget target = OutputTarget.open(file.toString());
 
-		try (OutputTarget target = OutputTarget.open(file.toString())) {
-			target.stream().write(bytes("half an export"));
-		}
+		target.stream().write(bytes("half an export"));
 
 		assertThat(file).hasContent("precious");
 		assertThat(entries()).containsExactly(file);
@@ -54,23 +53,23 @@ class OutputTargetTest {
 	@Test
 	void a_new_file_is_created_only_by_the_commit() throws IOException {
 		Path file = dir.resolve("new.json");
+		OutputTarget target = OutputTarget.open(file.toString());
 
-		try (OutputTarget target = OutputTarget.open(file.toString())) {
-			target.stream().write(bytes("{}"));
-		}
-
+		target.stream().write(bytes("{}"));
 		assertThat(file).doesNotExist();
+		target.commit();
+
+		assertThat(file).hasContent("{}");
 	}
 
 	@Test
 	void writing_through_a_symbolic_link_keeps_the_link() throws IOException {
 		Path real = Files.writeString(dir.resolve("real.json"), "previous");
 		Path link = Files.createSymbolicLink(dir.resolve("link.json"), real);
+		OutputTarget target = OutputTarget.open(link.toString());
 
-		try (OutputTarget target = OutputTarget.open(link.toString())) {
-			target.stream().write(bytes("new"));
-			target.commit();
-		}
+		target.stream().write(bytes("new"));
+		target.commit();
 
 		assertThat(link).isSymbolicLink();
 		assertThat(real).hasContent("new");
@@ -78,19 +77,33 @@ class OutputTargetTest {
 
 	@Test
 	@DisabledOnOs(OS.WINDOWS)
-	void replacing_a_file_keeps_its_permissions() throws IOException {
+	void writing_over_a_file_keeps_what_it_is() throws IOException {
+		// Written in place: permissions, owner and hard links survive.
 		Path file = Files.writeString(dir.resolve("out.py"), "previous");
 		Files.setPosixFilePermissions(file,
 				PosixFilePermissions.fromString("rwxr-x---"));
+		Path hardLink = Files.createLink(dir.resolve("shared.py"), file);
+		OutputTarget target = OutputTarget.open(file.toString());
 
-		try (OutputTarget target = OutputTarget.open(file.toString())) {
-			target.stream().write(bytes("new"));
-			target.commit();
-		}
+		target.stream().write(bytes("new"));
+		target.commit();
 
 		assertThat(PosixFilePermissions
 				.toString(Files.getPosixFilePermissions(file)))
 				.isEqualTo("rwxr-x---");
+		assertThat(hardLink).hasContent("new");
+	}
+
+	@Test
+	@DisabledOnOs(OS.WINDOWS)
+	void a_device_is_written_to_rather_than_replaced() throws IOException {
+		// `-o /dev/null` must work, as it did before #174.
+		OutputTarget target = OutputTarget.open("/dev/null");
+
+		target.stream().write(bytes("discarded"));
+
+		assertThatCode(target::commit).doesNotThrowAnyException();
+		assertThat(Files.isRegularFile(Path.of("/dev/null"))).isFalse();
 	}
 
 	@Test
@@ -114,7 +127,7 @@ class OutputTargetTest {
 
 	@Test
 	@DisabledOnOs(OS.WINDOWS)
-	void a_read_only_file_is_refused_rather_than_replaced() throws IOException {
+	void a_read_only_file_is_refused_up_front() throws IOException {
 		Path file = Files.writeString(dir.resolve("locked.json"), "previous");
 		Files.setPosixFilePermissions(file,
 				PosixFilePermissions.fromString("r--r--r--"));
@@ -132,14 +145,12 @@ class OutputTargetTest {
 		PrintStream original = System.out;
 		try (PrintStream broken = new PrintStream(new FailingStream())) {
 			System.setOut(broken);
-			try (OutputTarget target = OutputTarget
-					.open(CompilationConfig.STDOUT)) {
-				OutputStream out = target.stream();
-				assertThatThrownBy(() -> out.write(bytes("lost")))
-						.isInstanceOf(UnwritableOutputException.class)
-						.hasMessage(
-								"cannot write to standard output: write error");
-			}
+			OutputTarget target = OutputTarget.open(CompilationConfig.STDOUT);
+			target.stream().write(bytes("lost"));
+
+			assertThatThrownBy(target::commit)
+					.isInstanceOf(UnwritableOutputException.class)
+					.hasMessage("cannot write to standard output: write error");
 		} finally {
 			System.setOut(original);
 		}
@@ -158,7 +169,7 @@ class OutputTargetTest {
 				CompilationConfig.STDOUT)).isFalse();
 	}
 
-	/** What the directory holds: no temporary file may be left behind. */
+	/** What the directory holds: nothing but the target, ever. */
 	private List<Path> entries() throws IOException {
 		try (Stream<Path> entries = Files.list(dir)) {
 			return entries.toList();

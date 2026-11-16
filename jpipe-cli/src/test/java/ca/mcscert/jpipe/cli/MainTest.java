@@ -64,8 +64,8 @@ class MainTest {
 	@Test
 	void withDefaultSubcommand_insertsProcessAtFront_whenNoParentFlags() {
 		assertThat(Main.withDefaultSubcommand(
-				new String[]{"-i", "foo.jd", "-d", "myDiagram"}, CMD))
-				.containsExactly("process", "-i", "foo.jd", "-d", "myDiagram");
+				new String[]{"-i", "foo.jd", "-m", "myModel"}, CMD))
+				.containsExactly("process", "-i", "foo.jd", "-m", "myModel");
 	}
 
 	@Test
@@ -108,6 +108,23 @@ class MainTest {
 		assertThat(Main.withDefaultSubcommand(
 				new String[]{"-i", "doc.jd", "-m", name}, CMD))
 				.containsExactly("process", "-i", "doc.jd", "-m", name);
+	}
+
+	@ParameterizedTest(name = "a mistyped parent flag is left to picocli: {0}")
+	@ValueSource(strings = {"--headles", "--log-levl=INFO", "-x"})
+	void withDefaultSubcommand_leavesAnOptionProcessDoesNotKnowInPlace(
+			String typo) {
+		// Inserting `process` would report the typo against `process`, plus
+		// an unmatched `doctor`, instead of against the root command.
+		String[] args = {typo, "doctor"};
+		assertThat(Main.withDefaultSubcommand(args, CMD)).isSameAs(args);
+	}
+
+	@ParameterizedTest(name = "a process option still gets process: {0}")
+	@ValueSource(strings = {"-ifoo.jd", "--input=foo.jd", "-o"})
+	void withDefaultSubcommand_insertsProcessBeforeItsOwnOptions(String opt) {
+		assertThat(Main.withDefaultSubcommand(new String[]{opt}, CMD))
+				.containsExactly("process", opt);
 	}
 
 	@Test

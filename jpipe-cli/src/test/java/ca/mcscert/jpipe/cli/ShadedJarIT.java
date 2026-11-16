@@ -160,6 +160,18 @@ class ShadedJarIT {
 	}
 
 	@Test
+	@DisabledOnOs(OS.WINDOWS)
+	void anOutputToADeviceIsWrittenTo() throws IOException {
+		// Renaming a temporary file over /dev/null is not permitted: the
+		// output must be written in place.
+		Execution run = jpipe("--headless", "process", "-i", MINIMAL, "-m",
+				"minimal", "-f", "json", "-o", "/dev/null");
+
+		assertThat(run.exitCode()).isZero();
+		assertThat(run.err()).isEmpty();
+	}
+
+	@Test
 	void aFailedRunKeepsThePreviousOutput(@TempDir Path dir)
 			throws IOException {
 		Path previous = Files.writeString(dir.resolve("out.dot"), "precious");

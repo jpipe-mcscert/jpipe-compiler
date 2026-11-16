@@ -101,7 +101,9 @@ public class Main {
 			length = parentFlagLength(args, insertAt, parentFlags);
 		}
 		if (insertAt > args.length || (insertAt < args.length
-				&& shortCircuit.contains(args[insertAt]))) {
+				&& (shortCircuit.contains(args[insertAt])
+						|| isUnknownOption(args[insertAt],
+								cmd.getSubcommands().get("process"))))) {
 			return args;
 		}
 
@@ -111,6 +113,29 @@ public class Main {
 		System.arraycopy(args, insertAt, adjusted, insertAt + 1,
 				args.length - insertAt);
 		return adjusted;
+	}
+
+	/**
+	 * Whether {@code token} looks like an option but is none of
+	 * {@code process}'s: most likely a mistyped parent flag, as in
+	 * {@code jpipe --headles doctor}. Left in place, picocli reports it against
+	 * the root command, rather than {@code process} complaining about it and
+	 * about the subcommand that follows. Accepts {@code --name=value} and the
+	 * attached short form {@code -ifile.jd}.
+	 */
+	private static boolean isUnknownOption(String token, CommandLine process) {
+		if (!token.startsWith("-") || token.equals("-")) {
+			return false;
+		}
+		Set<String> names = new HashSet<>();
+		for (OptionSpec opt : process.getCommandSpec().options()) {
+			Collections.addAll(names, opt.names());
+		}
+		int equals = token.indexOf('=');
+		String name = equals > 0 ? token.substring(0, equals) : token;
+		boolean attachedShort = !token.startsWith("--") && token.length() > 2
+				&& names.contains(token.substring(0, 2));
+		return !names.contains(name) && !attachedShort;
 	}
 
 	/**

@@ -4,8 +4,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
-/** Makes the sinks report a failed write, whatever stream they were given. */
-final class WriteErrors {
+/**
+ * Makes a failed write visible, whatever stream it happened on. Shared by the
+ * sinks and by callers that hand them a stream wrapping {@link System#out}, so
+ * that the check lives in one place.
+ */
+public final class WriteErrors {
 
 	private WriteErrors() {
 	}
@@ -19,7 +23,7 @@ final class WriteErrors {
 	 * @throws IOException
 	 *             if the stream failed, now or on an earlier write.
 	 */
-	static void flushAndCheck(OutputStream out) throws IOException {
+	public static void flushAndCheck(OutputStream out) throws IOException {
 		out.flush();
 		if (out instanceof PrintStream printStream
 				&& printStream.checkError()) {

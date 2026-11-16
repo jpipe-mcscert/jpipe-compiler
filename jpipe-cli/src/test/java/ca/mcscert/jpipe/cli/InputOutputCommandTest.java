@@ -138,6 +138,15 @@ class InputOutputCommandTest {
 	}
 
 	@Test
+	void doctor_prints_the_logo_on_stderr_too() {
+		Captured run = capture(() -> Main.commandLine().execute("doctor"));
+
+		assertThat(run.err()).contains("McMaster");
+		assertThat(run.out()).doesNotContain("McMaster")
+				.contains("Checking external tools:");
+	}
+
+	@Test
 	void process_json_to_stdout_emits_a_parseable_document_without_headless() {
 		// Every export written to stdout used to start with the logo (#175).
 		String input = resourcePath("test_minimal.jd");
@@ -178,6 +187,28 @@ class InputOutputCommandTest {
 
 		assertThat(exitCode).isEqualTo(Main.EXIT_JPIPE_ERROR);
 		assertThat(previous).hasContent("precious");
+	}
+
+	@Test
+	void a_run_with_non_fatal_errors_still_writes_its_export(@TempDir Path dir)
+			throws IOException {
+		// ADR-0016: a semantic error does not stop the export, so the file is
+		// written and the run exits 1. Only an abort keeps the previous file.
+		Path source = Files.writeString(dir.resolve("incomplete.jd"), """
+				justification j {
+				    conclusion c is "C"
+				    strategy s is "S"
+				    s supports c
+				}
+				""");
+		Path out = Files.writeString(dir.resolve("out.json"), "previous");
+
+		int exitCode = Main.commandLine().execute("--headless", "process", "-i",
+				source.toString(), "-m", "j", "-f", "json", "-o",
+				out.toString());
+
+		assertThat(exitCode).isEqualTo(Main.EXIT_JPIPE_ERROR);
+		assertThat(out).content().startsWith("{");
 	}
 
 	@Test

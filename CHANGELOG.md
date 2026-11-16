@@ -71,9 +71,9 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - The error for a missing Graphviz now suggests `jpipe doctor`; it suggested
   `jpipe --doctor`, which does not exist (#186).
 - `-o` no longer truncates its file before compiling. An `-o` naming the input
-  file erased the source; it is now refused with exit code 2. A failed run
-  wiped the previous output; the file is now replaced only once the command
-  succeeds, and keeps its permissions (#174).
+  file erased the source; it is now refused with exit code 2. A run that
+  aborts, on a fatal error or an unknown model, wiped the previous output; the
+  file is now written only once the command has produced its output (#174).
 - An `-o` that cannot be written (a directory, a read-only file, a missing
   directory) is reported as `error: cannot write '<path>': <reason>` before
   compiling, instead of `unexpected error: …` (#186).

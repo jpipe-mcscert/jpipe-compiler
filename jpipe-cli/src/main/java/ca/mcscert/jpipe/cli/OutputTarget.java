@@ -1,64 +1,58 @@
 package ca.mcscert.jpipe.cli;
 
 import ca.mcscert.jpipe.compiler.CompilationConfig;
-import java.io.Closeable;
+import ca.mcscert.jpipe.compiler.steps.io.sinks.WriteErrors;
+import java.io.ByteArrayOutputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.nio.file.AccessDeniedException;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
-import java.util.UUID;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Where a command writes its output: standard output, or a file given with
  * {@code -o}.
  *
  * <p>
- * A file is never written in place. The output goes to a hidden temporary file
- * in the same directory, which {@link #commit()} moves over the target once the
- * command has succeeded; {@link #close()} without a commit deletes it. A run
- * that fails therefore leaves the previous file as it was, rather than
- * truncated before compilation even started (#174).
+ * A file is not opened while the command runs. Its output is held in memory,
+ * and {@link #commit()} writes it to the file, in place, once the command has
+ * produced it. A run that aborts never reaches the commit, so it leaves the
+ * previous file as it was, rather than truncated before compilation even
+ * started (#174). Writing in place, rather than renaming a temporary file over
+ * the target, keeps what the target is: a device such as {@code /dev/null}, a
+ * pipe, a hard link, a file owned by someone else in a shared directory.
  *
  * <p>
- * Every failure to write, whether it happens when the target is opened, during
- * the export or when the file is moved into place, is raised as an
- * {@link UnwritableOutputException} naming the target. That includes standard
- * output, whose {@link PrintStream} never throws and only records the error.
+ * Every failure to write is raised as an {@link UnwritableOutputException}
+ * naming the target. That includes standard output, whose
+ * {@link java.io.PrintStream} never throws and only records the error.
  */
-final class OutputTarget implements Closeable {
-
-	private static final Logger logger = LogManager.getLogger();
+final class OutputTarget {
 
 	private final String name;
-	private final Path target;
-	private final Path temporary;
-	private final OutputStream raw;
-	private final Guard guarded;
-	private boolean committed;
+	/** Standard output, or {@code null} for a file. */
+	private final Borrowed stdout;
+	/** The file to write, or {@code null} for standard output. */
+	private final Path file;
+	/** What the command wrote, for a file. */
+	private final ByteArrayOutputStream buffer;
 
-	private OutputTarget(String name, Path target, Path temporary,
-			OutputStream raw) {
+	private OutputTarget(String name, Borrowed stdout, Path file) {
 		this.name = name;
-		this.target = target;
-		this.temporary = temporary;
-		this.raw = raw;
-		this.guarded = new Guard(raw);
+		this.stdout = stdout;
+		this.file = file;
+		this.buffer = file == null ? null : new ByteArrayOutputStream();
 	}
 
 	/**
 	 * Opens the target named by {@code -o}: standard output for
-	 * {@link CompilationConfig#STDOUT}, a file otherwise.
+	 * {@link CompilationConfig#STDOUT}, a file otherwise. A file is checked
+	 * now, so that a target that cannot be written fails before compiling, but
+	 * it is written only by {@link #commit()}.
 	 *
 	 * @throws UnwritableOutputException
 	 *             if the file cannot be written: an invalid path, a directory,
@@ -66,19 +60,9 @@ final class OutputTarget implements Closeable {
 	 */
 	static OutputTarget open(String output) throws UnwritableOutputException {
 		if (CompilationConfig.STDOUT.equals(output)) {
-			return new OutputTarget(output, null, null, System.out);
+			return new OutputTarget(output, new Borrowed(System.out), null);
 		}
-		Path target = resolve(output);
-		Path temporary = target.resolveSibling(
-				"." + target.getFileName() + "." + UUID.randomUUID() + ".tmp");
-		try {
-			OutputStream raw = Files.newOutputStream(temporary,
-					StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-			keepPermissions(target, temporary);
-			return new OutputTarget(output, target, temporary, raw);
-		} catch (IOException e) {
-			throw new UnwritableOutputException(output, reason(e), e);
-		}
+		return new OutputTarget(output, null, check(output));
 	}
 
 	/**
@@ -100,106 +84,49 @@ final class OutputTarget implements Closeable {
 		}
 	}
 
-	/** The stream a command writes to. */
+	/** The stream a command writes to. Not to be closed. */
 	OutputStream stream() {
-		return guarded;
+		return stdout != null ? stdout : buffer;
 	}
 
 	/**
-	 * Makes the output final: flushes it, and moves a file into place over the
-	 * previous one. Called only once the command has succeeded.
+	 * Makes the output final: flushes standard output, or writes the file.
+	 * Called once the command has produced its output; never after an abort.
 	 *
 	 * @throws UnwritableOutputException
-	 *             if the output could not be written or moved into place.
+	 *             if the output could not be written.
 	 */
 	void commit() throws UnwritableOutputException {
-		guarded.flush();
-		if (temporary == null) {
-			return;
-		}
 		try {
-			raw.close();
-			move(temporary, target);
-			committed = true;
+			if (stdout != null) {
+				WriteErrors.flushAndCheck(stdout.out());
+			} else {
+				Files.write(file, buffer.toByteArray());
+			}
 		} catch (IOException e) {
 			throw new UnwritableOutputException(name, reason(e), e);
 		}
 	}
 
-	/**
-	 * Discards an output that was not committed, leaving the previous file
-	 * untouched. Standard output is never closed: the command borrows it.
-	 */
-	@Override
-	public void close() {
-		if (temporary == null || committed) {
-			return;
-		}
+	/** Refuses a file that cannot be written, before anything runs. */
+	private static Path check(String output) throws UnwritableOutputException {
+		Path file;
 		try {
-			raw.close();
-			Files.deleteIfExists(temporary);
-		} catch (IOException e) {
-			logger.warn("Could not delete the temporary file {}: {}", temporary,
-					e.getMessage());
-		}
-	}
-
-	/**
-	 * The path to write to: the file a symbolic link points to, so that the
-	 * link survives, in a directory that exists.
-	 */
-	private static Path resolve(String output)
-			throws UnwritableOutputException {
-		Path target;
-		try {
-			target = Path.of(output).toAbsolutePath();
+			file = Path.of(output).toAbsolutePath();
 		} catch (InvalidPathException e) {
 			throw new UnwritableOutputException(output, "invalid path", e);
 		}
-		try {
-			if (Files.exists(target)) {
-				target = target.toRealPath();
-			}
-		} catch (IOException e) {
-			throw new UnwritableOutputException(output, reason(e), e);
-		}
-		if (Files.isDirectory(target)) {
+		if (Files.isDirectory(file)) {
 			throw new UnwritableOutputException(output, "is a directory");
 		}
-		if (Files.exists(target) && !Files.isWritable(target)) {
+		if (Files.exists(file) && !Files.isWritable(file)) {
 			throw new UnwritableOutputException(output, "permission denied");
 		}
-		if (!Files.isDirectory(target.getParent())) {
+		if (!Files.exists(file) && !Files.isDirectory(file.getParent())) {
 			throw new UnwritableOutputException(output,
-					"no such directory '" + target.getParent() + "'");
+					"no such directory '" + file.getParent() + "'");
 		}
-		return target;
-	}
-
-	/**
-	 * Gives the temporary file the permissions of the file it replaces, so that
-	 * writing over a file does not change who may read it. Best effort: a file
-	 * system without POSIX permissions keeps its defaults.
-	 */
-	private static void keepPermissions(Path target, Path temporary) {
-		if (!Files.exists(target)) {
-			return;
-		}
-		try {
-			Files.setPosixFilePermissions(temporary,
-					Files.getPosixFilePermissions(target));
-		} catch (UnsupportedOperationException | IOException _) {
-			// No POSIX permissions here: the defaults are all there is.
-		}
-	}
-
-	private static void move(Path from, Path to) throws IOException {
-		try {
-			Files.move(from, to, StandardCopyOption.REPLACE_EXISTING,
-					StandardCopyOption.ATOMIC_MOVE);
-		} catch (AtomicMoveNotSupportedException _) {
-			Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
-		}
+		return file;
 	}
 
 	/** Why a file operation failed, in words rather than an exception name. */
@@ -216,57 +143,28 @@ final class OutputTarget implements Closeable {
 	}
 
 	/**
-	 * Turns every failure to write into an {@link UnwritableOutputException}
-	 * naming the target, and catches the errors a {@link PrintStream} records
-	 * instead of throwing.
+	 * Standard output, lent to the command: writes go straight through, and
+	 * closing it is not the command's call. Its errors are checked on
+	 * {@link #commit()}.
 	 */
-	private final class Guard extends FilterOutputStream {
+	private static final class Borrowed extends FilterOutputStream {
 
-		Guard(OutputStream out) {
+		Borrowed(OutputStream out) {
 			super(out);
 		}
 
-		@Override
-		public void write(int b) throws IOException {
-			try {
-				out.write(b);
-			} catch (IOException e) {
-				throw new UnwritableOutputException(name, reason(e), e);
-			}
-			check();
+		OutputStream out() {
+			return out;
 		}
 
 		@Override
 		public void write(byte[] b, int off, int len) throws IOException {
-			try {
-				out.write(b, off, len);
-			} catch (IOException e) {
-				throw new UnwritableOutputException(name, reason(e), e);
-			}
-			check();
+			out.write(b, off, len);
 		}
 
-		@Override
-		public void flush() throws UnwritableOutputException {
-			try {
-				out.flush();
-			} catch (IOException e) {
-				throw new UnwritableOutputException(name, reason(e), e);
-			}
-			check();
-		}
-
-		/** Closing is {@link OutputTarget}'s job, not the command's. */
 		@Override
 		public void close() {
-			// intentionally empty: see OutputTarget#commit and #close
-		}
-
-		private void check() throws UnwritableOutputException {
-			if (out instanceof PrintStream printStream
-					&& printStream.checkError()) {
-				throw new UnwritableOutputException(name, "write error");
-			}
+			// intentionally empty: standard output outlives the command
 		}
 	}
 }

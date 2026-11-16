@@ -30,12 +30,11 @@ package "cli" {
     + call() : Integer
   }
 
-  class OutputTarget <<Closeable>> {
+  class OutputTarget {
     ~ {static} open(String) : OutputTarget
     ~ {static} sameFile(String, String) : boolean
     ~ stream() : OutputStream
     ~ commit() : void
-    + close() : void
   }
 
   class ProcessCommand <<@Command name="process">> {
@@ -61,7 +60,7 @@ package "cli" {
   }
 
   class Logo <<utility>> {
-    + {static} print() : void
+    ~ {static} BANNER : String
   }
 
   InputOutputCommand <|-- ProcessCommand
@@ -76,7 +75,7 @@ package "cli" {
     + handleExecutionException(Exception, CommandLine, ParseResult) : int
   }
 
-  InputOutputCommand ..> Logo : calls (unless headless)
+  InputOutputCommand ..> Logo : prints on stderr (unless headless)
   InputOutputCommand ..> OutputTarget : writes through
   Main ..> UnexpectedErrorHandler : installs
 }
@@ -243,16 +242,18 @@ otherwise.
 
 Abstract base for `ProcessCommand` and `DiagnosticCommand`. Handles:
 
-- **Logo display** — calls `Logo.print()`, which writes to standard error,
-  unless `--headless` is set.
+- **Logo display** — prints `Logo.BANNER` on standard error, unless
+  `--headless` is set. `doctor` does the same.
 - **Output stream resolution** — through an `OutputTarget`. Standard output is
-  used as is. A file given with `-o` is never written in place: the output goes
-  to a hidden temporary file in the same directory, moved over the target only
-  once the command has returned, so a failed run leaves the previous file as it
-  was. The temporary file takes the permissions of the file it replaces, and a
-  symbolic link is written through rather than replaced. A target that is a
-  directory, is read-only or sits in a missing directory is refused before
-  compiling, as `error: cannot write '<path>': <reason>`.
+  used as is. A file given with `-o` is not opened while the command runs: the
+  output is held in memory and written to the file, in place, once the command
+  has produced it. A run that aborts (a fatal error, an unknown model, a failed
+  render) leaves the previous file as it was; a run that reports non-fatal
+  errors still writes its export, as ADR-0016 requires. Writing in place keeps
+  what the target is — `/dev/null`, a pipe, a symbolic or hard link, a file's
+  owner and permissions. A target that is a directory, is read-only or sits in a
+  missing directory is refused before compiling, as
+  `error: cannot write '<path>': <reason>`.
 - **Same input and output** — an `-o` that names the input file is refused with
   exit code `2` before anything runs, since the export (or the report) would
   replace the source.
