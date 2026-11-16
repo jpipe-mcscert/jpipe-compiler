@@ -32,6 +32,12 @@ public final class DiagnosticCodes {
 	 */
 	public static final String INHERITED_CONCLUSION = "inherited-conclusion";
 
+	/**
+	 * An operator call written in a way the call cannot honour: an
+	 * {@code implements} on its result, an argument given twice.
+	 */
+	public static final String INVALID_OPERATOR_CALL = "invalid-operator-call";
+
 	/** A short id names several inherited elements of a model. */
 	public static final String AMBIGUOUS_ID = "ambiguous-id";
 

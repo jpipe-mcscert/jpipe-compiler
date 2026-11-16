@@ -87,6 +87,28 @@ Controlled by two optional operator config parameters:
 | `unifyBy` | `"sameLabel"` | Name of the equivalence relation to use |
 | `unifyExclude` | *(empty)* | Comma-separated result-model element ids to exclude from unification |
 
+`unifyExclude` is a set: an id listed twice is one mention, however it is
+spaced. Every id it lists must name an element of the result, as the result
+names it (`a:e`, not `e`, for an element `e` of source `a`): an id that names
+nothing is an error at the call, listing the result's ids, so that a typo can
+never leave elements unified silently.
+
+**Equivalent elements are merged, and nothing else decides.** Unification is
+brainless: the equivalence relation says which elements are equivalent, and
+those are merged, whatever their kind and whatever produced them. Two
+consequences follow from the default `sameLabel` relation, and are intended:
+
+- two **strategies** with the same label, from independent sources, become one
+  strategy, and the evidence of both now supports it: each source's conclusion
+  rests on the other's evidence (#188);
+- an element the **operator itself creates** takes part like any other: an
+  `assemble` whose `strategyLabel` equals the label of a source strategy merges
+  the two, which forms a support cycle, reported as `acyclic-support` (#181).
+
+To keep such elements apart, exclude them (`unifyExclude`) or choose another
+relation (`unifyBy`): what is equivalent is the relation's call, not the
+merge's.
+
 **Merging a group that mixes element kinds.** Because the default relation
 compares labels, a group can legitimately hold elements of different kinds:
 one source argued a claim (a sub-conclusion) while another still asserts it
@@ -131,6 +153,7 @@ package "operators" {
   abstract class CompositionOperator {
     + resultKind() : ModelKind
     # requiredArguments() : Set<String>
+    # optionalArguments() : Set<String>
     + elementArguments() : Set<String>
     # {abstract} equivalenceRelation(sources, args) : EquivalenceRelation
     # {abstract} mergeFunction(sources, args) : MergeFunction
@@ -297,12 +320,24 @@ Built-in operator implementations. Each is registered in
 
 **`RefineOperator`** (`"refine"`)
 
-Syntax: `justification R is refine(base, refinement) { hook: "base/elementId" }`
+Syntax: `justification R is refine(base, refinement) { hook: "elementId" }`
 
 Merges one element from `base` (the *hook*) with the conclusion of
 `refinement` into a single `SubConclusion` whose id is `"hook"`. All other
 elements are copied with `sourceName:elementId` qualified ids. Requires the
-`hook` argument in `"modelName/elementId"` form.
+`hook` argument: the id of an element of `base` as `base` names it, plain
+(`e`) or qualified (`first:e`, for an element `base` got from a composition).
+
+- The hook is looked up through the unit's aliases, followed to the end of the
+  chain, so it can name an element renamed by several composition steps
+  (`both:a:e`, after two unifications).
+- It must be an **evidence or an `@support`**: only a leaf can be refined. A
+  strategy, a conclusion or a sub-conclusion is an error at the call.
+- A plain id that names several inherited elements of `base` is an
+  **ambiguous hook**, an error asking for the qualified id.
+- The result is a **template** when it keeps an `@support`, that is when a
+  source holds one other than the hook, and a justification otherwise. A model
+  declared with the other kind is an error at the call.
 
 **`AssembleOperator`** (`"assemble"`)
 
@@ -313,6 +348,14 @@ sub-conclusions through a synthesized aggregating `Strategy` (id:
 `"assembleStrategy"`), and tops them with a synthesized `Conclusion` (id:
 `"assembleConclusion"`). All other elements are copied with source-prefixed
 ids. Result is a `Template` if any source is a `Template`.
+
+**Every operator call.** Each operator declares the arguments it requires and
+those it accepts (`requiredArguments`, `optionalArguments`), plus the
+unification keys `unifyBy` and `unifyExclude`. Any other key, a misspelt one
+included, is an error at the call naming the accepted keys. A key given twice
+is reported and its first value kept. A source model given more than once is
+an error, and so is `implements` on a model built by an operator: its structure
+is the operator's.
 
 ## Extension Points
 

@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.operators;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.LIST;
 
@@ -443,5 +444,34 @@ class UnifierTest {
 		return commands.stream()
 				.filter(ElementCreationCommand.class::isInstance)
 				.map(ElementCreationCommand.class::cast);
+	}
+
+	// ── unifyExclude
+	// ─────────────────────────────────────────────────────────────────
+
+	@Nested
+	class ExcludeList {
+
+		@ParameterizedTest(name = "\"{0}\" is one mention of m:e")
+		@ValueSource(strings = {"e,e", "e, e", " e ,e,"})
+		void a_repeated_id_means_one_mention(String raw) {
+			// Set.of used to throw "duplicate element" on "c,c" (#171).
+			List<Command> cmds = baseCommands("m");
+			Map<String, String> args = Map.of("unifyExclude", raw);
+
+			assertThatCode(() -> unifier.unify("m", cmds, args))
+					.doesNotThrowAnyException();
+		}
+
+		@Test
+		void an_id_that_names_no_element_is_refused() {
+			// A typo used to leave the elements it meant unified (#184).
+			List<Command> cmds = baseCommands("m");
+			Map<String, String> args = Map.of("unifyExclude", "e,typo");
+
+			assertThatThrownBy(() -> unifier.unify("m", cmds, args))
+					.isInstanceOf(InvalidOperatorCallException.class)
+					.hasMessageContaining("[typo]");
+		}
 	}
 }

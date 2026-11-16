@@ -209,6 +209,15 @@ public final class ActionListProvider
 			String name = id.getText();
 			SourceLocation loc = locationOf(id);
 			if (operator != null) {
+				if (parent != null) {
+					// The grammar allows it, but nothing would apply it: the
+					// result's structure is the operator's (#184).
+					compilationCtx.error(DiagnosticCodes.INVALID_OPERATOR_CALL,
+							locationOf(parent.getStart()),
+							"'" + name + "' is built by '" + operator.getText()
+									+ "': it cannot also implement '"
+									+ parent.getText() + "'");
+				}
 				List<String> sources = params != null
 						? params.id.stream().map(ParserRuleContext::getText)
 								.toList()
@@ -360,15 +369,25 @@ public final class ActionListProvider
 			// enterJustification / enterTemplate.
 		}
 
-		private static Map<String, String> collectConfig(
+		/**
+		 * The arguments of an operator call. A key given twice is reported, and
+		 * its first value kept: the last one used to win silently (#184).
+		 */
+		private Map<String, String> collectConfig(
 				JPipeParser.Rule_configContext ctx) {
 			if (ctx == null) {
 				return Map.of();
 			}
 			Map<String, String> map = new LinkedHashMap<>();
 			for (var kv : ctx.key_val_decl()) {
-				map.put(kv.key.getText(),
-						StringLiteral.value(kv.value.getText()));
+				String key = kv.key.getText();
+				if (map.containsKey(key)) {
+					compilationCtx.error(DiagnosticCodes.INVALID_OPERATOR_CALL,
+							locationOf(kv.key),
+							"argument '" + key + "' is given more than once");
+					continue;
+				}
+				map.put(key, StringLiteral.value(kv.value.getText()));
 			}
 			return Collections.unmodifiableMap(map);
 		}

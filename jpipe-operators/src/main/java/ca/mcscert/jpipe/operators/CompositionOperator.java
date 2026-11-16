@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import java.util.HashSet;
+import java.util.TreeSet;
 
 /**
  * Base class for all composition operators. Owns the partition + two-phase
@@ -39,6 +41,47 @@ import org.apache.logging.log4j.Logger;
 public abstract class CompositionOperator {
 
 	private final Logger logger = LogManager.getLogger(getClass());
+
+	/**
+	 * Declares which argument keys this operator accepts without requiring
+	 * them. Any key that is neither required, optional, nor one of the
+	 * unification keys ({@code unifyBy}, {@code unifyExclude}) is refused, so
+	 * that a misspelt key is an error instead of being ignored (#184). Default:
+	 * none.
+	 */
+	protected Set<String> optionalArguments() {
+		return Set.of();
+	}
+
+	/** Refuses the keys no part of the call reads: see optionalArguments. */
+	private void requireKnownArguments(Map<String, String> args) {
+		Set<String> accepted = new TreeSet<>(requiredArguments());
+		accepted.addAll(optionalArguments());
+		accepted.add(Unifier.UNIFY_BY_KEY);
+		accepted.add(Unifier.UNIFY_EXCLUDE_KEY);
+		List<String> unknown = args.keySet().stream()
+				.filter(key -> !accepted.contains(key)).sorted().toList();
+		if (!unknown.isEmpty()) {
+			throw new InvalidOperatorCallException("unknown argument(s) "
+					+ unknown + "; accepted: " + accepted);
+		}
+	}
+
+	/**
+	 * Refuses the same model given twice: composing a model with itself either
+	 * merges every element with its copy or fails on an unrelated unification
+	 * error (#181).
+	 */
+	private static void requireDistinctSources(
+			List<JustificationModel> sources) {
+		Set<String> seen = new HashSet<>();
+		for (JustificationModel source : sources) {
+			if (!seen.add(source.getName())) {
+				throw new InvalidOperatorCallException("the model '"
+						+ source.getName() + "' is given more than once");
+			}
+		}
+	}
 
 	/**
 	 * Declares which argument keys hold the id of an element, such as
@@ -219,6 +262,8 @@ public abstract class CompositionOperator {
 			throw new InvalidOperatorCallException(
 					"missing required argument(s) " + missing);
 		}
+		requireKnownArguments(args);
+		requireDistinctSources(sources);
 
 		// Collect all sourced elements from every source model, attaching each
 		// element's original location from knownLocations when available.

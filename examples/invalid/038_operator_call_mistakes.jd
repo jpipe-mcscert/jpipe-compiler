@@ -1,0 +1,54 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// Every mistake in an operator call is reported at the call, rather than
+// accepted, ignored, or crashing the composition.
+justification a {
+    conclusion c is "A holds"
+    strategy   s is "Check A"
+    evidence   e is "Evidence for A"
+    s supports c
+    e supports s
+}
+
+justification b {
+    conclusion c is "B holds"
+    strategy   s is "Check B"
+    evidence   e is "Evidence for B"
+    s supports c
+    e supports s
+}
+
+// an operator-built model cannot implement a template; a key given twice
+justification implementing implements a is assemble(a, b) {
+    conclusionLabel: "Both"
+    strategyLabel:   "Check both"
+    strategyLabel:   "Check both, again"
+}
+
+// a misspelt key
+justification misspelt is assemble(a, b) {
+    conclusionLabel: "Both"
+    strategyLabel:   "Check both"
+    unifyExlude:     "a:e"
+}
+
+// an excluded id that names nothing in the result, given twice
+justification excluding is assemble(a, b) {
+    conclusionLabel: "Both"
+    strategyLabel:   "Check both"
+    unifyExclude:    "e,e"
+}
+
+// a strategy is no hook; the same model twice
+justification strategy_hook is refine(a, b) {
+    hook: "s"
+}
+
+justification twice is assemble(a, a) {
+    conclusionLabel: "Twice"
+    strategyLabel:   "Check twice"
+}

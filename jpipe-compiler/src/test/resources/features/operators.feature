@@ -159,3 +159,30 @@ Feature: Composition operators
     When I compile it into a unit
     Then the compilation has validation errors
     And a validation error is reported for rule "execution-error"
+
+  # Unification merges what its equivalence relation deems equivalent, and
+  # nothing else decides: these scenarios check the calls around it (#171,
+  # #181, #184).
+  Scenario: refining a template that keeps a @support gives a template
+    Given the source file "028_refine_templates_and_chains.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "refined_pattern"
+      And the unit contains a justification named "ready"
+
+  Scenario: a hook is found through several composition steps
+    Given the source file "028_refine_templates_and_chains.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a justification named "detailed"
+
+  Scenario: every mistake in an operator call is reported at the call
+    Given the source file "invalid/038_operator_call_mistakes.jd"
+    When I run the diagnostic compiler with format "json"
+    Then the report signals errors
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 26
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 29
+      And the JSON report has a diagnostic with code "execution-error" at line 33
+      And the JSON report has a diagnostic with code "execution-error" at line 40
+      And the JSON report has a diagnostic with code "execution-error" at line 47
+      And the JSON report has a diagnostic with code "execution-error" at line 51
