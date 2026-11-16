@@ -11,6 +11,7 @@ import java.util.function.Predicate;
 import java.util.Optional;
 import ca.mcscert.jpipe.commands.PendingCommands;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
+import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import java.util.function.UnaryOperator;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -107,16 +108,21 @@ public final class ApplyOperator implements MacroCommand {
 								+ operators.registeredNames()));
 		List<JustificationModel> sources = config.sourceNames().stream()
 				.<JustificationModel>map(context::get).toList();
-		ModelKind actualKind = op.resultKind(sources, config.arguments());
+		// Built first, then checked: a mistake in the call is reported as
+		// itself, not as the kind mismatch it may cause, and the kind checked
+		// is the one the composition actually produced.
+		List<Command> composed = op.apply(config.resultName(), sources,
+				config.arguments(), config.location(), context.locations(),
+				context.aliases());
+		ModelKind actualKind = composed.getFirst() instanceof CreateTemplate
+				? ModelKind.TEMPLATE
+				: ModelKind.JUSTIFICATION;
 		if (actualKind != config.declaredKind()) {
 			throw new InvalidOperatorCallException("operator '"
 					+ config.operatorName() + "' produces a "
 					+ actualKind.name().toLowerCase() + " but was declared as '"
 					+ config.declaredKind().name().toLowerCase() + "'");
 		}
-		List<Command> composed = op.apply(config.resultName(), sources,
-				config.arguments(), config.location(), context.locations(),
-				context.aliases());
 		return new Unifier(unificationEquivalences).unify(config.resultName(),
 				composed, config.arguments());
 	}

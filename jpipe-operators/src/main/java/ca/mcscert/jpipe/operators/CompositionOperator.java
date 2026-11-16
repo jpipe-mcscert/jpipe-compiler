@@ -155,6 +155,19 @@ public abstract class CompositionOperator {
 			Map<String, String> arguments);
 
 	/**
+	 * Returns the command that creates the result model, once the commands
+	 * creating its elements are known. By default, the same as
+	 * {@link #createResultModel(String, SourceLocation, List, Map)}; override
+	 * when the kind of the result depends on what the composition produced, as
+	 * {@code refine}'s does on whether a {@code @support} remains.
+	 */
+	protected Command createResultModel(String name, SourceLocation location,
+			List<JustificationModel> sources, Map<String, String> arguments,
+			List<Command> elements) {
+		return createResultModel(name, location, sources, arguments);
+	}
+
+	/**
 	 * Returns additional commands to append after Phase 2 edge reconstruction.
 	 * Override to inject synthesized elements and their edges that have no
 	 * counterpart in any source model. Default: empty.
@@ -177,7 +190,9 @@ public abstract class CompositionOperator {
 	 *
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
 			List<JustificationModel> sources, Map<String, String> arguments) {
@@ -194,7 +209,9 @@ public abstract class CompositionOperator {
 	 *            in the symbol table.
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
 			List<JustificationModel> sources, Map<String, String> arguments,
@@ -217,7 +234,9 @@ public abstract class CompositionOperator {
 	 *            element's original location to its copy in the result model.
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
 			List<JustificationModel> sources, Map<String, String> arguments,
@@ -246,7 +265,9 @@ public abstract class CompositionOperator {
 	 *            step (e.g. unification after {@code assemble}).
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
 			List<JustificationModel> sources, Map<String, String> arguments,
@@ -286,13 +307,16 @@ public abstract class CompositionOperator {
 		// Phase 1: element creation — merge function populates alias registry
 		AliasRegistry aliases = new AliasRegistry();
 		List<Command> commands = new ArrayList<>();
-		commands.add(createResultModel(resultName, location, sources, args));
 		MergeFunction merge = mergeFunction(sources, args);
+		List<Command> elements = new ArrayList<>();
 		for (ElementGroup group : groups) {
 			logger.debug("Merging group of {} member(s)",
 					group.members().size());
-			commands.addAll(merge.merge(resultName, group, aliases));
+			elements.addAll(merge.merge(resultName, group, aliases));
 		}
+		commands.add(createResultModel(resultName, location, sources, args,
+				elements));
+		commands.addAll(elements);
 
 		// Carry forward transitive aliases from source models.
 		// For each prior alias "sourceName/oldId → intermId" (recorded in a

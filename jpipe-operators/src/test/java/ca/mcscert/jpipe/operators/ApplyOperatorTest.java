@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
+import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
@@ -45,7 +46,10 @@ class ApplyOperatorTest {
 		protected Command createResultModel(String name,
 				SourceLocation location, List<JustificationModel> sources,
 				Map<String, String> arguments) {
-			return new CreateJustification(name);
+			// The model created is the kind the call produces.
+			return kind == ModelKind.TEMPLATE
+					? new CreateTemplate(name)
+					: new CreateJustification(name);
 		}
 
 		@Override

@@ -8,6 +8,7 @@ import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateEvidence;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
+import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.model.Justification;
@@ -27,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Evidence;
-import ca.mcscert.jpipe.operators.ModelKind;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -319,11 +319,9 @@ class RefineOperatorTest {
 		}
 
 		@Test
-		void the_alias_chain_is_followed_to_its_end() {
-			// One step only used to be followed (#181).
+		void a_hook_renamed_by_a_composition_is_found_through_its_alias() {
 			Justification base = buildUnifiedSource();
-			Map<String, String> aliases = Map.of("src/r1:a:e", "r1:unified_0",
-					"src/r1:unified_0", "unified_0");
+			Map<String, String> aliases = Map.of("src/r1:a:e", "unified_0");
 
 			assertThat(RefineOperator.resolveHook(base, "r1:a:e", aliases).id())
 					.isEqualTo("unified_0");
@@ -361,13 +359,15 @@ class RefineOperatorTest {
 			Template t = new Template("t");
 			t.addElement(new AbstractSupport("abs1", "A1"));
 			t.addElement(new AbstractSupport("abs2", "A2"));
-			List<JustificationModel> sources = List.of(t, buildRefinement());
+			List<JustificationModel> keeps = List.of(t, buildRefinement());
+			List<JustificationModel> replaces = List.of(buildMinimal(),
+					buildRefinement());
 
-			assertThat(refine.resultKind(sources, Map.of("hook", "abs1")))
-					.isEqualTo(ModelKind.TEMPLATE);
-			assertThat(refine.resultKind(
-					List.of(buildMinimal(), buildRefinement()),
-					Map.of("hook", "e"))).isEqualTo(ModelKind.JUSTIFICATION);
+			assertThat(refine.apply("r", keeps, Map.of("hook", "abs1"))).first()
+					.isInstanceOf(CreateTemplate.class);
+			assertThat(refine.apply("r", replaces, Map.of("hook", "e"))).first()
+					.isInstanceOf(CreateJustification.class);
 		}
+
 	}
 }

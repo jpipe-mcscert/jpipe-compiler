@@ -24,7 +24,7 @@ Feature: Every diagnostic says where, and only once
     When I run the diagnostic compiler with format "json"
     Then the report signals errors
       And the JSON report has a diagnostic with code "unknown-model" at line 17
-      And the JSON report has a diagnostic with code "execution-error" at line 22
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 22
       And the JSON report has no diagnostic at line 26
       And no JSON diagnostic message contains its own code
 

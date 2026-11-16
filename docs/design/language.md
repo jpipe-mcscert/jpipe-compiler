@@ -204,7 +204,7 @@ replaced by a parameter list and an optional configuration block.
 
 ```
 justification Refined is refine(Base, Detail) {
-    hook: "Base/targetElement"
+    hook: "targetElement"
 }
 ```
 

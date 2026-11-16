@@ -451,6 +451,11 @@ public final class MyOperator extends CompositionOperator {
     @Override
     protected Set<String> requiredArguments() { return Set.of("myParam"); }
 
+    // Optional argument names (empty if none). Any key neither required nor
+    // optional, other than unifyBy and unifyExclude, is refused at the call.
+    @Override
+    protected Set<String> optionalArguments() { return Set.of("myOption"); }
+
     // Optional: the arguments that hold an element id, renamed with the models
     // when the file is loaded under a namespace (`load "f.jd" as ns`).
     @Override

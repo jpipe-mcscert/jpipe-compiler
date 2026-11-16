@@ -10,7 +10,7 @@ two or more existing models via a *composition operator*:
 
 ```
 justification refined is refine(minimal, refinement) {
-    hook: "minimal/e"
+    hook: "e"
 }
 ```
 
@@ -199,7 +199,9 @@ Aliases are shown after the element list for each model, formatted as
 - Two built-in operators ship with the framework:
   - **`refine(base, refinement)`** — merges a hook element from `base` with the
     conclusion of `refinement` into a single `SubConclusion`; requires a `hook`
-    argument in `"modelName/elementId"` form.
+    argument naming an evidence or a `@support` of `base` by its id, plain
+    (`e`) or qualified (`first:e`). The result is a template when it keeps a
+    `@support`.
   - **`assemble(src₁, …, srcₙ)`** — demotes each source's conclusion to a
     `SubConclusion`, wires all demoted conclusions through a synthesized
     aggregating `Strategy`, and tops them with a synthesized global

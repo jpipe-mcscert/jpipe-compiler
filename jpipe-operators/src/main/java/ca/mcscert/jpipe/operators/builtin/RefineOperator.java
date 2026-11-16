@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.operators.builtin;
 
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.commands.Command;
+import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
 import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
@@ -22,8 +23,6 @@ import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
-import ca.mcscert.jpipe.operators.ModelKind;
-import java.util.HashSet;
 import java.util.stream.Collectors;
 
 /**
@@ -65,35 +64,27 @@ public final class RefineOperator extends CompositionOperator {
 		return Set.of(HOOK_ID);
 	}
 
-	/**
-	 * A template when the result keeps an abstract support, that is, when a
-	 * source holds one other than the hook, which the refinement replaces; a
-	 * justification otherwise. A refine could only produce a justification, so
-	 * refining a template that keeps a {@code @support} failed (#181).
-	 */
-	@Override
-	public ModelKind resultKind(List<JustificationModel> sources,
-			Map<String, String> args) {
-		String hook = args.get(HOOK_ID);
-		JustificationModel base = sources.isEmpty() ? null : sources.getFirst();
-		boolean keepsAPlaceholder = sources.stream()
-				.anyMatch(source -> source.elementsOfType(AbstractSupport.class)
-						.stream().anyMatch(as -> !(source == base
-								&& hook != null && names(as, hook))));
-		return keepsAPlaceholder ? ModelKind.TEMPLATE : ModelKind.JUSTIFICATION;
-	}
-
-	/** Whether {@code id}, plain or qualified, names {@code element}. */
-	private static boolean names(JustificationElement element, String id) {
-		return element.id().equals(id) || element.id().endsWith(":" + id);
-	}
-
 	@Override
 	protected Command createResultModel(String name, SourceLocation location,
 			List<JustificationModel> sources, Map<String, String> arguments) {
-		return resultKind(sources, arguments) == ModelKind.TEMPLATE
-				? new CreateTemplate(name, location)
-				: new CreateJustification(name, location);
+		return createResultModel(name, location, sources, arguments, List.of());
+	}
+
+	/**
+	 * A template when the result keeps an abstract support, one the hook did
+	 * not replace; a justification otherwise. Decided from the elements the
+	 * composition built, so it cannot disagree with the hook it refined: a
+	 * refine could only produce a justification, so refining a template that
+	 * keeps a {@code @support} failed (#181).
+	 */
+	@Override
+	protected Command createResultModel(String name, SourceLocation location,
+			List<JustificationModel> sources, Map<String, String> arguments,
+			List<Command> elements) {
+		return elements.stream()
+				.anyMatch(CreateAbstractSupport.class::isInstance)
+						? new CreateTemplate(name, location)
+						: new CreateJustification(name, location);
 	}
 
 	@Override
@@ -146,28 +137,28 @@ public final class RefineOperator extends CompositionOperator {
 	}
 
 	/**
-	 * The element of {@code base} that {@code hook} names. Through the unit's
-	 * aliases, followed to the end of the chain, since an element can have been
-	 * renamed by several composition steps; then by id, or by the one inherited
-	 * element whose qualified id ends with it. It must be an evidence or an
-	 * abstract support: only a leaf can be refined (#181).
+	 * The element of {@code base} that {@code hook} names: through the unit's
+	 * aliases, since an element can have been renamed by a composition step,
+	 * then by id, or by the one inherited element whose qualified id ends with
+	 * it. It must be an evidence or an abstract support: only a leaf can be
+	 * refined (#181).
 	 */
 	static JustificationElement resolveHook(JustificationModel base,
 			String hook, Map<String, String> knownAliases) {
-		String current = hook;
-		Set<String> visited = new HashSet<>();
-		while (visited.add(current)) {
-			String next = knownAliases
-					.get(Unit.registryKey(base.getName(), current));
-			if (next == null) {
-				break;
-			}
-			current = next;
+		String id = knownAliases
+				.getOrDefault(Unit.registryKey(base.getName(), hook), hook);
+		JustificationElement element = base.findById(id)
+				.orElseThrow(() -> new InvalidOperatorCallException(
+						"hook element '" + hook + "' not found in base model '"
+								+ base.getName() + "'"));
+		List<JustificationElement> inherited = base.inheritedMatches(id);
+		if (!element.id().equals(id) && inherited.size() > 1) {
+			throw new InvalidOperatorCallException("ambiguous hook '" + hook
+					+ "' in '" + base.getName() + "': it names "
+					+ inherited.stream().map(e -> "'" + e.id() + "'")
+							.collect(Collectors.joining(", "))
+					+ "; write the qualified id");
 		}
-		String id = current;
-		JustificationElement element = base.allElements().stream()
-				.filter(e -> e.id().equals(id)).findFirst()
-				.orElseGet(() -> uniqueMatch(base, hook, id));
 		if (!(element instanceof Evidence
 				|| element instanceof AbstractSupport)) {
 			throw new InvalidOperatorCallException("hook '" + hook + "' is a "
@@ -175,24 +166,6 @@ public final class RefineOperator extends CompositionOperator {
 					+ "': only an evidence or a @support can be refined");
 		}
 		return element;
-	}
-
-	/** The one inherited element {@code id} names, or a clear refusal. */
-	private static JustificationElement uniqueMatch(JustificationModel base,
-			String hook, String id) {
-		List<JustificationElement> matches = base.inheritedMatches(id);
-		if (matches.isEmpty()) {
-			throw new InvalidOperatorCallException("hook element '" + hook
-					+ "' not found in base model '" + base.getName() + "'");
-		}
-		if (matches.size() > 1) {
-			throw new InvalidOperatorCallException("ambiguous hook '" + hook
-					+ "' in '" + base.getName() + "': it names "
-					+ matches.stream().map(e -> "'" + e.id() + "'")
-							.collect(Collectors.joining(", "))
-					+ "; write the qualified id");
-		}
-		return matches.getFirst();
 	}
 
 	private static String kindOf(JustificationElement element) {

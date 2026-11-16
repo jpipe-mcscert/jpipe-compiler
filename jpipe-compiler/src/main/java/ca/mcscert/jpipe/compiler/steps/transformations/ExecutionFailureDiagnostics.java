@@ -14,6 +14,7 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.operators.ApplyOperator;
 import ca.mcscert.jpipe.operators.IncompatibleUnificationException;
+import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -211,7 +212,13 @@ final class ExecutionFailureDiagnostics {
 				};
 				ctx.error(code, c.location(), describe(cause));
 			}
-			case ApplyOperator c -> ctx.error(DiagnosticCodes.EXECUTION_ERROR,
+			// A call written in a way it cannot honour is
+			// invalid-operator-call,
+			// as when the parser finds it; anything else is an execution error.
+			case ApplyOperator c -> ctx.error(
+					cause instanceof InvalidOperatorCallException
+							? DiagnosticCodes.INVALID_OPERATOR_CALL
+							: DiagnosticCodes.EXECUTION_ERROR,
 					c.location(), operatorCall(c) + ": " + describe(cause));
 			default -> {
 				SourceLocation loc = cmd.location();

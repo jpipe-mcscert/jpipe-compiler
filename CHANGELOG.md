@@ -39,6 +39,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   (`assemble(a, a)`) is an error (#181).
 - `refine` produces a template when its result keeps a `@support`, so a template
   can be refined; it could only produce a justification (#181).
+- A mistake in an operator call is reported with the code
+  `invalid-operator-call`, at the call: an unknown operator, a missing, unknown
+  or repeated argument, a hook that cannot be refined, a source given twice.
+  These were `execution-error` (#184).
 - The documentation now states that unification merges whatever its equivalence
   relation deems equivalent: under the default `sameLabel`, two strategies with
   the same label are merged and pool their evidence, and an element the operator
@@ -111,8 +115,12 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   `ambiguous hook` error, instead of silently taking the first (#181).
 - A `refine` hook is found through every composition step that renamed it, not
   only the last one (#181).
-- The documentation gives the `refine` hook as an element id (`first:e`); it gave
-  a `base/elementId` form that never worked (#181).
+- The documentation, the language reference included, gives the `refine` hook as
+  an element id (`first:e`); it gave a `base/elementId` form that never worked
+  (#181).
+- A model declared as a justification but built by `refine` as a template, or
+  the other way round, is reported only once the call is otherwise valid: a
+  mistake in the hook is reported as itself, not as a kind mismatch (#181).
 - A file that compiles on its own now also compiles once loaded under a
   namespace (`load "f.jd" as ns`) (#178):
   - its operator calls are prefixed like its models; they used to wait forever
