@@ -238,7 +238,10 @@ If execution deadlocks (deferred commands that can never run because their
 conditions remain unsatisfied), `ExecutionFailureDiagnostics` maps each stuck
 command to a specific semantic `ERROR` (e.g. `[unknown-element]`; for an
 operator call, `[unknown-model]` naming each source model that does not exist)
-rather than propagating a raw exception. The partial `Unit` built so far is
+rather than propagating a raw exception. A command that only waits on a model
+whose own construction failed, directly or through other stuck calls, is not
+reported again: that failure is the one cause. Calls that only wait on each
+other are reported as never built. The partial `Unit` built so far is
 returned so that downstream diagnostic steps can still run.
 
 Every diagnostic names the file its location is in: an element of a

@@ -258,6 +258,13 @@ public final class LoadResolver
 					load.namespace() == null ? "(flat)" : load.namespace());
 			return List.of();
 		}
+		if (Files.isDirectory(resolved)) {
+			// A directory opens on some systems and fails only when read,
+			// which would report it without the location of the load.
+			ctx.fatal(load.location(), "Cannot open loaded file '" + load.path()
+					+ "' (" + resolved + "): is a directory");
+			return List.of();
+		}
 		CompilationContext subCtx = new CompilationContext(resolved.toString());
 		try {
 			List<Command> subCommands = parseFile(resolved, subCtx);

@@ -85,7 +85,8 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - One failing statement no longer stops the construction of its model: the
   statements after it still run, so they are no longer reported as missing, as
   in `Strategy 's2' has no supporting element` after a conclusion was given two
-  strategies (#183).
+  strategies. What only waits on a model whose operator call failed, however
+  indirectly, adds no error of its own (#183).
 - Diagnostics carry the line of the statement that caused them (#183):
   - a failing operator call is reported at the call, names the operator
     (`'assemble' for 'r'`, not `AssembleOperator`), and no longer repeats

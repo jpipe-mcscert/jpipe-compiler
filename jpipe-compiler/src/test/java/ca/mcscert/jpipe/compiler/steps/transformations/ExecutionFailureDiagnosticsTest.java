@@ -21,6 +21,7 @@ import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -209,6 +210,7 @@ class ExecutionFailureDiagnosticsTest {
 		void a_call_waiting_on_a_model_whose_own_call_failed_is_not_reported() {
 			// The failure of 'z' is reported once; the call that uses 'z' is
 			// no separate mistake (#183).
+			unit.add(new Justification("a"));
 			ApplyOperator failed = call("z", "frobnicate", "a");
 			List<CommandExecutionException> failures = List
 					.of(new CommandExecutionException(failed, unit,
@@ -217,6 +219,49 @@ class ExecutionFailureDiagnosticsTest {
 					List.of(call("w", "refine", "z", "a")), unit,
 					ExecutionFailureDiagnostics.brokenModels(failures), ctx);
 			assertThat(ctx.diagnostics()).isEmpty();
+		}
+
+		@Test
+		void what_waits_on_a_failed_call_is_not_reported_however_deep() {
+			// x waits on w, which waits on z, whose call failed: z's failure
+			// is the one cause, reported once.
+			unit.add(new Justification("a"));
+			Set<String> failed = Set.of("z");
+			ExecutionFailureDiagnostics
+					.diagnoseDeadlock(
+							List.of(call("w", "refine", "z", "a"),
+									call("x", "refine", "w", "a")),
+							unit, failed, ctx);
+			assertThat(ctx.diagnostics()).isEmpty();
+		}
+
+		@Test
+		void a_broken_source_does_not_hide_an_unknown_one() {
+			unit.add(new Justification("a"));
+			ExecutionFailureDiagnostics.diagnoseDeadlock(
+					List.of(call("v", "refine", "z", "typo")), unit,
+					Set.of("z"), ctx);
+			assertThat(ctx.diagnostics()).first().satisfies(d -> {
+				assertThat(d.code()).isEqualTo("unknown-model");
+				assertThat(d.message()).contains("'typo'")
+						.doesNotContain("'z'");
+			});
+		}
+
+		@Test
+		void calls_that_only_wait_on_each_other_are_reported() {
+			// Nothing else explains a cycle: it must not vanish.
+			unit.add(new Justification("c"));
+			ExecutionFailureDiagnostics.diagnoseDeadlock(
+					List.of(call("a", "refine", "b", "c"),
+							call("b", "refine", "a", "c")),
+					unit, Set.of(), ctx);
+			assertThat(ctx.diagnostics()).filteredOn(d -> d.code() != null)
+					.extracting(d -> d.message()).containsExactly(
+							"cannot apply 'refine' for 'a': it waits on 'b',"
+									+ " which is never built",
+							"cannot apply 'refine' for 'b': it waits on 'a',"
+									+ " which is never built");
 		}
 
 		@Test

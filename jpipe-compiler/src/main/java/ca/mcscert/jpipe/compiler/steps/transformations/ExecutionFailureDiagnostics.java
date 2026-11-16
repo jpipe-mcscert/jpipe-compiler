@@ -16,6 +16,7 @@ import ca.mcscert.jpipe.operators.IncompatibleUnificationException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Translates command-execution failures into specific
@@ -53,25 +54,69 @@ final class ExecutionFailureDiagnostics {
 	 * what waits on it is no separate mistake (#183).
 	 */
 	static void diagnoseDeadlock(List<Command> stuck, Unit unit,
-			Set<String> broken, CompilationContext ctx) {
-		List<Command> reported = stuck.stream()
-				.filter(cmd -> !waitsOn(cmd, broken)).toList();
-		if (reported.isEmpty()) {
-			return;
-		}
-		for (Command cmd : reported) {
+			Set<String> failed, CompilationContext ctx) {
+		Set<String> neverBuilt = stuck.stream().<String>mapMulti((cmd, out) -> {
+			if (cmd instanceof ApplyOperator c) {
+				out.accept(c.resultName());
+			}
+		}).collect(Collectors.toSet());
+		Set<String> broken = explained(stuck, unit, failed, neverBuilt);
+		int before = ctx.diagnostics().size();
+		for (Command cmd : stuck) {
+			if (waitsOn(cmd, broken)) {
+				continue;
+			}
 			switch (cmd) {
 				case AddSupport c -> diagnoseAddSupport(c, unit, ctx);
 				case ImplementsTemplate c ->
 					diagnoseImplementsTemplate(c, unit, ctx);
 				case OverrideAbstractSupport c ->
 					diagnoseOverrideAbstractSupport(c, unit, ctx);
-				case ApplyOperator c -> diagnoseApplyOperator(c, unit, ctx);
+				case ApplyOperator c ->
+					diagnoseApplyOperator(c, unit, broken, neverBuilt, ctx);
 				default -> ctx.error(DiagnosticCodes.UNRESOLVED_SYMBOL,
 						cmd.location(), "cannot execute: " + cmd);
 			}
 		}
-		ctx.error("unresolved symbol(s) — model cannot be built");
+		if (ctx.diagnostics().size() > before) {
+			ctx.error("unresolved symbol(s) — model cannot be built");
+		}
+	}
+
+	/**
+	 * The models whose absence is already explained: those that {@code failed}
+	 * to build, and, until nothing changes, the result of every stuck operator
+	 * call with a source that is explained or does not exist at all. Each such
+	 * call has a cause that is reported once, at its root (#183).
+	 *
+	 * <p>
+	 * Calls that only wait on one another are left out: nothing else explains
+	 * them, so they are reported.
+	 */
+	private static Set<String> explained(List<Command> stuck, Unit unit,
+			Set<String> failed, Set<String> neverBuilt) {
+		Set<String> broken = new HashSet<>(failed);
+		boolean grew = true;
+		while (grew) {
+			grew = false;
+			for (Command cmd : stuck) {
+				if (cmd instanceof ApplyOperator c
+						&& !broken.contains(c.resultName())
+						&& c.sourceNames().stream()
+								.anyMatch(name -> broken.contains(name)
+										|| isUnknown(name, unit, neverBuilt))) {
+					broken.add(c.resultName());
+					grew = true;
+				}
+			}
+		}
+		return broken;
+	}
+
+	/** Whether {@code name} is declared nowhere: neither built nor pending. */
+	private static boolean isUnknown(String name, Unit unit,
+			Set<String> neverBuilt) {
+		return unit.findModel(name).isEmpty() && !neverBuilt.contains(name);
 	}
 
 	/**
@@ -99,8 +144,7 @@ final class ExecutionFailureDiagnostics {
 			case OverrideAbstractSupport c -> broken.contains(c.container());
 			case ImplementsTemplate c -> broken.contains(c.modelName())
 					|| broken.contains(c.templateName());
-			case ApplyOperator c ->
-				c.sourceNames().stream().anyMatch(broken::contains);
+			// A call is judged source by source: see diagnoseApplyOperator.
 			default -> false;
 		};
 	}
@@ -248,20 +292,28 @@ final class ExecutionFailureDiagnostics {
 	}
 
 	/**
-	 * An operator call waits for its source models: name the ones that do not
-	 * exist, at the call.
+	 * An operator call waits for its source models. Each source that is missing
+	 * is reported at the call, for its own reason: declared nowhere, or
+	 * declared by a call that is never built. A source whose absence is already
+	 * explained by another failure is not reported again, but the call's other
+	 * sources still are.
 	 */
 	private static void diagnoseApplyOperator(ApplyOperator c, Unit unit,
+			Set<String> broken, Set<String> neverBuilt,
 			CompilationContext ctx) {
-		List<String> missing = c.sourceNames().stream()
-				.filter(name -> unit.findModel(name).isEmpty()).toList();
-		if (missing.isEmpty()) {
-			ctx.error(DiagnosticCodes.UNRESOLVED_SYMBOL, c.location(),
-					"cannot apply " + operatorCall(c));
-			return;
+		for (String name : c.sourceNames()) {
+			if (unit.findModel(name).isPresent() || broken.contains(name)) {
+				continue;
+			}
+			if (neverBuilt.contains(name)) {
+				ctx.error(DiagnosticCodes.UNRESOLVED_SYMBOL, c.location(),
+						"cannot apply " + operatorCall(c) + ": it waits on '"
+								+ name + "', which is never built");
+			} else {
+				ctx.error(DiagnosticCodes.UNKNOWN_MODEL, c.location(),
+						UNKNOWN_MODEL_MSG + name + "' in the call to "
+								+ operatorCall(c));
+			}
 		}
-		missing.forEach(name -> ctx.error(DiagnosticCodes.UNKNOWN_MODEL,
-				c.location(), UNKNOWN_MODEL_MSG + name + "' in the call to "
-						+ operatorCall(c)));
 	}
 }
