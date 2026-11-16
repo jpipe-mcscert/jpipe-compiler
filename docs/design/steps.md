@@ -29,7 +29,8 @@ resolves any `load` directives by recursively parsing referenced files.
 ### `unitBuilder()` — `List<Command>` → `Unit`
 
 ```
-ActionListInterpretation
+DuplicateModelFilter
+  → ActionListInterpretation
   → ConsistencyChecker
   → CompletenessChecker
 ```
@@ -59,7 +60,7 @@ participant Sink
 Caller -> CompilerFactory : build(config, stdout)
 CompilerFactory -> PC : FileSource → … → LoadResolver
 PC --> CompilerFactory : List<Command>
-CompilerFactory -> UB : ActionListInterpretation → … → CompletenessChecker
+CompilerFactory -> UB : DuplicateModelFilter → … → CompletenessChecker
 UB --> CompilerFactory : Unit
 CompilerFactory -> SelectModel : run(Unit)
 SelectModel --> CompilerFactory : JustificationModel<?>
@@ -158,13 +159,12 @@ Walks the `ParseTree` using an internal ANTLR `JPipeBaseListener` and emits one
 - `LoadResolver.LoadDirective` (an internal sentinel) for `load` directives
 
 All string labels are unquoted at this stage, their `\"` and `\\` escapes
-resolved (`StringLiteral`). Two problems that are visible in a single file are
-caught here and reported as `ERROR` diagnostics, at their location:
+resolved (`StringLiteral`). One problem is caught here and reported as an `ERROR` diagnostic at its
+location:
 
-- a second `conclusion` in one model declaration (`single-conclusion`);
-- a second model declaration with a name already declared in the file
-  (`duplicate-model`). The commands of that second declaration are dropped, so
-  that nothing it contains is added to the first model.
+- a second `conclusion` in one model declaration (`single-conclusion`),
+  counted per declaration, so two models that share a name are reported by
+  `DuplicateModelFilter` instead.
 
 Each `load` directive carries the location of its statement, where any failure
 to load it is reported.
@@ -204,6 +204,19 @@ their own. See ADR-0022.
 ---
 
 ### Model-building steps
+
+#### `DuplicateModelFilter`
+
+**Type:** `Transformation<List<Command>, List<Command>>`  
+**Package:** `compiler.steps.transformations`
+
+Reports every model declared under a name already taken, in this file or in a
+loaded one, as `duplicate-model` at the second declaration (naming where the
+first one is), and drops that declaration before any command runs. The
+commands of a declaration are contiguous — its creation (`CreateJustification`,
+`CreateTemplate` or `ApplyOperator`), then its body, up to the next creation —
+so the whole second declaration goes, and nothing it contains is added to the
+first model.
 
 #### `ActionListInterpretation`
 

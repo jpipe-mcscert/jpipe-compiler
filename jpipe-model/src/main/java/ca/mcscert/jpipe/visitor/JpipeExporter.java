@@ -129,7 +129,7 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 
 	private void appendElement(String keyword, JustificationElement element) {
 		builder.append(INDENT).append(keyword).append(" ").append(element.id())
-				.append(" is ").append(literal(element.label()))
+				.append(" is ").append(Quoting.doubleQuoted(element.label()))
 				.append(System.lineSeparator());
 	}
 
@@ -138,12 +138,4 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 				.append(supportedId).append(System.lineSeparator());
 	}
 
-	/**
-	 * {@code value} as a jPipe string literal: double-quoted, with {@code "}
-	 * and {@code \} escaped, so that a label holding either compiles back to
-	 * itself.
-	 */
-	static String literal(String value) {
-		return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
-	}
 }

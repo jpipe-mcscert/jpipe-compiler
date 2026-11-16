@@ -24,6 +24,7 @@ public final class CreateJustification extends RegularCommand {
 		return identifier;
 	}
 
+	@Override
 	public SourceLocation location() {
 		return location;
 	}

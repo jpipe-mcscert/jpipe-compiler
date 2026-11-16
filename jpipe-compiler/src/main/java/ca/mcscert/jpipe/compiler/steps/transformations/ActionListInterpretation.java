@@ -47,8 +47,9 @@ public final class ActionListInterpretation
 		}
 		ExecutionFailureDiagnostics.diagnoseExecutionFailures(failures, ctx);
 		if (deadlock != null) {
-			ExecutionFailureDiagnostics
-					.diagnoseDeadlock(deadlock.stuckCommands(), unit, ctx);
+			ExecutionFailureDiagnostics.diagnoseDeadlock(
+					deadlock.stuckCommands(), unit,
+					ExecutionFailureDiagnostics.brokenModels(failures), ctx);
 		}
 
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,

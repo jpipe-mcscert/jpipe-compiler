@@ -37,6 +37,8 @@ import java.util.List;
  * <ul>
  * <li>{@code has-abstract-support} — template declares at least one
  * {@link AbstractSupport}.
+ * <li>{@code abstract-support-used} — every {@link AbstractSupport} supports a
+ * strategy, since one that supports none can never be overridden.
  * </ul>
  *
  * <p>

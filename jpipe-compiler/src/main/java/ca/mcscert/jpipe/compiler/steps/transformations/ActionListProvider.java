@@ -25,10 +25,8 @@ import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -73,14 +71,6 @@ public final class ActionListProvider
 		}
 
 		private final List<Command> result;
-		/**
-		 * Where the commands of the declaration being read go: {@link #result},
-		 * or a list that is thrown away for a model declared twice in this
-		 * file, so that nothing it contains lands in the first one (#183).
-		 */
-		private List<Command> commands;
-		/** Models declared so far in this file. */
-		private final Set<String> declaredModels = new HashSet<>();
 		private Context buildContext;
 		private final CompilationContext compilationCtx;
 		private final OperatorRegistry operators;
@@ -97,7 +87,6 @@ public final class ActionListProvider
 				OperatorRegistry operators,
 				UnificationEquivalenceRegistry unificationEquivalences) {
 			this.result = new ArrayList<>();
-			this.commands = result;
 			this.buildContext = new Context(name, null, null);
 			this.compilationCtx = compilationCtx;
 			this.operators = operators;
@@ -150,7 +139,7 @@ public final class ActionListProvider
 			String namespace = ctx.namespace != null
 					? ctx.namespace.getText()
 					: null;
-			commands.add(new LoadResolver.LoadDirective(path, namespace,
+			result.add(new LoadResolver.LoadDirective(path, namespace,
 					locationOf(ctx.getStart())));
 		}
 
@@ -170,7 +159,6 @@ public final class ActionListProvider
 		public void exitJustification(JPipeParser.JustificationContext ctx) {
 			this.buildContext = buildContext.updateCurrentJustification(null,
 					null);
-			this.commands = result;
 		}
 
 		@Override
@@ -191,12 +179,6 @@ public final class ActionListProvider
 				JPipeParser.Rule_configContext config, ModelKind kind) {
 			String name = id.getText();
 			SourceLocation loc = locationOf(id);
-			if (!declaredModels.add(name)) {
-				compilationCtx.error(DiagnosticCodes.DUPLICATE_MODEL, loc,
-						"Model '" + name
-								+ "' is already declared in this file");
-				this.commands = new ArrayList<>();
-			}
 			if (operator != null) {
 				List<String> sources = params != null
 						? params.id.stream().map(ParserRuleContext::getText)
@@ -205,7 +187,7 @@ public final class ActionListProvider
 				var callConfig = new OperatorCallConfig(name,
 						operator.getText(), sources, collectConfig(config), loc,
 						kind);
-				commands.add(new ApplyOperator(callConfig, operators,
+				result.add(new ApplyOperator(callConfig, operators,
 						unificationEquivalences));
 				return;
 			}
@@ -213,14 +195,14 @@ public final class ActionListProvider
 			this.buildContext = buildContext.updateCurrentJustification(name,
 					parentName);
 			this.conclusionDeclared = false;
-			commands.add(switch (kind) {
+			result.add(switch (kind) {
 				case JUSTIFICATION -> new CreateJustification(name, loc);
 				case TEMPLATE -> new CreateTemplate(name, loc);
 			});
 			// ImplementsTemplate must be enqueued before body commands so that
 			// inherited elements exist when override commands run.
 			if (parent != null) {
-				commands.add(new ImplementsTemplate(name, parentName,
+				result.add(new ImplementsTemplate(name, parentName,
 						locationOf(parent.getStart())));
 			}
 		}
@@ -229,7 +211,6 @@ public final class ActionListProvider
 		public void exitTemplate(JPipeParser.TemplateContext ctx) {
 			this.buildContext = buildContext.updateCurrentJustification(null,
 					null);
-			this.commands = result;
 		}
 
 		/*
@@ -246,11 +227,11 @@ public final class ActionListProvider
 				if (!validOverridePrefix(identifier, loc)) {
 					return;
 				}
-				commands.add(new OverrideAbstractSupport(
+				result.add(new OverrideAbstractSupport(
 						buildContext.justificationId, identifier, "evidence",
 						label, loc));
 			} else {
-				commands.add(new CreateEvidence(buildContext.justificationId,
+				result.add(new CreateEvidence(buildContext.justificationId,
 						identifier, label, loc));
 			}
 		}
@@ -259,7 +240,7 @@ public final class ActionListProvider
 		public void enterAbstract(JPipeParser.AbstractContext ctx) {
 			String identifier = ctx.element().id.getText();
 			SourceLocation loc = locationOf(ctx.element().id.getStart());
-			commands.add(new CreateAbstractSupport(buildContext.justificationId,
+			result.add(new CreateAbstractSupport(buildContext.justificationId,
 					identifier,
 					StringLiteral.value(ctx.element().name.getText()), loc));
 		}
@@ -268,7 +249,7 @@ public final class ActionListProvider
 		public void enterStrategy(JPipeParser.StrategyContext ctx) {
 			String identifier = ctx.element().id.getText();
 			SourceLocation loc = locationOf(ctx.element().id.getStart());
-			commands.add(new CreateStrategy(buildContext.justificationId,
+			result.add(new CreateStrategy(buildContext.justificationId,
 					identifier,
 					StringLiteral.value(ctx.element().name.getText()), loc));
 		}
@@ -285,7 +266,7 @@ public final class ActionListProvider
 				return;
 			}
 			conclusionDeclared = true;
-			commands.add(new CreateConclusion(modelId, identifier,
+			result.add(new CreateConclusion(modelId, identifier,
 					StringLiteral.value(ctx.element().name.getText()), loc));
 		}
 
@@ -298,12 +279,12 @@ public final class ActionListProvider
 				if (!validOverridePrefix(identifier, loc)) {
 					return;
 				}
-				commands.add(new OverrideAbstractSupport(
+				result.add(new OverrideAbstractSupport(
 						buildContext.justificationId, identifier,
 						"sub-conclusion", label, loc));
 			} else {
-				commands.add(new CreateSubConclusion(
-						buildContext.justificationId, identifier, label, loc));
+				result.add(new CreateSubConclusion(buildContext.justificationId,
+						identifier, label, loc));
 			}
 		}
 
@@ -320,7 +301,7 @@ public final class ActionListProvider
 			if (to.contains(":") && !validOverridePrefix(to, loc)) {
 				return;
 			}
-			commands.add(new AddSupport(buildContext.justificationId, to, from,
+			result.add(new AddSupport(buildContext.justificationId, to, from,
 					loc));
 		}
 

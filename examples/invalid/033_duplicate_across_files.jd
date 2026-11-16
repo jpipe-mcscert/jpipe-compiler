@@ -1,0 +1,18 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// 't' is already declared by the file loaded flat below. The second
+// declaration (line 12) is reported and dropped: nothing in it is added to the
+// loaded template.
+load "../004_template.jd"
+
+template t {
+    conclusion c2 is "Another conclusion"
+    strategy   s2 is "Another strategy"
+    @support   a2 is "Another abstract support"
+    s2 supports c2
+    a2 supports s2
+}

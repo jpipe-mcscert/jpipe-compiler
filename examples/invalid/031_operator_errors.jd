@@ -20,3 +20,9 @@ justification r is refine(a, typo) {
 
 // line 22: there is no such operator
 justification z is frobnicate(a)
+
+// line 26: uses 'z', which the failed call above never built. That failure is
+// already reported: this call adds no error of its own.
+justification w is refine(z, a) {
+    hook: "e"
+}

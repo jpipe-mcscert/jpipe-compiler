@@ -63,7 +63,9 @@ Feature: Load directive
     Given the source file "invalid/019_load_flat_collision.jd"
     When I compile it into a unit
     Then the compilation has validation errors
-      And a validation error is reported for rule "execution-error"
+      And a validation error is reported for rule "duplicate-model"
+    When I produce a JSON diagnostic report
+    Then the JSON report has a diagnostic with code "duplicate-model" in "009_refine.jd" at line 9
 
   Scenario: a glob load expands into every matching file, imported flat
     Given the source file "020_load_glob_flat.jd"

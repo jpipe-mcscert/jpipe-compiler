@@ -25,6 +25,7 @@ Feature: Every diagnostic says where, and only once
     Then the report signals errors
       And the JSON report has a diagnostic with code "unknown-model" at line 17
       And the JSON report has a diagnostic with code "execution-error" at line 22
+      And the JSON report has no diagnostic at line 26
       And no JSON diagnostic message contains its own code
 
   Scenario: A bad override is reported at the override, and a dangling @support in its template
@@ -34,6 +35,17 @@ Feature: Every diagnostic says where, and only once
       And the JSON report has a diagnostic with code "abstract-support-used" at line 14
       And the JSON report has a diagnostic with code "unresolved-override" at line 21
       And the JSON report has a diagnostic with code "execution-error" at line 22
+
+  Scenario: A model declared again in another file is reported, and leaves the first untouched
+    Given the source file "invalid/033_duplicate_across_files.jd"
+    When I compile it into a unit
+    Then the compilation has validation errors
+      And a validation error is reported for rule "duplicate-model"
+      And the unit contains a template named "t"
+    Then it has a conclusion with id "c" and label "A conclusion"
+    When I produce a JSON diagnostic report
+    Then the JSON report has a diagnostic with code "duplicate-model" at line 12
+      And the JSON report has no diagnostic with code "execution-error"
 
   Scenario: A load that fails is reported at its load statement
     Given the source file "invalid/011_missing_load.jd"

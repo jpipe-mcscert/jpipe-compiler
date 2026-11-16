@@ -206,6 +206,30 @@ class ExecutionFailureDiagnosticsTest {
 	class DiagnoseStuckOperatorsAndOverrides {
 
 		@Test
+		void a_call_waiting_on_a_model_whose_own_call_failed_is_not_reported() {
+			// The failure of 'z' is reported once; the call that uses 'z' is
+			// no separate mistake (#183).
+			ApplyOperator failed = call("z", "frobnicate", "a");
+			List<CommandExecutionException> failures = List
+					.of(new CommandExecutionException(failed, unit,
+							new IllegalArgumentException("unknown operator")));
+			ExecutionFailureDiagnostics.diagnoseDeadlock(
+					List.of(call("w", "refine", "z", "a")), unit,
+					ExecutionFailureDiagnostics.brokenModels(failures), ctx);
+			assertThat(ctx.diagnostics()).isEmpty();
+		}
+
+		@Test
+		void a_failure_without_a_message_is_named_by_its_type() {
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(
+					new CreateJustification("j", AT_3_4), unit,
+					new NullPointerException(), ctx);
+			assertThat(ctx.diagnostics()).singleElement()
+					.satisfies(d -> assertThat(d.message())
+							.isEqualTo("NullPointerException"));
+		}
+
+		@Test
 		void an_operator_call_waiting_for_an_unknown_model_names_it() {
 			// It used to read `cannot execute: applyOperator(...)`, with no
 			// line and without naming the missing model (#183).

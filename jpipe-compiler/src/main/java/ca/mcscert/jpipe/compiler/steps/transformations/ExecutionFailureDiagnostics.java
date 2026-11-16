@@ -2,13 +2,9 @@ package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.CommandExecutionException;
-import ca.mcscert.jpipe.commands.creation.CreateJustification;
-import ca.mcscert.jpipe.commands.creation.CreateTemplate;
-import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
-import ca.mcscert.jpipe.commands.linking.RegisterAlias;
 import ca.mcscert.jpipe.commands.linking.ReferenceIntoTemplateException;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.DiagnosticCodes;
@@ -17,18 +13,20 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.operators.ApplyOperator;
 import ca.mcscert.jpipe.operators.IncompatibleUnificationException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Translates command-execution failures into specific
  * {@link CompilationContext} diagnostics.
  *
  * <p>
- * Called by {@link ActionListInterpretation} when the
- * {@link ca.mcscert.jpipe.commands.ExecutionEngine} throws a deadlock or
- * execution exception. Kept separate so that
- * {@code ActionListInterpretation.run()} only handles the happy-path execution
- * flow.
+ * Called by {@link ActionListInterpretation} with the commands that failed,
+ * which the {@link ca.mcscert.jpipe.commands.ExecutionEngine} hands to its
+ * failure handler, and with the commands left stuck when it deadlocks. Kept
+ * separate so that {@code ActionListInterpretation.run()} only handles the
+ * execution flow.
  */
 final class ExecutionFailureDiagnostics {
 
@@ -45,7 +43,23 @@ final class ExecutionFailureDiagnostics {
 	 */
 	static void diagnoseDeadlock(List<Command> stuck, Unit unit,
 			CompilationContext ctx) {
-		for (Command cmd : stuck) {
+		diagnoseDeadlock(stuck, unit, Set.of(), ctx);
+	}
+
+	/**
+	 * As {@link #diagnoseDeadlock(List, Unit, CompilationContext)}, leaving out
+	 * the commands that wait on a model in {@code broken}: one whose operator
+	 * call or {@code implements} failed. That failure is already reported, and
+	 * what waits on it is no separate mistake (#183).
+	 */
+	static void diagnoseDeadlock(List<Command> stuck, Unit unit,
+			Set<String> broken, CompilationContext ctx) {
+		List<Command> reported = stuck.stream()
+				.filter(cmd -> !waitsOn(cmd, broken)).toList();
+		if (reported.isEmpty()) {
+			return;
+		}
+		for (Command cmd : reported) {
 			switch (cmd) {
 				case AddSupport c -> diagnoseAddSupport(c, unit, ctx);
 				case ImplementsTemplate c ->
@@ -54,10 +68,41 @@ final class ExecutionFailureDiagnostics {
 					diagnoseOverrideAbstractSupport(c, unit, ctx);
 				case ApplyOperator c -> diagnoseApplyOperator(c, unit, ctx);
 				default -> ctx.error(DiagnosticCodes.UNRESOLVED_SYMBOL,
-						locationOf(cmd), "cannot execute: " + cmd);
+						cmd.location(), "cannot execute: " + cmd);
 			}
 		}
 		ctx.error("unresolved symbol(s) — model cannot be built");
+	}
+
+	/**
+	 * The models a failing command leaves unusable: the result of an operator
+	 * call, a model whose template could not be implemented.
+	 */
+	static Set<String> brokenModels(List<CommandExecutionException> failures) {
+		Set<String> broken = new HashSet<>();
+		for (CommandExecutionException f : failures) {
+			switch (f.failedCommand()) {
+				case ApplyOperator c -> broken.add(c.resultName());
+				case ImplementsTemplate c -> broken.add(c.modelName());
+				default -> {
+					// The model is still whole: what waits on it is reported.
+				}
+			}
+		}
+		return broken;
+	}
+
+	/** Whether {@code cmd} is stuck only because it uses a broken model. */
+	private static boolean waitsOn(Command cmd, Set<String> broken) {
+		return switch (cmd) {
+			case AddSupport c -> broken.contains(c.container());
+			case OverrideAbstractSupport c -> broken.contains(c.container());
+			case ImplementsTemplate c -> broken.contains(c.modelName())
+					|| broken.contains(c.templateName());
+			case ApplyOperator c ->
+				c.sourceNames().stream().anyMatch(broken::contains);
+			default -> false;
+		};
 	}
 
 	/**
@@ -84,8 +129,8 @@ final class ExecutionFailureDiagnostics {
 		if (cause instanceof IncompatibleUnificationException) {
 			// Raised while expanding an operator call: anchor the diagnostic on
 			// the call site rather than on the command's own text.
-			ctx.error(DiagnosticCodes.INCOMPATIBLE_UNIFICATION, locationOf(cmd),
-					cause.getMessage());
+			ctx.error(DiagnosticCodes.INCOMPATIBLE_UNIFICATION, cmd.location(),
+					describe(cause));
 			return;
 		}
 		switch (cmd) {
@@ -102,45 +147,37 @@ final class ExecutionFailureDiagnostics {
 					ctx.error(DiagnosticCodes.IMPLEMENTS_ERROR, loc,
 							"cannot apply 'implements' for '" + c.modelName()
 									+ "' extends '" + c.templateName() + "': "
-									+ cause.getMessage());
+									+ describe(cause));
 				}
 			}
 			case AddSupport c -> {
 				String code = cause instanceof ReferenceIntoTemplateException
 						? DiagnosticCodes.REFERENCE_INTO_TEMPLATE
 						: DiagnosticCodes.INVALID_SUPPORT;
-				ctx.error(code, c.location(), cause.getMessage());
+				ctx.error(code, c.location(), describe(cause));
 			}
 			case ApplyOperator c -> ctx.error(DiagnosticCodes.EXECUTION_ERROR,
-					c.location(), operatorCall(c) + ": " + cause.getMessage());
+					c.location(), operatorCall(c) + ": " + describe(cause));
 			default -> {
-				SourceLocation loc = locationOf(cmd);
+				SourceLocation loc = cmd.location();
 				// The location says which statement failed; without one, the
 				// command's text is all there is to go by.
 				ctx.error(DiagnosticCodes.EXECUTION_ERROR, loc,
 						loc.isKnown()
-								? cause.getMessage()
-								: cmd + ": " + cause.getMessage());
+								? describe(cause)
+								: cmd + ": " + describe(cause));
 			}
 		}
 	}
 
 	/**
-	 * Where {@code cmd} is written, for the commands that know it; built-in
-	 * atomic commands (expansions of a macro) do not.
+	 * What went wrong, in the exception's words, or its type when it has none:
+	 * a {@code NullPointerException} may carry no message.
 	 */
-	static SourceLocation locationOf(Command cmd) {
-		return switch (cmd) {
-			case ElementCreationCommand c -> c.location();
-			case CreateJustification c -> c.location();
-			case CreateTemplate c -> c.location();
-			case AddSupport c -> c.location();
-			case ImplementsTemplate c -> c.location();
-			case OverrideAbstractSupport c -> c.location();
-			case RegisterAlias c -> c.location();
-			case ApplyOperator c -> c.location();
-			default -> SourceLocation.UNKNOWN;
-		};
+	private static String describe(Throwable cause) {
+		return cause.getMessage() != null
+				? cause.getMessage()
+				: cause.getClass().getSimpleName();
 	}
 
 	/** How an operator call reads in a message: {@code 'refine' for 'r'}. */

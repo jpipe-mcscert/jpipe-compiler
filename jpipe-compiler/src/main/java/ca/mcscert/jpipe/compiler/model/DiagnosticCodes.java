@@ -54,9 +54,10 @@ public final class DiagnosticCodes {
 	 */
 	public static final String INVALID_SUPPORT = "invalid-support";
 
-	/** A command references a model name that does not exist in the unit. */
-	/** A model declared twice in the same file. */
+	/** A model declared under a name already taken, in any loaded file. */
 	public static final String DUPLICATE_MODEL = "duplicate-model";
+
+	/** A command references a model name that does not exist in the unit. */
 	public static final String UNKNOWN_MODEL = "unknown-model";
 
 	/** A command references an element ID that does not exist in its model. */

@@ -275,6 +275,12 @@ public class CompilationSteps {
 						&& entry.endsWith(":" + line));
 	}
 
+	@Then("the JSON report has no diagnostic at line {int}")
+	public void theJsonReportHasNoDiagnosticAtLine(int line) {
+		assertThat(locatedCodes())
+				.noneMatch(entry -> entry.endsWith(":" + line));
+	}
+
 	@Then("the JSON report has no diagnostic with code {string}")
 	public void theJsonReportHasNoDiagnosticWithCode(String code) {
 		assertThat(codesIn(jsonReport)).doesNotContain(code);

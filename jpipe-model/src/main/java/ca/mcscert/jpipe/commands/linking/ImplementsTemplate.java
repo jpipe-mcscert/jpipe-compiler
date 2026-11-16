@@ -41,6 +41,7 @@ public final class ImplementsTemplate extends RegularCommand {
 		return templateName;
 	}
 
+	@Override
 	public SourceLocation location() {
 		return location;
 	}

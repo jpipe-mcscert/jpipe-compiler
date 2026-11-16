@@ -49,6 +49,7 @@ public final class ApplyOperator implements MacroCommand {
 		return config.arguments();
 	}
 
+	@Override
 	public SourceLocation location() {
 		return config.location();
 	}

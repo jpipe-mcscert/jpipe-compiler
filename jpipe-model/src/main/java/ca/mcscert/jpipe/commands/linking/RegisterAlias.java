@@ -41,6 +41,7 @@ public final class RegisterAlias extends RegularCommand {
 		return newId;
 	}
 
+	@Override
 	public SourceLocation location() {
 		return location;
 	}
