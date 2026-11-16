@@ -12,7 +12,7 @@ import picocli.CommandLine.Option;
  * Compiles a {@code .jd} source file and exports the selected model in the
  * requested format.
  */
-@Command(name = "process", description = "Compile and export a jPipe model.", mixinStandardHelpOptions = true)
+@Command(name = "process", description = "Compile and export a jPipe model.", mixinStandardHelpOptions = true, versionProvider = Main.ManifestVersionProvider.class)
 class ProcessCommand extends InputOutputCommand {
 
 	@Option(names = {"-f",

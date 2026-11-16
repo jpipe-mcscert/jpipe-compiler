@@ -4,10 +4,21 @@
     <Console name="Console" target="SYSTEM_ERR">
       <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %logger{1} - %msg%n"/>
     </Console>
+    <!-- Diagnostics are the compiler's answer, not a trace of its work:
+         printed bare, as `file:line:col: error: message`. -->
+    <Console name="Diagnostics" target="SYSTEM_ERR">
+      <PatternLayout pattern="%msg%n"/>
+    </Console>
   </Appenders>
   <Loggers>
+    <!-- The log-level option sets this logger's level. -->
     <Logger name="ca.mcscert.jpipe" level="error" additivity="false">
       <AppenderRef ref="Console"/>
+    </Logger>
+    <!-- DiagnosticPrinter.LOGGER: outside the hierarchy above, so that
+         no log level hides a compilation error. -->
+    <Logger name="jpipe.diagnostics" level="error" additivity="false">
+      <AppenderRef ref="Diagnostics"/>
     </Logger>
     <Root level="off">
       <AppenderRef ref="Console"/>

@@ -30,6 +30,13 @@ package "cli" {
     + call() : Integer
   }
 
+  class OutputTarget {
+    ~ {static} open(String) : OutputTarget
+    ~ {static} sameFile(String, String) : boolean
+    ~ stream() : OutputStream
+    ~ commit() : void
+  }
+
   class ProcessCommand <<@Command name="process">> {
     - format : Format
     - model : String
@@ -53,7 +60,7 @@ package "cli" {
   }
 
   class Logo <<utility>> {
-    + {static} sout() : void
+    ~ {static} BANNER : String
   }
 
   InputOutputCommand <|-- ProcessCommand
@@ -64,7 +71,13 @@ package "cli" {
   Main +-- DoctorCommand
 
   DoctorCommand ..> Doctor : calls
-  InputOutputCommand ..> Logo : calls (unless headless)
+  class UnexpectedErrorHandler <<IExecutionExceptionHandler>> {
+    + handleExecutionException(Exception, CommandLine, ParseResult) : int
+  }
+
+  InputOutputCommand ..> Logo : prints on stderr (unless headless)
+  InputOutputCommand ..> OutputTarget : writes through
+  Main ..> UnexpectedErrorHandler : installs
 }
 
 @enduml
@@ -179,9 +192,10 @@ that acts as the contract with consumers; it ships on the classpath at
 `/schema/diagnostic-report-v1.schema.json` and every report the test suite
 produces is validated against it.
 
-The ASCII logo is suppressed automatically when the JSON report goes to
-standard output, so `jpipe diagnostic -f json | jq .` works without
-`--headless`. Writing to a file with `-o` keeps the banner on stdout.
+The ASCII logo goes to standard error, so it never corrupts a report or an
+export written to standard output. It is also left out when the JSON report
+goes to standard output, since that is how tools call the command. Writing to a
+file with `-o` keeps it.
 
 **Reporting on a compilation that aborted.** A *fatal* error — a syntax error,
 an unresolvable `load` — stops the pipeline, but the report is still written in
@@ -228,13 +242,26 @@ otherwise.
 
 Abstract base for `ProcessCommand` and `DiagnosticCommand`. Handles:
 
-- **Logo display** — calls `Logo.sout()` unless `--headless` is set.
-- **Output stream resolution** — opens a `FileOutputStream` when `--output` is
-  a file path; falls back to `System.out` for stdout.
+- **Logo display** — prints `Logo.BANNER` on standard error, unless
+  `--headless` is set. `doctor` does the same.
+- **Output stream resolution** — through an `OutputTarget`. Standard output is
+  used as is. A file given with `-o` is not opened while the command runs: the
+  output is held in memory and written to the file, in place, once the command
+  has produced it. A run that aborts (a fatal error, an unknown model, a failed
+  render) leaves the previous file as it was; a run that reports non-fatal
+  errors still writes its export, as ADR-0016 requires. Writing in place keeps
+  what the target is — `/dev/null`, a pipe, a symbolic or hard link, a file's
+  owner and permissions. A target that is a directory, is read-only, or would be
+  created in a missing or read-only directory is refused before compiling, as
+  `error: cannot write '<path>': <reason>`.
+- **Same input and output** — an `-o` that names the input file is refused with
+  exit code `2` before anything runs, since the export (or the report) would
+  replace the source.
 - **Error reporting** — catches `CompilationException` and
   `UnsupportedOperationException` and prints a clean `error: …` message to
-  stderr; any other exception produces `unexpected error: …` and returns exit
-  code `42`.
+  stderr, with exit code `1`. An output that cannot be written, and a source
+  that cannot be read under `process`, print `error: …` naming the file, with
+  exit code `42`.
 
 Subclasses implement `doCall(OutputStream)` and receive the resolved output
 stream.
@@ -245,14 +272,41 @@ Package-private utility that probes each required external tool by attempting
 `ProcessBuilder` launch. Tools are configured in a static `LinkedHashMap` so
 that new dependencies can be added without changing `DoctorCommand`.
 
+### `UnexpectedErrorHandler`
+
+Installed on the root `CommandLine` by `Main.commandLine()`, so it covers every
+subcommand. Any exception a command did not handle — a bug, or a failure outside
+the compiler's control — is reported as one `internal error: …` line on stderr,
+with a pointer to the issue tracker, and exit code `42`. The stack trace is
+logged at `DEBUG`, so `--log-level DEBUG` shows it. Without the handler, picocli
+would print the trace and exit `1`, which reads as an ordinary compilation
+error.
+
 ### Default subcommand
 
 PicoCLI 4.x has no built-in default-subcommand API. `Main.withDefaultSubcommand()`
-pre-processes the argument array: if no subcommand name (and no short-circuit
-flag like `--help` or `--version`) is found, it inserts `"process"` at the
-correct position — after any parent-level flags with their arguments. Subcommand
-names and parent flag arities are derived from the live `CommandLine` object at
-call time, so the method stays correct when the command tree changes.
+pre-processes the argument array. It skips the parent-level flags, in either the
+`--log-level INFO` or the `--log-level=INFO` form, and looks at the token right
+after them: a subcommand name, `--help` or `--version` leaves the arguments
+unchanged; anything else gets `"process"` inserted in front of it. Only that
+position counts, so `jpipe -i doc.jd -m doctor` exports a model named `doctor`.
+Subcommand names and parent flag arities are derived from the live
+`CommandLine` object at call time, so the method stays correct when the command
+tree changes.
+
+### Global options
+
+| Option | Description |
+|--------|-------------|
+| `--headless` | Do not print the logo. |
+| `--log-level LEVEL` | Verbosity of the compiler's trace on stderr: `OFF`, `ERROR` (default), `WARN`, `INFO`, `DEBUG`, `TRACE`, case-insensitive. Any other value is rejected. |
+| `-h`, `--help` / `-V`, `--version` | On the root command and on every subcommand. |
+
+**Diagnostics are not logs.** The diagnostics of a `process` run are printed on
+stderr as `file:line:column: severity: [code] message` through the dedicated
+`jpipe.diagnostics` logger (`DiagnosticPrinter.LOGGER`). It sits outside
+the `ca.mcscert.jpipe` hierarchy that `--log-level` tunes, so no level hides a
+compilation error.
 
 ## Exit codes
 
@@ -260,4 +314,5 @@ call time, so the method stays correct when the command tree changes.
 |------|----------|---------|
 | `0` | `EXIT_OK` | Success |
 | `1` | `EXIT_JPIPE_ERROR` | Compilation error or missing tool |
-| `42` | `EXIT_SYSTEM_ERROR` | Unexpected exception |
+| `2` | `CommandLine.ExitCode.USAGE` | Invalid command line: unknown option, invalid value (picocli), or an output that is the input file |
+| `42` | `EXIT_SYSTEM_ERROR` | System error: a source that cannot be read (under `process`), an output that cannot be written, or an unexpected exception |

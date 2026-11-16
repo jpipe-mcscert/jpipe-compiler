@@ -8,6 +8,10 @@ import java.io.OutputStream;
  * Pipeline sink that writes a {@code byte[]} to an {@link OutputStream}
  * supplied at construction time. Used for binary output formats (PNG, JPEG)
  * produced by an external renderer.
+ *
+ * <p>
+ * A failed write is raised as an {@link IOException}, including on a
+ * {@link java.io.PrintStream}, which only records it.
  */
 public final class ByteSink implements Sink<byte[]> {
 
@@ -20,5 +24,6 @@ public final class ByteSink implements Sink<byte[]> {
 	@Override
 	public void pourInto(byte[] output) throws IOException {
 		out.write(output);
+		WriteErrors.flushAndCheck(out);
 	}
 }

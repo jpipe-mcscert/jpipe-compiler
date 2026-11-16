@@ -1,14 +1,13 @@
 #!/bin/sh
 
+# Graphviz is deliberately not checked here: only the image formats need it,
+# the JAR reports a missing `dot` when one of them is asked for, and
+# `jpipe doctor`, which diagnoses exactly that, must be able to run.
+#
+# debian/postinst rewrites the `which java` line below verbatim.
 which java > /dev/null
 if [ $? -ne 0 ]; then
-    echo "[jpipe] Java not found"
-    exit 1
-fi
-
-which dot > /dev/null
-if [ $? -ne 0 ]; then
-    echo "[jpipe] Graphviz not found"
+    echo "[jpipe] Java not found" >&2
     exit 1
 fi
 

@@ -19,6 +19,20 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Changed
+- The compilation errors of `jpipe process` are now printed on standard error as
+  bare `file:line:column: error: message` lines, without a timestamp or logger
+  name, and no `--log-level` hides them: `--log-level OFF` used to leave only
+  `Compilation failed`, with no line or column (#186).
+- **Breaking:** `--log-level` now rejects an unknown level with exit code 2, as
+  `-f` does. It used to fall back to `ERROR` without a word (#186).
+- The `jpipe` launchers installed by Homebrew, Scoop and the Debian package no
+  longer refuse to start when Graphviz is missing. That blocked `jpipe doctor`,
+  which exists to diagnose it, and every format that does not need it; the image
+  formats still report a missing `dot` (#186).
+- **Breaking:** a source file that is not valid UTF-8 is now a fatal error,
+  located at the first invalid byte. Its bytes used to be replaced with `�`
+  without a word, so a file saved in Latin-1 compiled with mangled labels
+  (#179).
 - Updated build and test dependencies to their current majors: JUnit 6
   (→ 6.1.3, Jupiter and Platform), Cucumber 8 (→ 8.0.4), Checkstyle 14
   (→ 14.4.0) and `json-schema-validator` 3 (→ 3.0.9). This lifts the JUnit 6
@@ -36,6 +50,39 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   from the model has nowhere to break and can still run past the limit: a
   function name, which follows its label, an id, or the source path in the
   header.
+
+### Fixed
+- The logo banner is now printed on standard error. It used to start every
+  export written to standard output, so `jpipe process` without `--headless`
+  produced JSON, Python and images that could not be read (#175).
+- An unexpected failure now prints one `internal error: …` line and exits with
+  code 42, as documented, instead of a Java stack trace and exit code 1, which
+  looked like an ordinary compile error. `--log-level DEBUG` shows the trace
+  (#182).
+- `jpipe process -f PYTHON` on a model in which two elements share an id now
+  fails like any other compile error, with exit code 1 and no stack trace
+  (#182).
+- `jpipe --log-level=INFO …`, the form `--help` shows, is accepted when no
+  subcommand is given; it used to fail as an unknown option (#186).
+- An argument that happens to be a subcommand name, such as a model called
+  `doctor`, no longer stops `process` from being the default subcommand (#186).
+- `-V` on a subcommand (`jpipe process -V`) prints the version; it printed
+  nothing (#186).
+- The error for a missing Graphviz now suggests `jpipe doctor`; it suggested
+  `jpipe --doctor`, which does not exist (#186).
+- `-o` no longer truncates its file before compiling. An `-o` naming the input
+  file erased the source; it is now refused with exit code 2. A run that
+  aborts, on a fatal error or an unknown model, wiped the previous output; the
+  file is now written only once the command has produced its output (#174).
+- An `-o` that cannot be written (a directory, a read-only file, a missing or
+  read-only directory) is reported as `error: cannot write '<path>': <reason>` before
+  compiling, instead of `unexpected error: …` (#186).
+- Text exports and reports written to standard output are now always UTF-8.
+  They followed the terminal's encoding, so on a non-UTF-8 console, the Windows
+  console included, every non-ASCII letter became `?` (#179).
+- A failure to write an export or a report, such as a full disk or a closed
+  pipe, is now an error with exit code 42. Text formats used to exit 0 with an
+  empty or missing file (#179).
 
 ---
 

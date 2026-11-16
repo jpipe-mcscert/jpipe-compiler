@@ -2,14 +2,17 @@ package ca.mcscert.jpipe.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import picocli.CommandLine;
 
-/** Unit tests for {@link Main#withDefaultSubcommand(String[], CommandLine)}. */
+/** Unit tests for {@link Main}: default subcommand and global options. */
 class MainTest {
 
 	private static final CommandLine CMD = new CommandLine(new Main());
@@ -61,8 +64,8 @@ class MainTest {
 	@Test
 	void withDefaultSubcommand_insertsProcessAtFront_whenNoParentFlags() {
 		assertThat(Main.withDefaultSubcommand(
-				new String[]{"-i", "foo.jd", "-d", "myDiagram"}, CMD))
-				.containsExactly("process", "-i", "foo.jd", "-d", "myDiagram");
+				new String[]{"-i", "foo.jd", "-m", "myModel"}, CMD))
+				.containsExactly("process", "-i", "foo.jd", "-m", "myModel");
 	}
 
 	@Test
@@ -86,5 +89,78 @@ class MainTest {
 				"--log-level", "DEBUG", "-i", "foo.jd"}, CMD))
 				.containsExactly("--headless", "--log-level", "DEBUG",
 						"process", "-i", "foo.jd");
+	}
+	@Test
+	void withDefaultSubcommand_acceptsTheEqualsFormOfAParentFlag() {
+		// `--help` shows `--log-level=<level>`; that form used to be pushed
+		// behind `process` and rejected as an unknown option (#186).
+		assertThat(Main.withDefaultSubcommand(
+				new String[]{"--log-level=INFO", "-i", "foo.jd"}, CMD))
+				.containsExactly("--log-level=INFO", "process", "-i", "foo.jd");
+	}
+
+	@ParameterizedTest(name = "a later argument named like a subcommand: {0}")
+	@ValueSource(strings = {"doctor", "diagnostic", "process", "--help", "-V"})
+	void withDefaultSubcommand_onlyTheFirstTokenAfterParentFlagsCounts(
+			String name) {
+		// A model called `doctor` used to disable the default subcommand
+		// (#186).
+		assertThat(Main.withDefaultSubcommand(
+				new String[]{"-i", "doc.jd", "-m", name}, CMD))
+				.containsExactly("process", "-i", "doc.jd", "-m", name);
+	}
+
+	@ParameterizedTest(name = "a mistyped parent flag is left to picocli: {0}")
+	@ValueSource(strings = {"--headles", "--log-levl=INFO", "-x"})
+	void withDefaultSubcommand_leavesAnOptionProcessDoesNotKnowInPlace(
+			String typo) {
+		// Inserting `process` would report the typo against `process`, plus
+		// an unmatched `doctor`, instead of against the root command.
+		String[] args = {typo, "doctor"};
+		assertThat(Main.withDefaultSubcommand(args, CMD)).isSameAs(args);
+	}
+
+	@ParameterizedTest(name = "a process option still gets process: {0}")
+	@ValueSource(strings = {"-ifoo.jd", "--input=foo.jd", "-o"})
+	void withDefaultSubcommand_insertsProcessBeforeItsOwnOptions(String opt) {
+		assertThat(Main.withDefaultSubcommand(new String[]{opt}, CMD))
+				.containsExactly("process", opt);
+	}
+
+	@Test
+	void withDefaultSubcommand_leavesAParentFlagMissingItsValueToPicocli() {
+		String[] args = {"--log-level"};
+		assertThat(Main.withDefaultSubcommand(args, CMD)).isSameAs(args);
+	}
+
+	// ---------------------------------------------------------------------------
+	// Options
+	// ---------------------------------------------------------------------------
+
+	@Test
+	void anUnknownLogLevelIsRejected() {
+		CommandLine cmd = Main.commandLine();
+		StringWriter err = new StringWriter();
+		cmd.setErr(new PrintWriter(err));
+
+		int exitCode = cmd.execute("--log-level", "LOUD", "doctor");
+
+		assertThat(exitCode).isEqualTo(CommandLine.ExitCode.USAGE);
+		assertThat(err.toString()).contains("--log-level", "LOUD");
+	}
+
+	@ParameterizedTest(name = "{0} -V prints the version")
+	@ValueSource(strings = {"process", "diagnostic", "doctor"})
+	void everySubcommandPrintsTheVersion(String subcommand) {
+		// The subcommands mixed in -V without a version provider, so it
+		// printed nothing and exited 0 (#186).
+		CommandLine cmd = Main.commandLine();
+		StringWriter out = new StringWriter();
+		cmd.setOut(new PrintWriter(out));
+
+		int exitCode = cmd.execute(subcommand, "-V");
+
+		assertThat(exitCode).isEqualTo(Main.EXIT_OK);
+		assertThat(out.toString()).startsWith("jPipe ");
 	}
 }

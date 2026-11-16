@@ -601,7 +601,7 @@ public class PythonExporter extends AbstractModelExporter {
 	private void claim(String link, String function) {
 		String existing = boundTo.putIfAbsent(link, function);
 		if (existing != null && !existing.equals(function)) {
-			throw new IllegalStateException("The id \"" + link
+			throw new AmbiguousIdentifierException("The id \"" + link
 					+ "\" would be bound to both '" + existing + "' and '"
 					+ function + "' in model '" + currentModelName
 					+ "': one identifier cannot designate two elements."

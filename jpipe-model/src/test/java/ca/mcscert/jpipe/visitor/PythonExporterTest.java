@@ -178,7 +178,7 @@ class PythonExporterTest {
 		PythonExporter exporter = new PythonExporter();
 
 		assertThatThrownBy(() -> exporter.export(j))
-				.isInstanceOf(IllegalStateException.class)
+				.isInstanceOf(AmbiguousIdentifierException.class)
 				.hasMessageContainingAll("\"j:e1\"", "testing", "test_results",
 						"unique-identifiers");
 	}
@@ -634,7 +634,7 @@ class PythonExporterTest {
 		PythonExporter exporter = new PythonExporter();
 
 		assertThatThrownBy(() -> exporter.export(j))
-				.isInstanceOf(IllegalStateException.class)
+				.isInstanceOf(AmbiguousIdentifierException.class)
 				.hasMessageContainingAll("\"j:dup\"", "no-duplicate-ids");
 	}
 }

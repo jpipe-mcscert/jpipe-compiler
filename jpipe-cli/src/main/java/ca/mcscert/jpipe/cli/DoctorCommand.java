@@ -9,7 +9,7 @@ import picocli.CommandLine.Spec;
 /**
  * Checks that external tools required by jPipe are available on {@code PATH}.
  */
-@Command(name = "doctor", description = "Check that required external tools are available on PATH.", mixinStandardHelpOptions = true)
+@Command(name = "doctor", description = "Check that required external tools are available on PATH.", mixinStandardHelpOptions = true, versionProvider = Main.ManifestVersionProvider.class)
 class DoctorCommand implements Callable<Integer> {
 
 	@Spec
@@ -22,7 +22,7 @@ class DoctorCommand implements Callable<Integer> {
 	@SuppressWarnings("java:S106") // intentional: doctor output goes to stdout
 	public Integer call() {
 		if (!parent.headless) {
-			Logo.sout();
+			System.err.println(Logo.BANNER);
 		}
 		System.out.println(spec.root().version()[0]);
 		System.out.println("Checking external tools:");

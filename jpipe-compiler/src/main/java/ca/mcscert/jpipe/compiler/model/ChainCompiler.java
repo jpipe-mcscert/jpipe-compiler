@@ -41,7 +41,7 @@ public final class ChainCompiler<I, O> implements Compiler {
 			sink.pourInto(output);
 		} finally {
 			release(input);
-			printDiagnostics(ctx);
+			DiagnosticPrinter.print(ctx);
 		}
 		logger.info("Compilation finished [{}]", sourceFile);
 		return ctx.hasErrors();
@@ -65,21 +65,6 @@ public final class ChainCompiler<I, O> implements Compiler {
 			closeable.close();
 		} catch (IOException e) {
 			logger.warn("Could not close the source: {}", e.getMessage());
-		}
-	}
-
-	private void printDiagnostics(CompilationContext ctx) {
-		for (Diagnostic d : ctx.diagnostics()) {
-			if (d.isError()) {
-				String loc = d.hasLocation()
-						? d.source() + ":" + d.line() + ":" + d.column() + ": "
-						: d.source() + ": ";
-				String level = d.level().name().toLowerCase();
-				String msg = d.hasCode()
-						? "[" + d.code() + "] " + d.message()
-						: d.message();
-				logger.error("{}{}: {}", loc, level, msg);
-			}
 		}
 	}
 

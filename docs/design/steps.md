@@ -99,8 +99,10 @@ Opens the source `.jd` file path supplied to `compile()` as a raw
 **Type:** `Transformation<InputStream, CharStream>`  
 **Package:** `compiler.steps.transformations`
 
-Wraps the raw `InputStream` in an ANTLR `CharStream` (UTF-8). Required before
-ANTLR lexing can proceed.
+Decodes the raw `InputStream` into an ANTLR `CharStream`. Required before
+ANTLR lexing can proceed. The source must be UTF-8: the first byte sequence
+that is not valid UTF-8 is a `FATAL`, located at its line and column (counted
+in code points, as the lexer counts them), rather than replaced with U+FFFD.
 
 #### `Lexer`
 
@@ -230,8 +232,8 @@ edge is reachable.
 **Type:** `Transformation<Unit, JustificationModel<?>>`  
 **Package:** `compiler.steps.transformations`
 
-Extracts one `JustificationModel` from the `Unit` by name (from the `-d` /
-`--diagram` CLI flag). When no name is given and the unit contains exactly one
+Extracts one `JustificationModel` from the `Unit` by name (from the `-m` /
+`--model` CLI flag). When no name is given and the unit contains exactly one
 model, that model is auto-selected. If the unit contains multiple models and no
 name is given, a `CompilationException` is thrown listing the available names.
 
@@ -270,13 +272,19 @@ takes, raising `NotImplementedError` until written. The conclusion and
 sub-conclusions are emitted commented out, since the runner concludes them from
 what supports them unless they are bound.
 
+A model in which one id designates two elements cannot be exported, since both
+functions would be bound to that id. The consistency checker reports the cause
+(`no-duplicate-ids`, `unique-identifiers`) as a non-fatal error, so the step
+still runs; it then fails with a `CompilationException` rather than writing a
+module in which one function silently replaces the other.
+
 #### `RenderWithDot`
 
 **Type:** `Transformation<String, byte[]>`  
 **Package:** `compiler.steps.transformations`
 
 Shells out to the `dot` command-line tool (Graphviz) to render DOT source to a
-binary image. The `dot` binary must be on `PATH`; `jpipe --doctor` checks for
+binary image. The `dot` binary must be on `PATH`; `jpipe doctor` checks for
 it. DOT source is written to `stdin` in a virtual thread while `stdout` is read
 in the caller thread, avoiding deadlock when the process pipe buffer is smaller
 than the input. Supports any format that `dot -T` accepts; the CLI uses
@@ -332,8 +340,9 @@ above.
 **Type:** `Sink<String>`  
 **Package:** `compiler.steps.io.sinks`
 
-Writes a `String` result to an `OutputStream` (typically `stdout`). Used by
-all text-format pipelines.
+Writes a `String` result to an `OutputStream` (typically `stdout`), always
+encoded as UTF-8, so that an export reads the same on standard output as in a
+file whatever the platform's charset. Used by all text-format pipelines.
 
 #### `ByteSink`
 
@@ -342,3 +351,7 @@ all text-format pipelines.
 
 Writes a `byte[]` result to an `OutputStream`. Used by image-format pipelines
 (`RenderWithDot` output).
+
+Both sinks flush the stream and raise a failed write as an `IOException`,
+including on a `PrintStream` such as `System.out`, which records errors rather
+than throwing them. The CLI reports it as a system error (exit code 42).
