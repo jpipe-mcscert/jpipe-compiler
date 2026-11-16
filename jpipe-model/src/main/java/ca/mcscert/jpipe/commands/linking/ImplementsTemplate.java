@@ -96,7 +96,7 @@ public final class ImplementsTemplate extends RegularCommand {
 	 * the template never completes is reported where it is.
 	 */
 	@Override
-	public boolean runWhenStuck(Unit unit) {
+	public boolean runWhenStuck(Unit unit, PendingCommands pending) {
 		return false;
 	}
 

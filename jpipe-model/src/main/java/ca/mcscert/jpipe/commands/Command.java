@@ -38,7 +38,7 @@ public interface Command {
 	 * needs exists, complete or not. A command that must never act on an
 	 * incomplete model refuses.
 	 */
-	default boolean runWhenStuck(Unit unit) {
+	default boolean runWhenStuck(Unit unit, PendingCommands pending) {
 		return condition().test(unit);
 	}
 

@@ -529,20 +529,25 @@ public final class LoadResolver
 			case CreateTemplate c ->
 				new CreateTemplate(qualify(ns, c.identifier()), c.location());
 			case CreateConclusion c ->
-				new CreateConclusion(qualify(ns, c.container()), c.identifier(),
-						c.label(), c.location());
+				new CreateConclusion(qualify(ns, c.container()),
+						qualifyElement(ns, c.identifier()), c.label(),
+						c.location());
 			case CreateEvidence c ->
-				new CreateEvidence(qualify(ns, c.container()), c.identifier(),
-						c.label(), c.location());
+				new CreateEvidence(qualify(ns, c.container()),
+						qualifyElement(ns, c.identifier()), c.label(),
+						c.location());
 			case CreateStrategy c ->
-				new CreateStrategy(qualify(ns, c.container()), c.identifier(),
-						c.label(), c.location());
+				new CreateStrategy(qualify(ns, c.container()),
+						qualifyElement(ns, c.identifier()), c.label(),
+						c.location());
 			case CreateSubConclusion c ->
 				new CreateSubConclusion(qualify(ns, c.container()),
-						c.identifier(), c.label(), c.location());
+						qualifyElement(ns, c.identifier()), c.label(),
+						c.location());
 			case CreateAbstractSupport c ->
 				new CreateAbstractSupport(qualify(ns, c.container()),
-						c.identifier(), c.label(), c.location());
+						qualifyElement(ns, c.identifier()), c.label(),
+						c.location());
 			case ImplementsTemplate c ->
 				new ImplementsTemplate(qualify(ns, c.modelName()),
 						qualify(ns, c.templateName()), c.location());

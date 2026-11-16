@@ -25,8 +25,10 @@ import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -84,12 +86,16 @@ public final class ActionListProvider
 		private boolean conclusionDeclared;
 
 		/**
-		 * The conclusion the declaration being read declared although it
-		 * inherits one, and which was therefore dropped. A relation that uses
-		 * it is dropped too: reporting it as an unknown element would only
-		 * repeat the inherited-conclusion error (#177).
+		 * The conclusions the declaration being read declared although it
+		 * inherits one, and which were therefore dropped. The relations of the
+		 * declaration that use them are dropped too, once its body has been
+		 * read, wherever they are written: reporting them as unknown elements
+		 * would only repeat the inherited-conclusion error (#177).
 		 */
-		private String rejectedConclusion;
+		private final Set<String> rejectedConclusions = new HashSet<>();
+
+		/** Where the commands of the declaration being read start. */
+		private int declarationStart;
 
 		public ActionBuilder(String name, CompilationContext compilationCtx,
 				OperatorRegistry operators,
@@ -163,8 +169,23 @@ public final class ActionListProvider
 					ctx.rule_config(), ModelKind.JUSTIFICATION);
 		}
 
+		/**
+		 * Drops the relations of the declaration just read that use a rejected
+		 * conclusion: see rejectedConclusions.
+		 */
+		private void dropRelationsToRejectedConclusions() {
+			if (rejectedConclusions.isEmpty()) {
+				return;
+			}
+			result.subList(declarationStart, result.size()).removeIf(
+					cmd -> cmd instanceof AddSupport a && (rejectedConclusions
+							.contains(a.supportableId())
+							|| rejectedConclusions.contains(a.supporterId())));
+		}
+
 		@Override
 		public void exitJustification(JPipeParser.JustificationContext ctx) {
+			dropRelationsToRejectedConclusions();
 			this.buildContext = buildContext.updateCurrentJustification(null,
 					null);
 		}
@@ -203,7 +224,8 @@ public final class ActionListProvider
 			this.buildContext = buildContext.updateCurrentJustification(name,
 					parentName);
 			this.conclusionDeclared = false;
-			this.rejectedConclusion = null;
+			this.rejectedConclusions.clear();
+			this.declarationStart = result.size();
 			result.add(switch (kind) {
 				case JUSTIFICATION -> new CreateJustification(name, loc);
 				case TEMPLATE -> new CreateTemplate(name, loc);
@@ -218,6 +240,7 @@ public final class ActionListProvider
 
 		@Override
 		public void exitTemplate(JPipeParser.TemplateContext ctx) {
+			dropRelationsToRejectedConclusions();
 			this.buildContext = buildContext.updateCurrentJustification(null,
 					null);
 		}
@@ -273,7 +296,7 @@ public final class ActionListProvider
 				// A model that implements a template inherits its conclusion
 				// (ADR-0012). Decided here, from the declaration alone, it no
 				// longer depends on which of the two is declared first (#177).
-				rejectedConclusion = identifier;
+				rejectedConclusions.add(identifier);
 				compilationCtx.error(DiagnosticCodes.INHERITED_CONCLUSION, loc,
 						"Model '" + modelId + "' implements '" + parent
 								+ "' and inherits its conclusion: it cannot"
@@ -320,10 +343,6 @@ public final class ActionListProvider
 				return;
 			}
 			if (to.contains(":") && !validOverridePrefix(to, loc)) {
-				return;
-			}
-			if (from.equals(rejectedConclusion)
-					|| to.equals(rejectedConclusion)) {
 				return;
 			}
 			result.add(new AddSupport(buildContext.justificationId, to, from,

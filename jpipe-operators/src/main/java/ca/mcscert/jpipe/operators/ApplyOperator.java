@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.Optional;
 import ca.mcscert.jpipe.commands.PendingCommands;
+import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import java.util.function.UnaryOperator;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -132,15 +133,19 @@ public final class ApplyOperator implements MacroCommand {
 	}
 
 	/**
-	 * When its sources exist and none failed to be built: a source still held
-	 * back by a mistake of its own is composed as far as it got, so that the
-	 * mistake is reported once, where it is, rather than as a result that is
-	 * never built (#177).
+	 * When its sources exist, none failed to be built, and none still waits on
+	 * its {@code implements}: a source held back by a mistake of its own is
+	 * composed as far as it got, so that the mistake is reported once, where it
+	 * is, rather than as a result that is never built (#177). A source that
+	 * never got its inherited structure is no source to compose.
 	 */
 	@Override
-	public boolean runWhenStuck(Unit unit) {
+	public boolean runWhenStuck(Unit unit, PendingCommands pending) {
 		return condition().test(unit)
-				&& config.sourceNames().stream().allMatch(unit::isComplete);
+				&& config.sourceNames().stream().allMatch(unit::isComplete)
+				&& config.sourceNames().stream()
+						.noneMatch(source -> pending.target(source,
+								c -> !(c instanceof ImplementsTemplate)));
 	}
 
 	@Override

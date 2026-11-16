@@ -99,15 +99,16 @@ public final class ExecutionEngine {
 	/**
 	 * Nothing is ready: every command waits on another. Runs, best effort, the
 	 * first one that may run without waiting (see
-	 * {@link Command#runWhenStuck(Unit)}), so that one mistake does not hold
-	 * back everything that waits on it. A valid source never gets here; an
-	 * invalid one gets as much built as its mistakes allow, and only those
-	 * mistakes reported. When no command may run, execution deadlocks.
+	 * {@link Command#runWhenStuck(Unit, PendingCommands)}), so that one mistake
+	 * does not hold back everything that waits on it. A valid source never gets
+	 * here; an invalid one gets as much built as its mistakes allow, and only
+	 * those mistakes reported. When no command may run, execution deadlocks.
 	 */
 	private void runStuck(List<QueueEntry> queue, PendingIndex pending,
 			Unit unit) {
 		for (int i = 0; i < queue.size(); i++) {
-			if (queue.get(i).command().runWhenStuck(unit)) {
+			Command candidate = queue.get(i).command();
+			if (candidate.runWhenStuck(unit, pending.seenBy(candidate))) {
 				QueueEntry entry = queue.remove(i);
 				logger.debug("Running stuck command [{}]", entry.command());
 				run(entry, queue, pending, unit);

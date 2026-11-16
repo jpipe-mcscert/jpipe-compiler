@@ -6,6 +6,7 @@ import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateEvidence;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
+import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
@@ -72,6 +73,16 @@ class LoadResolverPrefixTest {
 		assertThat(result.container()).isEqualTo("ns:model1");
 		assertThat(result.supportableId()).isEqualTo("from_elem");
 		assertThat(result.supporterId()).isEqualTo("to_elem");
+	}
+
+	@Test
+	void prefixesAQualifiedElementDeclarationLikeItsReferences() {
+		// A model implementing t may declare t:local; its relations name it
+		// t:local too, and both must become ns:t:local.
+		var cmd = new CreateStrategy("j", "t:local", "S");
+		var result = (CreateStrategy) prefixOne("ns", cmd);
+		assertThat(result.container()).isEqualTo("ns:j");
+		assertThat(result.identifier()).isEqualTo("ns:t:local");
 	}
 
 	@Test
