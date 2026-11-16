@@ -139,7 +139,10 @@ public abstract class CompositionOperator {
 
 	/**
 	 * Returns the command that creates the result model (typically
-	 * {@code CreateJustification} or {@code CreateTemplate}).
+	 * {@code CreateJustification} or {@code CreateTemplate}), once the commands
+	 * creating its elements are known, so that an operator whose result kind
+	 * depends on what it produced (as {@code refine}'s does on whether a
+	 * {@code @support} remains) can tell.
 	 *
 	 * @param location
 	 *            the source location of the operator call; forwarded to the
@@ -149,23 +152,12 @@ public abstract class CompositionOperator {
 	 *            the source models being composed; provided so operators can
 	 *            choose the result model type (e.g. {@code Template} vs
 	 *            {@code Justification}) based on the source types.
+	 * @param elements
+	 *            the commands creating the result's elements, in Phase 1.
 	 */
 	protected abstract Command createResultModel(String name,
 			SourceLocation location, List<JustificationModel> sources,
-			Map<String, String> arguments);
-
-	/**
-	 * Returns the command that creates the result model, once the commands
-	 * creating its elements are known. By default, the same as
-	 * {@link #createResultModel(String, SourceLocation, List, Map)}; override
-	 * when the kind of the result depends on what the composition produced, as
-	 * {@code refine}'s does on whether a {@code @support} remains.
-	 */
-	protected Command createResultModel(String name, SourceLocation location,
-			List<JustificationModel> sources, Map<String, String> arguments,
-			List<Command> elements) {
-		return createResultModel(name, location, sources, arguments);
-	}
+			Map<String, String> arguments, List<Command> elements);
 
 	/**
 	 * Returns additional commands to append after Phase 2 edge reconstruction.

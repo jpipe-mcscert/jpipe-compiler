@@ -157,7 +157,7 @@ package "operators" {
     + elementArguments() : Set<String>
     # {abstract} equivalenceRelation(sources, args) : EquivalenceRelation
     # {abstract} mergeFunction(sources, args) : MergeFunction
-    # {abstract} createResultModel(name, loc, sources, args) : Command
+    # {abstract} createResultModel(name, loc, sources, args, elements) : Command
     # additionalCommands(name, sources, aliases, args) : List<Command>
     + {final} apply(name, sources, args) : List<Command>
     + {final} apply(name, sources, args, loc) : List<Command>
@@ -480,11 +480,12 @@ public final class MyOperator extends CompositionOperator {
         };
     }
 
-    // (5) The command that creates the result model itself
+    // (5) The command that creates the result model itself; `elements` are
+    //     the commands creating its elements, for a kind that depends on them
     @Override
     protected Command createResultModel(String name, SourceLocation loc,
             List<JustificationModel> sources,
-            Map<String, String> args) {
+            Map<String, String> args, List<Command> elements) {
         return new CreateJustification(name, loc);
     }
 

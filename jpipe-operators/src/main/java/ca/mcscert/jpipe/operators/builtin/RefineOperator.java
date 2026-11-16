@@ -64,12 +64,6 @@ public final class RefineOperator extends CompositionOperator {
 		return Set.of(HOOK_ID);
 	}
 
-	@Override
-	protected Command createResultModel(String name, SourceLocation location,
-			List<JustificationModel> sources, Map<String, String> arguments) {
-		return createResultModel(name, location, sources, arguments, List.of());
-	}
-
 	/**
 	 * A template when the result keeps an abstract support, one the hook did
 	 * not replace; a justification otherwise. Decided from the elements the

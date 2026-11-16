@@ -74,7 +74,8 @@ public final class AssembleOperator extends CompositionOperator {
 
 	@Override
 	protected Command createResultModel(String name, SourceLocation location,
-			List<JustificationModel> sources, Map<String, String> arguments) {
+			List<JustificationModel> sources, Map<String, String> arguments,
+			List<Command> elements) {
 		return resultKind(sources, arguments) == ModelKind.TEMPLATE
 				? new CreateTemplate(name, location)
 				: new CreateJustification(name, location);

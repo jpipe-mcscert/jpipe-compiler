@@ -45,7 +45,7 @@ class ApplyOperatorTest {
 		@Override
 		protected Command createResultModel(String name,
 				SourceLocation location, List<JustificationModel> sources,
-				Map<String, String> arguments) {
+				Map<String, String> arguments, List<Command> elements) {
 			// The model created is the kind the call produces.
 			return kind == ModelKind.TEMPLATE
 					? new CreateTemplate(name)
