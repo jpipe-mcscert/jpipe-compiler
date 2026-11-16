@@ -102,7 +102,10 @@ Opens the source `.jd` file path supplied to `compile()` as a raw
 Decodes the raw `InputStream` into an ANTLR `CharStream`. Required before
 ANTLR lexing can proceed. The source must be UTF-8: the first byte sequence
 that is not valid UTF-8 is a `FATAL`, located at its line and column (counted
-in code points, as the lexer counts them), rather than replaced with U+FFFD.
+in code points, as the lexer counts them), rather than replaced with U+FFFD. A
+source that fails while being read (standard input redirected from a directory)
+is a `FATAL` too, `cannot read source: …`, recorded before the step throws, so
+that the `diagnostic` report names it.
 
 #### `Lexer`
 

@@ -20,4 +20,13 @@ public class CompilationException extends RuntimeException {
 		super("Compilation failed in step [" + step + "]: " + reason);
 	}
 
+	/**
+	 * A step that could not continue because of {@code cause}, explained by
+	 * {@code reason}. A caller can tell from the cause that the failure came
+	 * from outside the compiler, such as an {@link java.io.IOException}.
+	 */
+	public CompilationException(String step, String reason, Throwable cause) {
+		super("Compilation failed in step [" + step + "]: " + reason, cause);
+	}
+
 }

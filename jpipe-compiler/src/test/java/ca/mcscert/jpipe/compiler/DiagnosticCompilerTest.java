@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
+import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Sink;
 import ca.mcscert.jpipe.compiler.model.Source;
 import ca.mcscert.jpipe.compiler.model.Transformation;
@@ -96,6 +97,24 @@ class DiagnosticCompilerTest {
 		assertThat(hasErrors).isTrue();
 		assertThat(poured).contains("[FATAL]").contains("cannot read source")
 				.contains("gone.jd");
+	}
+
+	@Test
+	void aStepThatAbortsWithoutRecordingWhyIsStillAFatal() throws IOException {
+		// CharStreamProvider used to throw without calling ctx.fatal: the
+		// report then said "ok", and the command exited 0 on input it never
+		// read (#180).
+		Transformation<InputStream, Unit> silent = new Transformation<>() {
+			@Override
+			protected Unit run(InputStream in, CompilationContext ctx) {
+				throw new CompilationException(stepName(), "Is a directory");
+			}
+		};
+
+		boolean hasErrors = compiler(silent).compile("<stdin>", "<stdout>");
+
+		assertThat(hasErrors).isTrue();
+		assertThat(poured).contains("[FATAL]").contains("Is a directory");
 	}
 
 	@Test

@@ -55,7 +55,14 @@ abstract class InputOutputCommand implements Callable<Integer> {
 			Integer exitCode = doCall(target.stream());
 			target.commit();
 			return exitCode;
-		} catch (CompilationException | UnsupportedOperationException e) {
+		} catch (CompilationException e) {
+			System.err.println("error: " + e.getMessage());
+			// A source that fails while being read is a system error, as one
+			// that cannot be opened is (ADR-0016).
+			return e.getCause() instanceof IOException
+					? Main.EXIT_SYSTEM_ERROR
+					: Main.EXIT_JPIPE_ERROR;
+		} catch (UnsupportedOperationException e) {
 			System.err.println("error: " + e.getMessage());
 			return Main.EXIT_JPIPE_ERROR;
 		} catch (IOException e) {

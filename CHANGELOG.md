@@ -66,6 +66,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   header.
 
 ### Fixed
+- `jpipe diagnostic` no longer reports `"status": "ok"` and exits 0 on a source
+  it never read, such as standard input redirected from a directory: the
+  failure is a fatal diagnostic, with exit code 1. Under `process`, that source
+  is a system error (exit code 42), as one that cannot be opened is (#180).
 - A single-quoted label (`'A label'`) is now a syntax error at its location,
   instead of a crash with a Java stack trace and no diagnostic report. Strings
   are written between double quotes only (#172).
