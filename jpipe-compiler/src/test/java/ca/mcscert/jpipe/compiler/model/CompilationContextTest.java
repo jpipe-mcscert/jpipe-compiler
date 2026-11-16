@@ -124,13 +124,13 @@ class CompilationContextTest {
 	void a_location_in_another_file_is_reported_in_that_file() {
 		// An element of a load-ed file used to be reported against the file
 		// being compiled, at a line that file may not have (#173).
-		CompilationContext ctx = new CompilationContext("main.jd");
+		CompilationContext main = new CompilationContext("main.jd");
 
-		ctx.error("unknown-element", new SourceLocation("lib.jd", 11, 4),
+		main.error("unknown-element", new SourceLocation("lib.jd", 11, 4),
 				"unknown element 'missing'");
-		ctx.fatal(new SourceLocation(2, 0), "cannot open loaded file");
+		main.fatal(new SourceLocation(2, 0), "cannot open loaded file");
 
-		assertThat(ctx.diagnostics())
+		assertThat(main.diagnostics())
 				.extracting(Diagnostic::source, Diagnostic::line)
 				.containsExactly(tuple("lib.jd", 11), tuple("main.jd", 2));
 	}

@@ -12,12 +12,11 @@ package ca.mcscert.jpipe.compiler.model;
 public class CompilationException extends RuntimeException {
 
 	public CompilationException(String step, Throwable cause) {
-		super("Compilation failed in step [" + step + "]: "
-				+ cause.getMessage(), cause);
+		super(message(step, cause.getMessage()), cause);
 	}
 
 	public CompilationException(String step, String reason) {
-		super("Compilation failed in step [" + step + "]: " + reason);
+		super(message(step, reason));
 	}
 
 	/**
@@ -26,7 +25,11 @@ public class CompilationException extends RuntimeException {
 	 * from outside the compiler, such as an {@link java.io.IOException}.
 	 */
 	public CompilationException(String step, String reason, Throwable cause) {
-		super("Compilation failed in step [" + step + "]: " + reason, cause);
+		super(message(step, reason), cause);
+	}
+
+	private static String message(String step, String reason) {
+		return "Compilation failed in step [" + step + "]: " + reason;
 	}
 
 }
