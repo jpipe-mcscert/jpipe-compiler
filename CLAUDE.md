@@ -4,8 +4,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Critical Rules
 
-- **Never commit or push code without explicit user consent.** Always show the diff and ask before running any `git commit` or `git push` command.
-- **Stay on the session's branch.** Never create a branch without the maintainer's approval: if the work seems to need one, say so and wait. If the session is on `main` or `dev`, ask for a branch before committing anything. The default is to commit on the current branch, push it, report, and stop; approving the diff approves both the commit and the push of the session's branch.
+- **Stay on the session's branch.** Never create a branch without the maintainer's approval: if the work seems to need one, say so and wait. If the session is on `main` or `dev`, ask for a branch before committing anything. The default is to commit on the current branch, push it, report, and stop: the maintainer reviews the work in the pull request, not commit by commit.
 - **Never commit to `main`.** It is release-only (see [Git Workflow](#git-workflow)). **Never commit to `dev`** unless explicitly asked: human authors push small changes there directly, Claude only on request.
 - **Never merge a pull request or push a git tag.** Merging is a **human** action unless the maintainer explicitly asks Claude to merge a given PR into `dev`. Merges into `main` (releases and hotfixes) and tags (`vX.Y.Z`) are always **human-only**.
 - **Open a pull request only when asked**, then follow the org guide's [pull request steps](https://github.com/jpipe-mcscert/.github/blob/main/CONTRIBUTING.md#pull-requests) in order: local `/code-review` and fixes → open as a **draft** against `dev` (`main` for a release or a hotfix) → fix the SonarQube issues, or justify in the report the ones kept (a suppression still needs approval, see [Code Quality Conventions](#code-quality-conventions)); the `SonarCloud Code Analysis` check carries the quality gate → request **one** Copilot review (`gh pr edit <n> --add-reviewer "@copilot"`), never re-requested → reply to every comment on GitHub, resolve the addressed threads, leave unsure or disputed ones open → `gh pr ready`. Report the threads left open, and stop.
@@ -33,9 +32,8 @@ small changes straight to `dev`:
   their tests) straight to `dev` once `mvn verify` is green (ADR-0024, amendment
   of 2026-08-07). Only `main` requires a PR. **This relaxation is for human
   authors.** Claude commits on the session's branch, pushes it and stops; it
-  creates a branch only with the maintainer's approval, pushes to `dev` only
-  when explicitly asked, and never commits without showing the diff first (see
-  Critical Rules).
+  creates a branch only with the maintainer's approval, and pushes to `dev`
+  only when explicitly asked.
 - **Releasing** — the full runbook is [`docs/releasing.md`](docs/releasing.md),
   driven by `scripts/release.sh`. **The `dev`→`main` merge and the tag push are
   human-only actions** (see Critical Rules). Claude prepares the release commit
