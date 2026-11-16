@@ -105,7 +105,9 @@ final class OutputTarget {
 			if (stdout != null) {
 				WriteErrors.flushAndCheck(stdout.out());
 			} else {
-				Files.write(file, buffer.toByteArray());
+				try (OutputStream out = Files.newOutputStream(file)) {
+					buffer.writeTo(out);
+				}
 			}
 		} catch (IOException e) {
 			throw new UnwritableOutputException(name, reason(e), e);
@@ -126,9 +128,13 @@ final class OutputTarget {
 		if (Files.exists(file) && !Files.isWritable(file)) {
 			throw new UnwritableOutputException(output, "permission denied");
 		}
-		if (!Files.exists(file) && !Files.isDirectory(file.getParent())) {
+		Path directory = file.getParent();
+		if (!Files.exists(file) && !Files.isDirectory(directory)) {
 			throw new UnwritableOutputException(output,
-					"no such directory '" + file.getParent() + "'");
+					"no such directory '" + directory + "'");
+		}
+		if (!Files.exists(file) && !Files.isWritable(directory)) {
+			throw new UnwritableOutputException(output, "permission denied");
 		}
 		return file;
 	}

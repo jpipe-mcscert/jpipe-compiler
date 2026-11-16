@@ -251,8 +251,8 @@ Abstract base for `ProcessCommand` and `DiagnosticCommand`. Handles:
   render) leaves the previous file as it was; a run that reports non-fatal
   errors still writes its export, as ADR-0016 requires. Writing in place keeps
   what the target is — `/dev/null`, a pipe, a symbolic or hard link, a file's
-  owner and permissions. A target that is a directory, is read-only or sits in a
-  missing directory is refused before compiling, as
+  owner and permissions. A target that is a directory, is read-only, or would be
+  created in a missing or read-only directory is refused before compiling, as
   `error: cannot write '<path>': <reason>`.
 - **Same input and output** — an `-o` that names the input file is refused with
   exit code `2` before anything runs, since the export (or the report) would

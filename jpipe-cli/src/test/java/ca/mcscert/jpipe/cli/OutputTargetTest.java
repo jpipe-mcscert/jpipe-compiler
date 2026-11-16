@@ -144,6 +144,25 @@ class OutputTargetTest {
 	}
 
 	@Test
+	@DisabledOnOs(OS.WINDOWS)
+	void a_new_file_in_a_read_only_directory_is_refused_up_front()
+			throws IOException {
+		Path locked = Files.createDirectory(dir.resolve("locked"));
+		Files.setPosixFilePermissions(locked,
+				PosixFilePermissions.fromString("r-xr-xr-x"));
+		String path = locked.resolve("new.json").toString();
+		try {
+			assertThatThrownBy(() -> OutputTarget.open(path, console))
+					.isInstanceOf(UnwritableOutputException.class).hasMessage(
+							"cannot write '" + path + "': permission denied");
+		} finally {
+			// Let @TempDir clean up after the test.
+			Files.setPosixFilePermissions(locked,
+					PosixFilePermissions.fromString("rwxr-xr-x"));
+		}
+	}
+
+	@Test
 	void a_failing_standard_output_is_reported_rather_than_swallowed()
 			throws IOException {
 		try (PrintStream broken = new PrintStream(new FailingStream())) {

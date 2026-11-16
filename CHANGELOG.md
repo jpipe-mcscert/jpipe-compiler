@@ -74,8 +74,8 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   file erased the source; it is now refused with exit code 2. A run that
   aborts, on a fatal error or an unknown model, wiped the previous output; the
   file is now written only once the command has produced its output (#174).
-- An `-o` that cannot be written (a directory, a read-only file, a missing
-  directory) is reported as `error: cannot write '<path>': <reason>` before
+- An `-o` that cannot be written (a directory, a read-only file, a missing or
+  read-only directory) is reported as `error: cannot write '<path>': <reason>` before
   compiling, instead of `unexpected error: …` (#186).
 - Text exports and reports written to standard output are now always UTF-8.
   They followed the terminal's encoding, so on a non-UTF-8 console, the Windows
