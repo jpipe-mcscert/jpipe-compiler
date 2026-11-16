@@ -9,7 +9,15 @@ import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
+import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
+import ca.mcscert.jpipe.model.SourceLocation;
+import ca.mcscert.jpipe.operators.ApplyOperator;
+import ca.mcscert.jpipe.operators.ModelKind;
+import ca.mcscert.jpipe.operators.OperatorCallConfig;
+import ca.mcscert.jpipe.operators.OperatorRegistry;
+import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class LoadResolverPrefixTest {
@@ -63,6 +71,41 @@ class LoadResolverPrefixTest {
 		assertThat(result.container()).isEqualTo("ns:model1");
 		assertThat(result.supportableId()).isEqualTo("from_elem");
 		assertThat(result.supporterId()).isEqualTo("to_elem");
+	}
+
+	@Test
+	void prefixesTheQualifiedIdsOfARelation() {
+		// t:s names an element inherited from model t, which the namespace
+		// renames to ns:t (#178).
+		var cmd = new AddSupport("j", "t:s", "e");
+		var result = (AddSupport) prefixOne("ns", cmd);
+		assertThat(result.supportableId()).isEqualTo("ns:t:s");
+		assertThat(result.supporterId()).isEqualTo("e");
+	}
+
+	@Test
+	void prefixesTheContainerAndTargetOfAnOverride() {
+		// The override used to keep base:t:abs and miss ns:base:t:abs (#178).
+		var cmd = new OverrideAbstractSupport("j", "base:t:abs", "evidence",
+				"E");
+		var result = (OverrideAbstractSupport) prefixOne("ns", cmd);
+		assertThat(result.container()).isEqualTo("ns:j");
+		assertThat(result.qualifiedId()).isEqualTo("ns:base:t:abs");
+	}
+
+	@Test
+	void prefixesTheResultAndSourcesOfAnOperatorCall() {
+		// An operator call was left as is: it waited for its unprefixed
+		// sources forever (#178).
+		var cmd = new ApplyOperator(
+				new OperatorCallConfig("r", "refine", List.of("a", "b"),
+						Map.of("hook", "e"), SourceLocation.UNKNOWN,
+						ModelKind.JUSTIFICATION),
+				new OperatorRegistry(), new UnificationEquivalenceRegistry());
+		var result = (ApplyOperator) prefixOne("ns", cmd);
+		assertThat(result.resultName()).isEqualTo("ns:r");
+		assertThat(result.sourceNames()).containsExactly("ns:a", "ns:b");
+		assertThat(result.arguments()).containsEntry("hook", "e");
 	}
 
 	@Test

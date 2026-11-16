@@ -89,18 +89,22 @@ public final class OverrideAbstractSupport implements MacroCommand {
 						"No strategy supports abstract support: "
 								+ qualifiedId));
 
+		// Act on the id the placeholder actually has, which the short-name
+		// fallback of findById may have resolved: removing and rewiring the
+		// id as written would touch nothing, or something else (#178).
+		String id = old.id();
 		JustificationElement replacement = switch (newType) {
-			case "evidence" -> new Evidence(qualifiedId, label);
-			case "sub-conclusion" -> new SubConclusion(qualifiedId, label);
+			case "evidence" -> new Evidence(id, label);
+			case "sub-conclusion" -> new SubConclusion(id, label);
 			default -> throw new IllegalArgumentException(
 					"Cannot override abstract support with: " + newType);
 		};
 
-		unit.recordLocation(container, qualifiedId, location);
-		return List.of(new RemoveElement(container, qualifiedId),
+		unit.recordLocation(container, id, location);
+		return List.of(new RemoveElement(container, id),
 				new AddElement(container, replacement),
-				new RewireStrategySupport(container, strategyId, qualifiedId,
-						old.getClass().getSimpleName(), qualifiedId,
+				new RewireStrategySupport(container, strategyId, id,
+						old.getClass().getSimpleName(), id,
 						replacement.getClass().getSimpleName()));
 	}
 

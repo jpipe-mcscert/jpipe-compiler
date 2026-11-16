@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.Optional;
 import ca.mcscert.jpipe.commands.PendingCommands;
+import java.util.function.UnaryOperator;
 
 /**
  * A deferred {@link MacroCommand} that expands an operator call into the
@@ -33,6 +34,19 @@ public final class ApplyOperator implements MacroCommand {
 		this.config = config;
 		this.operators = operators;
 		this.unificationEquivalences = unificationEquivalences;
+	}
+
+	/**
+	 * This call with every model name it refers to, its result and its sources,
+	 * passed through {@code rename}: how a file loaded under a namespace refers
+	 * to its own models (#178).
+	 */
+	public ApplyOperator withModelNames(UnaryOperator<String> rename) {
+		OperatorCallConfig renamed = new OperatorCallConfig(
+				rename.apply(config.resultName()), config.operatorName(),
+				config.sourceNames().stream().map(rename).toList(),
+				config.arguments(), config.location(), config.declaredKind());
+		return new ApplyOperator(renamed, operators, unificationEquivalences);
 	}
 
 	public String resultName() {

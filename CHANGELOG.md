@@ -87,6 +87,21 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   header.
 
 ### Fixed
+- A file that compiles on its own now also compiles once loaded under a
+  namespace (`load "f.jd" as ns`) (#178):
+  - its operator calls are prefixed like its models; they used to wait forever
+    for their unprefixed sources;
+  - its overrides and relations that use a qualified id, such as
+    `evidence base:t:abs`, are prefixed too; the overrides used to be lost;
+  - a file that two namespaced files both load is loaded in each namespace; the
+    second one used to be skipped, leaving unknown models;
+  - a file loaded flat inside a namespaced file is loaded into that namespace,
+    even when it is also loaded flat elsewhere.
+- The same file reached through a symbolic link, or spelled differently on a
+  case-insensitive file system, is loaded once instead of twice (#178).
+- A `load` path the file system does not accept is a located error instead of a
+  Java stack trace, and a glob that meets a directory it cannot read names that
+  directory instead of a Java exception (#178).
 - The order of declarations no longer changes what a model means (#177):
   - a template is copied whole into the model that implements it, even when its
     relations are written after that model;

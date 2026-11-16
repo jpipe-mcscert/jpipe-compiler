@@ -186,7 +186,17 @@ in the file that loads it, at its `load` statement.
 
 When `load "path" as ns` carries a namespace alias, every model-name reference
 in the expanded sub-list is qualified with `ns:` so that loaded models do not
-collide with locally declared ones.
+collide with locally declared ones: model declarations, `implements`, the result
+and sources of operator calls, and the qualified element ids of overrides and
+relations (`base:t:abs` becomes `ns:base:t:abs`), which name elements inherited
+from a model of that file. Plain element ids are local and unchanged.
+
+A file is identified by its real path, so a symbolic link or another spelling of
+the same file is loaded once. A load is skipped as a duplicate only when the
+same file was already loaded into the same namespace, all enclosing namespaces
+included: a file that two namespaced files both load under `shared` lands twice,
+as `L:shared:…` and `R:shared:…`. A path the file system does not accept, and a
+directory a glob cannot read, are FATALs at the `load` statement.
 
 A `load` path may also be a **glob pattern** (e.g. `load "models/*.jd" as lib`),
 in which case one directive expands into every matched file, each resolved by

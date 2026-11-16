@@ -16,6 +16,7 @@ import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
+import ca.mcscert.jpipe.operators.ApplyOperator;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import org.apache.logging.log4j.LogManager;
@@ -30,6 +31,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.FileSystemException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -148,40 +150,70 @@ public final class LoadResolver
 	protected List<Command> run(List<Command> commands,
 			CompilationContext ctx) {
 		Set<Path> visited = new HashSet<>();
-		visited.add(Paths.get(ctx.sourcePath()).toAbsolutePath().normalize());
+		visited.add(identity(Paths.get(ctx.sourcePath())));
 		Set<String> loaded = new HashSet<>();
-		return resolve(commands, ctx, visited, loaded);
+		return resolve(commands, ctx, visited, loaded, "");
 	}
 
 	// -------------------------------------------------------------------------
 	// Load resolution
 	// -------------------------------------------------------------------------
 
+	/**
+	 * @param prefix
+	 *            the namespace the file of {@code commands} is itself loaded
+	 *            under, all enclosing ones included ({@code ""} for the file
+	 *            being compiled): a load's namespace is relative to it.
+	 */
 	private List<Command> resolve(List<Command> commands,
-			CompilationContext ctx, Set<Path> visited, Set<String> loaded) {
+			CompilationContext ctx, Set<Path> visited, Set<String> loaded,
+			String prefix) {
 		List<Command> result = new ArrayList<>();
 		for (Command cmd : commands) {
 			if (!(cmd instanceof LoadDirective load)) {
 				result.add(cmd);
 				continue;
 			}
-			result.addAll(expand(load, ctx, visited, loaded));
+			result.addAll(expand(load, ctx, visited, loaded, prefix));
 		}
 		return result;
 	}
 
 	private List<Command> expand(LoadDirective load, CompilationContext ctx,
-			Set<Path> visited, Set<String> loaded) {
+			Set<Path> visited, Set<String> loaded, String prefix) {
 		logger.debug("Expanding load [{}] as [{}]", load.path(),
 				load.namespace());
 		Path base = Paths.get(ctx.sourcePath()).toAbsolutePath().normalize()
 				.getParent();
-
-		if (!isGlob(load.path())) {
-			Path resolved = base.resolve(load.path()).normalize();
-			return expandOne(resolved, load, ctx, visited, loaded);
+		try {
+			if (!isGlob(load.path())) {
+				Path resolved = identity(base.resolve(load.path()));
+				return expandOne(resolved, load, ctx, visited, loaded, prefix);
+			}
+			return expandGlob(load, ctx, base, visited, loaded, prefix);
+		} catch (InvalidPathException e) {
+			// A character the file system does not allow in a path, such as
+			// NUL: a mistake in the source, not a crash (#178).
+			ctx.fatal(load.location(), "Invalid path in load '" + load.path()
+					+ "': " + e.getReason());
+			return List.of();
 		}
-		return expandGlob(load, ctx, base, visited, loaded);
+	}
+
+	/**
+	 * What a file is, as opposed to how it is written: its real path once it
+	 * exists, so that a symbolic link or another spelling on a case-insensitive
+	 * file system is the same file, loaded once (#178).
+	 */
+	private static Path identity(Path path) {
+		Path normalized = path.toAbsolutePath().normalize();
+		try {
+			return Files.exists(normalized)
+					? normalized.toRealPath()
+					: normalized;
+		} catch (IOException _) {
+			return normalized;
+		}
 	}
 
 	/**
@@ -190,7 +222,7 @@ public final class LoadResolver
 	 * the declaring file's directory via {@code ..} or an absolute prefix.
 	 */
 	private List<Command> expandGlob(LoadDirective load, CompilationContext ctx,
-			Path base, Set<Path> visited, Set<String> loaded) {
+			Path base, Set<Path> visited, Set<String> loaded, String prefix) {
 		GlobAnchor anchored = anchor(base, load.path());
 
 		PathMatcher matcher;
@@ -218,9 +250,11 @@ public final class LoadResolver
 		List<Path> matches;
 		try {
 			matches = matchGlob(anchored.root(), matcher);
-		} catch (IOException | UncheckedIOException e) {
-			ctx.fatal(load.location(), "Cannot expand load pattern '"
-					+ load.path() + "': " + e.getMessage());
+		} catch (IOException e) {
+			ctx.fatal(load.location(), cannotExpand(load, e));
+			return List.of();
+		} catch (UncheckedIOException e) {
+			ctx.fatal(load.location(), cannotExpand(load, e.getCause()));
 			return List.of();
 		}
 		if (matches.isEmpty()) {
@@ -230,7 +264,8 @@ public final class LoadResolver
 		}
 		List<Command> result = new ArrayList<>();
 		for (Path resolved : matches) {
-			result.addAll(expandOne(resolved, load, ctx, visited, loaded));
+			result.addAll(
+					expandOne(resolved, load, ctx, visited, loaded, prefix));
 		}
 		return result;
 	}
@@ -242,20 +277,23 @@ public final class LoadResolver
 	 * identically for a literal load and for each match of a glob pattern.
 	 */
 	private List<Command> expandOne(Path resolved, LoadDirective load,
-			CompilationContext ctx, Set<Path> visited, Set<String> loaded) {
+			CompilationContext ctx, Set<Path> visited, Set<String> loaded,
+			String prefix) {
 		if (visited.contains(resolved)) {
 			logger.debug("Circular load detected: [{}], skipping", resolved);
 			ctx.fatal(load.location(), "Circular load detected: " + resolved);
 			return List.of();
 		}
 
-		String loadKey = resolved + "|"
-				+ (load.namespace() == null ? "" : load.namespace());
+		// The namespace the file lands in, all enclosing ones included: the
+		// same file loaded under the same name from two namespaced files is
+		// two copies, not a duplicate (#178).
+		String namespace = nested(prefix, load.namespace());
+		String loadKey = resolved + "|" + namespace;
 		if (loaded.contains(loadKey)) {
 			logger.warn(
 					"File '{}' already loaded under namespace '{}', skipping duplicate",
-					resolved,
-					load.namespace() == null ? "(flat)" : load.namespace());
+					resolved, namespace.isEmpty() ? "(flat)" : namespace);
 			return List.of();
 		}
 		if (Files.isDirectory(resolved)) {
@@ -271,7 +309,8 @@ public final class LoadResolver
 
 			Set<Path> newVisited = new HashSet<>(visited);
 			newVisited.add(resolved);
-			subCommands = resolve(subCommands, subCtx, newVisited, loaded);
+			subCommands = resolve(subCommands, subCtx, newVisited, loaded,
+					namespace);
 			if (load.namespace() != null) {
 				subCommands = prefix(load.namespace(), subCommands);
 			}
@@ -389,7 +428,7 @@ public final class LoadResolver
 		try (Stream<Path> walk = Files.walk(root)) {
 			return walk.filter(Files::isRegularFile)
 					.filter(p -> matcher.matches(root.relativize(p)))
-					.map(p -> p.toAbsolutePath().normalize()).sorted().toList();
+					.map(LoadResolver::identity).sorted().toList();
 		}
 	}
 
@@ -410,6 +449,26 @@ public final class LoadResolver
 		try (InputStream in = Files.newInputStream(path)) {
 			return chain.fire(in, subCtx);
 		}
+	}
+
+	/** {@code prefix} and {@code namespace} joined, either one may be empty. */
+	private static String nested(String prefix, String namespace) {
+		if (namespace == null) {
+			return prefix;
+		}
+		return prefix.isEmpty() ? namespace : qualify(prefix, namespace);
+	}
+
+	/**
+	 * Why a glob could not be expanded, naming the directory it could not read
+	 * rather than leaking an exception's class name (#178).
+	 */
+	private static String cannotExpand(LoadDirective load, IOException e) {
+		String what = e instanceof FileSystemException fse
+				&& fse.getFile() != null
+						? "cannot read '" + fse.getFile() + "': " + reason(e)
+						: reason(e);
+		return "Cannot expand load pattern '" + load.path() + "': " + what;
 	}
 
 	/** Why a file could not be opened, in words rather than an exception. */
@@ -447,6 +506,15 @@ public final class LoadResolver
 		return result;
 	}
 
+	/**
+	 * An element id as seen from a namespaced load: a qualified id names an
+	 * element inherited from a model of the loaded file ({@code base:t:abs}),
+	 * whose name the namespace prefixes too; a plain id is local and unchanged.
+	 */
+	private static String qualifyElement(String ns, String id) {
+		return id.contains(":") ? qualify(ns, id) : id;
+	}
+
 	private static Command rewrite(String ns, Command cmd) {
 		return switch (cmd) {
 			case CreateJustification c -> new CreateJustification(
@@ -472,10 +540,13 @@ public final class LoadResolver
 				new ImplementsTemplate(qualify(ns, c.modelName()),
 						qualify(ns, c.templateName()), c.location());
 			case AddSupport c -> new AddSupport(qualify(ns, c.container()),
-					c.supportableId(), c.supporterId(), c.location());
+					qualifyElement(ns, c.supportableId()),
+					qualifyElement(ns, c.supporterId()), c.location());
 			case OverrideAbstractSupport c ->
 				new OverrideAbstractSupport(qualify(ns, c.container()),
-						c.qualifiedId(), c.newType(), c.label(), c.location());
+						qualifyElement(ns, c.qualifiedId()), c.newType(),
+						c.label(), c.location());
+			case ApplyOperator c -> c.withModelNames(name -> qualify(ns, name));
 			default -> cmd;
 		};
 	}
