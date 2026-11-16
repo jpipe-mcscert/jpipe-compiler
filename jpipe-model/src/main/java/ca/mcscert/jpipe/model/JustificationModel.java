@@ -406,9 +406,24 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		// Short-name suffix fallback: resolves a plain id to an inherited
 		// qualified element (e.g. "s" resolves to "t:s" after template
 		// expansion).
+		return inheritedMatches(id).stream().findFirst();
+	}
+
+	/**
+	 * The inherited elements a plain {@code id} names through the short-name
+	 * fallback of {@link #findById}: every element, the inherited conclusion
+	 * included, whose qualified id ends with {@code :id}. More than one is an
+	 * ambiguity the caller must not settle by picking the first (ADR-0012).
+	 */
+	public List<JustificationElement> inheritedMatches(String id) {
 		String suffix = ":" + id;
-		return elements.stream().filter(e -> e.id().endsWith(suffix))
-				.map(JustificationElement.class::cast).findFirst();
+		List<JustificationElement> matches = new ArrayList<>();
+		if (conclusion != null && conclusion.id().endsWith(suffix)) {
+			matches.add(conclusion);
+		}
+		elements.stream().filter(e -> e.id().endsWith(suffix))
+				.forEach(matches::add);
+		return matches;
 	}
 
 	public <T extends JustificationElement> List<T> elementsOfType(

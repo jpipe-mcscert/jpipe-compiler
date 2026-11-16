@@ -12,6 +12,7 @@ import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
+import java.util.Optional;
 
 /**
  * Replaces an {@link AbstractSupport} placeholder (inlined from a template)
@@ -101,6 +102,11 @@ public final class OverrideAbstractSupport implements MacroCommand {
 				new RewireStrategySupport(container, strategyId, qualifiedId,
 						old.getClass().getSimpleName(), qualifiedId,
 						replacement.getClass().getSimpleName()));
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(container);
 	}
 
 	@Override

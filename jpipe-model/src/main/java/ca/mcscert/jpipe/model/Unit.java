@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Root of a compiled jPipe file. Contains all named justification models
@@ -21,6 +23,7 @@ public final class Unit {
 	private final Map<String, JustificationModel<?>> models = new LinkedHashMap<>();
 	private final Map<String, SourceLocation> locations = new LinkedHashMap<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
+	private final Set<String> incomplete = new LinkedHashSet<>();
 
 	public Unit(String source) {
 		this.source = source;
@@ -36,6 +39,20 @@ public final class Unit {
 					"Duplicate model name: '" + model.getName() + "'");
 		}
 		models.put(model.getName(), model);
+	}
+
+	/**
+	 * Records that {@code modelName} could not be built in full: its
+	 * {@code implements} failed or never ran. Nothing should consume it, and
+	 * its gaps are no separate mistakes: the cause is reported where it is.
+	 */
+	public void markIncomplete(String modelName) {
+		incomplete.add(modelName);
+	}
+
+	/** Whether {@code modelName} was built in full; see markIncomplete. */
+	public boolean isComplete(String modelName) {
+		return !incomplete.contains(modelName);
 	}
 
 	public Collection<JustificationModel<?>> getModels() {

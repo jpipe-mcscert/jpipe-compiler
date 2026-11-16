@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.commands.creation;
 
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.SourceLocation;
+import java.util.Optional;
 
 /**
  * Abstract base for all element-creation commands. Holds the four fields shared
@@ -52,4 +53,9 @@ abstract sealed class AbstractElementCreationCommand extends RegularCommand
 	public SourceLocation location() {
 		return location;
 	}
+	@Override
+	public Optional<String> target() {
+		return Optional.of(container);
+	}
+
 }

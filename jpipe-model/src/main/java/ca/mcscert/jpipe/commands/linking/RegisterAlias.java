@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.commands.linking;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
+import java.util.Optional;
 
 /**
  * Records that {@code oldId} inside a result model is an alias for the merged
@@ -49,6 +50,11 @@ public final class RegisterAlias extends RegularCommand {
 	@Override
 	public void doExecute(Unit context) {
 		context.recordAlias(container, oldId, newId);
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(container);
 	}
 
 	@Override

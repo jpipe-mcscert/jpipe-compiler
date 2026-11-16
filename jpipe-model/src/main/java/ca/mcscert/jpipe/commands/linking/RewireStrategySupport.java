@@ -7,6 +7,7 @@ import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SupportLeaf;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
+import java.util.Optional;
 
 /**
  * Replaces a strategy's current supporter with the element at
@@ -54,6 +55,11 @@ public final class RewireStrategySupport extends RegularCommand {
 				.orElseThrow(() -> new NoSuchElementException(
 						"No element with id: " + newSupporterId));
 		strategy.replaceSupport(oldSupport, newSupport);
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(container);
 	}
 
 	@Override

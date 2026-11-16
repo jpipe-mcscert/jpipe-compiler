@@ -58,7 +58,10 @@ public final class CompletenessValidator {
 	public List<Violation> validate(Unit unit) {
 		ValidationContext ctx = ValidationContext.of(unit);
 		List<Violation> violations = new ArrayList<>();
-		unit.getModels()
+		// A model that could not be built in full has its cause reported
+		// already; its gaps are consequences, not mistakes of their own.
+		unit.getModels().stream()
+				.filter(model -> unit.isComplete(model.getName()))
 				.forEach(model -> violations.addAll(checkModel(model, ctx)));
 		return violations;
 	}

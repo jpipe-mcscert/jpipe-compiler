@@ -259,6 +259,17 @@ public final class ActionListProvider
 			String identifier = ctx.element().id.getText();
 			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			String modelId = buildContext.justificationId;
+			String parent = buildContext.parentTemplateName;
+			if (parent != null) {
+				// A model that implements a template inherits its conclusion
+				// (ADR-0012). Decided here, from the declaration alone, it no
+				// longer depends on which of the two is declared first (#177).
+				compilationCtx.error(DiagnosticCodes.INHERITED_CONCLUSION, loc,
+						"Model '" + modelId + "' implements '" + parent
+								+ "' and inherits its conclusion: it cannot"
+								+ " declare its own");
+				return;
+			}
 			if (conclusionDeclared) {
 				compilationCtx.error(DiagnosticCodes.SINGLE_CONCLUSION,
 						loc.line(), loc.column(), "Model '" + modelId

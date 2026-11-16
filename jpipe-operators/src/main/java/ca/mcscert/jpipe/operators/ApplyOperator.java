@@ -8,6 +8,8 @@ import ca.mcscert.jpipe.model.Unit;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.Optional;
+import ca.mcscert.jpipe.commands.PendingCommands;
 
 /**
  * A deferred {@link MacroCommand} that expands an operator call into the
@@ -81,6 +83,22 @@ public final class ApplyOperator implements MacroCommand {
 				context.aliases());
 		return new Unifier(unificationEquivalences).unify(config.resultName(),
 				composed, config.arguments());
+	}
+
+	/**
+	 * Waits, beyond its sources existing, until they are complete: an operator
+	 * composes what its source models are, not what they are so far (#177).
+	 */
+	@Override
+	public boolean ready(Unit unit, PendingCommands pending) {
+		return condition().test(unit)
+				&& config.sourceNames().stream().noneMatch(pending::target)
+				&& config.sourceNames().stream().allMatch(unit::isComplete);
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(config.resultName());
 	}
 
 	@Override

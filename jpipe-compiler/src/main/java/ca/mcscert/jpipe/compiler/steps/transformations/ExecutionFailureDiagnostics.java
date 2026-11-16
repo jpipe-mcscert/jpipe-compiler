@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.compiler.steps.transformations;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.CommandExecutionException;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
+import ca.mcscert.jpipe.commands.linking.AmbiguousIdException;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.commands.linking.ReferenceIntoTemplateException;
@@ -13,6 +14,7 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.operators.ApplyOperator;
 import ca.mcscert.jpipe.operators.IncompatibleUnificationException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -60,7 +62,12 @@ final class ExecutionFailureDiagnostics {
 				out.accept(c.resultName());
 			}
 		}).collect(Collectors.toSet());
-		Set<String> broken = explained(stuck, unit, failed, neverBuilt);
+		// A model whose `implements` is stuck never got its inherited
+		// structure: what else waits in it is no separate mistake. The
+		// `implements` itself is diagnosed: an unknown model, or a cycle.
+		Set<String> unbuilt = new HashSet<>(failed);
+		unbuilt.addAll(stuckImplementations(stuck));
+		Set<String> broken = explained(stuck, unit, unbuilt, neverBuilt);
 		int before = ctx.diagnostics().size();
 		for (Command cmd : stuck) {
 			if (waitsOn(cmd, broken)) {
@@ -69,7 +76,7 @@ final class ExecutionFailureDiagnostics {
 			switch (cmd) {
 				case AddSupport c -> diagnoseAddSupport(c, unit, ctx);
 				case ImplementsTemplate c ->
-					diagnoseImplementsTemplate(c, unit, ctx);
+					diagnoseImplementsTemplate(c, unit, stuck, ctx);
 				case OverrideAbstractSupport c ->
 					diagnoseOverrideAbstractSupport(c, unit, ctx);
 				case ApplyOperator c ->
@@ -113,6 +120,15 @@ final class ExecutionFailureDiagnostics {
 		return broken;
 	}
 
+	/** The models whose {@code implements} is among the stuck commands. */
+	static Set<String> stuckImplementations(List<Command> stuck) {
+		return stuck.stream().<String>mapMulti((cmd, out) -> {
+			if (cmd instanceof ImplementsTemplate c) {
+				out.accept(c.modelName());
+			}
+		}).collect(Collectors.toSet());
+	}
+
 	/** Whether {@code name} is declared nowhere: neither built nor pending. */
 	private static boolean isUnknown(String name, Unit unit,
 			Set<String> neverBuilt) {
@@ -142,8 +158,8 @@ final class ExecutionFailureDiagnostics {
 		return switch (cmd) {
 			case AddSupport c -> broken.contains(c.container());
 			case OverrideAbstractSupport c -> broken.contains(c.container());
-			case ImplementsTemplate c -> broken.contains(c.modelName())
-					|| broken.contains(c.templateName());
+			// Never skipped: diagnoseImplementsTemplate reports what is its own
+			// to report (an unknown model, a cycle) and nothing else.
 			// A call is judged source by source: see diagnoseApplyOperator.
 			default -> false;
 		};
@@ -195,9 +211,12 @@ final class ExecutionFailureDiagnostics {
 				}
 			}
 			case AddSupport c -> {
-				String code = cause instanceof ReferenceIntoTemplateException
-						? DiagnosticCodes.REFERENCE_INTO_TEMPLATE
-						: DiagnosticCodes.INVALID_SUPPORT;
+				String code = switch (cause) {
+					case ReferenceIntoTemplateException _ ->
+						DiagnosticCodes.REFERENCE_INTO_TEMPLATE;
+					case AmbiguousIdException _ -> DiagnosticCodes.AMBIGUOUS_ID;
+					default -> DiagnosticCodes.INVALID_SUPPORT;
+				};
 				ctx.error(code, c.location(), describe(cause));
 			}
 			case ApplyOperator c -> ctx.error(DiagnosticCodes.EXECUTION_ERROR,
@@ -254,7 +273,7 @@ final class ExecutionFailureDiagnostics {
 	}
 
 	private static void diagnoseImplementsTemplate(ImplementsTemplate c,
-			Unit unit, CompilationContext ctx) {
+			Unit unit, List<Command> stuck, CompilationContext ctx) {
 		SourceLocation loc = c.location();
 		if (unit.findModel(c.modelName()).isEmpty()) {
 			ctx.error(DiagnosticCodes.UNKNOWN_MODEL, loc,
@@ -264,7 +283,43 @@ final class ExecutionFailureDiagnostics {
 		if (unit.findModel(c.templateName()).isEmpty()) {
 			ctx.error(DiagnosticCodes.UNKNOWN_MODEL, loc,
 					UNKNOWN_MODEL_MSG + c.templateName() + "'");
+			return;
 		}
+		// Both exist: the template never completes. Either it waits on itself
+		// through a chain of `implements`, or on a failure reported elsewhere.
+		List<String> cycle = implementsCycle(c, stuck);
+		if (!cycle.isEmpty() && cycle.getFirst()
+				.equals(cycle.stream().sorted().findFirst().orElseThrow())) {
+			ctx.error(DiagnosticCodes.CYCLIC_IMPLEMENTS, loc,
+					"cycle detected: " + String.join(" implements ", cycle)
+							+ " implements " + cycle.getFirst());
+		}
+	}
+
+	/**
+	 * The models of the {@code implements} cycle starting at {@code c}, in
+	 * order, or nothing when the chain of stuck {@code implements} it starts
+	 * does not come back to it. A cycle is reported once, from its first model
+	 * in alphabetical order.
+	 */
+	private static List<String> implementsCycle(ImplementsTemplate c,
+			List<Command> stuck) {
+		List<String> chain = new ArrayList<>(List.of(c.modelName()));
+		String next = c.templateName();
+		while (!chain.contains(next)) {
+			chain.add(next);
+			String current = next;
+			next = stuck.stream().<ImplementsTemplate>mapMulti((cmd, out) -> {
+				if (cmd instanceof ImplementsTemplate i
+						&& i.modelName().equals(current)) {
+					out.accept(i);
+				}
+			}).map(ImplementsTemplate::templateName).findFirst().orElse(null);
+			if (next == null) {
+				return List.of();
+			}
+		}
+		return next.equals(c.modelName()) ? chain : List.of();
 	}
 
 	private static void diagnoseOverrideAbstractSupport(

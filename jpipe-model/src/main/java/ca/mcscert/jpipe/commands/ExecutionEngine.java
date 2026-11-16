@@ -82,7 +82,8 @@ public final class ExecutionEngine {
 			QueueEntry entry = queue.removeFirst();
 			Command command = entry.command();
 			int depth = entry.depth();
-			if (!command.condition().test(unit)) {
+			if (!command.ready(unit, filter -> queue.stream()
+					.map(QueueEntry::command).anyMatch(filter))) {
 				logger.trace("Deferring command [{}]", command);
 				queue.add(entry);
 				deferCount++;

@@ -52,6 +52,10 @@ List<Violation> validateModel(JustificationModel<?> model)  // standalone; used 
 `SourceLocation`. `validateModel` produces `SourceLocation.UNKNOWN` for all
 violations because no location data is available outside a compilation context.
 
+A model marked incomplete on the `Unit` (its `implements` failed or never ran) is
+skipped by both validators: its gaps follow from a failure already reported, and
+reporting them again would bury that cause.
+
 Two thin `Checker<Unit>` steps in `jpipe-compiler` (`ConsistencyChecker`,
 `CompletenessChecker`) invoke the validators and map each `Violation` to a
 `ctx.error()` call, attaching the resolved location when it is known.

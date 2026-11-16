@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.commands.linking;
 
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Unit;
+import java.util.Optional;
 
 /**
  * Records that {@code id} inside a result model was minted by unification to
@@ -30,6 +31,11 @@ public final class MarkUnified extends RegularCommand {
 	@Override
 	public void doExecute(Unit context) {
 		context.recordUnifiedId(container, id);
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(container);
 	}
 
 	@Override

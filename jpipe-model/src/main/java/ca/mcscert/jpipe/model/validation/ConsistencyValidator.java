@@ -53,7 +53,11 @@ public final class ConsistencyValidator {
 		ValidationContext ctx = ValidationContext.of(unit);
 		List<Violation> violations = new ArrayList<>();
 		for (JustificationModel<?> model : unit.getModels()) {
-			violations.addAll(checkModel(model, ctx));
+			// A model that could not be built in full has its cause reported
+			// already: see Unit.markIncomplete.
+			if (unit.isComplete(model.getName())) {
+				violations.addAll(checkModel(model, ctx));
+			}
 		}
 		violations.addAll(checkAcyclicImplements(unit.getModels(), ctx));
 		return violations;

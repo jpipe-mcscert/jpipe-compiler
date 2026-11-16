@@ -247,6 +247,13 @@ returned so that downstream diagnostic steps can still run.
 Every diagnostic names the file its location is in: an element of a
 `load`-ed file is reported in that file, not in the one being compiled.
 
+A model whose `implements` failed, or never ran because its template never
+completes (an `implements` cycle, a template that could not be built), is
+marked incomplete on the `Unit`. Nothing consumes it, what waits in it is not
+reported, and the consistency and completeness checkers skip it: the one cause
+is reported where it is. An `implements` cycle is reported once, as
+`cyclic-implements`.
+
 #### `ConsistencyChecker`
 
 **Type:** `Checker<Unit>`  
