@@ -12,6 +12,8 @@
 // qualified id ('first:e')
 load "009_refine.jd" as r
 load "012_chaining_operators.jd" as c
+// Hooks and exclusions through two composition stages
+load "028_refine_templates_and_chains.jd" as rc
 
 // Overrides of a template the loaded file itself loads under a namespace
 load "007_load_user.jd" as u

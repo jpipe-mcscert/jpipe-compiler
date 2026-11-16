@@ -104,20 +104,6 @@ public abstract class CompositionOperator {
 	}
 
 	/**
-	 * Returns the {@link ModelKind} of the model produced by this operator for
-	 * the given {@code sources} and {@code args}. Defaults to
-	 * {@link ModelKind#JUSTIFICATION}. Override in subclasses whose result kind
-	 * depends on the input models (e.g. an operator that produces a
-	 * {@code Template} when any source is a {@code Template}).
-	 */
-	@SuppressWarnings("java:S1172") // params unused in default but required by
-									// overrides
-	public ModelKind resultKind(List<JustificationModel> sources,
-			Map<String, String> args) {
-		return ModelKind.JUSTIFICATION;
-	}
-
-	/**
 	 * Returns the equivalence relation to use for partitioning elements from
 	 * {@code sources} and {@code arguments}.
 	 *

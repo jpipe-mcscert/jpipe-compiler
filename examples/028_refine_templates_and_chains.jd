@@ -71,3 +71,40 @@ justification all is assemble(both, d) {
 justification detailed is refine(all, first_part) {
     hook: "both:a:e"
 }
+
+// 3. An exclusion across two stages: 'x' of 'p' and 'x' of 'r' share a label,
+//    but 'p:x', reached through 'pq', is kept apart from 'r:x'.
+justification p {
+    conclusion c is "P holds"
+    strategy   s is "Check P"
+    evidence   x is "Common evidence"
+    s supports c
+    x supports s
+}
+
+justification q {
+    conclusion c is "Q holds"
+    strategy   s is "Check Q"
+    evidence   y is "Evidence for Q"
+    s supports c
+    y supports s
+}
+
+justification r {
+    conclusion c is "R holds"
+    strategy   s is "Check R"
+    evidence   x is "Common evidence"
+    s supports c
+    x supports s
+}
+
+justification pq is assemble(p, q) {
+    conclusionLabel: "P and Q hold"
+    strategyLabel:   "Check P and Q"
+}
+
+justification pqr is assemble(pq, r) {
+    conclusionLabel: "P, Q and R hold"
+    strategyLabel:   "Check P, Q and R"
+    unifyExclude:    "pq:p:x"
+}

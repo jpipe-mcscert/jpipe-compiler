@@ -165,12 +165,6 @@ public final class Unifier {
 						phase4Aliases, prototypes, insertedUnified);
 				case AddSupport as -> appendEdge(result, resultName, as,
 						phase4Aliases, seenEdges);
-				// An alias carried forward from a source points at an id this
-				// unification may rename: it must point at the merged element,
-				// not at an id that no longer exists (#181).
-				case RegisterAlias ra ->
-					result.add(new RegisterAlias(ra.container(), ra.oldId(),
-							resolve(ra.newId(), phase4Aliases)));
 				default -> result.add(cmd);
 			}
 		}

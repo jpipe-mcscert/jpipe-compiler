@@ -319,9 +319,11 @@ class RefineOperatorTest {
 		}
 
 		@Test
-		void a_hook_renamed_by_a_composition_is_found_through_its_alias() {
+		void a_hook_renamed_by_several_compositions_is_found() {
+			// One step only used to be followed (#181).
 			Justification base = buildUnifiedSource();
-			Map<String, String> aliases = Map.of("src/r1:a:e", "unified_0");
+			Map<String, String> aliases = Map.of("src/r1:a:e", "r1:unified_0",
+					"src/r1:unified_0", "unified_0");
 
 			assertThat(RefineOperator.resolveHook(base, "r1:a:e", aliases).id())
 					.isEqualTo("unified_0");

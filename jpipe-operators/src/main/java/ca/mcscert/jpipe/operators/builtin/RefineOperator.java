@@ -16,6 +16,7 @@ import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
 import ca.mcscert.jpipe.operators.MergeFunction;
 import ca.mcscert.jpipe.operators.SourcedElement;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -132,15 +133,23 @@ public final class RefineOperator extends CompositionOperator {
 
 	/**
 	 * The element of {@code base} that {@code hook} names: through the unit's
-	 * aliases, since an element can have been renamed by a composition step,
-	 * then by id, or by the one inherited element whose qualified id ends with
-	 * it. It must be an evidence or an abstract support: only a leaf can be
-	 * refined (#181).
+	 * aliases, followed to the end of the chain, since an element can have been
+	 * renamed by several composition steps, then by id, or by the one inherited
+	 * element whose qualified id ends with it. It must be an evidence or an
+	 * abstract support: only a leaf can be refined (#181).
 	 */
 	static JustificationElement resolveHook(JustificationModel base,
 			String hook, Map<String, String> knownAliases) {
-		String id = knownAliases
-				.getOrDefault(Unit.registryKey(base.getName(), hook), hook);
+		// The unit's aliases form chains, one link per composition step, and
+		// exporters read them as such (an id that is the target of an alias
+		// is an intermediate merge result): followed to the end here.
+		String id = hook;
+		Set<String> visited = new HashSet<>();
+		String next = knownAliases.get(Unit.registryKey(base.getName(), id));
+		while (next != null && visited.add(next)) {
+			id = next;
+			next = knownAliases.get(Unit.registryKey(base.getName(), id));
+		}
 		JustificationElement element = base.findById(id)
 				.orElseThrow(() -> new InvalidOperatorCallException(
 						"hook element '" + hook + "' not found in base model '"

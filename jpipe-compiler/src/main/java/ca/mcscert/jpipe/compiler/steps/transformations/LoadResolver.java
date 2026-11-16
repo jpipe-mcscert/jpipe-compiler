@@ -558,8 +558,7 @@ public final class LoadResolver
 				new OverrideAbstractSupport(qualify(ns, c.container()),
 						qualifyElement(ns, c.qualifiedId()), c.newType(),
 						c.label(), c.location());
-			case ApplyOperator c -> c.withModelNames(name -> qualify(ns, name),
-					id -> qualifyElement(ns, id));
+			case ApplyOperator c -> c.withNamespace(ns);
 			default -> cmd;
 		};
 	}

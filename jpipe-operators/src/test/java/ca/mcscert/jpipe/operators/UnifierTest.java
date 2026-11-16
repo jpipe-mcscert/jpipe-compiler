@@ -474,27 +474,4 @@ class UnifierTest {
 					.hasMessageContaining("[typo]");
 		}
 	}
-
-	@Nested
-	class CarriedAliases {
-
-		@Test
-		void an_alias_carried_from_a_source_points_at_the_merged_element() {
-			// It used to keep pointing at the id this unification renamed, so
-			// a hook named through it was not found one step later (#181).
-			List<Command> cmds = new ArrayList<>(
-					List.of(new CreateJustification("m"),
-							new CreateEvidence("m", "a:e", "Shared"),
-							new CreateEvidence("m", "b:e", "Shared"),
-							new RegisterAlias("m", "a:old", "a:e")));
-
-			List<Command> result = unifier.unify("m", cmds, Map.of());
-
-			assertThat(result).filteredOn(RegisterAlias.class::isInstance)
-					.map(RegisterAlias.class::cast)
-					.filteredOn(a -> a.oldId().equals("a:old")).singleElement()
-					.satisfies(
-							a -> assertThat(a.newId()).isEqualTo("unified_0"));
-		}
-	}
 }

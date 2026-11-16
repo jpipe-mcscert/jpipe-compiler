@@ -50,8 +50,9 @@ sealed template. See the *Unifier* subsection below.
   compiler startup in `CompilerFactory.builtInOperators()`; looked up by
   `ApplyOperator` at model-build time.
 - **`ModelKind`** — two-value enum (`JUSTIFICATION`, `TEMPLATE`).
-  `ApplyOperator` validates that the operator's `resultKind()` matches the
-  kind declared in the source file.
+  `ApplyOperator` checks that the model the operator created (the first command
+  `apply` returns) is of the kind declared in the source file, once the call
+  is otherwise valid.
 - **`InvalidOperatorCallException`** — unchecked exception thrown for unknown
   operators, missing required arguments, incompatible kinds, or unknown
   unification methods. The engine wraps it in `CompilationException`.
@@ -68,9 +69,10 @@ until all named source models are present in the `Unit`.
 
 - `condition()` — defers until `unit.findModel(name)` succeeds for every
   source name.
-- `expand(Unit)` — looks up the operator, validates `resultKind`, gathers
-  source models, calls `op.apply(…)`, then passes the result through
-  `Unifier.unify()` before returning the final command list.
+- `expand(Unit)` — looks up the operator, gathers source models, calls
+  `op.apply(…)`, checks the kind of the model it created against the declared
+  one, then passes the result through `Unifier.unify()` before returning the
+  final command list.
 
 **`Unifier`**
 
@@ -151,7 +153,6 @@ class SourceLocation
 package "operators" {
 
   abstract class CompositionOperator {
-    + resultKind() : ModelKind
     # requiredArguments() : Set<String>
     # optionalArguments() : Set<String>
     + elementArguments() : Set<String>
@@ -233,7 +234,6 @@ package "operators" {
   CompositionOperator ..> MergeFunction : uses
   CompositionOperator ..> AliasRegistry : creates
   CompositionOperator ..> Partitions : uses
-  CompositionOperator ..> ModelKind : resultKind
 
   MergeFunction ..> ElementGroup : receives
   MergeFunction ..> AliasRegistry : populates
@@ -443,11 +443,7 @@ import ca.mcscert.jpipe.operators.*;
 
 public final class MyOperator extends CompositionOperator {
 
-    // (1) Declare the result kind — JUSTIFICATION or TEMPLATE
-    @Override
-    public ModelKind resultKind() { return ModelKind.JUSTIFICATION; }
-
-    // (2) Required argument names (empty if none)
+    // (1) Required argument names (empty if none)
     @Override
     protected Set<String> requiredArguments() { return Set.of("myParam"); }
 
@@ -461,7 +457,7 @@ public final class MyOperator extends CompositionOperator {
     @Override
     public Set<String> elementArguments() { return Set.of(); }
 
-    // (3) How source elements are partitioned into equivalence classes
+    // (2) How source elements are partitioned into equivalence classes
     @Override
     protected EquivalenceRelation equivalenceRelation(
             List<JustificationModel> sources,
@@ -469,7 +465,7 @@ public final class MyOperator extends CompositionOperator {
         return new SameShortId();   // Phase 1 only — not registered for unification
     }
 
-    // (4) How each equivalence class is merged into a new element
+    // (3) How each equivalence class is merged into a new element
     @Override
     protected MergeFunction mergeFunction(
             List<JustificationModel> sources,
@@ -480,7 +476,8 @@ public final class MyOperator extends CompositionOperator {
         };
     }
 
-    // (5) The command that creates the result model itself; `elements` are
+    // (4) The command that creates the result model, which decides its kind
+    //     (JUSTIFICATION or TEMPLATE); `elements` are
     //     the commands creating its elements, for a kind that depends on them
     @Override
     protected Command createResultModel(String name, SourceLocation loc,
@@ -489,7 +486,7 @@ public final class MyOperator extends CompositionOperator {
         return new CreateJustification(name, loc);
     }
 
-    // (6) Optional: synthesize elements/edges with no counterpart in any source
+    // (5) Optional: synthesize elements/edges with no counterpart in any source
     @Override
     protected List<Command> additionalCommands(String name,
             List<JustificationModel> sources,

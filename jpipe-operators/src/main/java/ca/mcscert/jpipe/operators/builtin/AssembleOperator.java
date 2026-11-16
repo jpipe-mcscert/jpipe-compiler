@@ -59,9 +59,8 @@ public final class AssembleOperator extends CompositionOperator {
 	/** Id of the synthesized global conclusion in the result model. */
 	public static final String CONCLUSION_ID = "assembleConclusion";
 
-	@Override
-	public ModelKind resultKind(List<JustificationModel> sources,
-			Map<String, String> args) {
+	/** A template if any source is one: its placeholders are carried over. */
+	private static ModelKind kindOf(List<JustificationModel> sources) {
 		return sources.stream().anyMatch(Template.class::isInstance)
 				? ModelKind.TEMPLATE
 				: ModelKind.JUSTIFICATION;
@@ -76,7 +75,7 @@ public final class AssembleOperator extends CompositionOperator {
 	protected Command createResultModel(String name, SourceLocation location,
 			List<JustificationModel> sources, Map<String, String> arguments,
 			List<Command> elements) {
-		return resultKind(sources, arguments) == ModelKind.TEMPLATE
+		return kindOf(sources) == ModelKind.TEMPLATE
 				? new CreateTemplate(name, location)
 				: new CreateJustification(name, location);
 	}

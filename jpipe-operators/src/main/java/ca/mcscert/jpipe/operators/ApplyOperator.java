@@ -12,11 +12,12 @@ import java.util.Optional;
 import ca.mcscert.jpipe.commands.PendingCommands;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
-import java.util.function.UnaryOperator;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
+import ca.mcscert.jpipe.util.QualifiedIds;
+import java.util.ArrayList;
 
 /**
  * A deferred {@link MacroCommand} that expands an operator call into the
@@ -34,42 +35,102 @@ public final class ApplyOperator implements MacroCommand {
 	private final OperatorCallConfig config;
 	private final OperatorRegistry operators;
 	private final UnificationEquivalenceRegistry unificationEquivalences;
+	/**
+	 * The namespace the file of this call is loaded under, all enclosing ones
+	 * included, or {@code ""}: the element ids its arguments hold are written
+	 * as that file names them, and mapped onto the unit when the call runs.
+	 */
+	private final String namespace;
 
 	public ApplyOperator(OperatorCallConfig config, OperatorRegistry operators,
 			UnificationEquivalenceRegistry unificationEquivalences) {
+		this(config, operators, unificationEquivalences, "");
+	}
+
+	private ApplyOperator(OperatorCallConfig config, OperatorRegistry operators,
+			UnificationEquivalenceRegistry unificationEquivalences,
+			String namespace) {
 		this.config = config;
 		this.operators = operators;
 		this.unificationEquivalences = unificationEquivalences;
+		this.namespace = namespace;
 	}
 
 	/**
-	 * This call with every model name it refers to, its result and its sources,
-	 * passed through {@code rename}, and every element id its arguments hold
-	 * (see {@link CompositionOperator#elementArguments()} and
-	 * {@code unifyExclude}) through {@code renameElement}: how a file loaded
-	 * under a namespace refers to its own models and elements (#178).
+	 * This call, read from a file loaded under {@code ns}: its result and
+	 * sources are renamed into the namespace, and the namespace is recorded so
+	 * that the element ids its arguments hold are mapped when the call runs
+	 * (see {@link #inUnit}). Ids cannot be renamed as text here: whether a
+	 * segment of {@code both:a:e} is a model name, and which, is known only
+	 * from the models that exist (#178).
 	 */
-	public ApplyOperator withModelNames(UnaryOperator<String> rename,
-			UnaryOperator<String> renameElement) {
-		Set<String> elementKeys = operators.find(config.operatorName())
-				.map(CompositionOperator::elementArguments).orElse(Set.of());
+	public ApplyOperator withNamespace(String ns) {
+		OperatorCallConfig renamed = new OperatorCallConfig(
+				QualifiedIds.qualify(ns, config.resultName()),
+				config.operatorName(),
+				config.sourceNames().stream()
+						.map(name -> QualifiedIds.qualify(ns, name)).toList(),
+				config.arguments(), config.location(), config.declaredKind());
+		return new ApplyOperator(renamed, operators, unificationEquivalences,
+				namespace.isEmpty() ? ns : QualifiedIds.qualify(ns, namespace));
+	}
+
+	/**
+	 * {@code id}, written in a file loaded under {@code namespace}, as the unit
+	 * names it. A plain id is local and unchanged. In a qualified one, every
+	 * run of segments that names a model of the file, longest first, is
+	 * replaced by that model's name in the unit: under {@code ns},
+	 * {@code both:a:e} is {@code ns:both:ns:a:e} and {@code base:t:abs} is
+	 * {@code ns:base:t:abs}.
+	 */
+	static String inUnit(String id, String namespace, Unit unit) {
+		String[] segments = id.split(":");
+		if (namespace.isEmpty() || segments.length < 2) {
+			return id;
+		}
+		List<String> out = new ArrayList<>();
+		int i = 0;
+		while (i < segments.length - 1) {
+			int k = segments.length - 1 - i;
+			while (k > 0 && unit
+					.findModel(QualifiedIds.qualify(namespace,
+							String.join(":",
+									Arrays.copyOfRange(segments, i, i + k))))
+					.isEmpty()) {
+				k--;
+			}
+			if (k == 0) {
+				out.add(segments[i]);
+				i++;
+			} else {
+				out.add(QualifiedIds.qualify(namespace, String.join(":",
+						Arrays.copyOfRange(segments, i, i + k))));
+				i += k;
+			}
+		}
+		out.add(segments[segments.length - 1]);
+		return String.join(":", out);
+	}
+
+	/** The arguments, with the element ids they hold as the unit names them. */
+	private Map<String, String> argumentsIn(Unit unit, CompositionOperator op) {
+		if (namespace.isEmpty()) {
+			return config.arguments();
+		}
+		Set<String> elementKeys = op.elementArguments();
 		Map<String, String> arguments = new LinkedHashMap<>();
 		config.arguments().forEach((key, value) -> {
-			String renamed = value;
+			String mapped = value;
 			if (elementKeys.contains(key)) {
-				renamed = renameElement.apply(value.strip());
+				mapped = inUnit(value.strip(), namespace, unit);
 			} else if (key.equals(Unifier.UNIFY_EXCLUDE_KEY)) {
-				renamed = Arrays.stream(value.split(",")).map(String::strip)
-						.map(renameElement).collect(Collectors.joining(","));
+				mapped = Arrays.stream(value.split(",")).map(String::strip)
+						.map(id -> inUnit(id, namespace, unit))
+						.collect(Collectors.joining(","));
 			}
-			arguments.put(key, renamed);
+			arguments.put(key, mapped);
 		});
-		OperatorCallConfig renamedConfig = new OperatorCallConfig(
-				rename.apply(config.resultName()), config.operatorName(),
-				config.sourceNames().stream().map(rename).toList(), arguments,
-				config.location(), config.declaredKind());
-		return new ApplyOperator(renamedConfig, operators,
-				unificationEquivalences);
+		return arguments;
 	}
 
 	public String resultName() {
@@ -111,8 +172,9 @@ public final class ApplyOperator implements MacroCommand {
 		// Built first, then checked: a mistake in the call is reported as
 		// itself, not as the kind mismatch it may cause, and the kind checked
 		// is the one the composition actually produced.
+		Map<String, String> arguments = argumentsIn(context, op);
 		List<Command> composed = op.apply(config.resultName(), sources,
-				config.arguments(), config.location(), context.locations(),
+				arguments, config.location(), context.locations(),
 				context.aliases());
 		ModelKind actualKind = composed.getFirst() instanceof CreateTemplate
 				? ModelKind.TEMPLATE
@@ -124,7 +186,7 @@ public final class ApplyOperator implements MacroCommand {
 					+ config.declaredKind().name().toLowerCase() + "'");
 		}
 		return new Unifier(unificationEquivalences).unify(config.resultName(),
-				composed, config.arguments());
+				composed, arguments);
 	}
 
 	/**

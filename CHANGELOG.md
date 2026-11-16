@@ -39,6 +39,11 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   (`assemble(a, a)`) is an error (#181).
 - `refine` produces a template when its result keeps a `@support`, so a template
   can be refined; it could only produce a justification (#181).
+- **Breaking, for custom operators:** `CompositionOperator.resultKind` is
+  removed. The kind of the result is the model `createResultModel` creates,
+  which now also receives the commands creating the result's elements, and an
+  operator declares the optional keys it reads with `optionalArguments()`
+  (#181, #184).
 - A mistake in an operator call is reported with the code
   `invalid-operator-call`, at the call: an unknown operator, a missing, unknown
   or repeated argument, a hook that cannot be refined, a source given twice.
@@ -123,8 +128,9 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   mistake in the hook is reported as itself, not as a kind mismatch (#181).
 - A file that compiles on its own now also compiles once loaded under a
   namespace (`load "f.jd" as ns`) (#178):
-  - its operator calls are prefixed like its models; they used to wait forever
-    for their unprefixed sources;
+  - its operator calls are prefixed like its models, the element ids of their
+    `hook` and `unifyExclude` included, however many composition steps they go
+    through; the calls used to wait forever for their unprefixed sources;
   - its overrides and relations that use a qualified id, such as
     `evidence base:t:abs`, are prefixed too; the overrides used to be lost;
   - a file that two namespaced files both load is loaded in each namespace; the
