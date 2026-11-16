@@ -175,7 +175,7 @@ final class ExecutionFailureDiagnostics {
 			return;
 		}
 		failures.forEach(f -> diagnoseExecutionFailure(f.failedCommand(),
-				f.partialUnit(), f.getCause(), ctx));
+				f.getCause(), ctx));
 		ctx.error("model construction failed — see errors above");
 	}
 
@@ -184,8 +184,8 @@ final class ExecutionFailureDiagnostics {
 	 * diagnostic that names the specific failure mode, at the command's
 	 * location.
 	 */
-	static void diagnoseExecutionFailure(Command cmd, Unit unit,
-			Throwable cause, CompilationContext ctx) {
+	static void diagnoseExecutionFailure(Command cmd, Throwable cause,
+			CompilationContext ctx) {
 		if (cause instanceof IncompatibleUnificationException) {
 			// Raised while expanding an operator call: anchor the diagnostic on
 			// the call site rather than on the command's own text.

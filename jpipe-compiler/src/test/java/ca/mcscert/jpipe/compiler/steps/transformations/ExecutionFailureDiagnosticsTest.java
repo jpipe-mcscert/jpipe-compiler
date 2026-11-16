@@ -119,7 +119,7 @@ class ExecutionFailureDiagnosticsTest {
 		@Test
 		void addSupport_emits_invalid_support_error() {
 			AddSupport cmd = new AddSupport("j", "c", "s");
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd, unit,
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd,
 					new RuntimeException("bad support"), ctx);
 			assertThat(ctx.diagnostics()).extracting(d -> d.message()).anyMatch(
 					m -> m.contains("bad support") || m.contains("invalid"));
@@ -129,7 +129,7 @@ class ExecutionFailureDiagnosticsTest {
 		void implementsTemplate_without_parent_emits_implements_error() {
 			unit.add(new Justification("j"));
 			ImplementsTemplate cmd = new ImplementsTemplate("j", "base");
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd, unit,
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd,
 					new RuntimeException("cycle"), ctx);
 			assertThat(ctx.hasErrors()).isTrue();
 		}
@@ -155,7 +155,7 @@ class ExecutionFailureDiagnosticsTest {
 		@Test
 		void unknown_command_type_emits_execution_error() {
 			Command unknown = new CreateJustification("j");
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(unknown, unit,
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(unknown,
 					new RuntimeException("oops"), ctx);
 			assertThat(ctx.hasErrors()).isTrue();
 		}
@@ -165,7 +165,7 @@ class ExecutionFailureDiagnosticsTest {
 			// Duplicate models, conclusions and the like used to be reported
 			// without a line (#183).
 			Command cmd = new CreateJustification("j", AT_3_4);
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd, unit,
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd,
 					new IllegalStateException("Duplicate model name: 'j'"),
 					ctx);
 			assertThat(ctx.diagnostics()).singleElement().satisfies(d -> {
@@ -178,7 +178,7 @@ class ExecutionFailureDiagnosticsTest {
 		@Test
 		void an_operator_call_failure_names_the_operator_at_the_call() {
 			ExecutionFailureDiagnostics.diagnoseExecutionFailure(
-					call("r", "assemble", "a", "b"), unit,
+					call("r", "assemble", "a", "b"),
 					new IllegalArgumentException("missing required argument(s)"
 							+ " [strategyLabel]"),
 					ctx);
@@ -271,7 +271,7 @@ class ExecutionFailureDiagnosticsTest {
 		@Test
 		void a_failure_without_a_message_is_named_by_its_type() {
 			ExecutionFailureDiagnostics.diagnoseExecutionFailure(
-					new CreateJustification("j", AT_3_4), unit,
+					new CreateJustification("j", AT_3_4),
 					new NullPointerException(), ctx);
 			assertThat(ctx.diagnostics()).singleElement()
 					.satisfies(d -> assertThat(d.message())
