@@ -49,18 +49,22 @@ final class OutputTarget {
 	}
 
 	/**
-	 * Opens the target named by {@code -o}: standard output for
+	 * Opens the target named by {@code -o}: {@code stdout} for
 	 * {@link CompilationConfig#STDOUT}, a file otherwise. A file is checked
 	 * now, so that a target that cannot be written fails before compiling, but
 	 * it is written only by {@link #commit()}.
 	 *
+	 * @param stdout
+	 *            the standard output, given by the command: it decides where
+	 *            the console is, this class only writes to it.
 	 * @throws UnwritableOutputException
 	 *             if the file cannot be written: an invalid path, a directory,
 	 *             a missing parent directory, or no permission.
 	 */
-	static OutputTarget open(String output) throws UnwritableOutputException {
+	static OutputTarget open(String output, OutputStream stdout)
+			throws UnwritableOutputException {
 		if (CompilationConfig.STDOUT.equals(output)) {
-			return new OutputTarget(output, new Borrowed(System.out), null);
+			return new OutputTarget(output, new Borrowed(stdout), null);
 		}
 		return new OutputTarget(output, null, check(output));
 	}

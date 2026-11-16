@@ -51,7 +51,7 @@ abstract class InputOutputCommand implements Callable<Integer> {
 			return CommandLine.ExitCode.USAGE;
 		}
 		try {
-			OutputTarget target = OutputTarget.open(output);
+			OutputTarget target = OutputTarget.open(output, System.out);
 			Integer exitCode = doCall(target.stream());
 			target.commit();
 			return exitCode;

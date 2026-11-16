@@ -15,7 +15,7 @@
     <Logger name="ca.mcscert.jpipe" level="error" additivity="false">
       <AppenderRef ref="Console"/>
     </Logger>
-    <!-- ChainCompiler.DIAGNOSTICS_LOGGER: outside the hierarchy above, so that
+    <!-- DiagnosticPrinter.LOGGER: outside the hierarchy above, so that
          no log level hides a compilation error. -->
     <Logger name="jpipe.diagnostics" level="error" additivity="false">
       <AppenderRef ref="Diagnostics"/>

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.compiler.CompilationConfig;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -24,10 +25,13 @@ class OutputTargetTest {
 	@TempDir
 	Path dir;
 
+	/** Standing for standard output: the file tests never write to it. */
+	private final OutputStream console = new ByteArrayOutputStream();
+
 	@Test
 	void the_file_is_written_only_by_the_commit() throws IOException {
 		Path file = Files.writeString(dir.resolve("out.json"), "previous");
-		OutputTarget target = OutputTarget.open(file.toString());
+		OutputTarget target = OutputTarget.open(file.toString(), console);
 
 		target.stream().write(bytes("new"));
 		assertThat(file).hasContent("previous");
@@ -42,7 +46,7 @@ class OutputTargetTest {
 			throws IOException {
 		// A failed run used to leave the file truncated to 0 bytes (#174).
 		Path file = Files.writeString(dir.resolve("out.dot"), "precious");
-		OutputTarget target = OutputTarget.open(file.toString());
+		OutputTarget target = OutputTarget.open(file.toString(), console);
 
 		target.stream().write(bytes("half an export"));
 
@@ -53,7 +57,7 @@ class OutputTargetTest {
 	@Test
 	void a_new_file_is_created_only_by_the_commit() throws IOException {
 		Path file = dir.resolve("new.json");
-		OutputTarget target = OutputTarget.open(file.toString());
+		OutputTarget target = OutputTarget.open(file.toString(), console);
 
 		target.stream().write(bytes("{}"));
 		assertThat(file).doesNotExist();
@@ -66,7 +70,7 @@ class OutputTargetTest {
 	void writing_through_a_symbolic_link_keeps_the_link() throws IOException {
 		Path real = Files.writeString(dir.resolve("real.json"), "previous");
 		Path link = Files.createSymbolicLink(dir.resolve("link.json"), real);
-		OutputTarget target = OutputTarget.open(link.toString());
+		OutputTarget target = OutputTarget.open(link.toString(), console);
 
 		target.stream().write(bytes("new"));
 		target.commit();
@@ -83,7 +87,7 @@ class OutputTargetTest {
 		Files.setPosixFilePermissions(file,
 				PosixFilePermissions.fromString("rwxr-x---"));
 		Path hardLink = Files.createLink(dir.resolve("shared.py"), file);
-		OutputTarget target = OutputTarget.open(file.toString());
+		OutputTarget target = OutputTarget.open(file.toString(), console);
 
 		target.stream().write(bytes("new"));
 		target.commit();
@@ -98,7 +102,7 @@ class OutputTargetTest {
 	@DisabledOnOs(OS.WINDOWS)
 	void a_device_is_written_to_rather_than_replaced() throws IOException {
 		// `-o /dev/null` must work, as it did before #174.
-		OutputTarget target = OutputTarget.open("/dev/null");
+		OutputTarget target = OutputTarget.open("/dev/null", console);
 
 		target.stream().write(bytes("discarded"));
 
@@ -110,7 +114,7 @@ class OutputTargetTest {
 	void a_directory_is_refused_up_front() {
 		String path = dir.toString();
 
-		assertThatThrownBy(() -> OutputTarget.open(path))
+		assertThatThrownBy(() -> OutputTarget.open(path, console))
 				.isInstanceOf(UnwritableOutputException.class)
 				.hasMessage("cannot write '" + path + "': is a directory");
 	}
@@ -119,7 +123,7 @@ class OutputTargetTest {
 	void a_missing_directory_is_refused_up_front() {
 		String path = dir.resolve("nowhere/out.json").toString();
 
-		assertThatThrownBy(() -> OutputTarget.open(path))
+		assertThatThrownBy(() -> OutputTarget.open(path, console))
 				.isInstanceOf(UnwritableOutputException.class)
 				.hasMessageStartingWith("cannot write '" + path + "': ")
 				.hasMessageContaining("no such directory");
@@ -133,7 +137,7 @@ class OutputTargetTest {
 				PosixFilePermissions.fromString("r--r--r--"));
 		String path = file.toString();
 
-		assertThatThrownBy(() -> OutputTarget.open(path))
+		assertThatThrownBy(() -> OutputTarget.open(path, console))
 				.isInstanceOf(UnwritableOutputException.class)
 				.hasMessage("cannot write '" + path + "': permission denied");
 		assertThat(file).hasContent("previous");
@@ -142,17 +146,14 @@ class OutputTargetTest {
 	@Test
 	void a_failing_standard_output_is_reported_rather_than_swallowed()
 			throws IOException {
-		PrintStream original = System.out;
 		try (PrintStream broken = new PrintStream(new FailingStream())) {
-			System.setOut(broken);
-			OutputTarget target = OutputTarget.open(CompilationConfig.STDOUT);
+			OutputTarget target = OutputTarget.open(CompilationConfig.STDOUT,
+					broken);
 			target.stream().write(bytes("lost"));
 
 			assertThatThrownBy(target::commit)
 					.isInstanceOf(UnwritableOutputException.class)
 					.hasMessage("cannot write to standard output: write error");
-		} finally {
-			System.setOut(original);
 		}
 	}
 

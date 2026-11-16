@@ -18,18 +18,7 @@ import org.apache.logging.log4j.Logger;
  */
 public final class ChainCompiler<I, O> implements Compiler {
 
-	/**
-	 * Name of the logger the diagnostics of a compilation are printed on. It
-	 * sits outside the {@code ca.mcscert.jpipe} hierarchy on purpose: those
-	 * loggers carry the trace of the compiler at work, which
-	 * {@code --log-level} tunes, while diagnostics are the result the user ran
-	 * the compiler for, and must reach them whatever that level is (#186).
-	 */
-	public static final String DIAGNOSTICS_LOGGER = "jpipe.diagnostics";
-
 	private static final Logger logger = LogManager.getLogger();
-	private static final Logger diagnostics = LogManager
-			.getLogger(DIAGNOSTICS_LOGGER);
 
 	private final Source<I> source;
 	private final Transformation<I, O> chain;
@@ -52,7 +41,7 @@ public final class ChainCompiler<I, O> implements Compiler {
 			sink.pourInto(output);
 		} finally {
 			release(input);
-			printDiagnostics(ctx);
+			DiagnosticPrinter.print(ctx);
 		}
 		logger.info("Compilation finished [{}]", sourceFile);
 		return ctx.hasErrors();
@@ -76,21 +65,6 @@ public final class ChainCompiler<I, O> implements Compiler {
 			closeable.close();
 		} catch (IOException e) {
 			logger.warn("Could not close the source: {}", e.getMessage());
-		}
-	}
-
-	private void printDiagnostics(CompilationContext ctx) {
-		for (Diagnostic d : ctx.diagnostics()) {
-			if (d.isError()) {
-				String loc = d.hasLocation()
-						? d.source() + ":" + d.line() + ":" + d.column() + ": "
-						: d.source() + ": ";
-				String level = d.level().name().toLowerCase();
-				String msg = d.hasCode()
-						? "[" + d.code() + "] " + d.message()
-						: d.message();
-				diagnostics.error("{}{}: {}", loc, level, msg);
-			}
 		}
 	}
 

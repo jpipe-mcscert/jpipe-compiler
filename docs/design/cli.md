@@ -304,7 +304,7 @@ tree changes.
 
 **Diagnostics are not logs.** The diagnostics of a `process` run are printed on
 stderr as `file:line:column: severity: [code] message` through the dedicated
-`jpipe.diagnostics` logger (`ChainCompiler.DIAGNOSTICS_LOGGER`). It sits outside
+`jpipe.diagnostics` logger (`DiagnosticPrinter.LOGGER`). It sits outside
 the `ca.mcscert.jpipe` hierarchy that `--log-level` tunes, so no level hides a
 compilation error.
 
