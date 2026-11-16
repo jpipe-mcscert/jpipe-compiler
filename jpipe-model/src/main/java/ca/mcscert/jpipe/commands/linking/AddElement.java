@@ -4,6 +4,7 @@ import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import java.util.function.Predicate;
+import java.util.Optional;
 
 /** Adds a pre-built element to a justification model. */
 public final class AddElement extends RegularCommand {
@@ -24,6 +25,11 @@ public final class AddElement extends RegularCommand {
 	@Override
 	protected void doExecute(Unit context) {
 		context.addInto(container, element);
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(container);
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import ca.mcscert.jpipe.commands.Command;
@@ -12,6 +13,7 @@ import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -296,6 +298,77 @@ class LoadResolverGlobTest {
 				m -> assertThat(m).contains("'adir'", "is a directory"));
 		assertThat(ctx.diagnostics()).allSatisfy(
 				d -> assertThat(d.source()).isEqualTo(ctx.sourcePath()));
+	}
+
+	@Test
+	@DisabledOnOs(OS.WINDOWS)
+	void anUnreadableDirectoryInAGlobIsReportedByName() throws IOException {
+		// The message used to leak "java.nio.file.AccessDeniedException"
+		// (#178).
+		writeTemplate("readable/a.jd", "alpha");
+		Path locked = Files.createDirectories(dir.resolve("locked"));
+		writeTemplate("locked/b.jd", "beta");
+		Files.setPosixFilePermissions(locked,
+				PosixFilePermissions.fromString("---------"));
+		assumeFalse(Files.isReadable(locked), "running with root privileges");
+		try {
+			CompilationContext ctx = compile("**.jd", null);
+
+			assertThat(fatalMessages(ctx)).singleElement()
+					.satisfies(m -> assertThat(m)
+							.contains("cannot read '" + locked + "'",
+									"permission denied")
+							.doesNotContain("Exception"));
+		} finally {
+			Files.setPosixFilePermissions(locked,
+					PosixFilePermissions.fromString("rwxr-xr-x"));
+		}
+	}
+
+	@Test
+	@DisabledOnOs(OS.WINDOWS)
+	void aLinkedFileResolvesItsLoadsFromWhereItIsLinked() throws IOException {
+		// Its real path is only its identity: its own relative loads resolve
+		// from the link's directory, as when it is compiled through the link.
+		writeSource("sub/real.jd", "load \"helper.jd\"\n");
+		writeTemplate("helper.jd", "helper");
+		Files.createSymbolicLink(dir.resolve("link.jd"),
+				dir.resolve("sub/real.jd"));
+
+		CompilationContext ctx = compile("link.jd", null);
+
+		assertThat(ctx.hasErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("helper");
+	}
+
+	@Test
+	void anInvalidPathIsAFatalAtTheLoad() throws IOException {
+		// A NUL in a path used to escape as an InvalidPathException (#178).
+		CompilationContext ctx = compile("a\u0000b.jd", null);
+
+		assertThat(fatalMessages(ctx)).singleElement()
+				.satisfies(m -> assertThat(m).contains("Invalid path in load"));
+	}
+
+	@Test
+	@DisabledOnOs(OS.WINDOWS)
+	void aFileReachedThroughASymbolicLinkIsLoadedOnce() throws IOException {
+		// Identity used normalize(), not the real path: the same file was
+		// loaded twice, and its models declared twice (#178).
+		writeTemplate("real.jd", "t");
+		Files.createSymbolicLink(dir.resolve("alias.jd"),
+				dir.resolve("real.jd"));
+		CompilationContext ctx = new CompilationContext(
+				dir.resolve("main.jd").toString());
+		List<Command> input = List.of(
+				new LoadResolver.LoadDirective("real.jd", null),
+				new LoadResolver.LoadDirective("alias.jd", null));
+
+		this.result = new LoadResolver(new OperatorRegistry(),
+				new UnificationEquivalenceRegistry()).fire(input, ctx);
+
+		assertThat(ctx.hasErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("t");
 	}
 
 	/**

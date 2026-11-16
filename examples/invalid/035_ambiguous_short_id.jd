@@ -1,0 +1,29 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// 'a' is inherited twice, as root:a and mid:a: the relation on line 28 cannot
+// tell which one it means, and must write the qualified id.
+template root {
+    conclusion c is "A root conclusion"
+    strategy   a is "A root strategy"
+    @support   x is "A root abstract support"
+    a supports c
+    x supports a
+}
+
+template mid implements root {
+    sub-conclusion root:x is "A mid sub-conclusion"
+    strategy   a is "A mid strategy"
+    @support   y is "A mid abstract support"
+    a supports root:x
+    y supports a
+}
+
+justification j implements mid {
+    evidence mid:y is "An evidence"
+    evidence e     is "Another evidence"
+    e supports a
+}

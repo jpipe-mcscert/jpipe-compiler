@@ -44,13 +44,17 @@ Each exposes two entry points:
 
 ```java
 List<Violation> validate(Unit unit)          // location-aware; used by the pipeline
-List<Violation> validateModel(JustificationModel<?> model)  // standalone; used by JustificationModel.validate()
+List<Violation> validateModel(JustificationModel model)  // standalone; used by JustificationModel.validate()
 ```
 
 `validate(Unit)` resolves source locations from `Unit`'s location registry
 (`unit.locationOf(modelName, elementId)`) so that violations carry a precise
 `SourceLocation`. `validateModel` produces `SourceLocation.UNKNOWN` for all
 violations because no location data is available outside a compilation context.
+
+A model marked incomplete on the `Unit` (its `implements` failed or never ran) is
+skipped by both validators: its gaps follow from a failure already reported, and
+reporting them again would bury that cause.
 
 Two thin `Checker<Unit>` steps in `jpipe-compiler` (`ConsistencyChecker`,
 `CompletenessChecker`) invoke the validators and map each `Violation` to a

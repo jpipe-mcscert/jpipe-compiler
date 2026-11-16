@@ -27,11 +27,12 @@ import java.util.function.BiConsumer;
  * (abstract/reusable).
  *
  * <p>
- * The type parameter {@code E} constrains which elements can be added:
- * {@link Justification} accepts only
- * {@link ca.mcscert.jpipe.model.elements.CommonElement}, while {@link Template}
- * accepts any {@link JustificationElement} including
- * {@link ca.mcscert.jpipe.model.elements.AbstractSupport}.
+ * Both kinds of model hold any {@link JustificationElement}: a
+ * {@link Justification} that implements a template holds the template's
+ * {@link ca.mcscert.jpipe.model.elements.AbstractSupport} placeholders until
+ * they are overridden. What a justification may <em>declare</em> is narrower,
+ * and enforced where elements are declared ({@link Unit#addInto}) and by the
+ * completeness check ({@code no-abstract-support}).
  *
  * <p>
  * Every model has exactly one {@link Conclusion}, set via
@@ -45,13 +46,13 @@ import java.util.function.BiConsumer;
  * {@link ca.mcscert.jpipe.model.validation.ConsistencyValidator} and
  * {@link ca.mcscert.jpipe.model.validation.CompletenessValidator} directly.
  */
-public abstract sealed class JustificationModel<E extends JustificationElement>
+public abstract sealed class JustificationModel
 		permits Justification, Template {
 
 	private final String name;
 	private Conclusion conclusion;
 	private Template parent = null;
-	private final List<E> elements = new ArrayList<>();
+	private final List<JustificationElement> elements = new ArrayList<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
 	private final Set<String> unifiedIds = new LinkedHashSet<>();
 
@@ -136,7 +137,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Rejects {@link Conclusion} — use {@link #setConclusion(Conclusion)}
 	 * instead.
 	 */
-	public void addElement(E element) {
+	public void addElement(JustificationElement element) {
 		if (element instanceof Conclusion) {
 			throw new IllegalArgumentException(
 					"Use setConclusion() to assign the conclusion of a model");
@@ -186,11 +187,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 
 		// Step 3: add copies to this model
 		copies.values().stream().filter(c -> !(c instanceof Conclusion))
-				.forEach(copy -> {
-					@SuppressWarnings("unchecked")
-					E typed = (E) copy;
-					addElement(typed);
-				});
+				.forEach(this::addElement);
 	}
 
 	private void rewireEdges(Template template,
@@ -253,7 +250,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		elements.removeIf(e -> e.id().equals(id));
 	}
 
-	public List<E> getElements() {
+	public List<JustificationElement> getElements() {
 		return Collections.unmodifiableList(elements);
 	}
 
@@ -300,7 +297,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Elements defined directly in this model — their id has no counterpart in
 	 * any ancestor template.
 	 */
-	public List<E> ownElements() {
+	public List<JustificationElement> ownElements() {
 		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
 		return elements.stream().filter(e -> !pt.containsKey(e.id())).toList();
 	}
@@ -309,7 +306,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Elements copied from an ancestor template whose runtime type is unchanged
 	 * (not overridden).
 	 */
-	public List<E> inheritedElements() {
+	public List<JustificationElement> inheritedElements() {
 		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
 		return elements.stream().filter(e -> pt.get(e.id()) == e.getClass())
 				.toList();
@@ -324,7 +321,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Together with {@link #ownElements()} and {@link #inheritedElements()},
 	 * these three lists partition {@link #getElements()}.
 	 */
-	public List<E> concreteOverrides() {
+	public List<JustificationElement> concreteOverrides() {
 		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
 		return elements.stream().filter(
 				e -> pt.containsKey(e.id()) && pt.get(e.id()) != e.getClass())
@@ -401,9 +398,26 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		// Short-name suffix fallback: resolves a plain id to an inherited
 		// qualified element (e.g. "s" resolves to "t:s" after template
 		// expansion).
+		return inheritedMatches(id).stream().findFirst();
+	}
+
+	/**
+	 * The inherited elements a plain {@code id} names through the short-name
+	 * fallback of {@link #findById}: every element, the inherited conclusion
+	 * included, whose qualified id ends with {@code :id}. More than one is an
+	 * ambiguity the caller must not settle by picking the first (ADR-0012).
+	 */
+	public List<JustificationElement> inheritedMatches(String id) {
 		String suffix = ":" + id;
-		return elements.stream().filter(e -> e.id().endsWith(suffix))
-				.map(JustificationElement.class::cast).findFirst();
+		List<JustificationElement> matches = new ArrayList<>();
+		elements.stream().filter(e -> e.id().endsWith(suffix))
+				.forEach(matches::add);
+		// Last, so that the conclusion never takes the place of the element
+		// the fallback picked before it was considered.
+		if (conclusion != null && conclusion.id().endsWith(suffix)) {
+			matches.add(conclusion);
+		}
+		return matches;
 	}
 
 	public <T extends JustificationElement> List<T> elementsOfType(

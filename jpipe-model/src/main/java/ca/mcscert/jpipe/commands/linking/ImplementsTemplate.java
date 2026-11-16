@@ -8,6 +8,8 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
+import java.util.Optional;
+import ca.mcscert.jpipe.commands.PendingCommands;
 
 /**
  * Links a justification model to the {@link Template} it implements, by setting
@@ -74,6 +76,33 @@ public final class ImplementsTemplate extends RegularCommand {
 					QualifiedIds.qualifyIfPlain(templateName, elem.id()),
 					context.locationOf(templateName, elem.id()));
 		}
+	}
+
+	/**
+	 * Waits, beyond both models existing, until no pending command still
+	 * changes the template: its elements, its links and its own
+	 * {@code implements}. The copy is then the whole template, whatever the
+	 * order of the declarations (#177).
+	 */
+	@Override
+	public boolean ready(Unit unit, PendingCommands pending) {
+		return condition().test(unit) && !pending.target(templateName)
+				&& unit.isComplete(templateName);
+	}
+
+	/**
+	 * Never: a template that never completes is never copied, so that a model
+	 * never inherits half a template. The model is left unbuilt, and the reason
+	 * the template never completes is reported where it is.
+	 */
+	@Override
+	public boolean runWhenStuck(Unit unit, PendingCommands pending) {
+		return false;
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(modelName);
 	}
 
 	@Override

@@ -5,6 +5,7 @@ import ca.mcscert.jpipe.commands.CommandExecutionException;
 import ca.mcscert.jpipe.commands.DeadlockException;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.MacroCommand;
+import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.Unit;
@@ -36,7 +37,14 @@ public final class ActionListInterpretation
 		// error does not hide the others, or make the checkers report as
 		// missing what the source declares (#183).
 		List<CommandExecutionException> failures = new ArrayList<>();
-		ExecutionEngine engine = new ExecutionEngine(failures::add);
+		ExecutionEngine engine = new ExecutionEngine(failure -> {
+			failures.add(failure);
+			// A model whose `implements` failed is unusable: nothing may
+			// consume it, and the checkers leave it alone.
+			if (failure.failedCommand() instanceof ImplementsTemplate it) {
+				failure.partialUnit().markIncomplete(it.modelName());
+			}
+		});
 		Unit unit;
 		DeadlockException deadlock = null;
 		try {
@@ -50,6 +58,9 @@ public final class ActionListInterpretation
 			ExecutionFailureDiagnostics.diagnoseDeadlock(
 					deadlock.stuckCommands(), unit,
 					ExecutionFailureDiagnostics.brokenModels(failures), ctx);
+			ExecutionFailureDiagnostics
+					.stuckImplementations(deadlock.stuckCommands())
+					.forEach(unit::markIncomplete);
 		}
 
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,

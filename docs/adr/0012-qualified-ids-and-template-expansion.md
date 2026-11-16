@@ -71,9 +71,16 @@ When `ImplementsTemplate(modelName, templateName)` executes:
    template element's plain id, the justification's own element takes
    precedence (override). The qualified copy is still added and remains
    reachable by its full id for traceability.
-4. The template's conclusion is copied as an ordinary element (not set as the
-   justification's conclusion). The justification must declare its own
-   conclusion; the template conclusion becomes part of the inherited structure.
+4. The template's conclusion becomes the model's conclusion, under its
+   qualified id (`t:c`). A model that implements a template inherits its
+   conclusion and cannot declare its own: doing so is an `inherited-conclusion`
+   error, reported from the declaration alone, so it does not depend on whether
+   the template is declared before or after the model.
+5. The template is copied only once it is complete: `implements` waits until no
+   pending command still changes the template, its own `implements` included.
+   A chain of templates is therefore inherited in full whatever the order in
+   which it is declared, and a template that could not be built in full (its
+   own `implements` failed or never ran) is never copied.
 
 ### Id resolution
 
@@ -81,11 +88,19 @@ When `ImplementsTemplate(modelName, templateName)` executes:
 
 1. **Exact match** — returns the element whose id equals `id`.
 2. **Short-name fallback** — if no exact match, returns the inherited element
-   whose id ends with `:{id}`. If multiple inherited elements match (two
-   templates both define `s`), a `FATAL` diagnostic is raised.
+   whose id ends with `:{id}`, the inherited conclusion last. A model that
+   implements a template may only reach, among inherited elements, the
+   `@support` placeholders it overrides: naming the inherited conclusion or a
+   strategy is a `reference-into-template` error.
 
 This makes source-level plain ids transparent in `AddSupport` and similar
 commands: `e1 supports s` resolves correctly whether `s` is own or inherited.
+A relation runs only once every element of its model is declared, so a plain
+id binds to the model's own element even when that element is declared after
+the relation. When several inherited elements match a plain id (`root:a` and
+`mid:a` after a chain of templates), the relation is an `ambiguous-id` error at
+its location, and must use the qualified id: picking one would bind it to an
+element the author may not have meant.
 
 ### Operator model
 
@@ -114,8 +129,8 @@ template.
 - `ImplementsTemplate.doExecute()` must copy elements with prefixed ids and
   rewrite support edges. It currently calls `setParent(template)` only; that
   call is replaced by the expansion logic.
-- `findById` gains a two-pass resolution. Ambiguity is a `FATAL` diagnostic
-  requiring a `CompilationContext` parameter.
+- `findById` gains a two-pass resolution. `inheritedMatches(id)` lists every
+  match of the fallback, so that a relation can refuse an ambiguous plain id.
 - The `load` statement follows the same scheme: loading `file.jd as ns`
   prefixes all model ids with `ns:` and their elements become `ns:model:id`.
 - Operators are simplified: no `Replicable` interface or deep-clone

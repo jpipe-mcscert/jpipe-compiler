@@ -18,9 +18,12 @@ Support relationships are encoded directly via typed fields and one marker inter
 - `Conclusion` and `SubConclusion` each hold a single `supporter : Strategy`. Cardinality is enforced via `addSupport` which prevents multiple assignments.
 - `Strategy` holds a list of supporters (`List<SupportLeaf>`). Multiple elements can support a single strategy (e.g., shared evidence or convergence).
 
-`JustificationModel<E>` is the sealed base for `Justification` (accepts only
-`CommonElement`) and `Template` (accepts any `JustificationElement`). A `Unit`
-is the root produced by compiling one `.jd` file.
+`JustificationModel` is the sealed base for `Justification` and `Template`,
+both of which hold any `JustificationElement`. A justification only *declares*
+`CommonElement`s (`Unit.addInto` refuses an `AbstractSupport`), but implementing
+a template copies the template's `AbstractSupport` placeholders into it until
+they are overridden; one left over is reported by `no-abstract-support`. A
+`Unit` is the root produced by compiling one `.jd` file.
 
 ```plantuml
 @startuml model
@@ -95,7 +98,7 @@ package "model.elements" {
 
 package "model" {
 
-  abstract class JustificationModel<E extends JustificationElement> {
+  abstract class JustificationModel {
     - name : String
     - conclusion : Conclusion
     - parent : Template
@@ -154,8 +157,14 @@ package "model" {
 ### `commands` / `commands.creation`
 
 Model construction uses the Command pattern. `RegularCommand` is the base for all
-concrete commands. The `ExecutionEngine` handles deferred execution (commands whose
-condition is not yet met), macro expansion, and deadlock detection.
+concrete commands. The `ExecutionEngine` handles deferred execution (commands that
+are not ready yet), macro expansion, and deadlock detection. A command is ready
+when its `condition()` holds and, for `ImplementsTemplate`, `AddSupport` and
+`ApplyOperator`, when no pending command still targets the model it depends on
+(`ready(Unit, PendingCommands)`, `target()`). A model whose `implements` failed or
+never ran is marked incomplete on the `Unit` (`markIncomplete`): nothing consumes
+it, and the validators skip it, since its gaps follow from a failure already
+reported.
 
 ```plantuml
 @startuml commands
@@ -171,6 +180,9 @@ package "commands" {
 
   interface Command {
     + condition() : Predicate<Unit>
+    + ready(Unit, PendingCommands) : boolean
+    + target() : Optional<String>
+    + location() : SourceLocation
     + execute(Unit) : void
   }
 

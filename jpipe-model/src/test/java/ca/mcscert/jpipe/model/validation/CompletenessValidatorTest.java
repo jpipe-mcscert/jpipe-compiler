@@ -179,6 +179,16 @@ class CompletenessValidatorTest {
 	class UnitValidation {
 
 		@Test
+		void validate_unit_skips_a_model_that_could_not_be_built() {
+			// Its gaps follow from a failure reported where it happened.
+			Unit unit = new Unit("src");
+			unit.add(new Justification("broken")); // no conclusion
+			unit.markIncomplete("broken");
+
+			assertThat(validator.validate(unit)).isEmpty();
+		}
+
+		@Test
 		void validate_unit_checks_all_models() {
 			Unit unit = new Unit("src");
 			unit.add(new Justification("j1")); // no conclusion

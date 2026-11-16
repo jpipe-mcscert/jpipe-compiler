@@ -1,0 +1,45 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// A model that implements a template inherits its conclusion: declaring its
+// own is an error (lines 21, 22 and 39), whichever of the two is declared
+// first. A relation into a rejected conclusion adds no error of its own, even
+// when it is written before it.
+template t {
+    conclusion c   is "A conclusion"
+    strategy   s   is "A strategy"
+    @support   abs is "An abstract support"
+    s supports c
+    abs supports s
+}
+
+justification before implements u {
+    other supports mine
+    conclusion mine is "My own conclusion"
+    conclusion more is "Yet another conclusion"
+    evidence u:abs is "An evidence"
+    strategy other is "A strategy for the rejected conclusions"
+    proof supports other
+    evidence proof is "Its evidence"
+    other supports more
+}
+
+template u {
+    conclusion c   is "A conclusion"
+    strategy   s   is "A strategy"
+    @support   abs is "An abstract support"
+    s supports c
+    abs supports s
+}
+
+justification after implements t {
+    conclusion mine is "My own conclusion"
+    evidence t:abs is "An evidence"
+    strategy   own is "A strategy for the rejected conclusion"
+    evidence   why is "An evidence for it"
+    own supports mine
+    why supports own
+}

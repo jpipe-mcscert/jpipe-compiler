@@ -9,10 +9,10 @@ import ca.mcscert.jpipe.visitor.DotExporter;
  * Compilation step that serialises a {@link JustificationModel} to Graphviz DOT
  * text.
  */
-public class ExportToDot extends Transformation<JustificationModel<?>, String> {
+public class ExportToDot extends Transformation<JustificationModel, String> {
 
 	@Override
-	protected String run(JustificationModel<?> input, CompilationContext ctx) {
+	protected String run(JustificationModel input, CompilationContext ctx) {
 		return new DotExporter().export(input);
 	}
 }

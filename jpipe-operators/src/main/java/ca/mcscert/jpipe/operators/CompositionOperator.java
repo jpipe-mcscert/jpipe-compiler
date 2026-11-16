@@ -41,6 +41,16 @@ public abstract class CompositionOperator {
 	private final Logger logger = LogManager.getLogger(getClass());
 
 	/**
+	 * Declares which argument keys hold the id of an element, such as
+	 * {@code refine}'s {@code hook}. A call read from a file loaded under a
+	 * namespace renames the qualified ids they hold, as it renames its source
+	 * models. Default: none.
+	 */
+	public Set<String> elementArguments() {
+		return Set.of();
+	}
+
+	/**
 	 * Declares which argument keys this operator requires. The framework
 	 * validates their presence at the start of {@link #apply} and throws
 	 * {@link InvalidOperatorCallException} listing any missing keys. Default:
@@ -59,7 +69,7 @@ public abstract class CompositionOperator {
 	 */
 	@SuppressWarnings("java:S1172") // params unused in default but required by
 									// overrides
-	public ModelKind resultKind(List<JustificationModel<?>> sources,
+	public ModelKind resultKind(List<JustificationModel> sources,
 			Map<String, String> args) {
 		return ModelKind.JUSTIFICATION;
 	}
@@ -74,7 +84,7 @@ public abstract class CompositionOperator {
 	 *            element ids that were renamed by a prior composition step.
 	 */
 	protected abstract EquivalenceRelation equivalenceRelation(
-			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			List<JustificationModel> sources, Map<String, String> arguments,
 			Map<String, String> knownAliases);
 
 	/**
@@ -82,7 +92,7 @@ public abstract class CompositionOperator {
 	 * {@code sources} and {@code arguments}.
 	 */
 	protected abstract MergeFunction mergeFunction(
-			List<JustificationModel<?>> sources, Map<String, String> arguments);
+			List<JustificationModel> sources, Map<String, String> arguments);
 
 	/**
 	 * Returns the command that creates the result model (typically
@@ -98,7 +108,7 @@ public abstract class CompositionOperator {
 	 *            {@code Justification}) based on the source types.
 	 */
 	protected abstract Command createResultModel(String name,
-			SourceLocation location, List<JustificationModel<?>> sources,
+			SourceLocation location, List<JustificationModel> sources,
 			Map<String, String> arguments);
 
 	/**
@@ -109,7 +119,7 @@ public abstract class CompositionOperator {
 	@SuppressWarnings("java:S1172") // params unused in default but required by
 									// overrides
 	protected List<Command> additionalCommands(String resultName,
-			List<JustificationModel<?>> sources, AliasRegistry aliases,
+			List<JustificationModel> sources, AliasRegistry aliases,
 			Map<String, String> args) {
 		return List.of();
 	}
@@ -127,8 +137,7 @@ public abstract class CompositionOperator {
 	 *             from {@code arguments}
 	 */
 	public final List<Command> apply(String resultName,
-			List<JustificationModel<?>> sources,
-			Map<String, String> arguments) {
+			List<JustificationModel> sources, Map<String, String> arguments) {
 		return apply(resultName, sources, arguments, SourceLocation.UNKNOWN);
 	}
 
@@ -145,7 +154,7 @@ public abstract class CompositionOperator {
 	 *             from {@code arguments}
 	 */
 	public final List<Command> apply(String resultName,
-			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			List<JustificationModel> sources, Map<String, String> arguments,
 			SourceLocation location) {
 		return apply(resultName, sources, arguments, location, Map.of(),
 				Map.of());
@@ -168,7 +177,7 @@ public abstract class CompositionOperator {
 	 *             from {@code arguments}
 	 */
 	public final List<Command> apply(String resultName,
-			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			List<JustificationModel> sources, Map<String, String> arguments,
 			SourceLocation location,
 			Map<String, SourceLocation> knownLocations) {
 		return apply(resultName, sources, arguments, location, knownLocations,
@@ -197,7 +206,7 @@ public abstract class CompositionOperator {
 	 *             from {@code arguments}
 	 */
 	public final List<Command> apply(String resultName,
-			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			List<JustificationModel> sources, Map<String, String> arguments,
 			SourceLocation location, Map<String, SourceLocation> knownLocations,
 			Map<String, String> knownAliases) {
 
@@ -214,7 +223,7 @@ public abstract class CompositionOperator {
 		// Collect all sourced elements from every source model, attaching each
 		// element's original location from knownLocations when available.
 		List<SourcedElement> all = new ArrayList<>();
-		for (JustificationModel<?> source : sources) {
+		for (JustificationModel source : sources) {
 			for (JustificationElement e : source.allElements()) {
 				all.add(new SourcedElement(e, source,
 						knownLocations.getOrDefault(
@@ -246,7 +255,7 @@ public abstract class CompositionOperator {
 		// current local registry to find the final id in this result, then
 		// register "sourceName:oldId → finalId" so callers can still reach
 		// the element under its pre-composition name.
-		for (JustificationModel<?> source : sources) {
+		for (JustificationModel source : sources) {
 			String prefix = source.getName() + "/";
 			for (Map.Entry<String, String> entry : knownAliases.entrySet()) {
 				if (!entry.getKey().startsWith(prefix)) {
@@ -272,7 +281,7 @@ public abstract class CompositionOperator {
 
 		// Phase 2: link reconstruction
 		Set<String> seenEdges = new LinkedHashSet<>();
-		for (JustificationModel<?> source : sources) {
+		for (JustificationModel source : sources) {
 			source.forEachSupportEdge(
 					(supported, supporter) -> addEdge(commands, seenEdges,
 							resultName, aliases, source, supported, supporter));
@@ -288,9 +297,8 @@ public abstract class CompositionOperator {
 	// ───────────────────────────────────────────────────────────────
 
 	private static void addEdge(List<Command> commands, Set<String> seen,
-			String resultName, AliasRegistry aliases,
-			JustificationModel<?> source, String supportableId,
-			String supporterId) {
+			String resultName, AliasRegistry aliases, JustificationModel source,
+			String supportableId, String supporterId) {
 		String newSupportable = aliases
 				.resolve(QualifiedIds.qualify(source.getName(), supportableId));
 		String newSupporter = aliases
@@ -309,7 +317,7 @@ public abstract class CompositionOperator {
 	 * an element or lives on only as an alias of a further merge.
 	 */
 	private static List<Command> carryForwardUnifiedIds(String resultName,
-			List<JustificationModel<?>> sources) {
+			List<JustificationModel> sources) {
 		return sources.stream().flatMap(source -> source.unifiedIds().stream()
 				.map(unified -> (Command) new MarkUnified(resultName,
 						QualifiedIds.qualify(source.getName(), unified))))

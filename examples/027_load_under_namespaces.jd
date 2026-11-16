@@ -1,0 +1,27 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// A file that compiles on its own still compiles once loaded under a
+// namespace: every model it names, its operator calls and the qualified ids of
+// its overrides and relations included, is prefixed.
+
+// Operator calls in a namespaced file, including a refine whose hook is a
+// qualified id ('first:e')
+load "009_refine.jd" as r
+load "012_chaining_operators.jd" as c
+
+// Overrides of a template the loaded file itself loads under a namespace
+load "007_load_user.jd" as u
+
+// A diamond: both files load 004_template.jd as 'shared', each under its own
+// namespace, so each gets its own copy (L:shared:t and R:shared:t)
+load "015_load_diamond_left.jd" as L
+load "016_load_diamond_right.jd" as R
+
+// The same file, flat here and flat inside a namespaced file: two copies, 't'
+// and 'f:t'
+load "004_template.jd"
+load "008_load_flat.jd" as f

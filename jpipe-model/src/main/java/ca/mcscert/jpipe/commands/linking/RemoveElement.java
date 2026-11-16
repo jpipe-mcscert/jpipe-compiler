@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.commands.linking;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.function.Predicate;
+import java.util.Optional;
 
 /** Removes an element by id from a justification model. */
 public final class RemoveElement extends RegularCommand {
@@ -24,6 +25,11 @@ public final class RemoveElement extends RegularCommand {
 	@Override
 	protected void doExecute(Unit context) {
 		context.removeFrom(container, elementId);
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(container);
 	}
 
 	@Override

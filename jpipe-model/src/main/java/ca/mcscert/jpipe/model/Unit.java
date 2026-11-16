@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Root of a compiled jPipe file. Contains all named justification models
@@ -18,9 +20,10 @@ import java.util.Optional;
 public final class Unit {
 
 	private final String source;
-	private final Map<String, JustificationModel<?>> models = new LinkedHashMap<>();
+	private final Map<String, JustificationModel> models = new LinkedHashMap<>();
 	private final Map<String, SourceLocation> locations = new LinkedHashMap<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
+	private final Set<String> incomplete = new LinkedHashSet<>();
 
 	public Unit(String source) {
 		this.source = source;
@@ -30,7 +33,7 @@ public final class Unit {
 		return source;
 	}
 
-	public void add(JustificationModel<?> model) {
+	public void add(JustificationModel model) {
 		if (models.containsKey(model.getName())) {
 			throw new IllegalStateException(
 					"Duplicate model name: '" + model.getName() + "'");
@@ -38,16 +41,30 @@ public final class Unit {
 		models.put(model.getName(), model);
 	}
 
-	public Collection<JustificationModel<?>> getModels() {
+	/**
+	 * Records that {@code modelName} could not be built in full: its
+	 * {@code implements} failed or never ran. Nothing should consume it, and
+	 * its gaps are no separate mistakes: the cause is reported where it is.
+	 */
+	public void markIncomplete(String modelName) {
+		incomplete.add(modelName);
+	}
+
+	/** Whether {@code modelName} was built in full; see markIncomplete. */
+	public boolean isComplete(String modelName) {
+		return !incomplete.contains(modelName);
+	}
+
+	public Collection<JustificationModel> getModels() {
 		return Collections.unmodifiableCollection(models.values());
 	}
 
-	public Optional<JustificationModel<?>> findModel(String name) {
+	public Optional<JustificationModel> findModel(String name) {
 		return Optional.ofNullable(models.get(name));
 	}
 
 	@SuppressWarnings("java:S1452")
-	public JustificationModel<?> get(String name) {
+	public JustificationModel get(String name) {
 		return findModel(name).orElseThrow(
 				() -> new NoSuchElementException("Unknown model: " + name));
 	}
@@ -55,12 +72,14 @@ public final class Unit {
 	public void addInto(String modelName, JustificationElement element) {
 		switch (get(modelName)) {
 			case Justification j -> {
-				if (!(element instanceof CommonElement ce)) {
+				// A justification declares common elements only; placeholders
+				// reach it through template expansion, not through here.
+				if (!(element instanceof CommonElement)) {
 					throw new IllegalArgumentException("Justification '"
 							+ modelName + "' only accepts CommonElement; got "
 							+ element.getClass().getSimpleName());
 				}
-				j.addElement(ce);
+				j.addElement(element);
 			}
 			case Template t -> t.addElement(element);
 		}

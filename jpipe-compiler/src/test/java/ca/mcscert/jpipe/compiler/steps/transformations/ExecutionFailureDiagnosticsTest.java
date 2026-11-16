@@ -119,7 +119,7 @@ class ExecutionFailureDiagnosticsTest {
 		@Test
 		void addSupport_emits_invalid_support_error() {
 			AddSupport cmd = new AddSupport("j", "c", "s");
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd, unit,
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd,
 					new RuntimeException("bad support"), ctx);
 			assertThat(ctx.diagnostics()).extracting(d -> d.message()).anyMatch(
 					m -> m.contains("bad support") || m.contains("invalid"));
@@ -129,29 +129,33 @@ class ExecutionFailureDiagnosticsTest {
 		void implementsTemplate_without_parent_emits_implements_error() {
 			unit.add(new Justification("j"));
 			ImplementsTemplate cmd = new ImplementsTemplate("j", "base");
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd, unit,
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd,
 					new RuntimeException("cycle"), ctx);
 			assertThat(ctx.hasErrors()).isTrue();
 		}
 
 		@Test
-		void implementsTemplate_with_parent_emits_cyclic_error() {
-			Template t = new Template("base");
-			unit.add(t);
-			Justification j = new Justification("j");
-			j.inline(t, "base");
-			unit.add(j);
-			ImplementsTemplate cmd = new ImplementsTemplate("j", "base");
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd, unit,
-					new RuntimeException("cycle"), ctx);
-			assertThat(ctx.diagnostics()).extracting(d -> d.message())
-					.anyMatch(m -> m.contains("cycle") || m.contains("cyclic"));
+		void a_cycle_of_implements_is_reported_once_as_cyclic() {
+			// A cycle never runs: each implements waits on the other.
+			unit.add(new Template("t1"));
+			unit.add(new Template("t2"));
+			ExecutionFailureDiagnostics
+					.diagnoseDeadlock(
+							List.of(new ImplementsTemplate("t1", "t2"),
+									new ImplementsTemplate("t2", "t1")),
+							unit, ctx);
+			assertThat(ctx.diagnostics()).filteredOn(d -> d.code() != null)
+					.singleElement().satisfies(d -> {
+						assertThat(d.code()).isEqualTo("cyclic-implements");
+						assertThat(d.message()).isEqualTo(
+								"cycle detected: t1 implements t2 implements t1");
+					});
 		}
 
 		@Test
 		void unknown_command_type_emits_execution_error() {
 			Command unknown = new CreateJustification("j");
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(unknown, unit,
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(unknown,
 					new RuntimeException("oops"), ctx);
 			assertThat(ctx.hasErrors()).isTrue();
 		}
@@ -161,7 +165,7 @@ class ExecutionFailureDiagnosticsTest {
 			// Duplicate models, conclusions and the like used to be reported
 			// without a line (#183).
 			Command cmd = new CreateJustification("j", AT_3_4);
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd, unit,
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd,
 					new IllegalStateException("Duplicate model name: 'j'"),
 					ctx);
 			assertThat(ctx.diagnostics()).singleElement().satisfies(d -> {
@@ -174,7 +178,7 @@ class ExecutionFailureDiagnosticsTest {
 		@Test
 		void an_operator_call_failure_names_the_operator_at_the_call() {
 			ExecutionFailureDiagnostics.diagnoseExecutionFailure(
-					call("r", "assemble", "a", "b"), unit,
+					call("r", "assemble", "a", "b"),
 					new IllegalArgumentException("missing required argument(s)"
 							+ " [strategyLabel]"),
 					ctx);
@@ -267,7 +271,7 @@ class ExecutionFailureDiagnosticsTest {
 		@Test
 		void a_failure_without_a_message_is_named_by_its_type() {
 			ExecutionFailureDiagnostics.diagnoseExecutionFailure(
-					new CreateJustification("j", AT_3_4), unit,
+					new CreateJustification("j", AT_3_4),
 					new NullPointerException(), ctx);
 			assertThat(ctx.diagnostics()).singleElement()
 					.satisfies(d -> assertThat(d.message())

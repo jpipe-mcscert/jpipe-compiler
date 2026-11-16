@@ -25,6 +25,14 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   holding a quote compiles back to itself (#176).
 
 ### Changed
+- **Breaking:** a model that implements a template inherits its conclusion and
+  can no longer declare its own: that is now an `inherited-conclusion` error. It
+  used to be accepted or rejected depending on whether the template was declared
+  before or after the model (#177).
+- **Breaking:** a relation whose short id names several inherited elements, such
+  as `a` when both `root:a` and `mid:a` are inherited, is now an `ambiguous-id`
+  error asking for the qualified id. It used to bind to the first one found
+  (#177).
 - **Breaking:** a template's `@support` that supports no strategy is now an error
   in that template (completeness rule `abstract-support-used`). It compiled, but
   no justification could override it, and the failure was only reported, without
@@ -79,6 +87,41 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   header.
 
 ### Fixed
+- A file that compiles on its own now also compiles once loaded under a
+  namespace (`load "f.jd" as ns`) (#178):
+  - its operator calls are prefixed like its models; they used to wait forever
+    for their unprefixed sources;
+  - its overrides and relations that use a qualified id, such as
+    `evidence base:t:abs`, are prefixed too; the overrides used to be lost;
+  - a file that two namespaced files both load is loaded in each namespace; the
+    second one used to be skipped, leaving unknown models;
+  - a file loaded flat inside a namespaced file is loaded into that namespace,
+    even when it is also loaded flat elsewhere.
+- The same file reached through a symbolic link, or spelled differently on a
+  case-insensitive file system, is loaded once instead of twice (#178).
+- A `load` path the file system does not accept is a located error instead of a
+  Java stack trace, and a glob that meets a directory it cannot read names that
+  directory instead of a Java exception (#178).
+- The order of declarations no longer changes what a model means (#177):
+  - a template is copied whole into the model that implements it, even when its
+    relations are written after that model;
+  - a chain of templates declared bottom-up (`j implements mid`, then
+    `mid implements root`, then `root`) is inherited in full;
+  - a short id in a relation binds to the model's own element, even when that
+    element is declared after the relation, instead of to an inherited one;
+  - a relation into an abstract support may be written before its override;
+  - an operator call composes its source models once they are complete.
+- A relation naming the inherited conclusion by its short id (`s2 supports c`)
+  is reported as `reference-into-template`, as for any element of the template
+  other than a `@support`, instead of as an unknown element (#177).
+- A mistake in one model no longer holds back what does not depend on it: a
+  model with a broken relation is still composed by the operator calls that use
+  it, and a stuck override no longer blocks the other relations of its model
+  (#177).
+- A model whose `implements` fails or never completes, such as two templates
+  implementing each other, is reported once. Its other statements and its
+  completeness are no longer reported as mistakes of their own, and no operator
+  call consumes it (#177).
 - An error in a `load`-ed file is reported in that file, at its own line. It was
   reported against the file being compiled, often at a line that file does not
   have, so the IDE pointed at the wrong place (#173).

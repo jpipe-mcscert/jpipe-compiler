@@ -27,6 +27,15 @@ public final class DiagnosticCodes {
 	public static final String SINGLE_CONCLUSION = "single-conclusion";
 
 	/**
+	 * A model that implements a template declares a conclusion, which it
+	 * inherits from the template instead.
+	 */
+	public static final String INHERITED_CONCLUSION = "inherited-conclusion";
+
+	/** A short id names several inherited elements of a model. */
+	public static final String AMBIGUOUS_ID = "ambiguous-id";
+
+	/**
 	 * A qualified override reference appears in a model that does not implement
 	 * any template.
 	 */

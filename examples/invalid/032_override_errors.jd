@@ -20,4 +20,7 @@ justification j implements t {
     evidence t:abs      is "E"
     evidence t:abs      is "E again"
     evidence t:dangling is "D"
+    strategy s2         is "An unrelated strategy"
+    evidence e2         is "Its evidence"
+    e2 supports s2
 }

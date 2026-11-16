@@ -49,7 +49,7 @@ public class CompilationSteps {
 	private CompilationContext ctx;
 	private Unit unit;
 	private Exception compilationError;
-	private JustificationModel<?> currentModel;
+	private JustificationModel currentModel;
 	private String dotOutput;
 	private String pythonOutput;
 	private String jsonOutput;

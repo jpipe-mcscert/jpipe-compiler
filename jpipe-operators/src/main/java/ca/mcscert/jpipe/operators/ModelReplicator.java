@@ -39,7 +39,7 @@ public final class ModelReplicator {
 	 * {@code targetModelName} with element ids qualified by {@code prefix}.
 	 */
 	public static List<Command> replicate(String targetModelName,
-			JustificationModel<?> source, String prefix) {
+			JustificationModel source, String prefix) {
 		List<Command> commands = new ArrayList<>();
 
 		// Step 1 — element creation

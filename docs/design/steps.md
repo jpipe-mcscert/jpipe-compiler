@@ -63,8 +63,8 @@ PC --> CompilerFactory : List<Command>
 CompilerFactory -> UB : DuplicateModelFilter → … → CompletenessChecker
 UB --> CompilerFactory : Unit
 CompilerFactory -> SelectModel : run(Unit)
-SelectModel --> CompilerFactory : JustificationModel<?>
-CompilerFactory -> ExportToDot : run(JustificationModel<?>)
+SelectModel --> CompilerFactory : JustificationModel
+CompilerFactory -> ExportToDot : run(JustificationModel)
 ExportToDot --> CompilerFactory : String (DOT source)
 
 note over CompilerFactory
@@ -186,7 +186,17 @@ in the file that loads it, at its `load` statement.
 
 When `load "path" as ns` carries a namespace alias, every model-name reference
 in the expanded sub-list is qualified with `ns:` so that loaded models do not
-collide with locally declared ones.
+collide with locally declared ones: model declarations, `implements`, the result
+and sources of operator calls, and the qualified element ids of overrides and
+relations (`base:t:abs` becomes `ns:base:t:abs`), which name elements inherited
+from a model of that file. Plain element ids are local and unchanged.
+
+A file is identified by its real path, so a symbolic link or another spelling of
+the same file is loaded once. A load is skipped as a duplicate only when the
+same file was already loaded into the same namespace, all enclosing namespaces
+included: a file that two namespaced files both load under `shared` lands twice,
+as `L:shared:…` and `R:shared:…`. A path the file system does not accept, and a
+directory a glob cannot read, are FATALs at the `load` statement.
 
 A `load` path may also be a **glob pattern** (e.g. `load "models/*.jd" as lib`),
 in which case one directive expands into every matched file, each resolved by
@@ -247,6 +257,13 @@ returned so that downstream diagnostic steps can still run.
 Every diagnostic names the file its location is in: an element of a
 `load`-ed file is reported in that file, not in the one being compiled.
 
+A model whose `implements` failed, or never ran because its template never
+completes (an `implements` cycle, a template that could not be built), is
+marked incomplete on the `Unit`. Nothing consumes it, what waits in it is not
+reported, and the consistency and completeness checkers skip it: the one cause
+is reported where it is. An `implements` cycle is reported once, as
+`cyclic-implements`.
+
 #### `ConsistencyChecker`
 
 **Type:** `Checker<Unit>`  
@@ -273,7 +290,7 @@ edge is reachable.
 
 #### `SelectModel`
 
-**Type:** `Transformation<Unit, JustificationModel<?>>`  
+**Type:** `Transformation<Unit, JustificationModel>`  
 **Package:** `compiler.steps.transformations`
 
 Extracts one `JustificationModel` from the `Unit` by name (from the `-m` /
@@ -283,7 +300,7 @@ name is given, a `CompilationException` is thrown listing the available names.
 
 #### `ExportToDot`
 
-**Type:** `Transformation<JustificationModel<?>, String>`  
+**Type:** `Transformation<JustificationModel, String>`  
 **Package:** `compiler.steps.transformations`
 
 Serializes a model to a Graphviz DOT string using `DotExporter` (a
@@ -292,14 +309,14 @@ colorblind-safe (see ADR-0014).
 
 #### `ExportToJson`
 
-**Type:** `Transformation<JustificationModel<?>, String>`  
+**Type:** `Transformation<JustificationModel, String>`  
 **Package:** `compiler.steps.transformations`
 
 Serializes a model to a JSON string using `JsonExporter`.
 
 #### `ExportToJpipe`
 
-**Type:** `Transformation<JustificationModel<?>, String>`  
+**Type:** `Transformation<JustificationModel, String>`  
 **Package:** `compiler.steps.transformations`
 
 Serializes a model back to canonical jPipe source syntax using `JpipeExporter`.
@@ -307,7 +324,7 @@ Useful for normalisation or round-trip testing.
 
 #### `ExportToPython`
 
-**Type:** `Transformation<JustificationModel<?>, String>`  
+**Type:** `Transformation<JustificationModel, String>`  
 **Package:** `compiler.steps.transformations`
 
 Serializes a model as a step-library skeleton for jpipe-runner 4 using

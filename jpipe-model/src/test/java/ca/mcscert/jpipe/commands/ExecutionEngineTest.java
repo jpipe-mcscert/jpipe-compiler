@@ -5,12 +5,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
+import ca.mcscert.jpipe.commands.creation.CreateEvidence;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
+import ca.mcscert.jpipe.model.elements.Strategy;
+import ca.mcscert.jpipe.model.Template;
+import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,7 +85,7 @@ class ExecutionEngineTest {
 		@Test
 		void appendsToExistingUnit() {
 			Unit existing = new Unit("existing.jd");
-			existing.add(new ca.mcscert.jpipe.model.Justification("j1"));
+			existing.add(new Justification("j1"));
 			engine.enrich(existing, List.of(new CreateJustification("j2")));
 			assertThat(existing.getModels()).hasSize(2);
 		}
@@ -104,7 +108,7 @@ class ExecutionEngineTest {
 
 				@Override
 				public void doExecute(Unit context) {
-					context.add(new ca.mcscert.jpipe.model.Justification("j2"));
+					context.add(new Justification("j2"));
 				}
 			};
 
@@ -200,7 +204,7 @@ class ExecutionEngineTest {
 
 				@Override
 				public void doExecute(Unit context) {
-					context.add(new ca.mcscert.jpipe.model.Justification("j2"));
+					context.add(new Justification("j2"));
 				}
 			};
 			engine.spawn("src",
@@ -290,6 +294,87 @@ class ExecutionEngineTest {
 			assertThat(failures).singleElement().satisfies(
 					f -> assertThat(f.failedCommand()).isSameAs(failing));
 			assertThat(unit.findModel("after")).isPresent();
+		}
+	}
+
+	@Nested
+	class DeclarationOrder {
+
+		@Test
+		void implements_waits_for_the_template_to_be_complete() {
+			// The template's relation comes after the implements: it used to
+			// be copied without it (#177).
+			Unit unit = engine.spawn("src",
+					List.of(new CreateTemplate("t"),
+							new CreateJustification("j"),
+							new ImplementsTemplate("j", "t"),
+							new CreateConclusion("t", "c", "C"),
+							new CreateStrategy("t", "s", "S"),
+							new CreateAbstractSupport("t", "abs", "A"),
+							new AddSupport("t", "c", "s"),
+							new AddSupport("t", "s", "abs")));
+
+			var j = unit.get("j");
+			assertThat(j.conclusion()).hasValueSatisfying(
+					c -> assertThat(c.getSupport()).isPresent());
+			assertThat(j.findById("t:s")).hasValueSatisfying(
+					s -> assertThat(((Strategy) s).getSupports())
+							.extracting(e -> e.id()).containsExactly("t:abs"));
+		}
+
+		@Test
+		void a_relation_binds_the_local_element_declared_after_it() {
+			// A short id used to bind the inherited t:e, found first (#177).
+			Unit unit = engine.spawn("src", List.of(new CreateTemplate("t"),
+					new CreateConclusion("t", "c", "C"),
+					new CreateStrategy("t", "s", "S"),
+					new CreateAbstractSupport("t", "e", "E"),
+					new AddSupport("t", "c", "s"),
+					new AddSupport("t", "s", "e"), new CreateJustification("j"),
+					new ImplementsTemplate("j", "t"),
+					new CreateStrategy("j", "s2", "S2"),
+					new AddSupport("j", "s2", "e"),
+					new CreateEvidence("j", "e", "Local")));
+
+			var s2 = (Strategy) unit.get("j").findById("s2").orElseThrow();
+			assertThat(s2.getSupports()).extracting(e -> e.id())
+					.containsExactly("e");
+		}
+
+		@Test
+		void a_stuck_command_does_not_hold_back_the_rest_of_its_model() {
+			// The override never becomes possible; the relation, which waits
+			// for it, still runs once nothing else can.
+			List<Command> cmds = List
+					.of(new CreateJustification("j"),
+							new CreateStrategy("j", "s2", "S2"),
+							new CreateEvidence("j", "e2", "E2"),
+							new OverrideAbstractSupport("j", "t:missing",
+									"evidence", "E"),
+							new AddSupport("j", "s2", "e2"));
+
+			assertThatThrownBy(() -> engine.spawn("src", cmds))
+					.isInstanceOf(DeadlockException.class).satisfies(ex -> {
+						DeadlockException d = (DeadlockException) ex;
+						assertThat(d.stuckCommands()).singleElement()
+								.isInstanceOf(OverrideAbstractSupport.class);
+						Strategy s2 = (Strategy) d.partialUnit().get("j")
+								.findById("s2").orElseThrow();
+						assertThat(s2.getSupports()).extracting(e -> e.id())
+								.containsExactly("e2");
+					});
+		}
+
+		@Test
+		void implements_waits_on_an_incomplete_template_forever() {
+			Unit unit = new Unit("src");
+			unit.add(new Template("t"));
+			unit.add(new Justification("j"));
+			unit.markIncomplete("t");
+			List<Command> cmds = List.of(new ImplementsTemplate("j", "t"));
+
+			assertThatThrownBy(() -> engine.enrich(unit, cmds))
+					.isInstanceOf(DeadlockException.class);
 		}
 	}
 }

@@ -19,13 +19,17 @@ The model is constructed and modified exclusively through commands (`ca.mcscert.
 - `RegularCommand` — an atomic operation executed directly on a `Unit` (e.g., creating an element, adding a support edge, inlining a template).
 - `MacroCommand` — a composite that expands into a list of `RegularCommand`s at execution time. `ExecutionEngine` splices the expanded list in place and continues processing.
 
-An `ExecutionEngine` drives execution: it processes commands sequentially, expands macros in place, and defers commands whose `condition` is not yet satisfied to the end of the queue.
+An `ExecutionEngine` drives execution: it processes commands sequentially, expands macros in place, and defers commands that are not ready to the end of the queue.
+
+A command is ready when its `condition` holds on the unit built so far. A command whose outcome depends on a model being *complete* also waits for the pending commands that still change that model: each command names the model it creates or changes (`target()`), and `ready(unit, pending)` sees the rest of the queue. `implements` waits for its template, a relation for the declarations of its own model, an operator call for its source models. The meaning of a source therefore does not depend on the order of its declarations, only on what they declare.
+
+When nothing in the queue is ready, every command waiting on another, the engine runs, best effort, the first command that may run without waiting (`runWhenStuck(unit, pending)`: by default, when its `condition` holds), then resumes. A valid source never gets there; in an invalid one, a mistake holds back only what truly depends on it. `implements` never runs that way, so a model never inherits half a template, and an operator call never composes a source still waiting on its `implements`. When no command may run, execution deadlocks, and the stuck commands are diagnosed. The engine indexes the pending commands by the model they target, so that a readiness check looks at that model's commands only.
 
 ## Rationale
 
 - Deferred execution handles forward references and cross-file dependencies without requiring a multi-pass parser.
 - Commands are plain objects — they are easy to log, test, and inspect independently of the model.
-- The `condition` mechanism handles ordering constraints without requiring the caller to know evaluation order.
+- The `condition` and `ready` mechanisms handle ordering constraints without requiring the caller to know evaluation order.
 - `MacroCommand` keeps high-level operations (e.g., overriding an abstract support) expressed as a single intent while delegating the atomic steps to independently testable `RegularCommand`s. The first concrete use case is `OverrideAbstractSupport`, which expands into `RemoveElement` + `AddElement` + `RewireStrategySupport`.
 
 ## Consequences

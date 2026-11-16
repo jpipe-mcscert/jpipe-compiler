@@ -1,0 +1,24 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// 'j' implements a template that does not exist (line 9): it never gets its
+// inherited structure, so no operator composes it, and only that is reported.
+justification j implements missing {
+    evidence e is "An evidence"
+}
+
+justification b {
+    conclusion c is "C"
+    strategy   s is "S"
+    evidence   e is "E"
+    s supports c
+    e supports s
+}
+
+justification r is assemble(j, b) {
+    conclusionLabel: "R"
+    strategyLabel:   "SR"
+}

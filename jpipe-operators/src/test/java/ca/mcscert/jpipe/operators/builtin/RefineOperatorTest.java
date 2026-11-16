@@ -252,7 +252,7 @@ class RefineOperatorTest {
 
 		@Test
 		void throwsWhenHookArgumentMissing() {
-			List<JustificationModel<?>> sources = List.of(buildMinimal(),
+			List<JustificationModel> sources = List.of(buildMinimal(),
 					buildRefinement());
 			Map<String, String> args = Map.of();
 			assertThatThrownBy(() -> refine.apply("refined", sources, args))
@@ -262,7 +262,7 @@ class RefineOperatorTest {
 
 		@Test
 		void throwsWhenSourceCountIsNotTwo() {
-			List<JustificationModel<?>> sources = List.of(buildMinimal());
+			List<JustificationModel> sources = List.of(buildMinimal());
 			Map<String, String> args = Map.of("hook", "e");
 			assertThatThrownBy(() -> refine.apply("refined", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
@@ -271,7 +271,7 @@ class RefineOperatorTest {
 
 		@Test
 		void throwsWhenHookElementNotFoundInBaseModel() {
-			List<JustificationModel<?>> sources = List.of(buildMinimal(),
+			List<JustificationModel> sources = List.of(buildMinimal(),
 					buildRefinement());
 			Map<String, String> args = Map.of("hook", "nonexistent");
 			assertThatThrownBy(() -> refine.apply("refined", sources, args))

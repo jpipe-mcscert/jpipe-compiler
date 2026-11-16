@@ -81,7 +81,7 @@ public class DotExporter extends AbstractModelExporter {
 	 *            the justification or template to serialise.
 	 * @return DOT source text ready to be piped to {@code dot}.
 	 */
-	public String export(JustificationModel<?> model) {
+	public String export(JustificationModel model) {
 		builder.setLength(0);
 		model.accept(this);
 		return builder.toString();
@@ -126,14 +126,14 @@ public class DotExporter extends AbstractModelExporter {
 	// -------------------------------------------------------------------------
 
 	@Override
-	protected void exportModel(JustificationModel<?> model) {
+	protected void exportModel(JustificationModel model) {
 		currentModelName = model.getName();
 		Set<String> overriddenIds = model.concreteOverrides().stream()
 				.map(JustificationElement::id).collect(toSet());
 		inheritedIds = model.inheritedElements().stream()
 				.map(JustificationElement::id).collect(toSet());
 		allOverriddenIds = new HashSet<>(overriddenIds);
-		JustificationModel<?> cursor = model.getParent().orElse(null);
+		JustificationModel cursor = model.getParent().orElse(null);
 		while (cursor != null) {
 			cursor.concreteOverrides().stream().map(JustificationElement::id)
 					.forEach(allOverriddenIds::add);
@@ -170,7 +170,7 @@ public class DotExporter extends AbstractModelExporter {
 	// Edge rendering
 	// -------------------------------------------------------------------------
 
-	private void exportEdges(JustificationModel<?> model) {
+	private void exportEdges(JustificationModel model) {
 		model.conclusion().ifPresent(c -> c.getSupport()
 				.ifPresent(s -> appendEdge(qualify(s.id()), qualify(c.id()))));
 
@@ -202,7 +202,7 @@ public class DotExporter extends AbstractModelExporter {
 	 * abstract ghost node ({@link #ABSTRACT_SUFFIX}), because the template
 	 * structural edge points to the placeholder, not the concrete fulfilment.
 	 */
-	private List<String> leafEdgeSources(JustificationModel<?> model,
+	private List<String> leafEdgeSources(JustificationModel model,
 			Strategy strategy) {
 		if (!strategy.getSupports().isEmpty()) {
 			boolean isInherited = inheritedIds.contains(strategy.id());
@@ -243,7 +243,7 @@ public class DotExporter extends AbstractModelExporter {
 	 * closing. This produces properly nested DOT clusters that mirror the
 	 * inheritance hierarchy.
 	 */
-	private void appendAncestorCluster(JustificationModel<?> ancestor,
+	private void appendAncestorCluster(JustificationModel ancestor,
 			String indent) {
 		String ancName = ancestor.getName();
 

@@ -58,7 +58,10 @@ public final class CompletenessValidator {
 	public List<Violation> validate(Unit unit) {
 		ValidationContext ctx = ValidationContext.of(unit);
 		List<Violation> violations = new ArrayList<>();
-		unit.getModels()
+		// A model that could not be built in full has its cause reported
+		// already; its gaps are consequences, not mistakes of their own.
+		unit.getModels().stream()
+				.filter(model -> unit.isComplete(model.getName()))
 				.forEach(model -> violations.addAll(checkModel(model, ctx)));
 		return violations;
 	}
@@ -67,13 +70,13 @@ public final class CompletenessValidator {
 	 * Validates a single model without location data. All violations carry
 	 * {@link SourceLocation#UNKNOWN}.
 	 */
-	public List<Violation> validateModel(JustificationModel<?> model) {
+	public List<Violation> validateModel(JustificationModel model) {
 		return checkModel(model, ValidationContext.STANDALONE);
 	}
 
 	// -------------------------------------------------------------------------
 
-	private List<Violation> checkModel(JustificationModel<?> model,
+	private List<Violation> checkModel(JustificationModel model,
 			ValidationContext ctx) {
 		List<Violation> violations = new ArrayList<>();
 		String name = model.getName();
@@ -125,10 +128,6 @@ public final class CompletenessValidator {
 			ValidationContext ctx, List<Violation> violations) {
 		// no-abstract-support: AbstractSupports must have been replaced by
 		// override commands before the completeness check runs.
-		// Note: elementsOfType() accesses the raw elements list from within
-		// JustificationModel (where E is erased to JustificationElement),
-		// avoiding ClassCastException when AbstractSupport is stored in a
-		// Justification's List<CommonElement> via unchecked cast.
 		justification.elementsOfType(AbstractSupport.class).forEach(
 				as -> violations.add(new Violation("no-abstract-support",
 						"Abstract support '" + as.id() + "' in justification '"
