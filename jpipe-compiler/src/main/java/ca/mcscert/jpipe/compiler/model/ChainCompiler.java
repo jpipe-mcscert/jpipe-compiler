@@ -38,6 +38,12 @@ public final class ChainCompiler<I, O> implements Compiler {
 		I input = source.provideFrom(sourceFile);
 		try {
 			O output = chain.fire(input, ctx);
+			// The last step may have recorded a fatal and still returned: what
+			// it returned is no artefact to write (#180).
+			if (ctx.hasFatalErrors()) {
+				throw new CompilationException("ChainCompiler",
+						"compilation aborted: nothing was written");
+			}
 			sink.pourInto(output);
 		} finally {
 			release(input);

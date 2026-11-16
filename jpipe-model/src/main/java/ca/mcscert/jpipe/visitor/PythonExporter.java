@@ -640,6 +640,6 @@ public class PythonExporter extends AbstractModelExporter {
 	}
 
 	private static String escapeDocstring(String label) {
-		return label.replace("\\", "\\\\").replace("\"", "\\\"");
+		return Quoting.escaped(label);
 	}
 }

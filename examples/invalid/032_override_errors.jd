@@ -1,0 +1,23 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// 'dangling' supports no strategy, so no justification can override it: it is
+// reported in the template, line 14, and overriding it fails at line 22.
+// Overriding 'abs' twice is reported at the second override, line 21.
+template t {
+    conclusion c        is "C"
+    strategy   s        is "S"
+    @support   abs      is "A"
+    @support   dangling is "D"
+    abs supports s
+    s supports c
+}
+
+justification j implements t {
+    evidence t:abs      is "E"
+    evidence t:abs      is "E again"
+    evidence t:dangling is "D"
+}

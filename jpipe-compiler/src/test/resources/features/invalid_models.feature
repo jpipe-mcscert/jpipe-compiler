@@ -24,11 +24,14 @@ Feature: Consistency and completeness validation
     Then the compilation has validation errors
     And a validation error is reported for rule "unknown-element"
 
-  Scenario: duplicate model name causes a semantic error
+  Scenario: duplicate model name is reported, without a cascade
     Given the source file "invalid/004_duplicate_models.jd"
     When I compile it into a unit
     Then the compilation has validation errors
-    And a validation error is reported for rule "execution-error"
+    And a validation error is reported for rule "duplicate-model"
+    When I produce a JSON diagnostic report
+    Then the JSON report has no diagnostic with code "single-conclusion"
+      And the JSON report has no diagnostic with code "execution-error"
 
   Scenario: multiple conclusions in a model causes a semantic error
     Given the source file "invalid/005_multiple_conclusion.jd"

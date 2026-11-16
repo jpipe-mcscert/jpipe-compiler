@@ -29,7 +29,8 @@ resolves any `load` directives by recursively parsing referenced files.
 ### `unitBuilder()` — `List<Command>` → `Unit`
 
 ```
-ActionListInterpretation
+DuplicateModelFilter
+  → ActionListInterpretation
   → ConsistencyChecker
   → CompletenessChecker
 ```
@@ -59,7 +60,7 @@ participant Sink
 Caller -> CompilerFactory : build(config, stdout)
 CompilerFactory -> PC : FileSource → … → LoadResolver
 PC --> CompilerFactory : List<Command>
-CompilerFactory -> UB : ActionListInterpretation → … → CompletenessChecker
+CompilerFactory -> UB : DuplicateModelFilter → … → CompletenessChecker
 UB --> CompilerFactory : Unit
 CompilerFactory -> SelectModel : run(Unit)
 SelectModel --> CompilerFactory : JustificationModel<?>
@@ -102,7 +103,10 @@ Opens the source `.jd` file path supplied to `compile()` as a raw
 Decodes the raw `InputStream` into an ANTLR `CharStream`. Required before
 ANTLR lexing can proceed. The source must be UTF-8: the first byte sequence
 that is not valid UTF-8 is a `FATAL`, located at its line and column (counted
-in code points, as the lexer counts them), rather than replaced with U+FFFD.
+in code points, as the lexer counts them), rather than replaced with U+FFFD. A
+source that fails while being read (standard input redirected from a directory)
+is a `FATAL` too, `cannot read source: …`, recorded before the step throws, so
+that the `diagnostic` report names it.
 
 #### `Lexer`
 
@@ -110,8 +114,11 @@ in code points, as the lexer counts them), rather than replaced with U+FFFD.
 **Package:** `compiler.steps.transformations`
 
 Runs the ANTLR-generated `JPipeLexer` over the character stream and produces a
-`CommonTokenStream`. Lexer errors are recorded as non-fatal `ERROR` diagnostics
-so that parsing can still run and collect further errors.
+`CommonTokenStream`. A character no token matches is a lexer error ("token
+recognition error"), recorded as a non-fatal `ERROR` diagnostic with its
+location, so that parsing can still run and collect further errors;
+`HaltAndCatchFire` then aborts the compilation. The grammar has no catch-all
+rule that would drop such characters silently.
 
 #### `Parser`
 
@@ -151,9 +158,16 @@ Walks the `ParseTree` using an internal ANTLR `JPipeBaseListener` and emits one
   operator calls
 - `LoadResolver.LoadDirective` (an internal sentinel) for `load` directives
 
-All string labels are unquoted at this stage. Duplicate `conclusion`
-declarations within one model are caught here and reported as `ERROR`
-diagnostics.
+All string labels are unquoted at this stage, their `\"` and `\\` escapes
+resolved (`StringLiteral`). One problem is caught here and reported as an `ERROR` diagnostic at its
+location:
+
+- a second `conclusion` in one model declaration (`single-conclusion`),
+  counted per declaration, so two models that share a name are reported by
+  `DuplicateModelFilter` instead.
+
+Each `load` directive carries the location of its statement, where any failure
+to load it is reported.
 
 #### `LoadResolver`
 
@@ -164,8 +178,11 @@ Eliminates every `LoadDirective` by recursively parsing the referenced file
 and splicing its prefixed commands in place. Each referenced file is parsed
 through the chain `CharStreamProvider → Lexer → Parser → HaltAndCatchFire →
 ActionListProvider` using a fresh `CompilationContext`; diagnostics from the
-sub-file are forwarded to the parent context. Cycles are detected by tracking
-resolved absolute paths in a `Set<Path>` threaded through the recursion.
+sub-file are forwarded to the parent context, each naming the file it is in.
+Cycles are detected by tracking resolved absolute paths in a `Set<Path>`
+threaded through the recursion. Every failure to load — a missing or unreadable
+file, a cycle, a glob that is invalid or matches nothing — is a FATAL reported
+in the file that loads it, at its `load` statement.
 
 When `load "path" as ns` carries a namespace alias, every model-name reference
 in the expanded sub-list is qualified with `ns:` so that loaded models do not
@@ -188,6 +205,19 @@ their own. See ADR-0022.
 
 ### Model-building steps
 
+#### `DuplicateModelFilter`
+
+**Type:** `Transformation<List<Command>, List<Command>>`  
+**Package:** `compiler.steps.transformations`
+
+Reports every model declared under a name already taken, in this file or in a
+loaded one, as `duplicate-model` at the second declaration (naming where the
+first one is), and drops that declaration before any command runs. The
+commands of a declaration are contiguous — its creation (`CreateJustification`,
+`CreateTemplate` or `ApplyOperator`), then its body, up to the next creation —
+so the whole second declaration goes, and nothing it contains is added to the
+first model.
+
 #### `ActionListInterpretation`
 
 **Type:** `Transformation<List<Command>, Unit>`  
@@ -197,11 +227,25 @@ Feeds the flat command list to the `ExecutionEngine`, which handles deferred
 execution and macro expansion (see `model.md` — Commands). The result is a
 fully populated `Unit`.
 
+A command that fails does not stop the execution: the engine is given a
+failure handler that records it, and the rest of the queue still runs, so that
+one mistake gives one error rather than a cascade of reports about statements
+that never ran. `ExecutionFailureDiagnostics` then reports each failure at the
+location of its command (an operator call names the operator and the model it
+builds), followed by one summary `ERROR`.
+
 If execution deadlocks (deferred commands that can never run because their
 conditions remain unsatisfied), `ExecutionFailureDiagnostics` maps each stuck
-command to a specific semantic `ERROR` (e.g. `[unknown-element]`) rather than
-propagating a raw exception. The partial `Unit` built so far is returned so
-that downstream diagnostic steps can still run.
+command to a specific semantic `ERROR` (e.g. `[unknown-element]`; for an
+operator call, `[unknown-model]` naming each source model that does not exist)
+rather than propagating a raw exception. A command that only waits on a model
+whose own construction failed, directly or through other stuck calls, is not
+reported again: that failure is the one cause. Calls that only wait on each
+other are reported as never built. The partial `Unit` built so far is
+returned so that downstream diagnostic steps can still run.
+
+Every diagnostic names the file its location is in: an element of a
+`load`-ed file is reported in that file, not in the one being compiled.
 
 #### `ConsistencyChecker`
 

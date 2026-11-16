@@ -33,7 +33,11 @@ public final class CharStreamProvider
 		try {
 			bytes = input.readAllBytes();
 		} catch (IOException e) {
-			throw new CompilationException(stepName(), e.getMessage());
+			// Recorded before throwing: `diagnostic` reports from the context,
+			// and would otherwise call a source it never read "ok" (#180).
+			String message = "cannot read source: " + e.getMessage();
+			ctx.fatal(message);
+			throw new CompilationException(stepName(), message, e);
 		}
 		return CharStreams.fromString(decode(bytes, ctx));
 	}

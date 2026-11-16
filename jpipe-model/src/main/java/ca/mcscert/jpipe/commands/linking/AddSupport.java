@@ -62,6 +62,7 @@ public final class AddSupport extends RegularCommand {
 		return supporterId;
 	}
 
+	@Override
 	public SourceLocation location() {
 		return location;
 	}

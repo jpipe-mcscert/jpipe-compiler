@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -47,6 +48,29 @@ class InputOutputCommandTest {
 		int result = Main.commandLine().execute("--headless", "process", "-i",
 				"/no/such/file.jd", "-m", "whatever", "-o", "<stdout>");
 		assertThat(result).isEqualTo(Main.EXIT_SYSTEM_ERROR);
+	}
+
+	@Test
+	void a_source_that_fails_while_read_is_a_system_error_when_processing() {
+		// Reading stdin from a directory fails after it was opened: it used to
+		// exit 1, while a source that cannot be opened exits 42 (#180).
+		InputStream original = System.in;
+		System.setIn(new InputStream() {
+			@Override
+			public int read() throws IOException {
+				throw new IOException("Is a directory");
+			}
+		});
+		Captured run;
+		try {
+			run = capture(() -> Main.commandLine().execute("--headless",
+					"process", "-m", "whatever"));
+		} finally {
+			System.setIn(original);
+		}
+
+		assertThat(run.exitCode()).isEqualTo(Main.EXIT_SYSTEM_ERROR);
+		assertThat(run.err()).contains("cannot read source: Is a directory");
 	}
 
 	@Test

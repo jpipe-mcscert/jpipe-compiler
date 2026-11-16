@@ -21,6 +21,7 @@ import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.CollectDiagnostics;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticRenderer;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticReport;
+import ca.mcscert.jpipe.compiler.steps.transformations.DuplicateModelFilter;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToDot;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJson;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJpipe;
@@ -172,10 +173,13 @@ public final class CompilerFactory {
 
 	/**
 	 * Full unit builder: extends the parsing chain with model construction,
-	 * consistency checking, and completeness checking.
+	 * after dropping models declared twice, then consistency and completeness
+	 * checking.
 	 */
 	public static Transformation<List<Command>, Unit> unitBuilder() {
-		return new ActionListInterpretation().andThen(new ConsistencyChecker())
+		return new DuplicateModelFilter()
+				.andThen(new ActionListInterpretation())
+				.andThen(new ConsistencyChecker())
 				.andThen(new CompletenessChecker());
 	}
 

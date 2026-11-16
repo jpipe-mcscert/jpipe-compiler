@@ -284,6 +284,20 @@ class LoadResolverGlobTest {
 		return compile(pattern, namespace, dir.resolve("main.jd").toString());
 	}
 
+	@Test
+	void loadingADirectoryIsAFatalAtTheLoad() throws IOException {
+		// On Linux a directory opens and fails only when read, which used to
+		// report it in its own name rather than at the load (#183).
+		Files.createDirectories(dir.resolve("adir"));
+
+		CompilationContext ctx = compile("adir", null);
+
+		assertThat(fatalMessages(ctx)).singleElement().satisfies(
+				m -> assertThat(m).contains("'adir'", "is a directory"));
+		assertThat(ctx.diagnostics()).allSatisfy(
+				d -> assertThat(d.source()).isEqualTo(ctx.sourcePath()));
+	}
+
 	/**
 	 * Compiles from a source file one level below the temporary directory, so
 	 * that a "../" pattern has somewhere to climb back up to.

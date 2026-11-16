@@ -51,6 +51,7 @@ public sealed interface ElementCreationCommand extends Command, ElementView
 	String label();
 
 	/** Source location of the element declaration. */
+	@Override
 	SourceLocation location();
 
 	/**

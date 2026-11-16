@@ -149,7 +149,8 @@ new FileSource()
     .andThen(new LoadResolver(operators, unification));
 
 // unitBuilder(): List<Command> → Unit
-new ActionListInterpretation()
+new DuplicateModelFilter()
+    .andThen(new ActionListInterpretation())
     .andThen(new ConsistencyChecker())
     .andThen(new CompletenessChecker());
 ```

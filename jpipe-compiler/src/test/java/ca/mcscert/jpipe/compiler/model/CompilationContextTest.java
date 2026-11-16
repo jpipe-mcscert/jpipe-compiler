@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.model.SourceLocation;
@@ -117,5 +118,20 @@ class CompilationContextTest {
 						Diagnostic.UNKNOWN_LOCATION,
 						Diagnostic.UNKNOWN_LOCATION);
 		assertThat(ctx.hasFatalErrors()).isFalse();
+	}
+
+	@Test
+	void a_location_in_another_file_is_reported_in_that_file() {
+		// An element of a load-ed file used to be reported against the file
+		// being compiled, at a line that file may not have (#173).
+		CompilationContext main = new CompilationContext("main.jd");
+
+		main.error("unknown-element", new SourceLocation("lib.jd", 11, 4),
+				"unknown element 'missing'");
+		main.fatal(new SourceLocation(2, 0), "cannot open loaded file");
+
+		assertThat(main.diagnostics())
+				.extracting(Diagnostic::source, Diagnostic::line)
+				.containsExactly(tuple("lib.jd", 11), tuple("main.jd", 2));
 	}
 }

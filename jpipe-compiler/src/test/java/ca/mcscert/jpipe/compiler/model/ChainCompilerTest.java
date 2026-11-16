@@ -91,4 +91,20 @@ class ChainCompilerTest {
 				.hasMessageContaining("fatal");
 	}
 
+	@Test
+	void compile_writesNothingWhenTheLastStepRecordsAFatal() {
+		// A step may record a fatal and still return: what it returned is no
+		// artefact, and must not reach the sink (#180).
+		AtomicReference<String> poured = new AtomicReference<>();
+		Compiler compiler = fixedSource("bad")
+				.andThen(Transformation.<String, String>of((input, ctx) -> {
+					ctx.fatal("cannot finish");
+					return "half an artefact";
+				})).andThen(poured::set);
+
+		assertThatThrownBy(() -> compiler.compile("f.jd", "out.txt"))
+				.isInstanceOf(CompilationException.class)
+				.hasMessageContaining("nothing was written");
+		assertThat(poured.get()).isNull();
+	}
 }

@@ -79,11 +79,10 @@ public final class RefineOperator extends CompositionOperator {
 		// fallback). This ensures isHookPair's id comparison matches even when
 		// the hook is referenced by its plain short id (e.g. "s" -> "t:s").
 		String resolvedHookId = base.findById(aliasedHookId)
-				.map(JustificationElement::id)
-				.orElseThrow(() -> new InvalidOperatorCallException(
-						"[execution-error] hook element '" + hookElementId
-								+ "' not found in base model '" + base.getName()
-								+ "'"));
+				.map(JustificationElement::id).orElseThrow(
+						() -> new InvalidOperatorCallException("hook element '"
+								+ hookElementId + "' not found in base model '"
+								+ base.getName() + "'"));
 
 		return (a, b) -> a instanceof SourcedElement sa
 				&& b instanceof SourcedElement sb

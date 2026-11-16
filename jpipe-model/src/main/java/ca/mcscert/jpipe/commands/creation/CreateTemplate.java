@@ -24,6 +24,7 @@ public final class CreateTemplate extends RegularCommand {
 		return identifier;
 	}
 
+	@Override
 	public SourceLocation location() {
 		return location;
 	}

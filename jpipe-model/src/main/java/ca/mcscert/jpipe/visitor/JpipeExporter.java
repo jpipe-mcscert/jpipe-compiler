@@ -129,7 +129,7 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 
 	private void appendElement(String keyword, JustificationElement element) {
 		builder.append(INDENT).append(keyword).append(" ").append(element.id())
-				.append(" is \"").append(element.label()).append("\"")
+				.append(" is ").append(Quoting.doubleQuoted(element.label()))
 				.append(System.lineSeparator());
 	}
 
@@ -137,4 +137,5 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 		builder.append(INDENT).append(supporterId).append(" supports ")
 				.append(supportedId).append(System.lineSeparator());
 	}
+
 }

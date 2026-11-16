@@ -12,6 +12,7 @@ import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.model.Unit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.BeforeEach;
@@ -268,6 +269,27 @@ class ExecutionEngineTest {
 						assertThat(cee.failedCommand()).isSameAs(failing);
 						assertThat(cee.partialUnit()).isNotNull();
 					});
+		}
+
+		@Test
+		void a_failure_handler_records_the_failure_and_the_queue_goes_on() {
+			// The compiler reports every error of a source: one failing
+			// command must not hide the commands after it (#183).
+			RegularCommand failing = new RegularCommand() {
+				@Override
+				public void doExecute(Unit context) {
+					throw new IllegalStateException("intentional failure");
+				}
+			};
+			List<CommandExecutionException> failures = new ArrayList<>();
+			ExecutionEngine collecting = new ExecutionEngine(failures::add);
+
+			Unit unit = collecting.spawn("src",
+					List.of(failing, new CreateJustification("after")));
+
+			assertThat(failures).singleElement().satisfies(
+					f -> assertThat(f.failedCommand()).isSameAs(failing));
+			assertThat(unit.findModel("after")).isPresent();
 		}
 	}
 }

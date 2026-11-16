@@ -27,6 +27,9 @@ import picocli.CommandLine.ParentCommand;
  */
 abstract class InputOutputCommand implements Callable<Integer> {
 
+	/** How every error this command reports begins. */
+	private static final String ERROR = "error: ";
+
 	@ParentCommand
 	private Main parent;
 
@@ -46,7 +49,7 @@ abstract class InputOutputCommand implements Callable<Integer> {
 			System.err.println(Logo.BANNER);
 		}
 		if (OutputTarget.sameFile(input, output)) {
-			System.err.println("error: '" + output
+			System.err.println(ERROR + "'" + output
 					+ "' is also the input: writing to it would replace the source");
 			return CommandLine.ExitCode.USAGE;
 		}
@@ -55,14 +58,21 @@ abstract class InputOutputCommand implements Callable<Integer> {
 			Integer exitCode = doCall(target.stream());
 			target.commit();
 			return exitCode;
-		} catch (CompilationException | UnsupportedOperationException e) {
-			System.err.println("error: " + e.getMessage());
+		} catch (CompilationException e) {
+			System.err.println(ERROR + e.getMessage());
+			// A source that fails while being read is a system error, as one
+			// that cannot be opened is (ADR-0016).
+			return e.getCause() instanceof IOException
+					? Main.EXIT_SYSTEM_ERROR
+					: Main.EXIT_JPIPE_ERROR;
+		} catch (UnsupportedOperationException e) {
+			System.err.println(ERROR + e.getMessage());
 			return Main.EXIT_JPIPE_ERROR;
 		} catch (IOException e) {
 			// The output cannot be written (UnwritableOutputException), or the
 			// source cannot be read under `process`: both are system errors,
 			// whose message names the file (ADR-0016).
-			System.err.println("error: " + e.getMessage());
+			System.err.println(ERROR + e.getMessage());
 			return Main.EXIT_SYSTEM_ERROR;
 		}
 	}

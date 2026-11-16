@@ -49,6 +49,7 @@ public final class ApplyOperator implements MacroCommand {
 		return config.arguments();
 	}
 
+	@Override
 	public SourceLocation location() {
 		return config.location();
 	}
@@ -63,17 +64,17 @@ public final class ApplyOperator implements MacroCommand {
 	public List<Command> expand(Unit context) {
 		CompositionOperator op = operators.find(config.operatorName())
 				.orElseThrow(() -> new InvalidOperatorCallException(
-						"Unknown operator: '" + config.operatorName() + "' at "
-								+ config.location()));
+						"unknown operator '" + config.operatorName()
+								+ "'; registered: "
+								+ operators.registeredNames()));
 		List<JustificationModel<?>> sources = config.sourceNames().stream()
 				.<JustificationModel<?>>map(context::get).toList();
 		ModelKind actualKind = op.resultKind(sources, config.arguments());
 		if (actualKind != config.declaredKind()) {
-			throw new InvalidOperatorCallException(
-					"[execution-error] operator '" + config.operatorName()
-							+ "' produces a " + actualKind.name().toLowerCase()
-							+ " but was declared as '"
-							+ config.declaredKind().name().toLowerCase() + "'");
+			throw new InvalidOperatorCallException("operator '"
+					+ config.operatorName() + "' produces a "
+					+ actualKind.name().toLowerCase() + " but was declared as '"
+					+ config.declaredKind().name().toLowerCase() + "'");
 		}
 		List<Command> composed = op.apply(config.resultName(), sources,
 				config.arguments(), config.location(), context.locations(),

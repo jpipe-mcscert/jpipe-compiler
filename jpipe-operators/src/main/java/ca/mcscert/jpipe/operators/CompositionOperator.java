@@ -208,8 +208,7 @@ public abstract class CompositionOperator {
 				.filter(key -> !args.containsKey(key)).sorted().toList();
 		if (!missing.isEmpty()) {
 			throw new InvalidOperatorCallException(
-					getClass().getSimpleName() + " requires argument(s) "
-							+ missing + " but they were not provided");
+					"missing required argument(s) " + missing);
 		}
 
 		// Collect all sourced elements from every source model, attaching each

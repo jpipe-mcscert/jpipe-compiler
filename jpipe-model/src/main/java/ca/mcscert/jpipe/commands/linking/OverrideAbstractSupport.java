@@ -60,6 +60,7 @@ public final class OverrideAbstractSupport implements MacroCommand {
 		return label;
 	}
 
+	@Override
 	public SourceLocation location() {
 		return location;
 	}

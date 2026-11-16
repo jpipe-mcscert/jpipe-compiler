@@ -37,6 +37,8 @@ import java.util.List;
  * <ul>
  * <li>{@code has-abstract-support} — template declares at least one
  * {@link AbstractSupport}.
+ * <li>{@code abstract-support-used} — every {@link AbstractSupport} supports a
+ * strategy, since one that supports none can never be overridden.
  * </ul>
  *
  * <p>
@@ -143,5 +145,18 @@ public final class CompletenessValidator {
 					"Template '" + name + "' declares no abstract supports",
 					ctx.locationOf(name)));
 		}
+		// abstract-support-used: an abstract support that supports no
+		// strategy can never be overridden, so it is reported here, where it
+		// is written, rather than in every justification implementing the
+		// template (#183).
+		template.abstractSupports().stream()
+				.filter(as -> template.strategies().stream()
+						.noneMatch(s -> s.getSupports().stream()
+								.anyMatch(leaf -> leaf.id().equals(as.id()))))
+				.forEach(as -> violations.add(new Violation(
+						"abstract-support-used",
+						"Abstract support '" + as.id() + "' in template '"
+								+ name + "' supports no strategy",
+						ctx.locationOf(name, as.id()))));
 	}
 }

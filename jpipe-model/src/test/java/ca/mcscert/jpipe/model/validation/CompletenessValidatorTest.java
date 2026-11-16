@@ -152,6 +152,27 @@ class CompletenessValidatorTest {
 			assertThat(violations).extracting(Violation::rule)
 					.contains("has-abstract-support");
 		}
+
+		@Test
+		void abstract_support_supporting_no_strategy_produces_violation() {
+			Template t = new Template("t");
+			Conclusion c = new Conclusion("c", "C");
+			Strategy s = new Strategy("s", "S");
+			AbstractSupport used = new AbstractSupport("used", "Used");
+			AbstractSupport dangling = new AbstractSupport("dangling", "D");
+			t.setConclusion(c);
+			t.addElement(s);
+			t.addElement(used);
+			t.addElement(dangling);
+			s.addSupport(used);
+			c.addSupport(s);
+
+			List<Violation> violations = validator.validateModel(t);
+
+			assertThat(violations).extracting(Violation::rule)
+					.containsExactly("abstract-support-used");
+			assertThat(violations.getFirst().message()).contains("'dangling'");
+		}
 	}
 
 	@Nested

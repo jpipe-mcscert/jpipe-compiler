@@ -18,7 +18,34 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- Strings accept two escapes: `\"` for a double quote and `\\` for a backslash.
+  Any other backslash is kept as written, so a path such as `"dir\file.jd"`
+  needs no change. The JPIPE export escapes labels the same way, so a label
+  holding a quote compiles back to itself (#176).
+
 ### Changed
+- **Breaking:** a template's `@support` that supports no strategy is now an error
+  in that template (completeness rule `abstract-support-used`). It compiled, but
+  no justification could override it, and the failure was only reported, without
+  a line, in each one that tried (#183).
+- A model declared under a name already taken, in the same file or in a loaded
+  one, is reported once, at the second declaration and naming where the first
+  is, with the new code `duplicate-model`. It used to be an `execution-error`,
+  plus a misleading `single-conclusion` error. Nothing in the second
+  declaration is added to the first model any more (#183).
+- **Breaking:** a string now ends at its first unescaped double quote. It used
+  to run to the last quote on its line, so a trailing `// see "doc"` comment
+  became part of the label, and two declarations written on one line were
+  merged into one element. A label that holds a double quote must now write it
+  `\"` (#176).
+- **Breaking:** two backslashes in a string now stand for one. A label written
+  `"a\\b"` reads `a\b`, and a Windows network path in a `load` must double
+  its leading backslashes, `"\\\\server\\share\\lib.jd"`, or use forward
+  slashes (#176).
+- **Breaking:** a character the language does not know, such as the `-` in
+  `e-1` or the `é` in `café`, is now a syntax error reported where it sits. It
+  used to be dropped without a word, so `e-1` and `e-2` both became `e` (#176).
 - The compilation errors of `jpipe process` are now printed on standard error as
   bare `file:line:column: error: message` lines, without a timestamp or logger
   name, and no `--log-level` hides them: `--log-level OFF` used to leave only
@@ -52,6 +79,33 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   header.
 
 ### Fixed
+- An error in a `load`-ed file is reported in that file, at its own line. It was
+  reported against the file being compiled, often at a line that file does not
+  have, so the IDE pointed at the wrong place (#173).
+- One failing statement no longer stops the construction of its model: the
+  statements after it still run, so they are no longer reported as missing, as
+  in `Strategy 's2' has no supporting element` after a conclusion was given two
+  strategies. What only waits on a model whose operator call failed, however
+  indirectly, adds no error of its own (#183).
+- Diagnostics carry the line of the statement that caused them (#183):
+  - a failing operator call is reported at the call, names the operator
+    (`'assemble' for 'r'`, not `AssembleOperator`), and no longer repeats
+    `[execution-error]` in its message;
+  - a call to a model that does not exist names that model;
+  - a `load` that fails is reported at its `load` statement, naming the path as
+    written;
+  - duplicate models, a second conclusion and other failing statements give
+    their line.
+- Overriding an abstract support twice, or overriding an element that is not
+  one, is reported as `unresolved-override` at the override, instead of only
+  `unresolved symbol(s) — model cannot be built` (#183).
+- `jpipe diagnostic` no longer reports `"status": "ok"` and exits 0 on a source
+  it never read, such as standard input redirected from a directory: the
+  failure is a fatal diagnostic, with exit code 1. Under `process`, that source
+  is a system error (exit code 42), as one that cannot be opened is (#180).
+- A single-quoted label (`'A label'`) is now a syntax error at its location,
+  instead of a crash with a Java stack trace and no diagnostic report. Strings
+  are written between double quotes only (#172).
 - The logo banner is now printed on standard error. It used to start every
   export written to standard output, so `jpipe process` without `--headless`
   produced JSON, Python and images that could not be read (#175).

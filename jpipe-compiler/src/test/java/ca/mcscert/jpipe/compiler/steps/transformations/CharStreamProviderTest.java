@@ -7,6 +7,7 @@ import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Diagnostic;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
@@ -30,6 +31,25 @@ class CharStreamProviderTest {
 		assertThat(stream.getText(Interval.of(0, stream.size() - 1)))
 				.isEqualTo(text);
 		assertThat(ctx.diagnostics()).isEmpty();
+	}
+
+	@Test
+	void a_source_that_fails_while_read_is_a_recorded_fatal() {
+		// The fatal must be in the context, not only in the exception:
+		// `diagnostic` reports from the context (#180).
+		InputStream failing = new InputStream() {
+			@Override
+			public int read() throws IOException {
+				throw new IOException("Is a directory");
+			}
+		};
+		CompilationContext ctx = new CompilationContext("<stdin>");
+		CharStreamProvider step = new CharStreamProvider();
+
+		assertThatThrownBy(() -> step.fire(failing, ctx))
+				.isInstanceOf(CompilationException.class)
+				.hasMessageContaining("cannot read source: Is a directory");
+		assertThat(ctx.hasFatalErrors()).isTrue();
 	}
 
 	static Stream<Arguments> invalidSources() {
