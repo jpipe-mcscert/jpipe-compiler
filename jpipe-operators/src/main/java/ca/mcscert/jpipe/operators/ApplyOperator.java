@@ -6,6 +6,7 @@ import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.Optional;
@@ -182,8 +183,10 @@ public final class ApplyOperator implements MacroCommand {
 		if (actualKind != config.declaredKind()) {
 			throw new InvalidOperatorCallException("operator '"
 					+ config.operatorName() + "' produces a "
-					+ actualKind.name().toLowerCase() + " but was declared as '"
-					+ config.declaredKind().name().toLowerCase() + "'");
+					+ actualKind.name().toLowerCase(Locale.ROOT)
+					+ " but was declared as '"
+					+ config.declaredKind().name().toLowerCase(Locale.ROOT)
+					+ "'");
 		}
 		return new Unifier(unificationEquivalences).unify(config.resultName(),
 				composed, arguments);

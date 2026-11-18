@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 
 class LabelEscaperTest {
@@ -52,5 +53,40 @@ class LabelEscaperTest {
 	@Test
 	void multipleConsecutiveSpecialChars() {
 		assertThat(LabelEscaper.toMethodName("a --- b")).isEqualTo("a_b");
+	}
+
+	@Test
+	void nonLatinLettersAreKept() {
+		assertThat(LabelEscaper.toMethodName("系统 正确")).isEqualTo("系统_正确");
+		assertThat(LabelEscaper.toMethodName("Система работает"))
+				.isEqualTo("система_работает");
+		assertThat(LabelEscaper.toMethodName("हिन्दी परीक्षण"))
+				.isEqualTo("हिन्दी_परीक्षण");
+	}
+
+	@Test
+	void compatibilityFormsAreNormalised() {
+		// Full-width letters and ligatures fold the way Python normalises
+		// identifiers (NFKC).
+		assertThat(LabelEscaper.toMethodName("ＴＥＳＴ ﬁle"))
+				.isEqualTo("test_file");
+	}
+
+	@Test
+	void lowercasingIgnoresTheDefaultLocale() {
+		Locale saved = Locale.getDefault();
+		Locale.setDefault(Locale.forLanguageTag("tr"));
+		try {
+			assertThat(LabelEscaper.toMethodName("CHECK INPUTS"))
+					.isEqualTo("check_inputs");
+		} finally {
+			Locale.setDefault(saved);
+		}
+	}
+
+	@Test
+	void labelWithoutLetterOrDigitGivesUnderscore() {
+		assertThat(LabelEscaper.toMethodName("!!!")).isEqualTo("_");
+		assertThat(LabelEscaper.toMethodName("")).isEqualTo("_");
 	}
 }

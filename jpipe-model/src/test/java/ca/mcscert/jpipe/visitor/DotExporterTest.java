@@ -124,8 +124,9 @@ class DotExporterTest {
 		assertThat(dot)
 				// Abstract support in cluster, suffixed with @abstract
 				.contains("\"immediate:a_template:abs@abstract\"")
-				// Concrete override exists in the graph
-				.contains("id=\"immediate:a_template:abs\"")
+				// Concrete override and ghost each carry their own SVG id
+				.containsOnlyOnce("id=\"immediate:a_template:abs\"")
+				.containsOnlyOnce("id=\"immediate:a_template:abs@abstract\"")
 				// Dashed arrow: abstract ghost → concrete ("fulfilled by")
 				.contains(
 						"\"immediate:a_template:abs\" -> \"immediate:a_template:abs@abstract\""
@@ -205,5 +206,27 @@ class DotExporterTest {
 		String dot = new DotExporter().export(j);
 
 		assertThat(dot).contains("subgraph \"cluster_ns:t\"");
+	}
+
+	@Test
+	void export_ownUnsupportedStrategyDrawsNoTemplateEdge() {
+		// #189: a justification's own strategy sharing a short id with a
+		// template strategy must not borrow the template strategy's leaves.
+		Template t = new Template("t");
+		t.setConclusion(new Conclusion("c", "C"));
+		Strategy templateStrategy = new Strategy("s", "S");
+		t.addElement(templateStrategy);
+		Evidence e = new Evidence("e", "E");
+		t.addElement(e);
+		templateStrategy.addSupport(e);
+
+		Justification j = new Justification("j");
+		j.inline(t, "t");
+		j.addElement(new Strategy("s", "Own S"));
+
+		String dot = new DotExporter().export(j);
+
+		assertThat(dot).contains("\"j:t:e\" -> \"j:t:s\"")
+				.doesNotContain("-> \"j:s\"");
 	}
 }

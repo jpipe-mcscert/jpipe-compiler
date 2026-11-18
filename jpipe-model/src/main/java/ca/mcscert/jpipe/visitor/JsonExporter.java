@@ -8,7 +8,6 @@ import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
-import ca.mcscert.jpipe.util.LabelEscaper;
 import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -129,7 +128,6 @@ public class JsonExporter extends AbstractModelExporter {
 		obj.put("type", type);
 		obj.put("id", qualify(element.id()));
 		obj.put("label", element.label());
-		obj.put("escaped", LabelEscaper.toMethodName(element.label()));
 		List<String> aliases = qualifiedOriginalsOf(element.id());
 		if (!aliases.isEmpty()) {
 			obj.put("aliases", new JSONArray(aliases));

@@ -177,7 +177,7 @@ public class DotExporter extends AbstractModelExporter {
 		model.subConclusions().forEach(sc -> sc.getSupport()
 				.ifPresent(s -> appendEdge(qualify(s.id()), qualify(sc.id()))));
 
-		model.strategies().forEach(s -> leafEdgeSources(model, s)
+		model.strategies().forEach(s -> leafEdgeSources(s)
 				.forEach(sourceId -> appendEdge(sourceId, qualify(s.id()))));
 	}
 
@@ -192,34 +192,21 @@ public class DotExporter extends AbstractModelExporter {
 	 *
 	 * <p>
 	 * Template expansion copies every leaf, {@link AbstractSupport}
-	 * placeholders included, so an inherited strategy keeps its supports and
-	 * takes the first branch. Only a strategy with no support at all in this
-	 * model falls back to the parent template's strategy of the same id, and
-	 * borrows its leaves.
+	 * placeholders included, so an inherited strategy keeps its supports. A
+	 * strategy with no support draws no edge: borrowing the leaves of a parent
+	 * strategy with the same short id would draw edges the model never declares
+	 * (#189).
 	 *
 	 * <p>
-	 * Either way, a leaf overridden in the current model resolves to the
-	 * abstract ghost node ({@link #ABSTRACT_SUFFIX}), because the template
-	 * structural edge points to the placeholder, not the concrete fulfilment.
+	 * A leaf of an inherited strategy that is overridden in the current model
+	 * resolves to the abstract ghost node ({@link #ABSTRACT_SUFFIX}), because
+	 * the template structural edge points to the placeholder, not the concrete
+	 * fulfilment.
 	 */
-	private List<String> leafEdgeSources(JustificationModel model,
-			Strategy strategy) {
-		if (!strategy.getSupports().isEmpty()) {
-			boolean isInherited = inheritedIds.contains(strategy.id());
-			return strategy.getSupports().stream().map(SupportLeaf::id)
-					.map(leafId -> leafNode(leafId, isInherited)).toList();
-		}
-		return model.getParent().flatMap(parent -> {
-			String idInParent = stripParentPrefix(strategy.id(),
-					parent.getName());
-			return parent.findById(idInParent)
-					.filter(Strategy.class::isInstance)
-					.map(Strategy.class::cast)
-					.map(ps -> ps.getSupports().stream().map(SupportLeaf::id)
-							.map(leafId -> qualifyIfPlain(parent.getName(),
-									leafId))
-							.map(qid -> leafNode(qid, true)).toList());
-		}).orElse(List.of());
+	private List<String> leafEdgeSources(Strategy strategy) {
+		boolean isInherited = inheritedIds.contains(strategy.id());
+		return strategy.getSupports().stream().map(SupportLeaf::id)
+				.map(leafId -> leafNode(leafId, isInherited)).toList();
 	}
 
 	/**
@@ -277,8 +264,9 @@ public class DotExporter extends AbstractModelExporter {
 	/**
 	 * Appends a node declaration for an ancestor element inside a cluster.
 	 * Overridden abstract supports receive {@link #ABSTRACT_SUFFIX} on their
-	 * DOT node name so they do not clash with the concrete replacement rendered
-	 * outside the cluster.
+	 * DOT node name and on their {@code id} attribute, so that neither clashes
+	 * with the concrete replacement rendered outside the cluster: an SVG with
+	 * two equal ids lets {@code getElementById} reach only one of them.
 	 */
 	private void appendClusterNode(String childQualifiedId,
 			JustificationElement element, String indent) {
@@ -286,11 +274,10 @@ public class DotExporter extends AbstractModelExporter {
 				&& allOverriddenIds.contains(childQualifiedId);
 		String dotNodeId = qualify(childQualifiedId)
 				+ (isGhost ? ABSTRACT_SUFFIX : "");
-		String semanticId = qualify(childQualifiedId);
 		builder.append(indent).append(DotLabel.quoted(dotNodeId))
 				.append(" [label=")
 				.append(DotLabel.wrapAndQuote(element.label())).append(", id=")
-				.append(DotLabel.quoted(semanticId)).append(", ")
+				.append(DotLabel.quoted(dotNodeId)).append(", ")
 				.append(DotNodeStyle.of(element).toAttrs()).append("];")
 				.append(System.lineSeparator());
 	}
@@ -325,20 +312,5 @@ public class DotExporter extends AbstractModelExporter {
 				.append(" -> ").append(DotLabel.quoted(abstractId))
 				.append(" [arrowhead=empty, style=dotted];")
 				.append(System.lineSeparator());
-	}
-
-	// -------------------------------------------------------------------------
-	// ID helpers
-	// -------------------------------------------------------------------------
-
-	/**
-	 * Strips the parent model name prefix from a qualified element id. E.g.,
-	 * {@code "parent:s"} with parent name {@code "parent"} returns {@code "s"}.
-	 * Ids that do not start with {@code parentName:} (grandparent-qualified ids
-	 * such as {@code "t1:s"}) are returned unchanged.
-	 */
-	private static String stripParentPrefix(String id, String parentName) {
-		String prefix = parentName + ":";
-		return id.startsWith(prefix) ? id.substring(prefix.length()) : id;
 	}
 }

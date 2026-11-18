@@ -9,6 +9,7 @@ import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
@@ -81,13 +82,16 @@ public final class OverrideAbstractSupport implements MacroCommand {
 				.orElseThrow(() -> new NoSuchElementException(
 						"No abstract support with id: " + qualifiedId));
 
-		String strategyId = model.strategies().stream()
+		// Every strategy the placeholder supports is rewired, not only the
+		// first: one left behind would keep the removed placeholder (#187).
+		List<String> strategyIds = model.strategies().stream()
 				.filter(s -> s.getSupports().stream()
 						.anyMatch(sl -> sl.id().equals(old.id())))
-				.map(JustificationElement::id).findFirst()
-				.orElseThrow(() -> new IllegalStateException(
-						"No strategy supports abstract support: "
-								+ qualifiedId));
+				.map(JustificationElement::id).toList();
+		if (strategyIds.isEmpty()) {
+			throw new IllegalStateException(
+					"No strategy supports abstract support: " + qualifiedId);
+		}
 
 		// Act on the id the placeholder actually has, which the short-name
 		// fallback of findById may have resolved: removing and rewiring the
@@ -101,11 +105,14 @@ public final class OverrideAbstractSupport implements MacroCommand {
 		};
 
 		unit.recordLocation(container, id, location);
-		return List.of(new RemoveElement(container, id),
-				new AddElement(container, replacement),
-				new RewireStrategySupport(container, strategyId, id,
-						old.getClass().getSimpleName(), id,
-						replacement.getClass().getSimpleName()));
+		List<Command> commands = new ArrayList<>();
+		commands.add(new RemoveElement(container, id));
+		commands.add(new AddElement(container, replacement));
+		strategyIds.forEach(
+				strategyId -> commands.add(new RewireStrategySupport(container,
+						strategyId, id, old.getClass().getSimpleName(), id,
+						replacement.getClass().getSimpleName())));
+		return commands;
 	}
 
 	@Override

@@ -113,6 +113,22 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   function name, which follows its label, an id, or the source path in the
   header.
 
+- **Breaking:** a Python function name keeps the letters of a label in a
+  non-Latin script, which Python 3 accepts in identifiers: `"系统 正确"` gives
+  `def 系统_正确()` instead of `def _()`. A letter with a diacritic still maps to
+  its ASCII base (`"Vérification"` still gives `verification`), but a letter
+  that has none is now kept instead of dropped (`ß`, `ø`, `œ`): a step library
+  generated for such labels must be regenerated or renamed (#187).
+- **Breaking:** the JSON export no longer writes an `escaped` field on each
+  element. It was undocumented, and it was not the Python function name whenever
+  two names collided or a label was a reserved word (#187).
+- **Breaking:** in the DOT export, and the SVG drawn from it, an overridden
+  `@support`'s placeholder node now has its own `id`, ending in `@abstract`. It
+  shared the id of the element overriding it, so a lookup by id, such as the
+  VS Code preview's, could land on either one (#187).
+- The header of a Python export no longer carries the generation date, so
+  regenerating a committed step library leaves it unchanged (#187).
+
 ### Fixed
 - An id repeated in `unifyExclude` (`"c,c"`) no longer fails the composition with
   a misleading `duplicate element` error: the list is a set (#171).
@@ -221,6 +237,13 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   pipe, is now an error with exit code 42. Text formats used to exit 0 with an
   empty or missing file (#179).
 
+- The DOT export of a justification no longer draws edges from a template's
+  evidence into a strategy the justification declares itself, without support,
+  under the same short id as a template strategy. Such a strategy is now drawn
+  with no incoming edge, as declared (#189).
+- Python function names, and the severities of the diagnostic report, are now
+  lowercased the same way under every system locale. Under a Turkish locale,
+  `"CHECK INPUTS"` gave `check_nputs` (#187).
 ---
 
 ## [3.0.0] — 2026-11-10

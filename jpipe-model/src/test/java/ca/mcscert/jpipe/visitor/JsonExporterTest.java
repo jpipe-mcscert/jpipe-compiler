@@ -2,6 +2,8 @@ package ca.mcscert.jpipe.visitor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 class JsonExporterTest {
@@ -21,6 +23,19 @@ class JsonExporterTest {
 				.export(ModelFixtures.simpleJustification());
 
 		assertThat(json).contains("\"j:c\"", "\"j:s\"", "\"j:e1\"");
+	}
+
+	@Test
+	void export_elementCarriesOnlyItsDocumentedFields() {
+		// The undocumented "escaped" slug is gone (#187): the Python function
+		// name it echoed differs whenever names collide or are reserved.
+		JSONArray elements = new JSONObject(
+				new JsonExporter().export(ModelFixtures.simpleJustification()))
+				.getJSONArray("elements");
+
+		assertThat(elements).isNotEmpty()
+				.allSatisfy(e -> assertThat(((JSONObject) e).keySet())
+						.containsExactlyInAnyOrder("type", "id", "label"));
 	}
 
 	@Test

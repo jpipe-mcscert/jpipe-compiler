@@ -12,8 +12,11 @@ import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.model.elements.Evidence;
+import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -129,6 +132,33 @@ class OverrideAbstractSupportTest {
 			Justification j = (Justification) unit.get("j");
 			assertThat(j.findById("t:as")).isPresent().get()
 					.isInstanceOf(SubConclusion.class);
+		}
+
+		@Test
+		void rewiresEveryStrategyThePlaceholderSupports() {
+			Unit unit = engine.spawn("src",
+					List.of(new CreateTemplate("t"),
+							new CreateConclusion("t", "tc",
+									"Template conclusion"),
+							new CreateStrategy("t", "ts1", "First strategy"),
+							new CreateStrategy("t", "ts2", "Second strategy"),
+							new CreateAbstractSupport("t", "as", "Placeholder"),
+							new AddSupport("t", "ts1", "as"),
+							new AddSupport("t", "ts2", "as"),
+							new AddSupport("t", "tc", "ts1"),
+							new CreateJustification("j"),
+							new CreateConclusion("j", "c", "My conclusion"),
+							new ImplementsTemplate("j", "t")));
+			engine.enrich(unit, List.of(new OverrideAbstractSupport("j", "t:as",
+					"evidence", "Concrete")));
+
+			Justification j = (Justification) unit.get("j");
+			Evidence concrete = (Evidence) j.findById("t:as").orElseThrow();
+			assertThat(Stream.of("t:ts1", "t:ts2")
+					.map(id -> (Strategy) j.findById(id).orElseThrow())
+					.map(Strategy::getSupports))
+					.allSatisfy(supports -> assertThat(supports)
+							.containsExactly(concrete));
 		}
 
 		@Test
