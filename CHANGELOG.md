@@ -244,6 +244,16 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Python function names, and the severities of the diagnostic report, are now
   lowercased the same way under every system locale. Under a Turkish locale,
   `"CHECK INPUTS"` gave `check_nputs` (#187).
+- The JPIPE export compiles back to the model exported, as documented. It
+  did not for a model that implements a template, which declared again every
+  element it inherits; for a composed model, whose qualified ids no body can
+  declare; nor for a model loaded under a namespace, whose name the grammar
+  rejects. The output now holds, first, every model the exported one depends
+  on; a model that implements a template declares only its own elements,
+  overrides and relations; a composed model is written as its operator call;
+  and a model loaded under a namespace is inlined under a plain name (`base:t`
+  becomes `base_t`, and `base:t:abs` becomes `base_t:abs`), never as a
+  `load` (#185).
 ---
 
 ## [3.0.0] — 2026-11-10

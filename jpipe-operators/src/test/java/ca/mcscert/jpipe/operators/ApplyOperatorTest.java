@@ -179,8 +179,25 @@ class ApplyOperatorTest {
 			var op = applyOperator("out", "noop", List.of("a"), Map.of(),
 					ModelKind.JUSTIFICATION);
 			List<Command> cmds = op.expand(unit);
-			Unit result = engine.spawn("out2", new java.util.ArrayList<>(cmds));
-			assertThat(result.findModel("out")).isPresent();
+			engine.enrich(unit, new java.util.ArrayList<>(cmds));
+			assertThat(unit.findModel("out")).isPresent();
+		}
+
+		@Test
+		void resultRecordsTheCallThatBuiltIt() {
+			// The JPIPE export writes a composed model back as its call.
+			Unit unit = unitWithModels("a", "b");
+			var op = applyOperator("out", "noop", List.of("b", "a"), Map.of(),
+					ModelKind.JUSTIFICATION);
+			engine.enrich(unit, new java.util.ArrayList<>(op.expand(unit)));
+
+			assertThat(unit.get("out").composition()).hasValueSatisfying(c -> {
+				assertThat(c.operator()).isEqualTo("noop");
+				assertThat(c.sources()).containsExactly(unit.get("b"),
+						unit.get("a"));
+				assertThat(c.arguments()).isEmpty();
+				assertThat(c.idArguments()).contains("unifyExclude");
+			});
 		}
 
 		@Test

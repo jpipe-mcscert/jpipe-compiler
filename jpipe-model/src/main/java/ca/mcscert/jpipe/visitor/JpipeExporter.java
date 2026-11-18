@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.visitor;
 
+import ca.mcscert.jpipe.model.Composition;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
@@ -10,23 +11,47 @@ import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
+import ca.mcscert.jpipe.util.QualifiedIds;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Serialises a compiled jPipe model back to {@code .jd} source text conforming
  * to the jPipe grammar.
  *
  * <p>
- * Each visitor method is responsible for descending into its children via
- * {@code accept}, so the full traversal is visitor-driven.
- * {@link #export(Unit)} is a convenience wrapper around
- * {@code unit.accept(this)} that resets internal state and returns the
- * accumulated string.
+ * The output is a round-trip: compiling it gives back the model exported, with
+ * the same elements, ids, relations and aliases. To that end:
+ * <ul>
+ * <li>the output is self-contained: it holds, before the model, every model it
+ * depends on, the template it implements and the models it was composed from,
+ * each once, dependencies first, and never a {@code load};</li>
+ * <li>a model that implements a template declares only what its source did: its
+ * own elements, its overrides and its own relations, not what it inherits;</li>
+ * <li>a composed model is written as the operator call that built it;</li>
+ * <li>a model loaded under a namespace, which the grammar cannot name, is
+ * renamed to a plain identifier, together with the ids that name it (see
+ * {@link PlainModelNames}).</li>
+ * </ul>
+ *
+ * <p>
+ * Each element visit method writes one declaration. {@link #export(Unit)}
+ * writes every model of the unit, dependencies first.
  */
 public class JpipeExporter implements JustificationVisitor<Void> {
 
 	private static final String INDENT = "  ";
 
 	private final StringBuilder builder = new StringBuilder();
+
+	private PlainModelNames names = PlainModelNames.of(List.of());
 
 	/**
 	 * Serialise {@code unit} to {@code .jd} source text.
@@ -36,22 +61,64 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 	 * @return well-formed {@code .jd} text for all models in the unit.
 	 */
 	public String export(Unit unit) {
+		return write(unit.getModels());
+	}
+
+	/**
+	 * Serialise a single {@code model} to {@code .jd} source text, preceded by
+	 * the models it depends on.
+	 *
+	 * @param model
+	 *            the model to serialise.
+	 * @return well-formed, self-contained {@code .jd} text for this model.
+	 */
+	public String export(JustificationModel model) {
+		return write(List.of(model));
+	}
+
+	/**
+	 * The name {@link #export} gives {@code model} once its dependencies are
+	 * written with it: its own, unless it was loaded under a namespace.
+	 */
+	public static PlainModelNames namesFor(JustificationModel model) {
+		return PlainModelNames.of(withDependencies(List.of(model)).stream()
+				.map(JustificationModel::getName).toList());
+	}
+
+	private String write(Collection<? extends JustificationModel> models) {
 		builder.setLength(0);
-		unit.accept(this);
+		Set<JustificationModel> ordered = withDependencies(models);
+		names = PlainModelNames
+				.of(ordered.stream().map(JustificationModel::getName).toList());
+		String separator = "";
+		for (JustificationModel model : ordered) {
+			builder.append(separator);
+			model.accept(this);
+			separator = System.lineSeparator();
+		}
 		return builder.toString();
 	}
 
 	/**
-	 * Serialise a single {@code model} to {@code .jd} source text.
-	 *
-	 * @param model
-	 *            the model to serialise.
-	 * @return well-formed {@code .jd} text for this model only.
+	 * {@code models} and every model they depend on, each once, a model after
+	 * the ones it depends on.
 	 */
-	public String export(JustificationModel model) {
-		builder.setLength(0);
-		model.accept(this);
-		return builder.toString();
+	private static Set<JustificationModel> withDependencies(
+			Collection<? extends JustificationModel> models) {
+		Set<JustificationModel> ordered = new LinkedHashSet<>();
+		models.forEach(m -> addWithDependencies(m, ordered));
+		return ordered;
+	}
+
+	private static void addWithDependencies(JustificationModel model,
+			Set<JustificationModel> ordered) {
+		if (ordered.contains(model)) {
+			return;
+		}
+		model.getParent().ifPresent(p -> addWithDependencies(p, ordered));
+		model.composition().ifPresent(c -> c.sources()
+				.forEach(source -> addWithDependencies(source, ordered)));
+		ordered.add(model);
 	}
 
 	// -------------------------------------------------------------------------
@@ -66,13 +133,13 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 
 	@Override
 	public Void visit(Justification justification) {
-		exportModelBody("justification", justification);
+		exportModel("justification", justification);
 		return null;
 	}
 
 	@Override
 	public Void visit(Template template) {
-		exportModelBody("template", template);
+		exportModel("template", template);
 		return null;
 	}
 
@@ -114,28 +181,100 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 	// Private helpers
 	// -------------------------------------------------------------------------
 
-	private void exportModelBody(String keyword, JustificationModel model) {
-		builder.append(keyword).append(" ").append(model.getName());
-		model.getParent().ifPresent(
-				p -> builder.append(" implements ").append(p.getName()));
+	private void exportModel(String keyword, JustificationModel model) {
+		builder.append(keyword).append(" ").append(names.name(model.getName()));
+		model.composition().ifPresentOrElse(this::appendCall,
+				() -> appendBody(model));
+	}
+
+	/**
+	 * {@code is op(a, b) { key: "value" }}, the configuration block left out
+	 * when the call has no argument, as the grammar requires one entry at
+	 * least.
+	 */
+	private void appendCall(Composition composition) {
+		builder.append(" is ").append(composition.operator()).append("(")
+				.append(composition.sources().stream()
+						.map(s -> names.name(s.getName()))
+						.collect(Collectors.joining(", ")))
+				.append(")");
+		if (composition.arguments().isEmpty()) {
+			builder.append(System.lineSeparator());
+			return;
+		}
+		builder.append(" {").append(System.lineSeparator());
+		composition.arguments().forEach((key, value) -> builder.append(INDENT)
+				.append(key).append(": ")
+				.append(Quoting
+						.doubleQuoted(composition.idArguments().contains(key)
+								? renameIds(value)
+								: value))
+				.append(System.lineSeparator()));
+		builder.append("}").append(System.lineSeparator());
+	}
+
+	/** A comma-separated list of ids, each renamed. */
+	private String renameIds(String value) {
+		return Arrays.stream(value.split(",", -1)).map(String::strip)
+				.map(names::id).collect(Collectors.joining(","));
+	}
+
+	/**
+	 * The model's declarations: for a model that implements a template, only
+	 * the elements and relations it does not inherit.
+	 */
+	private void appendBody(JustificationModel model) {
+		model.getParent().ifPresent(p -> builder.append(" implements ")
+				.append(names.name(p.getName())));
 		builder.append(" {").append(System.lineSeparator());
 
-		model.allElements().forEach(e -> e.accept(this));
-		model.forEachSupportEdge(
-				(supported, supporter) -> appendRelation(supporter, supported));
+		if (model.hasOwnConclusion()) {
+			model.conclusion().ifPresent(c -> c.accept(this));
+		}
+		Set<JustificationElement> inherited = Collections
+				.newSetFromMap(new IdentityHashMap<>());
+		inherited.addAll(model.inheritedElements());
+		model.getElements().stream().filter(e -> !inherited.contains(e))
+				.forEach(e -> e.accept(this));
+
+		Set<List<String>> inheritedEdges = inheritedEdges(model);
+		model.forEachSupportEdge((supported, supporter) -> {
+			if (!inheritedEdges.contains(List.of(supported, supporter))) {
+				appendRelation(supporter, supported);
+			}
+		});
 
 		builder.append("}").append(System.lineSeparator());
 	}
 
+	/**
+	 * The support edges {@code model} inherits, as {@code [supported,
+	 * supporter]} pairs of the ids it gives them: its template's edges, each
+	 * end qualified by the template's name unless already qualified, as
+	 * {@link JustificationModel#inline} copies them. An override keeps the id
+	 * of the placeholder it replaces, so the edges it was rewired into are
+	 * inherited too.
+	 */
+	private static Set<List<String>> inheritedEdges(JustificationModel model) {
+		Set<List<String>> edges = new HashSet<>();
+		model.getParent().ifPresent(p -> p.forEachSupportEdge((supported,
+				supporter) -> edges.add(List.of(
+						QualifiedIds.qualifyIfPlain(p.getName(), supported),
+						QualifiedIds.qualifyIfPlain(p.getName(), supporter)))));
+		return edges;
+	}
+
 	private void appendElement(String keyword, JustificationElement element) {
-		builder.append(INDENT).append(keyword).append(" ").append(element.id())
-				.append(" is ").append(Quoting.doubleQuoted(element.label()))
+		builder.append(INDENT).append(keyword).append(" ")
+				.append(names.id(element.id())).append(" is ")
+				.append(Quoting.doubleQuoted(element.label()))
 				.append(System.lineSeparator());
 	}
 
 	private void appendRelation(String supporterId, String supportedId) {
-		builder.append(INDENT).append(supporterId).append(" supports ")
-				.append(supportedId).append(System.lineSeparator());
+		builder.append(INDENT).append(names.id(supporterId))
+				.append(" supports ").append(names.id(supportedId))
+				.append(System.lineSeparator());
 	}
 
 }

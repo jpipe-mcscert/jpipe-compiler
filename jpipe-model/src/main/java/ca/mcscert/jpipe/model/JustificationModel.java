@@ -55,6 +55,7 @@ public abstract sealed class JustificationModel
 	private final List<JustificationElement> elements = new ArrayList<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
 	private final Set<String> unifiedIds = new LinkedHashSet<>();
+	private Composition composition = null;
 
 	protected JustificationModel(String name) {
 		this.name = name;
@@ -118,6 +119,24 @@ public abstract sealed class JustificationModel
 	 */
 	public void recordUnifiedId(String id) {
 		unifiedIds.add(id);
+	}
+
+	/**
+	 * Records the operator call this model was built by. The JPIPE export
+	 * writes a composed model back as that call, since its ids, qualified by
+	 * the models it was composed from, cannot be declared in a body.
+	 */
+	public void recordComposition(Composition composition) {
+		if (this.composition != null) {
+			throw new IllegalStateException(
+					"Model '" + name + "' is already composed");
+		}
+		this.composition = composition;
+	}
+
+	/** The operator call this model was built by, if it was composed. */
+	public Optional<Composition> composition() {
+		return Optional.ofNullable(composition);
 	}
 
 	/** Unmodifiable view of the ids unification minted within this model. */

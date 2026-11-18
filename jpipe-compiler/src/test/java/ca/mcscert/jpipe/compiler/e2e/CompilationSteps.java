@@ -19,7 +19,9 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.visitor.DotExporter;
+import ca.mcscert.jpipe.visitor.JpipeExporter;
 import ca.mcscert.jpipe.visitor.JsonExporter;
+import ca.mcscert.jpipe.visitor.PlainModelNames;
 import ca.mcscert.jpipe.visitor.PythonExporter;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -32,8 +34,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -394,6 +398,80 @@ public class CompilationSteps {
 	@Then("the JSON output contains {string}")
 	public void theJsonOutputContains(String fragment) {
 		assertThat(jsonOutput).contains(fragment);
+	}
+
+	@Then("every model of the unit compiles back from its JPIPE export")
+	public void everyModelCompilesBackFromItsJpipeExport() throws IOException {
+		assertThat(unit.getModels()).isNotEmpty();
+		for (JustificationModel model : unit.getModels()) {
+			PlainModelNames names = JpipeExporter.namesFor(model);
+			Path exported = Files.createTempFile("roundtrip", ".jd");
+			try {
+				Files.writeString(exported, new JpipeExporter().export(model));
+				Unit recompiled = compileQuietly(exported);
+				JustificationModel back = recompiled
+						.get(names.name(model.getName()));
+				assertThat(canonicalJson(back, PlainModelNames.of(List.of())))
+						.as("JPIPE round-trip of model '%s'", model.getName())
+						.isEqualTo(canonicalJson(model, names));
+			} finally {
+				Files.delete(exported);
+			}
+		}
+	}
+
+	/** Compiles {@code path}, failing on any diagnostic. */
+	private static Unit compileQuietly(Path path) throws IOException {
+		Transformation<InputStream, Unit> pipeline = CompilerFactory
+				.parsingChain().andThen(CompilerFactory.unitBuilder())
+				.asTransformation();
+		CompilationContext context = new CompilationContext(path.toString());
+		try (InputStream stream = Files.newInputStream(path)) {
+			Unit compiled = pipeline.fire(stream, context);
+			assertThat(context.diagnostics())
+					.as("diagnostics compiling back %s:%n%s", path,
+							Files.readString(path))
+					.isEmpty();
+			return compiled;
+		}
+	}
+
+	/**
+	 * The JSON export of {@code model}, with its model names and ids renamed by
+	 * {@code names}, its elements sorted by id and its relations by source and
+	 * target: what a round-trip must preserve, whatever the order the source
+	 * declares things in.
+	 */
+	private static String canonicalJson(JustificationModel model,
+			PlainModelNames names) {
+		JSONObject json = new JSONObject(new JsonExporter().export(model));
+		json.put("name", names.name(json.getString("name")));
+		List<JSONObject> elements = new ArrayList<>();
+		json.getJSONArray("elements").forEach(e -> {
+			JSONObject element = (JSONObject) e;
+			element.put("id", names.id(element.getString("id")));
+			if (element.has("aliases")) {
+				JSONArray aliases = new JSONArray();
+				element.getJSONArray("aliases")
+						.forEach(a -> aliases.put(names.id((String) a)));
+				element.put("aliases", aliases);
+			}
+			elements.add(element);
+		});
+		elements.sort(Comparator.comparing(e -> e.getString("id")));
+		List<JSONObject> relations = new ArrayList<>();
+		json.getJSONArray("relations").forEach(r -> {
+			JSONObject relation = (JSONObject) r;
+			relation.put("source", names.id(relation.getString("source")));
+			relation.put("target", names.id(relation.getString("target")));
+			relations.add(relation);
+		});
+		relations.sort(
+				Comparator.comparing((JSONObject r) -> r.getString("source")
+						+ " " + r.getString("target")));
+		json.put("elements", new JSONArray(elements));
+		json.put("relations", new JSONArray(relations));
+		return json.toString(2);
 	}
 
 	@When("I export the current model to Python format")

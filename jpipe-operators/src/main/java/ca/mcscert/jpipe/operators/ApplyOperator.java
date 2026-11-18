@@ -12,8 +12,10 @@ import java.util.function.Predicate;
 import java.util.Optional;
 import ca.mcscert.jpipe.commands.PendingCommands;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
+import ca.mcscert.jpipe.commands.linking.RecordComposition;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -188,8 +190,20 @@ public final class ApplyOperator implements MacroCommand {
 					+ config.declaredKind().name().toLowerCase(Locale.ROOT)
 					+ "'");
 		}
-		return new Unifier(unificationEquivalences).unify(config.resultName(),
-				composed, arguments);
+		List<Command> commands = new ArrayList<>(
+				new Unifier(unificationEquivalences).unify(config.resultName(),
+						composed, arguments));
+		commands.add(new RecordComposition(config.resultName(),
+				config.operatorName(), config.sourceNames(), arguments,
+				idArguments(op)));
+		return commands;
+	}
+
+	/** The keys of a call to {@code op} whose value holds element ids. */
+	private static Set<String> idArguments(CompositionOperator op) {
+		Set<String> keys = new HashSet<>(op.elementArguments());
+		keys.add(Unifier.UNIFY_EXCLUDE_KEY);
+		return keys;
 	}
 
 	/**
