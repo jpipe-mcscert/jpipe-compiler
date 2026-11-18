@@ -25,6 +25,33 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   holding a quote compiles back to itself (#176).
 
 ### Changed
+- **Breaking:** mistakes in an operator call are errors at the call instead of
+  being accepted (#184):
+  - `implements` on a model built by an operator, which was dropped;
+  - a configuration key given twice, where the last value won;
+  - a key the operator does not accept, such as a misspelt `unifyExlude` or a
+    `hook` passed to `assemble`, which was ignored;
+  - an `unifyExclude` id that names no element of the result, such as a plain
+    `e` where the result names it `a:e`, which was ignored.
+- **Breaking:** `refine`'s hook must be an evidence or a `@support`. A strategy
+  or a conclusion was accepted, and broke the model (#181).
+- **Breaking:** a source model given more than once to an operator
+  (`assemble(a, a)`) is an error (#181).
+- `refine` produces a template when its result keeps a `@support`, so a template
+  can be refined; it could only produce a justification (#181).
+- **Breaking, for custom operators:** `CompositionOperator.resultKind` is
+  removed. The kind of the result is the model `createResultModel` creates,
+  which now also receives the commands creating the result's elements, and an
+  operator declares the optional keys it reads with `optionalArguments()`
+  (#181, #184).
+- A mistake in an operator call is reported with the code
+  `invalid-operator-call`, at the call: an unknown operator, a missing, unknown
+  or repeated argument, a hook that cannot be refined, a source given twice.
+  These were `execution-error` (#184).
+- The documentation now states that unification merges whatever its equivalence
+  relation deems equivalent: under the default `sameLabel`, two strategies with
+  the same label are merged and pool their evidence, and an element the operator
+  creates is merged like any other (#188, #181).
 - **Breaking:** a model that implements a template inherits its conclusion and
   can no longer declare its own: that is now an `inherited-conclusion` error. It
   used to be accepted or rejected depending on whether the template was declared
@@ -87,10 +114,23 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   header.
 
 ### Fixed
+- An id repeated in `unifyExclude` (`"c,c"`) no longer fails the composition with
+  a misleading `duplicate element` error: the list is a set (#171).
+- A plain `refine` hook that names several elements of the base model is an
+  `ambiguous hook` error, instead of silently taking the first (#181).
+- A `refine` hook is found through every composition step that renamed it, not
+  only the last one (#181).
+- The documentation, the language reference included, gives the `refine` hook as
+  an element id (`first:e`); it gave a `base/elementId` form that never worked
+  (#181).
+- A model declared as a justification but built by `refine` as a template, or
+  the other way round, is reported only once the call is otherwise valid: a
+  mistake in the hook is reported as itself, not as a kind mismatch (#181).
 - A file that compiles on its own now also compiles once loaded under a
   namespace (`load "f.jd" as ns`) (#178):
-  - its operator calls are prefixed like its models; they used to wait forever
-    for their unprefixed sources;
+  - its operator calls are prefixed like its models, the element ids of their
+    `hook` and `unifyExclude` included, however many composition steps they go
+    through; the calls used to wait forever for their unprefixed sources;
   - its overrides and relations that use a qualified id, such as
     `evidence base:t:abs`, are prefixed too; the overrides used to be lost;
   - a file that two namespaced files both load is loaded in each namespace; the

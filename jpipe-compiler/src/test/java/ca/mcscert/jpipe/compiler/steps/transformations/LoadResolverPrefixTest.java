@@ -119,9 +119,10 @@ class LoadResolverPrefixTest {
 		var result = (ApplyOperator) prefixOne("ns", cmd);
 		assertThat(result.resultName()).isEqualTo("ns:r");
 		assertThat(result.sourceNames()).containsExactly("ns:a", "ns:b");
-		// A qualified id names an element of a model of the file: prefixed.
-		assertThat(result.arguments()).containsEntry("hook", "ns:first:e")
-				.containsEntry("unifyExclude", "ns:a:x,y");
+		// Element ids are mapped when the call runs, against the models that
+		// exist: as text, which segment is a model is unknown.
+		assertThat(result.arguments()).containsEntry("hook", "first:e")
+				.containsEntry("unifyExclude", "a:x, y");
 	}
 
 	@Test

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
+import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
@@ -15,6 +16,10 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import ca.mcscert.jpipe.model.Template;
+import ca.mcscert.jpipe.model.Justification;
 
 class ApplyOperatorTest {
 
@@ -44,15 +49,13 @@ class ApplyOperatorTest {
 		@Override
 		protected Command createResultModel(String name,
 				SourceLocation location, List<JustificationModel> sources,
-				Map<String, String> arguments) {
-			return new CreateJustification(name);
+				Map<String, String> arguments, List<Command> elements) {
+			// The model created is the kind the call produces.
+			return kind == ModelKind.TEMPLATE
+					? new CreateTemplate(name)
+					: new CreateJustification(name);
 		}
 
-		@Override
-		public ModelKind resultKind(List<JustificationModel> sources,
-				Map<String, String> args) {
-			return kind;
-		}
 	}
 
 	// ── setup ────────────────────────────────────────────────────────────────
@@ -200,6 +203,27 @@ class ApplyOperatorTest {
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("template")
 					.hasMessageContaining("justification");
+		}
+	}
+
+	@Nested
+	class Namespaces {
+
+		@ParameterizedTest(name = "under ns, {0} is {1}")
+		@CsvSource({"e, e", "a:e, ns:a:e", "both:a:e, ns:both:ns:a:e",
+				"base:t:abs, ns:base:t:abs", "unknown:e, unknown:e"})
+		void an_element_id_is_mapped_onto_the_models_that_exist(String id,
+				String expected) {
+			// A two-stage composition under a namespace names its elements
+			// ns:both:ns:a:e: rewriting both:a:e as text gave ns:both:a:e,
+			// which names nothing (#178).
+			Unit unit = new Unit("src");
+			unit.add(new Justification("ns:a"));
+			unit.add(new Justification("ns:both"));
+			unit.add(new Template("ns:base:t"));
+
+			assertThat(ApplyOperator.inUnit(id, "ns", unit))
+					.isEqualTo(expected);
 		}
 	}
 }

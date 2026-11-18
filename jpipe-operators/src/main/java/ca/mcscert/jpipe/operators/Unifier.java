@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Arrays;
 
 /**
  * Phase 4 post-processor for composition operators.
@@ -109,6 +110,7 @@ public final class Unifier {
 
 		Set<String> excluded = parseExcludeList(
 				args.getOrDefault(UNIFY_EXCLUDE_KEY, ""));
+		requireExcludedIdsExist(excluded, commands);
 
 		// Gather non-excluded element (non-model) creation commands
 		List<ElementCreationCommand> candidates = commands.stream()
@@ -284,11 +286,38 @@ public final class Unifier {
 		}
 	}
 
+	/**
+	 * Refuses an {@code unifyExclude} id that names no element of the result: a
+	 * typo, or a plain id where the result's are qualified, would otherwise
+	 * leave the elements it meant unified without a word (#184).
+	 */
+	private static void requireExcludedIdsExist(Set<String> excluded,
+			List<Command> commands) {
+		if (excluded.isEmpty()) {
+			return;
+		}
+		Set<String> ids = commands.stream()
+				.filter(ElementCreationCommand.class::isInstance)
+				.map(ElementCreationCommand.class::cast)
+				.map(ElementCreationCommand::identifier)
+				.collect(Collectors.toCollection(LinkedHashSet::new));
+		List<String> unknown = excluded.stream().filter(id -> !ids.contains(id))
+				.sorted().toList();
+		if (!unknown.isEmpty()) {
+			throw new InvalidOperatorCallException(
+					UNIFY_EXCLUDE_KEY + " names no element of the result: "
+							+ unknown + "; its elements are " + ids);
+		}
+	}
+
 	private static Set<String> parseExcludeList(String raw) {
 		if (raw.isBlank()) {
 			return Set.of();
 		}
-		return Set.of(raw.split(",")).stream().map(String::trim)
+		// A set: a repeated id means one mention, however it is spaced. Set.of
+		// used to throw on "c,c" while "c, c" passed (#171).
+		return Arrays.stream(raw.split(",")).map(String::strip)
+				.filter(id -> !id.isEmpty())
 				.collect(Collectors.toUnmodifiableSet());
 	}
 

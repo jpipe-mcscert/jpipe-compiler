@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.operators.builtin;
 
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.commands.Command;
+import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
 import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
@@ -15,9 +16,15 @@ import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
 import ca.mcscert.jpipe.operators.MergeFunction;
 import ca.mcscert.jpipe.operators.SourcedElement;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import ca.mcscert.jpipe.commands.creation.CreateTemplate;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.Evidence;
+import ca.mcscert.jpipe.model.elements.Strategy;
+import java.util.stream.Collectors;
 
 /**
  * Built-in {@code refine} composition operator.
@@ -58,10 +65,21 @@ public final class RefineOperator extends CompositionOperator {
 		return Set.of(HOOK_ID);
 	}
 
+	/**
+	 * A template when the result keeps an abstract support, one the hook did
+	 * not replace; a justification otherwise. Decided from the elements the
+	 * composition built, so it cannot disagree with the hook it refined: a
+	 * refine could only produce a justification, so refining a template that
+	 * keeps a {@code @support} failed (#181).
+	 */
 	@Override
 	protected Command createResultModel(String name, SourceLocation location,
-			List<JustificationModel> sources, Map<String, String> arguments) {
-		return new CreateJustification(name, location);
+			List<JustificationModel> sources, Map<String, String> arguments,
+			List<Command> elements) {
+		return elements.stream()
+				.anyMatch(CreateAbstractSupport.class::isInstance)
+						? new CreateTemplate(name, location)
+						: new CreateJustification(name, location);
 	}
 
 	@Override
@@ -74,19 +92,8 @@ public final class RefineOperator extends CompositionOperator {
 		}
 		JustificationModel base = sources.get(0);
 		JustificationModel refinement = sources.get(1);
-		String hookElementId = arguments.get("hook");
-		// Resolve through the unit alias map: the element may have been renamed
-		// by a prior composition step (e.g. unification after assemble).
-		String aliasedHookId = knownAliases.getOrDefault(
-				Unit.registryKey(base.getName(), hookElementId), hookElementId);
-		// Normalize to the actual stored id via findById (which has a suffix
-		// fallback). This ensures isHookPair's id comparison matches even when
-		// the hook is referenced by its plain short id (e.g. "s" -> "t:s").
-		String resolvedHookId = base.findById(aliasedHookId)
-				.map(JustificationElement::id).orElseThrow(
-						() -> new InvalidOperatorCallException("hook element '"
-								+ hookElementId + "' not found in base model '"
-								+ base.getName() + "'"));
+		String resolvedHookId = resolveHook(base, arguments.get(HOOK_ID),
+				knownAliases).id();
 
 		return (a, b) -> a instanceof SourcedElement sa
 				&& b instanceof SourcedElement sb
@@ -121,6 +128,55 @@ public final class RefineOperator extends CompositionOperator {
 				return List.of(
 						new CreateSubConclusion(resultName, HOOK_ID, label));
 			}
+		};
+	}
+
+	/**
+	 * The element of {@code base} that {@code hook} names: through the unit's
+	 * aliases, followed to the end of the chain, since an element can have been
+	 * renamed by several composition steps, then by id, or by the one inherited
+	 * element whose qualified id ends with it. It must be an evidence or an
+	 * abstract support: only a leaf can be refined (#181).
+	 */
+	static JustificationElement resolveHook(JustificationModel base,
+			String hook, Map<String, String> knownAliases) {
+		// The unit's aliases form chains, one link per composition step, and
+		// exporters read them as such (an id that is the target of an alias
+		// is an intermediate merge result): followed to the end here.
+		String id = hook;
+		Set<String> visited = new HashSet<>();
+		String next = knownAliases.get(Unit.registryKey(base.getName(), id));
+		while (next != null && visited.add(next)) {
+			id = next;
+			next = knownAliases.get(Unit.registryKey(base.getName(), id));
+		}
+		JustificationElement element = base.findById(id)
+				.orElseThrow(() -> new InvalidOperatorCallException(
+						"hook element '" + hook + "' not found in base model '"
+								+ base.getName() + "'"));
+		List<JustificationElement> inherited = base.inheritedMatches(id);
+		if (!element.id().equals(id) && inherited.size() > 1) {
+			throw new InvalidOperatorCallException("ambiguous hook '" + hook
+					+ "' in '" + base.getName() + "': it names "
+					+ inherited.stream().map(e -> "'" + e.id() + "'")
+							.collect(Collectors.joining(", "))
+					+ "; write the qualified id");
+		}
+		if (!(element instanceof Evidence
+				|| element instanceof AbstractSupport)) {
+			throw new InvalidOperatorCallException("hook '" + hook + "' is a "
+					+ kindOf(element) + " of '" + base.getName()
+					+ "': only an evidence or a @support can be refined");
+		}
+		return element;
+	}
+
+	private static String kindOf(JustificationElement element) {
+		return switch (element) {
+			case Conclusion _ -> "conclusion";
+			case SubConclusion _ -> "sub-conclusion";
+			case Strategy _ -> "strategy";
+			default -> element.getClass().getSimpleName();
 		};
 	}
 

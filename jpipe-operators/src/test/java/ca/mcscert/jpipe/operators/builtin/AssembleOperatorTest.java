@@ -22,7 +22,6 @@ import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.operators.IncompatibleUnificationException;
 import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
-import ca.mcscert.jpipe.operators.ModelKind;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import ca.mcscert.jpipe.operators.Unifier;
 import ca.mcscert.jpipe.operators.equivalences.SameLabel;
@@ -113,19 +112,19 @@ class AssembleOperatorTest {
 		}
 
 		@Test
-		void resultKindIsJustificationWhenAllSourcesAreJustifications() {
+		void theResultIsAJustificationWhenAllSourcesAreJustifications() {
 			var a = buildJustification("a", "C", "S", "E");
 			var b = buildJustification("b", "C", "S", "E");
-			assertThat(assemble.resultKind(List.of(a, b), ARGS))
-					.isEqualTo(ModelKind.JUSTIFICATION);
+			assertThat(assemble.apply("result", List.of(a, b), ARGS)).first()
+					.isInstanceOf(CreateJustification.class);
 		}
 
 		@Test
-		void resultKindIsTemplateWhenAnySourceIsTemplate() {
+		void theResultIsATemplateWhenAnySourceIsATemplate() {
 			var j = buildJustification("j", "C", "S", "E");
 			var t = buildTemplate("t");
-			assertThat(assemble.resultKind(List.of(j, t), ARGS))
-					.isEqualTo(ModelKind.TEMPLATE);
+			assertThat(assemble.apply("result", List.of(j, t), ARGS)).first()
+					.isInstanceOf(CreateTemplate.class);
 		}
 	}
 

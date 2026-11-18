@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import java.util.HashSet;
+import java.util.TreeSet;
 
 /**
  * Base class for all composition operators. Owns the partition + two-phase
@@ -41,6 +43,47 @@ public abstract class CompositionOperator {
 	private final Logger logger = LogManager.getLogger(getClass());
 
 	/**
+	 * Declares which argument keys this operator accepts without requiring
+	 * them. Any key that is neither required, optional, nor one of the
+	 * unification keys ({@code unifyBy}, {@code unifyExclude}) is refused, so
+	 * that a misspelt key is an error instead of being ignored (#184). Default:
+	 * none.
+	 */
+	protected Set<String> optionalArguments() {
+		return Set.of();
+	}
+
+	/** Refuses the keys no part of the call reads: see optionalArguments. */
+	private void requireKnownArguments(Map<String, String> args) {
+		Set<String> accepted = new TreeSet<>(requiredArguments());
+		accepted.addAll(optionalArguments());
+		accepted.add(Unifier.UNIFY_BY_KEY);
+		accepted.add(Unifier.UNIFY_EXCLUDE_KEY);
+		List<String> unknown = args.keySet().stream()
+				.filter(key -> !accepted.contains(key)).sorted().toList();
+		if (!unknown.isEmpty()) {
+			throw new InvalidOperatorCallException("unknown argument(s) "
+					+ unknown + "; accepted: " + accepted);
+		}
+	}
+
+	/**
+	 * Refuses the same model given twice: composing a model with itself either
+	 * merges every element with its copy or fails on an unrelated unification
+	 * error (#181).
+	 */
+	private static void requireDistinctSources(
+			List<JustificationModel> sources) {
+		Set<String> seen = new HashSet<>();
+		for (JustificationModel source : sources) {
+			if (!seen.add(source.getName())) {
+				throw new InvalidOperatorCallException("the model '"
+						+ source.getName() + "' is given more than once");
+			}
+		}
+	}
+
+	/**
 	 * Declares which argument keys hold the id of an element, such as
 	 * {@code refine}'s {@code hook}. A call read from a file loaded under a
 	 * namespace renames the qualified ids they hold, as it renames its source
@@ -58,20 +101,6 @@ public abstract class CompositionOperator {
 	 */
 	protected Set<String> requiredArguments() {
 		return Set.of();
-	}
-
-	/**
-	 * Returns the {@link ModelKind} of the model produced by this operator for
-	 * the given {@code sources} and {@code args}. Defaults to
-	 * {@link ModelKind#JUSTIFICATION}. Override in subclasses whose result kind
-	 * depends on the input models (e.g. an operator that produces a
-	 * {@code Template} when any source is a {@code Template}).
-	 */
-	@SuppressWarnings("java:S1172") // params unused in default but required by
-									// overrides
-	public ModelKind resultKind(List<JustificationModel> sources,
-			Map<String, String> args) {
-		return ModelKind.JUSTIFICATION;
 	}
 
 	/**
@@ -96,7 +125,10 @@ public abstract class CompositionOperator {
 
 	/**
 	 * Returns the command that creates the result model (typically
-	 * {@code CreateJustification} or {@code CreateTemplate}).
+	 * {@code CreateJustification} or {@code CreateTemplate}), once the commands
+	 * creating its elements are known, so that an operator whose result kind
+	 * depends on what it produced (as {@code refine}'s does on whether a
+	 * {@code @support} remains) can tell.
 	 *
 	 * @param location
 	 *            the source location of the operator call; forwarded to the
@@ -106,10 +138,12 @@ public abstract class CompositionOperator {
 	 *            the source models being composed; provided so operators can
 	 *            choose the result model type (e.g. {@code Template} vs
 	 *            {@code Justification}) based on the source types.
+	 * @param elements
+	 *            the commands creating the result's elements, in Phase 1.
 	 */
 	protected abstract Command createResultModel(String name,
 			SourceLocation location, List<JustificationModel> sources,
-			Map<String, String> arguments);
+			Map<String, String> arguments, List<Command> elements);
 
 	/**
 	 * Returns additional commands to append after Phase 2 edge reconstruction.
@@ -134,7 +168,9 @@ public abstract class CompositionOperator {
 	 *
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
 			List<JustificationModel> sources, Map<String, String> arguments) {
@@ -151,7 +187,9 @@ public abstract class CompositionOperator {
 	 *            in the symbol table.
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
 			List<JustificationModel> sources, Map<String, String> arguments,
@@ -174,7 +212,9 @@ public abstract class CompositionOperator {
 	 *            element's original location to its copy in the result model.
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
 			List<JustificationModel> sources, Map<String, String> arguments,
@@ -203,7 +243,9 @@ public abstract class CompositionOperator {
 	 *            step (e.g. unification after {@code assemble}).
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
 			List<JustificationModel> sources, Map<String, String> arguments,
@@ -219,6 +261,8 @@ public abstract class CompositionOperator {
 			throw new InvalidOperatorCallException(
 					"missing required argument(s) " + missing);
 		}
+		requireKnownArguments(args);
+		requireDistinctSources(sources);
 
 		// Collect all sourced elements from every source model, attaching each
 		// element's original location from knownLocations when available.
@@ -241,13 +285,16 @@ public abstract class CompositionOperator {
 		// Phase 1: element creation — merge function populates alias registry
 		AliasRegistry aliases = new AliasRegistry();
 		List<Command> commands = new ArrayList<>();
-		commands.add(createResultModel(resultName, location, sources, args));
 		MergeFunction merge = mergeFunction(sources, args);
+		List<Command> elements = new ArrayList<>();
 		for (ElementGroup group : groups) {
 			logger.debug("Merging group of {} member(s)",
 					group.members().size());
-			commands.addAll(merge.merge(resultName, group, aliases));
+			elements.addAll(merge.merge(resultName, group, aliases));
 		}
+		commands.add(createResultModel(resultName, location, sources, args,
+				elements));
+		commands.addAll(elements);
 
 		// Carry forward transitive aliases from source models.
 		// For each prior alias "sourceName/oldId → intermId" (recorded in a

@@ -130,32 +130,59 @@ Feature: Composition operators
     And a validation error is reported for rule "incompatible-unification"
     And a validation error mentions "cannot unify"
 
-  Scenario: unknown unification method reports an execution error
+  Scenario: unknown unification method reports an invalid operator call
     Given the source file "invalid/015_unknown_unification_method.jd"
     When I compile it into a unit
     Then the compilation has validation errors
-    And a validation error is reported for rule "execution-error"
+    And a validation error is reported for rule "invalid-operator-call"
 
-  Scenario: unknown operator name reports an execution error
+  Scenario: unknown operator name reports an invalid operator call
     Given the source file "invalid/012_unknown_operator.jd"
     When I compile it into a unit
     Then the compilation has validation errors
-    And a validation error is reported for rule "execution-error"
+    And a validation error is reported for rule "invalid-operator-call"
 
-  Scenario: missing hook argument reports an execution error
+  Scenario: missing hook argument reports an invalid operator call
     Given the source file "invalid/013_missing_hook.jd"
     When I compile it into a unit
     Then the compilation has validation errors
-    And a validation error is reported for rule "execution-error"
+    And a validation error is reported for rule "invalid-operator-call"
 
-  Scenario: incompatible operator call reports an execution error
+  Scenario: incompatible operator call reports an invalid operator call
     Given the source file "invalid/014_incompatible_operator_call.jd"
     When I compile it into a unit
     Then the compilation has validation errors
-    And a validation error is reported for rule "execution-error"
+    And a validation error is reported for rule "invalid-operator-call"
 
-  Scenario: unknown hook element reports an execution error
+  Scenario: unknown hook element reports an invalid operator call
     Given the source file "invalid/016_unknown_hook_element.jd"
     When I compile it into a unit
     Then the compilation has validation errors
-    And a validation error is reported for rule "execution-error"
+    And a validation error is reported for rule "invalid-operator-call"
+
+  # Unification merges what its equivalence relation deems equivalent, and
+  # nothing else decides: these scenarios check the calls around it (#171,
+  # #181, #184).
+  Scenario: refining a template that keeps a @support gives a template
+    Given the source file "028_refine_templates_and_chains.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a template named "refined_pattern"
+      And the unit contains a justification named "ready"
+
+  Scenario: a hook is found through several composition steps
+    Given the source file "028_refine_templates_and_chains.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a justification named "detailed"
+
+  Scenario: every mistake in an operator call is reported at the call
+    Given the source file "invalid/038_operator_call_mistakes.jd"
+    When I run the diagnostic compiler with format "json"
+    Then the report signals errors
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 26
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 29
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 33
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 40
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 47
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 51
