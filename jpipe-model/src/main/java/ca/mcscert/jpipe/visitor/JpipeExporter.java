@@ -51,6 +51,9 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 
 	private PlainModelNames names = PlainModelNames.of(List.of());
 
+	/** The model being written, which the ids of its body belong to. */
+	private JustificationModel current;
+
 	/**
 	 * Serialise {@code unit} to {@code .jd} source text.
 	 *
@@ -194,6 +197,7 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 	// -------------------------------------------------------------------------
 
 	private void exportModel(String keyword, JustificationModel model) {
+		current = model;
 		builder.append(keyword).append(" ").append(names.name(model.getName()));
 		model.composition().ifPresentOrElse(this::appendCall,
 				() -> appendBody(model));
@@ -219,16 +223,26 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 				.append(key).append(": ")
 				.append(Quoting
 						.doubleQuoted(composition.idArguments().contains(key)
-								? renameIds(value)
+								? renameIds(composition,
+										composition.resultIdArguments()
+												.contains(key),
+										value)
 								: value))
 				.append(System.lineSeparator()));
 		builder.append("}").append(System.lineSeparator());
 	}
 
-	/** A comma-separated list of ids, each renamed. */
-	private String renameIds(String value) {
+	/**
+	 * A comma-separated list of ids, each renamed: as ids of the result when
+	 * {@code resultIds}, of a source otherwise.
+	 */
+	private String renameIds(Composition composition, boolean resultIds,
+			String value) {
 		return Arrays.stream(value.split(",", -1)).map(String::strip)
-				.map(names::id).collect(Collectors.joining(","));
+				.map(id -> resultIds
+						? names.resultArgument(composition.sources(), id)
+						: names.sourceArgument(composition.sources(), id))
+				.collect(Collectors.joining(","));
 	}
 
 	/**
@@ -274,14 +288,14 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 
 	private void appendElement(String keyword, JustificationElement element) {
 		builder.append(INDENT).append(keyword).append(" ")
-				.append(names.id(element.id())).append(" is ")
+				.append(names.id(current, element.id())).append(" is ")
 				.append(Quoting.doubleQuoted(element.label()))
 				.append(System.lineSeparator());
 	}
 
 	private void appendRelation(String supporterId, String supportedId) {
-		builder.append(INDENT).append(names.id(supporterId))
-				.append(" supports ").append(names.id(supportedId))
+		builder.append(INDENT).append(names.id(current, supporterId))
+				.append(" supports ").append(names.id(current, supportedId))
 				.append(System.lineSeparator());
 	}
 

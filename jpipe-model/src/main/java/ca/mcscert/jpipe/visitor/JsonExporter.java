@@ -9,6 +9,7 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.List;
+import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -28,8 +29,16 @@ import org.json.JSONObject;
  *   "name": "...",
  *   "type": "justification" | "template",
  *   "elements": [ { "type": "...", "id": "...", "label": "...",
- *                   "aliases": [ "..." ] }, ... ],
- *   "relations": [ { "source": "...", "target": "..." }, ... ]
+ *                   "aliases": [ "..." ],
+ *                   "origins": [ { "model": "...", "id": "...",
+ *                                  "type": "..." }, ... ] }, ... ],
+ *   "relations": [ { "source": "...", "target": "..." }, ... ],
+ *   "implements": {
+ *     "elements": [ "..." ],
+ *     "templates": [ { "name": "...", "elements": [ "..." ],
+ *                      "placeholders": [ { "id": "...", "label": "...",
+ *                                          "supports": [ "..." ] } ] } ]
+ *   }
  * }
  * }</pre>
  *
@@ -40,12 +49,45 @@ import org.json.JSONObject;
  * the array is transitive: composing the result of a composition records a
  * chain, and the array lists every id along it, down to those written in the
  * original source models.
+ *
+ * <p>
+ * The optional per-element {@code "origins"} array is written for the elements
+ * of a model built by an operator: the elements of the models it was composed
+ * from that the element was built from, each with the name of its model, its id
+ * and its kind as the JSON export of that model writes them. It covers every
+ * level of composition, nearest first, so that an element whose kind
+ * composition changed (the hook {@code refine} merges into a sub-conclusion,
+ * the conclusion of a source {@code assemble} takes) says what it was. It is
+ * omitted for an element the operator created itself. An element inherited from
+ * a template an operator built has the origins it has in the template; a model
+ * that no operator built, and that implements no such template, has none
+ * (#200).
+ *
+ * <p>
+ * The optional {@code "implements"} object is written for a model that
+ * implements a template, and says how {@link DotExporter} draws it (#199).
+ * {@code elements} lists the ids drawn outside every template, in drawing
+ * order. {@code templates} lists the ancestors, the parent first, each drawn
+ * inside the one before it: its name, the ids drawn in its cluster in drawing
+ * order, and its placeholders. A placeholder is a {@code @support} filled
+ * further down the chain: its id is also in the cluster's {@code elements},
+ * where the placeholder is drawn with its own label, and it is filled by the
+ * element of the model with the same id, drawn elsewhere. {@code supports}
+ * lists the strategies whose edge from that id is drawn from the placeholder
+ * rather than from the element filling it. The flattened {@code elements} and
+ * {@code relations} are unchanged, and never hold a placeholder.
  */
 public class JsonExporter extends AbstractModelExporter {
+
+	private static final String ELEMENTS_KEY = "elements";
+	private static final String ID_KEY = "id";
+	private static final String TYPE_KEY = "type";
+	private static final String LABEL_KEY = "label";
 
 	private JSONObject result;
 	private JSONArray elements;
 	private JSONArray relations;
+	private Map<String, List<CompositionOrigins.Origin>> origins;
 
 	/**
 	 * Serialise {@code model} to JSON text.
@@ -105,6 +147,7 @@ public class JsonExporter extends AbstractModelExporter {
 				: "template";
 		currentModelName = model.getName();
 		initAliases(model);
+		origins = CompositionOrigins.of(model);
 		elements = new JSONArray();
 		relations = new JSONArray();
 
@@ -114,9 +157,12 @@ public class JsonExporter extends AbstractModelExporter {
 
 		result = new JSONObject();
 		result.put("name", model.getName());
-		result.put("type", type);
-		result.put("elements", elements);
+		result.put(TYPE_KEY, type);
+		result.put(ELEMENTS_KEY, elements);
 		result.put("relations", relations);
+		if (model.getParent().isPresent()) {
+			result.put("implements", layoutOf(model));
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -125,14 +171,48 @@ public class JsonExporter extends AbstractModelExporter {
 
 	private void appendElement(String type, JustificationElement element) {
 		JSONObject obj = new JSONObject();
-		obj.put("type", type);
-		obj.put("id", qualify(element.id()));
-		obj.put("label", element.label());
+		obj.put(TYPE_KEY, type);
+		obj.put(ID_KEY, qualify(element.id()));
+		obj.put(LABEL_KEY, element.label());
 		List<String> aliases = qualifiedOriginalsOf(element.id());
 		if (!aliases.isEmpty()) {
 			obj.put("aliases", new JSONArray(aliases));
 		}
+		List<CompositionOrigins.Origin> from = origins.get(element.id());
+		if (from != null) {
+			JSONArray array = new JSONArray();
+			from.forEach(o -> array.put(new JSONObject().put("model", o.model())
+					.put(ID_KEY, o.id()).put(TYPE_KEY, o.type())));
+			obj.put("origins", array);
+		}
 		elements.put(obj);
+	}
+
+	/** How {@link DotExporter} lays the model out; see the class comment. */
+	private JSONObject layoutOf(JustificationModel model) {
+		TemplateLayout layout = TemplateLayout.of(model);
+		JSONArray templates = new JSONArray();
+		for (TemplateLayout.Cluster cluster : layout.clusters()) {
+			JSONArray placeholders = new JSONArray();
+			cluster.nodes().stream().filter(TemplateLayout.Node::placeholder)
+					.forEach(node -> placeholders.put(new JSONObject()
+							.put(ID_KEY, qualify(node.id()))
+							.put(LABEL_KEY, node.element().label())
+							.put("supports", new JSONArray(layout
+									.supportedThroughPlaceholder(node).stream()
+									.map(s -> qualify(s.id())).toList()))));
+			templates.put(new JSONObject()
+					.put("name", cluster.template().getName())
+					.put(ELEMENTS_KEY,
+							new JSONArray(cluster.nodes().stream()
+									.map(node -> qualify(node.id())).toList()))
+					.put("placeholders", placeholders));
+		}
+		return new JSONObject()
+				.put(ELEMENTS_KEY,
+						new JSONArray(layout.outside().stream()
+								.map(e -> qualify(e.id())).toList()))
+				.put("templates", templates);
 	}
 
 	private void appendRelation(String source, String target) {

@@ -1,8 +1,5 @@
 package ca.mcscert.jpipe.visitor;
 
-import static ca.mcscert.jpipe.util.QualifiedIds.qualifyIfPlain;
-import static java.util.stream.Collectors.toSet;
-
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
@@ -14,9 +11,7 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.model.elements.SupportLeaf;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Serialises a single {@link JustificationModel} to Graphviz DOT text, ready to
@@ -41,36 +36,24 @@ import java.util.Set;
  */
 public class DotExporter extends AbstractModelExporter {
 
-	private static final String INDENT = "  ";
+	static final String INDENT = "  ";
 
 	/** DOT graph-level attributes applied to every template cluster. */
-	private static final String CLUSTER_ATTRS = "style=filled; fillcolor=lightyellow; color=grey;";
+	static final String CLUSTER_ATTRS = "style=filled; fillcolor=lightyellow; color=grey;";
 
 	/**
 	 * Suffix appended to the DOT node id of an abstract support that was
 	 * overridden in the current model. Keeps the node distinct from the
 	 * concrete element that fulfils it.
 	 */
-	private static final String ABSTRACT_SUFFIX = "@abstract";
+	static final String ABSTRACT_SUFFIX = "@abstract";
 
 	// -------------------------------------------------------------------------
 	// Per-export state (reset by exportModel)
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Union of {@code concreteOverrides()} ids across the full ancestor chain
-	 * (current model + all ancestor templates). An {@link AbstractSupport} node
-	 * in any cluster gets {@link #ABSTRACT_SUFFIX} iff its child-qualified id
-	 * is in this set. Also drives the full set of override arrows.
-	 */
-	private Set<String> allOverriddenIds;
-
-	/**
-	 * Ids of elements copied unchanged from an ancestor template
-	 * ({@code inheritedElements()}). Inherited strategies route their leaf
-	 * edges through the abstract ghost node rather than the concrete override.
-	 */
-	private Set<String> inheritedIds;
+	/** Where each element of the model being exported is drawn. */
+	private TemplateLayout layout;
 
 	// -------------------------------------------------------------------------
 
@@ -128,17 +111,7 @@ public class DotExporter extends AbstractModelExporter {
 	@Override
 	protected void exportModel(JustificationModel model) {
 		currentModelName = model.getName();
-		Set<String> overriddenIds = model.concreteOverrides().stream()
-				.map(JustificationElement::id).collect(toSet());
-		inheritedIds = model.inheritedElements().stream()
-				.map(JustificationElement::id).collect(toSet());
-		allOverriddenIds = new HashSet<>(overriddenIds);
-		JustificationModel cursor = model.getParent().orElse(null);
-		while (cursor != null) {
-			cursor.concreteOverrides().stream().map(JustificationElement::id)
-					.forEach(allOverriddenIds::add);
-			cursor = cursor.getParent().orElse(null);
-		}
+		layout = TemplateLayout.of(model);
 
 		builder.append("digraph ").append(DotLabel.quoted(model.getName()))
 				.append(" {").append(System.lineSeparator());
@@ -150,17 +123,14 @@ public class DotExporter extends AbstractModelExporter {
 
 		// Own conclusion, own elements, and concrete overrides — outside
 		// clusters
-		if (model.hasOwnConclusion()) {
-			model.conclusion().ifPresent(c -> c.accept(this));
-		}
-		model.ownElements().forEach(e -> e.accept(this));
-		model.concreteOverrides().forEach(e -> e.accept(this));
+		layout.outside().forEach(e -> e.accept(this));
 
 		// Ancestor clusters nested to mirror the inheritance hierarchy
-		model.getParent().ifPresent(p -> appendAncestorCluster(p, INDENT));
+		appendClusters(layout.clusters());
 
-		// Override arrows: concrete → abstract ghost, across the full chain
-		allOverriddenIds.forEach(this::appendOverrideArrow);
+		// Override arrows: concrete → abstract ghost, in drawing order
+		layout.placeholders()
+				.forEach(placeholder -> appendOverrideArrow(placeholder.id()));
 
 		exportEdges(model);
 		builder.append("}").append(System.lineSeparator());
@@ -186,11 +156,6 @@ public class DotExporter extends AbstractModelExporter {
 	 * strategy.
 	 *
 	 * <p>
-	 * When the strategy has direct supports (concrete model elements), each
-	 * leaf is qualified with the current model name — these are always concrete
-	 * nodes.
-	 *
-	 * <p>
 	 * Template expansion copies every leaf, {@link AbstractSupport}
 	 * placeholders included, so an inherited strategy keeps its supports. A
 	 * strategy with no support draws no edge: borrowing the leaves of a parent
@@ -198,26 +163,17 @@ public class DotExporter extends AbstractModelExporter {
 	 * (#189).
 	 *
 	 * <p>
-	 * A leaf of an inherited strategy that is overridden in the current model
-	 * resolves to the abstract ghost node ({@link #ABSTRACT_SUFFIX}), because
-	 * the template structural edge points to the placeholder, not the concrete
-	 * fulfilment.
+	 * A leaf of an inherited strategy that is overridden resolves to the
+	 * abstract ghost node ({@link #ABSTRACT_SUFFIX}), because the template
+	 * structural edge points to the placeholder, not the concrete fulfilment
+	 * (see {@link TemplateLayout#throughPlaceholder}).
 	 */
 	private List<String> leafEdgeSources(Strategy strategy) {
-		boolean isInherited = inheritedIds.contains(strategy.id());
 		return strategy.getSupports().stream().map(SupportLeaf::id)
-				.map(leafId -> leafNode(leafId, isInherited)).toList();
-	}
-
-	/**
-	 * The DOT node id of a strategy leaf: its abstract ghost node when it may
-	 * stand for an overridden placeholder ({@code inherited}) and was
-	 * overridden in the current model, its own node otherwise.
-	 */
-	private String leafNode(String leafId, boolean inherited) {
-		return inherited && allOverriddenIds.contains(leafId)
-				? qualify(leafId) + ABSTRACT_SUFFIX
-				: qualify(leafId);
+				.map(leafId -> layout.throughPlaceholder(leafId, strategy)
+						? qualify(leafId) + ABSTRACT_SUFFIX
+						: qualify(leafId))
+				.toList();
 	}
 
 	// -------------------------------------------------------------------------
@@ -225,40 +181,30 @@ public class DotExporter extends AbstractModelExporter {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Recursively appends a {@code subgraph cluster_<name>} block for
-	 * {@code ancestor}, then nests the grandparent's cluster inside it before
-	 * closing. This produces properly nested DOT clusters that mirror the
-	 * inheritance hierarchy.
+	 * Appends a {@code subgraph cluster_<name>} block per ancestor, each nested
+	 * in the one before it, so that the clusters mirror the inheritance
+	 * hierarchy.
 	 */
-	private void appendAncestorCluster(JustificationModel ancestor,
-			String indent) {
-		String ancName = ancestor.getName();
-
-		builder.append(indent).append("subgraph ")
-				.append(DotLabel.quoted("cluster_" + ancName)).append(" {")
-				.append(System.lineSeparator());
-		builder.append(indent).append(INDENT).append(CLUSTER_ATTRS)
-				.append(System.lineSeparator());
-		builder.append(indent).append(INDENT).append("label=")
-				.append(DotLabel.wrapAndQuote(DotLabel.display(ancestor)))
-				.append(";").append(System.lineSeparator());
-
-		String inner = indent + INDENT;
-		if (ancestor.hasOwnConclusion()) {
-			ancestor.conclusion().ifPresent(c -> appendClusterNode(
-					qualifyIfPlain(ancName, c.id()), c, inner));
+	private void appendClusters(List<TemplateLayout.Cluster> clusters) {
+		String indent = INDENT;
+		for (TemplateLayout.Cluster cluster : clusters) {
+			JustificationModel ancestor = cluster.template();
+			builder.append(indent).append("subgraph ")
+					.append(DotLabel.quoted("cluster_" + ancestor.getName()))
+					.append(" {").append(System.lineSeparator());
+			builder.append(indent).append(INDENT).append(CLUSTER_ATTRS)
+					.append(System.lineSeparator());
+			builder.append(indent).append(INDENT).append("label=")
+					.append(DotLabel.wrapAndQuote(DotLabel.display(ancestor)))
+					.append(";").append(System.lineSeparator());
+			String inner = indent + INDENT;
+			cluster.nodes().forEach(node -> appendClusterNode(node, inner));
+			indent = inner;
 		}
-		ancestor.ownElements()
-				.forEach(e -> appendClusterNode(qualifyIfPlain(ancName, e.id()),
-						e, inner));
-		ancestor.concreteOverrides()
-				.forEach(e -> appendClusterNode(qualifyIfPlain(ancName, e.id()),
-						e, inner));
-
-		// Recurse: grandparent cluster is nested inside this one
-		ancestor.getParent().ifPresent(gp -> appendAncestorCluster(gp, inner));
-
-		builder.append(indent).append("}").append(System.lineSeparator());
+		for (int i = clusters.size(); i > 0; i--) {
+			builder.append(INDENT.repeat(i)).append("}")
+					.append(System.lineSeparator());
+		}
 	}
 
 	/**
@@ -268,17 +214,14 @@ public class DotExporter extends AbstractModelExporter {
 	 * with the concrete replacement rendered outside the cluster: an SVG with
 	 * two equal ids lets {@code getElementById} reach only one of them.
 	 */
-	private void appendClusterNode(String childQualifiedId,
-			JustificationElement element, String indent) {
-		boolean isGhost = element instanceof AbstractSupport
-				&& allOverriddenIds.contains(childQualifiedId);
-		String dotNodeId = qualify(childQualifiedId)
-				+ (isGhost ? ABSTRACT_SUFFIX : "");
+	private void appendClusterNode(TemplateLayout.Node node, String indent) {
+		String dotNodeId = qualify(node.id())
+				+ (node.placeholder() ? ABSTRACT_SUFFIX : "");
 		builder.append(indent).append(DotLabel.quoted(dotNodeId))
 				.append(" [label=")
-				.append(DotLabel.wrapAndQuote(element.label())).append(", id=")
-				.append(DotLabel.quoted(dotNodeId)).append(", ")
-				.append(DotNodeStyle.of(element).toAttrs()).append("];")
+				.append(DotLabel.wrapAndQuote(node.element().label()))
+				.append(", id=").append(DotLabel.quoted(dotNodeId)).append(", ")
+				.append(DotNodeStyle.of(node.element()).toAttrs()).append("];")
 				.append(System.lineSeparator());
 	}
 

@@ -23,6 +23,25 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   Any other backslash is kept as written, so a path such as `"dir\file.jd"`
   needs no change. The JPIPE export escapes labels the same way, so a label
   holding a quote compiles back to itself (#176).
+- The JSON export gives each element of a model built by an operator its
+  `origins`: the elements of the models it was composed from, at every level,
+  each with its model, its id and the kind it had there. A consumer such as
+  jpipe-runner can now tell which elements composition changed, and what they
+  were: the hook `refine` merges into a sub-conclusion, or the conclusion of a
+  source that `assemble` turns into a sub-conclusion. A model that implements
+  a template built by an operator passes the template's origins on to the
+  elements it inherits. The new key is optional, and the JSON of a model that
+  no operator built, and that implements no template an operator built, is
+  unchanged (#200).
+- The JSON export of a model that implements a template describes how the DOT
+  export draws the template chain, in a new `implements` key: each template's
+  cluster and the elements drawn in it, the `@support` placeholders and their
+  labels, which element fills each one, and which edges are drawn from a
+  placeholder. A consumer such as jpipe-runner can now draw the model as the
+  compiler does. `elements` and `relations` are unchanged, and the JSON of a
+  model that implements nothing is unchanged. The DOT export now writes its
+  override arrows in drawing order, so their order can change once in a DOT
+  file generated with an earlier version (#199).
 
 ### Changed
 - **Breaking:** mistakes in an operator call are errors at the call instead of

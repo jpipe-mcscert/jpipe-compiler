@@ -3,6 +3,8 @@ package ca.mcscert.jpipe.operators;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.MacroCommand;
 import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.QualifiedIdReadings;
+import ca.mcscert.jpipe.model.QualifiedIdReadings.SourceReading;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.List;
@@ -18,6 +20,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.ArrayList;
@@ -79,39 +82,113 @@ public final class ApplyOperator implements MacroCommand {
 	}
 
 	/**
-	 * {@code id}, written in a file loaded under {@code namespace}, as the unit
-	 * names it. A plain id is local and unchanged. In a qualified one, every
-	 * run of segments that names a model of the file, longest first, is
-	 * replaced by that model's name in the unit: under {@code ns},
-	 * {@code both:a:e} is {@code ns:both:ns:a:e} and {@code base:t:abs} is
-	 * {@code ns:base:t:abs}.
+	 * Which element an id argument of a call names: one of the result, written
+	 * {@code source:id} ({@code unifyExclude}), or one of a source, written as
+	 * that source names it ({@code refine}'s {@code hook}).
 	 */
-	static String inUnit(String id, String namespace, Unit unit) {
+	enum Scope {
+		RESULT, SOURCE
+	}
+
+	/**
+	 * {@code id}, an argument of a call on {@code sources} written in a file
+	 * loaded under {@code namespace}, as the unit names it. A plain id is local
+	 * and unchanged. A qualified one is read by provenance, in the result or in
+	 * the sources as {@code scope} says, with each model named as the file
+	 * names it, without the namespace, then written back with the unit's names:
+	 * under {@code ns}, {@code both:a:e} is {@code ns:both:ns:a:e} when
+	 * {@code both} composes {@code a} (#178). A segment names a model only when
+	 * the rest of the id is an id of that model, so that {@code b:ns:a:e} is
+	 * never read as {@code (b:ns)(a)(e)} when only {@code (b)(ns:a)(e)} names
+	 * an element (#202). A short form of an id of a source, which
+	 * {@code refine} accepts, is written in full.
+	 *
+	 * @throws InvalidOperatorCallException
+	 *             if the id names several elements of the unit
+	 */
+	static String inUnit(String id, String namespace,
+			List<JustificationModel> sources, Scope scope) {
 		if (namespace.isEmpty()) {
 			return id;
 		}
-		return QualifiedIds.renameModels(id, run -> {
-			String name = QualifiedIds.qualify(namespace, run);
-			return unit.findModel(name).map(_ -> name);
-		});
+		String prefix = namespace + ":";
+		Function<JustificationModel, String> asWritten = m -> m.getName()
+				.startsWith(prefix)
+						? m.getName().substring(prefix.length())
+						: m.getName();
+		return switch (scope) {
+			case RESULT ->
+				single(id,
+						QualifiedIdReadings.rewritten(
+								QualifiedIdReadings.inResult(sources, id,
+										asWritten),
+								JustificationModel::getName));
+			case SOURCE -> inSource(id,
+					QualifiedIdReadings.inSources(sources, id, asWritten));
+		};
+	}
+
+	/**
+	 * The id an argument of a source stands for. Two readings that write it
+	 * differently are the same element when they lead, in the same source,
+	 * through its aliases, to the same id: a merge keeps every id it merged.
+	 */
+	private static String inSource(String id, List<SourceReading> readings) {
+		if (readings.isEmpty()) {
+			return id;
+		}
+		Map<String, String> elements = new LinkedHashMap<>();
+		for (SourceReading r : readings) {
+			String unitId = r.reading().with(JustificationModel::getName);
+			elements.putIfAbsent(Unit.registryKey(r.source().getName(),
+					resolved(r.source(), unitId)), unitId);
+		}
+		return single(id, List.copyOf(elements.values()));
+	}
+
+	/** {@code id} followed through the aliases of {@code model}. */
+	private static String resolved(JustificationModel model, String id) {
+		String current = id;
+		Set<String> visited = new HashSet<>();
+		while (model.aliases().containsKey(current) && visited.add(current)) {
+			current = model.aliases().get(current);
+		}
+		return current;
+	}
+
+	private static String single(String id, List<String> ids) {
+		if (new HashSet<>(ids).size() > 1) {
+			throw new InvalidOperatorCallException(
+					"the id '" + id + "' names several elements: " + ids);
+		}
+		return ids.getFirst();
 	}
 
 	/** The arguments, with the element ids they hold as the unit names them. */
-	private Map<String, String> argumentsIn(Unit unit, CompositionOperator op) {
+	private Map<String, String> argumentsIn(List<JustificationModel> sources,
+			CompositionOperator op) {
 		if (namespace.isEmpty()) {
 			return config.arguments();
 		}
-		Set<String> idKeys = idArguments(op);
+		Set<String> sourceKeys = op.elementArguments();
 		Map<String, String> arguments = new LinkedHashMap<>();
-		config.arguments().forEach((key, value) -> arguments.put(key,
-				idKeys.contains(key) ? idsIn(value, unit) : value));
+		config.arguments().forEach((key, value) -> {
+			if (Unifier.UNIFY_EXCLUDE_KEY.equals(key)) {
+				arguments.put(key, idsIn(value, sources, Scope.RESULT));
+			} else if (sourceKeys.contains(key)) {
+				arguments.put(key, idsIn(value, sources, Scope.SOURCE));
+			} else {
+				arguments.put(key, value);
+			}
+		});
 		return arguments;
 	}
 
 	/** A comma-separated list of ids, each as the unit names it. */
-	private String idsIn(String value, Unit unit) {
+	private String idsIn(String value, List<JustificationModel> sources,
+			Scope scope) {
 		return Arrays.stream(value.split(",")).map(String::strip)
-				.map(id -> inUnit(id, namespace, unit))
+				.map(id -> inUnit(id, namespace, sources, scope))
 				.collect(Collectors.joining(","));
 	}
 
@@ -154,7 +231,7 @@ public final class ApplyOperator implements MacroCommand {
 		// Built first, then checked: a mistake in the call is reported as
 		// itself, not as the kind mismatch it may cause, and the kind checked
 		// is the one the composition actually produced.
-		Map<String, String> arguments = argumentsIn(context, op);
+		Map<String, String> arguments = argumentsIn(sources, op);
 		List<Command> composed = op.apply(config.resultName(), sources,
 				arguments, config.location(), context.locations(),
 				context.aliases());
@@ -174,7 +251,7 @@ public final class ApplyOperator implements MacroCommand {
 						composed, arguments));
 		commands.add(new RecordComposition(config.resultName(),
 				config.operatorName(), config.sourceNames(), arguments,
-				idArguments(op)));
+				idArguments(op), Set.of(Unifier.UNIFY_EXCLUDE_KEY)));
 		return commands;
 	}
 

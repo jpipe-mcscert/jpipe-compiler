@@ -21,6 +21,7 @@ public final class RecordComposition extends RegularCommand {
 	private final List<String> sourceNames;
 	private final Map<String, String> arguments;
 	private final Set<String> idArguments;
+	private final Set<String> resultIdArguments;
 
 	/**
 	 * @param container
@@ -33,15 +34,19 @@ public final class RecordComposition extends RegularCommand {
 	 *            the call's arguments, element ids as the unit names them.
 	 * @param idArguments
 	 *            the keys of {@code arguments} whose value holds element ids.
+	 * @param resultIdArguments
+	 *            the keys of {@code idArguments} whose ids name an element of
+	 *            the result rather than of a source.
 	 */
 	public RecordComposition(String container, String operator,
 			List<String> sourceNames, Map<String, String> arguments,
-			Set<String> idArguments) {
+			Set<String> idArguments, Set<String> resultIdArguments) {
 		this.container = container;
 		this.operator = operator;
 		this.sourceNames = List.copyOf(sourceNames);
 		this.arguments = Map.copyOf(arguments);
 		this.idArguments = Set.copyOf(idArguments);
+		this.resultIdArguments = Set.copyOf(resultIdArguments);
 	}
 
 	@Override
@@ -54,8 +59,8 @@ public final class RecordComposition extends RegularCommand {
 	public void doExecute(Unit context) {
 		List<JustificationModel> sources = sourceNames.stream()
 				.map(context::get).toList();
-		context.get(container).recordComposition(
-				new Composition(operator, sources, arguments, idArguments));
+		context.get(container).recordComposition(new Composition(operator,
+				sources, arguments, idArguments, resultIdArguments));
 	}
 
 	@Override

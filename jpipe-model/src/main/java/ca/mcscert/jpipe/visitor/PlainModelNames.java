@@ -1,11 +1,14 @@
 package ca.mcscert.jpipe.visitor;
 
-import ca.mcscert.jpipe.util.QualifiedIds;
+import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.QualifiedIdReadings;
+import ca.mcscert.jpipe.model.QualifiedIdReadings.Reading;
+import ca.mcscert.jpipe.model.QualifiedIdReadings.SourceReading;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -64,14 +67,58 @@ public final class PlainModelNames {
 	}
 
 	/**
-	 * {@code id} with every run of segments that names a renamed model, longest
-	 * first, replaced by that model's new name. Its last segment, the local id,
-	 * is never a model name.
+	 * {@code id}, an id of {@code owner}, with every model it names renamed.
+	 * Which segments name a model is read by provenance, through the models
+	 * {@code owner} is built from (see {@link QualifiedIdReadings}): in
+	 * {@code b:ns:a:e}, {@code b:ns} names a model only when the rest,
+	 * {@code a:e}, is an id of that model (#202).
 	 */
-	public String id(String id) {
+	public String id(JustificationModel owner, String id) {
 		return renamed.isEmpty()
 				? id
-				: QualifiedIds.renameModels(id,
-						run -> Optional.ofNullable(renamed.get(run)));
+				: rewrite(QualifiedIdReadings.in(owner, id,
+						JustificationModel::getName));
+	}
+
+	/**
+	 * {@code id}, an argument of an operator call on {@code sources} that names
+	 * an element of the result ({@code source:id}), with every model it names
+	 * renamed; see {@link QualifiedIdReadings#inResult}.
+	 */
+	public String resultArgument(List<JustificationModel> sources, String id) {
+		return renamed.isEmpty()
+				? id
+				: rewrite(QualifiedIdReadings.inResult(sources, id,
+						JustificationModel::getName));
+	}
+
+	/**
+	 * {@code id}, an argument of an operator call on {@code sources} that names
+	 * an element of a source as that source names it, with every model it names
+	 * renamed; see {@link QualifiedIdReadings#inSources}. A short form is
+	 * written in full, since the models it names may change name in the middle
+	 * of the id.
+	 */
+	public String sourceArgument(List<JustificationModel> sources, String id) {
+		if (renamed.isEmpty()) {
+			return id;
+		}
+		List<Reading> readings = QualifiedIdReadings
+				.inSources(sources, id, JustificationModel::getName).stream()
+				.map(SourceReading::reading).toList();
+		return readings.isEmpty() ? id : rewrite(readings);
+	}
+
+	/**
+	 * The id the readings stand for, under the export's names. Two readings
+	 * that stand for different ids mean the id names two elements: two elements
+	 * of one model then share an id, which compilation reports
+	 * ({@code no-duplicate-ids}). The export of such a model cannot be faithful
+	 * anyway, so it keeps the first reading, in the order of the call's
+	 * sources, rather than fail.
+	 */
+	private String rewrite(List<Reading> readings) {
+		return QualifiedIdReadings.rewritten(readings, m -> name(m.getName()))
+				.getFirst();
 	}
 }

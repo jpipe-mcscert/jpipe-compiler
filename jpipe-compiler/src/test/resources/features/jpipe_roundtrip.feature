@@ -40,3 +40,4 @@ Feature: The JPIPE export is a round-trip
       | 026_declaration_order.jd |
       | 027_load_under_namespaces.jd |
       | 028_refine_templates_and_chains.jd |
+      | 029_namespace_prefix_of_another.jd |
