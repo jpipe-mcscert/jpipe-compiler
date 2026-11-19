@@ -135,6 +135,43 @@ is self-contained, and never holds a `load`:
 
 Comments and the layout of the original source are not kept.
 
+**The `JSON` format** describes one model. jpipe-runner reads it to run a
+justification and to draw it.
+
+```jsonc
+{
+  "name": "readiness",
+  "type": "justification",            // or "template"
+  "elements": [
+    { "type": "sub-conclusion",       // "conclusion", "sub-conclusion", "strategy",
+                                      // "evidence" or "abstract-support"
+      "id": "readiness:hook",         // qualified with the model's name
+      "label": "The code is tested",
+      "aliases": [ "readiness:draft:tests", "readiness:tested:tested" ],
+      "origins": [ { "model": "draft",  "id": "draft:tests",   "type": "evidence" },
+                   { "model": "tested", "id": "tested:tested", "type": "conclusion" } ] }
+  ],
+  "relations": [ { "source": "readiness:draft:s", "target": "readiness:c" } ]
+}
+```
+
+- `elements` lists the model's elements once it is built, inherited ones
+  included, and `relations` its support edges, from the supporting element to
+  the supported one.
+- `aliases`, on an element that composition or unification merged, lists the
+  ids it was merged from, at every level, qualified like `id`.
+- `origins`, on an element of a model built by an operator, lists the
+  elements of the models it was composed from that it was built from, at every
+  level, nearest first. Each gives its model, its id as that model's own JSON
+  export writes it, and its kind there. An element whose kind composition
+  changed says what it was: the hook `refine` merges into a sub-conclusion, or
+  the conclusion of a source that `assemble` turns into a sub-conclusion. An
+  element the operator creates itself, such as `assemble`'s conclusion, has
+  none.
+
+`aliases` and `origins` are left out when they would be empty, so the JSON of
+a model no operator built has neither.
+
 ### `diagnostic`
 
 Parses and validates a `.jd` source file and reports on it without exporting

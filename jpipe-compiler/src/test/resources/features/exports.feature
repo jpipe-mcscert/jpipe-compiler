@@ -40,6 +40,55 @@ Feature: Exporting compiled models to various formats
       And the JSON output contains "assembled_2:a_claim:s1"
       And the JSON output contains "assembled_2:another_claim:s2"
 
+  Scenario: JSON export gives refine's hook the kinds it was merged from
+    Given the source file "009_refine.jd"
+    When I compile it into a unit
+    Then the unit contains a justification named "refined"
+    When I export the current model to JSON format
+    Then the JSON element "refined:hook" has the origin "minimal:e" of model "minimal", a "evidence"
+      And the JSON element "refined:hook" has the origin "refinement:c" of model "refinement", a "conclusion"
+
+  Scenario: JSON export says which conclusions assemble turned into sub-conclusions
+    Given the source file "010_assemble.jd"
+    When I compile it into a unit
+    Then the unit contains a justification named "assembled_2"
+    When I export the current model to JSON format
+    Then the JSON element "assembled_2:a_claim:c" has the origin "a_claim:c" of model "a_claim", a "conclusion"
+      And the JSON element "assembled_2:another_claim:c" has the origin "another_claim:c" of model "another_claim", a "conclusion"
+
+  Scenario: JSON export gives the origins of every level of a chained composition
+    Given the source file "012_chaining_operators.jd"
+    When I compile it into a unit
+    Then the unit contains a justification named "with_refine_1"
+    When I export the current model to JSON format
+    Then the JSON element "with_refine_1:hook" has the origin "both:unified_0" of model "both", a "evidence"
+      And the JSON element "with_refine_1:hook" has the origin "first:e" of model "first", a "evidence"
+      And the JSON element "with_refine_1:both:first:c" has the origin "first:c" of model "first", a "conclusion"
+
+  Scenario: JSON export gives no origins to a model nothing was composed into
+    Given the source file "000_minimal.jd"
+    When I compile it into a unit
+    Then the unit contains a justification named "minimal"
+    When I export the current model to JSON format
+    Then no JSON element has origins
+
+  Scenario Outline: JSON origins of <file> trace every element back to its sources
+    Given the source file "<file>"
+    When I compile it into a unit
+    Then every composed model of the unit traces each source element to one of its elements
+      And every origin in the unit is an element of its model, of the kind it gives
+
+    Examples:
+      | file |
+      | 009_refine.jd |
+      | 010_assemble.jd |
+      | 011_unifying_while_compising.jd |
+      | 012_chaining_operators.jd |
+      | 024_assemble_commutativity.jd |
+      | 027_load_under_namespaces.jd |
+      | 028_refine_templates_and_chains.jd |
+      | 029_namespace_prefix_of_another.jd |
+
   Scenario: Python export names the merged element by its original ids only
     Given the source file "011_unifying_while_compising.jd"
     When I compile it into a unit

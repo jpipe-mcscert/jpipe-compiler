@@ -38,6 +38,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import java.util.Locale;
@@ -401,6 +403,103 @@ public class CompilationSteps {
 		assertThat(jsonOutput).contains(fragment);
 	}
 
+	@Then("the JSON element {string} has the origin {string} of model {string}, a {string}")
+	public void theJsonElementHasTheOrigin(String id, String originId,
+			String model, String type) {
+		assertThat(originsOf(new JSONObject(jsonOutput), id))
+				.contains(List.of(model, originId, type));
+	}
+
+	@Then("no JSON element has origins")
+	public void noJsonElementHasOrigins() {
+		new JSONObject(jsonOutput).getJSONArray("elements")
+				.forEach(e -> assertThat(((JSONObject) e).has("origins"))
+						.as("origins of %s", e).isFalse());
+	}
+
+	@Then("every composed model of the unit traces each source element to one of its elements")
+	public void everyComposedModelTracesEachSourceElement() {
+		List<JustificationModel> composed = unit.getModels().stream()
+				.filter(m -> m.composition().isPresent()).toList();
+		assertThat(composed).isNotEmpty();
+		for (JustificationModel model : composed) {
+			JSONObject json = new JSONObject(new JsonExporter().export(model));
+			for (JustificationModel source : model.composition().orElseThrow()
+					.sources()) {
+				new JSONObject(new JsonExporter().export(source))
+						.getJSONArray("elements").forEach(e -> {
+							JSONObject element = (JSONObject) e;
+							List<String> origin = List.of(source.getName(),
+									element.getString("id"),
+									element.getString("type"));
+							assertThat(elementsWithOrigin(json, origin))
+									.as("elements of %s built from %s",
+											model.getName(), origin)
+									.hasSize(1);
+						});
+			}
+		}
+	}
+
+	@Then("every origin in the unit is an element of its model, of the kind it gives")
+	public void everyOriginIsAnElementOfItsModel() {
+		for (JustificationModel model : unit.getModels()) {
+			JSONObject json = new JSONObject(new JsonExporter().export(model));
+			json.getJSONArray("elements").forEach(e -> {
+				JSONObject element = (JSONObject) e;
+				originsOf(json, element.getString("id")).forEach(origin -> {
+					JSONObject source = new JSONObject(new JsonExporter()
+							.export(unit.get(origin.getFirst())));
+					assertThat(originsTypes(source, origin.get(1)))
+							.as("origin %s of %s", origin,
+									element.getString("id"))
+							.containsExactly(origin.get(2));
+				});
+			});
+		}
+	}
+
+	/** The origins of the element {@code id}, each as [model, id, type]. */
+	private static List<List<String>> originsOf(JSONObject json, String id) {
+		List<List<String>> origins = new ArrayList<>();
+		json.getJSONArray("elements").forEach(e -> {
+			JSONObject element = (JSONObject) e;
+			if (element.getString("id").equals(id) && element.has("origins")) {
+				element.getJSONArray("origins").forEach(o -> {
+					JSONObject origin = (JSONObject) o;
+					origins.add(List.of(origin.getString("model"),
+							origin.getString("id"), origin.getString("type")));
+				});
+			}
+		});
+		return origins;
+	}
+
+	/** The ids of the elements that have {@code origin} among their origins. */
+	private static List<String> elementsWithOrigin(JSONObject json,
+			List<String> origin) {
+		List<String> ids = new ArrayList<>();
+		json.getJSONArray("elements").forEach(e -> {
+			String id = ((JSONObject) e).getString("id");
+			if (originsOf(json, id).contains(origin)) {
+				ids.add(id);
+			}
+		});
+		return ids;
+	}
+
+	/** The types of the elements of {@code json} whose id is {@code id}. */
+	private static List<String> originsTypes(JSONObject json, String id) {
+		List<String> types = new ArrayList<>();
+		json.getJSONArray("elements").forEach(e -> {
+			JSONObject element = (JSONObject) e;
+			if (element.getString("id").equals(id)) {
+				types.add(element.getString("type"));
+			}
+		});
+		return types;
+	}
+
 	@Then("every model of the unit compiles back from its JPIPE export")
 	public void everyModelCompilesBackFromItsJpipeExport() throws IOException {
 		assertThat(unit.getModels()).isNotEmpty();
@@ -458,6 +557,16 @@ public class CompilationSteps {
 						.forEach(a -> aliases.put(rename.apply((String) a)));
 				element.put("aliases", aliases);
 			}
+			if (element.has("origins")) {
+				element.getJSONArray("origins").forEach(o -> {
+					JSONObject origin = (JSONObject) o;
+					JustificationModel from = composedFrom(model,
+							origin.getString("model"));
+					origin.put("model", names.name(from.getName()));
+					origin.put("id",
+							renamed(from, names, origin.getString("id")));
+				});
+			}
 			elements.add(element);
 		});
 		elements.sort(Comparator.comparing(e -> e.getString("id")));
@@ -474,6 +583,21 @@ public class CompilationSteps {
 		json.put("elements", new JSONArray(elements));
 		json.put("relations", new JSONArray(relations));
 		return json.toString(2);
+	}
+
+	/** The model named {@code name} that {@code model} is composed from. */
+	private static JustificationModel composedFrom(JustificationModel model,
+			String name) {
+		Deque<JustificationModel> pending = new ArrayDeque<>(List.of(model));
+		while (!pending.isEmpty()) {
+			JustificationModel next = pending.pop();
+			if (next.getName().equals(name)) {
+				return next;
+			}
+			next.composition().ifPresent(c -> pending.addAll(c.sources()));
+		}
+		throw new AssertionError(
+				model.getName() + " is composed from no model " + name);
 	}
 
 	/**

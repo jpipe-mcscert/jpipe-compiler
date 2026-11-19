@@ -23,6 +23,13 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   Any other backslash is kept as written, so a path such as `"dir\file.jd"`
   needs no change. The JPIPE export escapes labels the same way, so a label
   holding a quote compiles back to itself (#176).
+- The JSON export gives each element of a model built by an operator its
+  `origins`: the elements of the models it was composed from, at every level,
+  each with its model, its id and the kind it had there. A consumer such as
+  jpipe-runner can now tell which elements composition changed, and what they
+  were: the hook `refine` merges into a sub-conclusion, or the conclusion of a
+  source that `assemble` turns into a sub-conclusion. The new key is optional,
+  and the JSON of a model no operator built is unchanged (#200).
 
 ### Changed
 - **Breaking:** mistakes in an operator call are errors at the call instead of

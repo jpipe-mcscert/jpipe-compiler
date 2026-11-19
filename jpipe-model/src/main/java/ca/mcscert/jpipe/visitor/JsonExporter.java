@@ -9,6 +9,7 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.List;
+import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -28,7 +29,9 @@ import org.json.JSONObject;
  *   "name": "...",
  *   "type": "justification" | "template",
  *   "elements": [ { "type": "...", "id": "...", "label": "...",
- *                   "aliases": [ "..." ] }, ... ],
+ *                   "aliases": [ "..." ],
+ *                   "origins": [ { "model": "...", "id": "...",
+ *                                  "type": "..." }, ... ] }, ... ],
  *   "relations": [ { "source": "...", "target": "..." }, ... ]
  * }
  * }</pre>
@@ -40,12 +43,24 @@ import org.json.JSONObject;
  * the array is transitive: composing the result of a composition records a
  * chain, and the array lists every id along it, down to those written in the
  * original source models.
+ *
+ * <p>
+ * The optional per-element {@code "origins"} array is written for the elements
+ * of a model built by an operator: the elements of the models it was composed
+ * from that the element was built from, each with the name of its model, its id
+ * and its kind as the JSON export of that model writes them. It covers every
+ * level of composition, nearest first, so that an element whose kind
+ * composition changed (the hook {@code refine} merges into a sub-conclusion,
+ * the conclusion of a source {@code assemble} takes) says what it was. It is
+ * omitted for an element the operator created itself, and for every element of
+ * a model no operator built (#200).
  */
 public class JsonExporter extends AbstractModelExporter {
 
 	private JSONObject result;
 	private JSONArray elements;
 	private JSONArray relations;
+	private Map<String, List<CompositionOrigins.Origin>> origins;
 
 	/**
 	 * Serialise {@code model} to JSON text.
@@ -105,6 +120,7 @@ public class JsonExporter extends AbstractModelExporter {
 				: "template";
 		currentModelName = model.getName();
 		initAliases(model);
+		origins = CompositionOrigins.of(model);
 		elements = new JSONArray();
 		relations = new JSONArray();
 
@@ -131,6 +147,13 @@ public class JsonExporter extends AbstractModelExporter {
 		List<String> aliases = qualifiedOriginalsOf(element.id());
 		if (!aliases.isEmpty()) {
 			obj.put("aliases", new JSONArray(aliases));
+		}
+		List<CompositionOrigins.Origin> from = origins.get(element.id());
+		if (from != null) {
+			JSONArray array = new JSONArray();
+			from.forEach(o -> array.put(new JSONObject().put("model", o.model())
+					.put("id", o.id()).put("type", o.type())));
+			obj.put("origins", array);
 		}
 		elements.put(obj);
 	}
