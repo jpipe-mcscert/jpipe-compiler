@@ -156,6 +156,25 @@ class JpipeExporterTest {
 				.doesNotContain("load");
 	}
 
+	@Test
+	void a_unit_is_written_dependencies_first_under_plain_names() {
+		// The unit lists the call before its source: the export does not.
+		Justification a = named("ns:a");
+		Justification out = new Justification("out");
+		out.recordComposition(
+				new Composition("assemble", List.of(a), Map.of(), Set.of()));
+		Unit unit = new Unit("src");
+		unit.add(out);
+		unit.add(a);
+
+		String jd = new JpipeExporter().export(unit);
+
+		assertThat(jd).startsWith("justification ns_a {")
+				.containsOnlyOnce("justification ns_a {")
+				.endsWith("justification out is assemble(ns_a)"
+						+ System.lineSeparator());
+	}
+
 	/** {@code name} implementing {@code template}, its @support overridden. */
 	private static Justification implementing(String name, Template template,
 			String templateName) {

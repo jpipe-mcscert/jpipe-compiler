@@ -236,7 +236,6 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - A failure to write an export or a report, such as a full disk or a closed
   pipe, is now an error with exit code 42. Text formats used to exit 0 with an
   empty or missing file (#179).
-
 - The DOT export of a justification no longer draws edges from a template's
   evidence into a strategy the justification declares itself, without support,
   under the same short id as a template strategy. Such a strategy is now drawn
@@ -254,6 +253,7 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   and a model loaded under a namespace is inlined under a plain name (`base:t`
   becomes `base_t`, and `base:t:abs` becomes `base_t:abs`), never as a
   `load` (#185).
+
 ---
 
 ## [3.0.0] — 2026-11-10

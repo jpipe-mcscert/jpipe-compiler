@@ -516,6 +516,20 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("declaredElements() is own elements and overrides, in model order")
+		void declaredElementsAreWhatTheModelDoesNotInherit() {
+			Template t = template();
+			Justification j = new Justification("j");
+			j.inline(t, "t");
+			j.addElement(new Evidence("e_local", "local evidence"));
+			j.removeElement("t:abs");
+			j.addElement(new Evidence("t:abs", "concrete evidence"));
+
+			assertThat(j.declaredElements()).extracting(e -> e.id())
+					.containsExactly("e_local", "t:abs");
+		}
+
+		@Test
 		@DisplayName("multi-level: grandparent elements are inherited in leaf model")
 		void multiLevelInheritanceGrandparentElementsAreInherited() {
 			// root template: conclusion c, strategy s, abstract supports abs1,

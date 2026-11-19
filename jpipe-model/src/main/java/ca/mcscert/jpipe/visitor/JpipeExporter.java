@@ -14,9 +14,7 @@ import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -61,7 +59,9 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 	 * @return well-formed {@code .jd} text for all models in the unit.
 	 */
 	public String export(Unit unit) {
-		return write(unit.getModels());
+		builder.setLength(0);
+		unit.accept(this);
+		return builder.toString();
 	}
 
 	/**
@@ -81,22 +81,33 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 	 * written with it: its own, unless it was loaded under a namespace.
 	 */
 	public static PlainModelNames namesFor(JustificationModel model) {
-		return PlainModelNames.of(withDependencies(List.of(model)).stream()
-				.map(JustificationModel::getName).toList());
+		return namesOf(withDependencies(List.of(model)));
+	}
+
+	private static PlainModelNames namesOf(Set<JustificationModel> ordered) {
+		return PlainModelNames
+				.of(ordered.stream().map(JustificationModel::getName).toList());
 	}
 
 	private String write(Collection<? extends JustificationModel> models) {
 		builder.setLength(0);
+		appendModels(models);
+		return builder.toString();
+	}
+
+	/**
+	 * Appends {@code models} and every model they depend on, dependencies
+	 * first, separated by blank lines, under the names they are given together.
+	 */
+	private void appendModels(Collection<? extends JustificationModel> models) {
 		Set<JustificationModel> ordered = withDependencies(models);
-		names = PlainModelNames
-				.of(ordered.stream().map(JustificationModel::getName).toList());
+		names = namesOf(ordered);
 		String separator = "";
 		for (JustificationModel model : ordered) {
 			builder.append(separator);
 			model.accept(this);
 			separator = System.lineSeparator();
 		}
-		return builder.toString();
 	}
 
 	/**
@@ -125,9 +136,10 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 	// Unit and model visit methods
 	// -------------------------------------------------------------------------
 
+	/** Writes every model of the unit, as {@link #export(Unit)} does. */
 	@Override
 	public Void visit(Unit unit) {
-		unit.getModels().forEach(m -> m.accept(this));
+		appendModels(unit.getModels());
 		return null;
 	}
 
@@ -231,11 +243,7 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 		if (model.hasOwnConclusion()) {
 			model.conclusion().ifPresent(c -> c.accept(this));
 		}
-		Set<JustificationElement> inherited = Collections
-				.newSetFromMap(new IdentityHashMap<>());
-		inherited.addAll(model.inheritedElements());
-		model.getElements().stream().filter(e -> !inherited.contains(e))
-				.forEach(e -> e.accept(this));
+		model.declaredElements().forEach(e -> e.accept(this));
 
 		Set<List<String>> inheritedEdges = inheritedEdges(model);
 		model.forEachSupportEdge((supported, supporter) -> {

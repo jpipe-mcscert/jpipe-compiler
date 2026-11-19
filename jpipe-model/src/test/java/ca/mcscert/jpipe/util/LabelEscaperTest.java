@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class LabelEscaperTest {
 
@@ -62,6 +64,13 @@ class LabelEscaperTest {
 				.isEqualTo("система_работает");
 		assertThat(LabelEscaper.toMethodName("हिन्दी परीक्षण"))
 				.isEqualTo("हिन्दी_परीक्षण");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"aⸯb", "a ⸯ b", "aⸯⸯb"})
+	void aLetterPythonRejectsInIdentifiersIsASeparator(String label) {
+		// U+2E2F VERTICAL TILDE is a letter, but no identifier character.
+		assertThat(LabelEscaper.toMethodName(label)).isEqualTo("a_b");
 	}
 
 	@Test

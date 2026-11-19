@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.util;
 
 import java.text.Normalizer;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +36,21 @@ import java.util.stream.Collectors;
  */
 public final class LabelEscaper {
 
+	/**
+	 * A run of characters a Python identifier cannot hold: anything but a
+	 * letter, a decimal digit or a combining mark. U+2E2F VERTICAL TILDE is the
+	 * one letter outside them: it has the {@code Pattern_Syntax} property,
+	 * which UAX #31 excludes from identifiers. That property is immutable, so
+	 * no later Unicode version adds another.
+	 */
+	private static final Pattern NOT_IN_IDENTIFIER = Pattern
+			.compile("[[^\\p{L}\\p{Nd}\\p{Mn}\\p{Mc}]\\x{2E2F}]+");
+
+	private static final Pattern EDGE_UNDERSCORES = Pattern
+			.compile("(^_+)|(_+$)");
+
+	private static final Pattern MARKS = Pattern.compile("\\p{M}");
+
 	private LabelEscaper() {
 	}
 
@@ -49,9 +65,9 @@ public final class LabelEscaper {
 		String folded = Normalizer.normalize(label, Normalizer.Form.NFKC)
 				.codePoints().mapToObj(LabelEscaper::foldToAscii)
 				.collect(Collectors.joining());
-		String snake = folded.toLowerCase(Locale.ROOT)
-				.replaceAll("[^\\p{L}\\p{Nd}\\p{Mn}\\p{Mc}]+", "_")
-				.replaceAll("(^_+)|(_+$)", "");
+		String snake = EDGE_UNDERSCORES.matcher(NOT_IN_IDENTIFIER
+				.matcher(folded.toLowerCase(Locale.ROOT)).replaceAll("_"))
+				.replaceAll("");
 		String name = snake.isEmpty()
 				|| !Character.isUnicodeIdentifierStart(snake.codePointAt(0))
 						? "_" + snake
@@ -65,9 +81,9 @@ public final class LabelEscaper {
 	 * CJK ideograph or a Devanagari vowel sign is kept.
 	 */
 	private static String foldToAscii(int codePoint) {
-		String stripped = Normalizer
-				.normalize(Character.toString(codePoint), Normalizer.Form.NFD)
-				.replaceAll("\\p{M}", "");
+		String stripped = MARKS.matcher(Normalizer
+				.normalize(Character.toString(codePoint), Normalizer.Form.NFD))
+				.replaceAll("");
 		return !stripped.isEmpty() && stripped.chars().allMatch(c -> c < 0x80)
 				? stripped
 				: Character.toString(codePoint);

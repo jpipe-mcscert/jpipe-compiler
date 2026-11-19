@@ -1,12 +1,11 @@
 package ca.mcscert.jpipe.visitor;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -21,6 +20,11 @@ import java.util.Set;
  * {@code _2}, {@code _3}, and so on when that name is already taken. Every id
  * that names the model is renamed with it: {@code base:t:abs} becomes
  * {@code base_t:abs}. A model whose name is already plain keeps it.
+ *
+ * <p>
+ * Names are chosen for the models one export writes together, and hold within
+ * that export: the suffix a renamed model gets depends on which plain names
+ * that export also holds.
  */
 public final class PlainModelNames {
 
@@ -65,42 +69,9 @@ public final class PlainModelNames {
 	 * is never a model name.
 	 */
 	public String id(String id) {
-		if (renamed.isEmpty() || !id.contains(SEPARATOR)) {
-			return id;
-		}
-		String[] segments = id.split(SEPARATOR);
-		List<String> out = new ArrayList<>();
-		int i = 0;
-		while (i < segments.length - 1) {
-			int length = longestModelAt(segments, i);
-			if (length == 0) {
-				out.add(segments[i]);
-				i++;
-			} else {
-				out.add(renamed.get(join(segments, i, length)));
-				i += length;
-			}
-		}
-		out.add(segments[segments.length - 1]);
-		return String.join(SEPARATOR, out);
-	}
-
-	/**
-	 * The number of segments, from {@code start}, that name a renamed model,
-	 * the longest such run, or {@code 0}. A renamed name has two segments at
-	 * least, and the run leaves the last segment out.
-	 */
-	private int longestModelAt(String[] segments, int start) {
-		for (int length = segments.length - 1 - start; length >= 2; length--) {
-			if (renamed.containsKey(join(segments, start, length))) {
-				return length;
-			}
-		}
-		return 0;
-	}
-
-	private static String join(String[] segments, int start, int length) {
-		return String.join(SEPARATOR,
-				Arrays.copyOfRange(segments, start, start + length));
+		return renamed.isEmpty()
+				? id
+				: QualifiedIds.renameModels(id,
+						run -> Optional.ofNullable(renamed.get(run)));
 	}
 }

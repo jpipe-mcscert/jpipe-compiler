@@ -332,6 +332,17 @@ public abstract sealed class JustificationModel
 	}
 
 	/**
+	 * Elements this model declares rather than inherits: its
+	 * {@link #ownElements()} and its {@link #concreteOverrides()}, in model
+	 * order.
+	 */
+	public List<JustificationElement> declaredElements() {
+		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
+		return elements.stream().filter(e -> pt.get(e.id()) != e.getClass())
+				.toList();
+	}
+
+	/**
 	 * Elements that replaced an ancestor's {@link AbstractSupport} placeholder
 	 * — same qualified id, but a concrete type (e.g. {@link Evidence} or
 	 * {@link SubConclusion}).

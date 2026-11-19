@@ -87,32 +87,13 @@ public final class ApplyOperator implements MacroCommand {
 	 * {@code ns:base:t:abs}.
 	 */
 	static String inUnit(String id, String namespace, Unit unit) {
-		String[] segments = id.split(":");
-		if (namespace.isEmpty() || segments.length < 2) {
+		if (namespace.isEmpty()) {
 			return id;
 		}
-		List<String> out = new ArrayList<>();
-		int i = 0;
-		while (i < segments.length - 1) {
-			int k = segments.length - 1 - i;
-			while (k > 0 && unit
-					.findModel(QualifiedIds.qualify(namespace,
-							String.join(":",
-									Arrays.copyOfRange(segments, i, i + k))))
-					.isEmpty()) {
-				k--;
-			}
-			if (k == 0) {
-				out.add(segments[i]);
-				i++;
-			} else {
-				out.add(QualifiedIds.qualify(namespace, String.join(":",
-						Arrays.copyOfRange(segments, i, i + k))));
-				i += k;
-			}
-		}
-		out.add(segments[segments.length - 1]);
-		return String.join(":", out);
+		return QualifiedIds.renameModels(id, run -> {
+			String name = QualifiedIds.qualify(namespace, run);
+			return unit.findModel(name).map(_ -> name);
+		});
 	}
 
 	/** The arguments, with the element ids they hold as the unit names them. */
@@ -120,20 +101,18 @@ public final class ApplyOperator implements MacroCommand {
 		if (namespace.isEmpty()) {
 			return config.arguments();
 		}
-		Set<String> elementKeys = op.elementArguments();
+		Set<String> idKeys = idArguments(op);
 		Map<String, String> arguments = new LinkedHashMap<>();
-		config.arguments().forEach((key, value) -> {
-			String mapped = value;
-			if (elementKeys.contains(key)) {
-				mapped = inUnit(value.strip(), namespace, unit);
-			} else if (key.equals(Unifier.UNIFY_EXCLUDE_KEY)) {
-				mapped = Arrays.stream(value.split(",")).map(String::strip)
-						.map(id -> inUnit(id, namespace, unit))
-						.collect(Collectors.joining(","));
-			}
-			arguments.put(key, mapped);
-		});
+		config.arguments().forEach((key, value) -> arguments.put(key,
+				idKeys.contains(key) ? idsIn(value, unit) : value));
 		return arguments;
+	}
+
+	/** A comma-separated list of ids, each as the unit names it. */
+	private String idsIn(String value, Unit unit) {
+		return Arrays.stream(value.split(",")).map(String::strip)
+				.map(id -> inUnit(id, namespace, unit))
+				.collect(Collectors.joining(","));
 	}
 
 	public String resultName() {
