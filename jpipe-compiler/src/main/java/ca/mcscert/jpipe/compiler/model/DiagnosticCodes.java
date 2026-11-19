@@ -49,7 +49,11 @@ public final class DiagnosticCodes {
 
 	// ---- template linking ---------------------------------------------------
 
-	/** Two models mutually implement each other, creating a cycle. */
+	/**
+	 * A model waits on itself through its {@code implements}: two templates
+	 * implement each other, or a template is built by an operator call from the
+	 * model that implements it.
+	 */
 	public static final String CYCLIC_IMPLEMENTS = "cyclic-implements";
 
 	/** An {@code implements} directive could not be applied. */

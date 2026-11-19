@@ -18,6 +18,7 @@ import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -76,8 +77,8 @@ final class ExecutionFailureDiagnostics {
 			}
 			switch (cmd) {
 				case AddSupport c -> diagnoseAddSupport(c, unit, ctx);
-				case ImplementsTemplate c ->
-					diagnoseImplementsTemplate(c, unit, stuck, ctx);
+				case ImplementsTemplate c -> diagnoseImplementsTemplate(c, unit,
+						stuck, broken, neverBuilt, ctx);
 				case OverrideAbstractSupport c ->
 					diagnoseOverrideAbstractSupport(c, unit, ctx);
 				case ApplyOperator c ->
@@ -271,54 +272,130 @@ final class ExecutionFailureDiagnostics {
 		}
 	}
 
+	/**
+	 * An {@code implements} waits for its template to be complete. It reports a
+	 * template declared nowhere, and the cycle it belongs to, once. A template
+	 * that an operator call builds, and that is not built, is no mistake of the
+	 * {@code implements}: the call reports why, or the failure it waits on does
+	 * (#183).
+	 */
 	private static void diagnoseImplementsTemplate(ImplementsTemplate c,
-			Unit unit, List<Command> stuck, CompilationContext ctx) {
+			Unit unit, List<Command> stuck, Set<String> broken,
+			Set<String> neverBuilt, CompilationContext ctx) {
 		SourceLocation loc = c.location();
 		if (unit.findModel(c.modelName()).isEmpty()) {
 			ctx.error(DiagnosticCodes.UNKNOWN_MODEL, loc,
 					UNKNOWN_MODEL_MSG + c.modelName() + "'");
 			return;
 		}
-		if (unit.findModel(c.templateName()).isEmpty()) {
-			ctx.error(DiagnosticCodes.UNKNOWN_MODEL, loc,
-					UNKNOWN_MODEL_MSG + c.templateName() + "'");
+		List<String> cycle = cycleThrough(c, stuck);
+		if (!cycle.isEmpty()) {
+			if (reportsCycle(c, cycle, stuck)) {
+				ctx.error(DiagnosticCodes.CYCLIC_IMPLEMENTS, loc,
+						"cycle detected: " + describeCycle(cycle, stuck));
+			}
 			return;
 		}
-		// Both exist: the template never completes. Either it waits on itself
-		// through a chain of `implements`, or on a failure reported elsewhere.
-		List<String> cycle = implementsCycle(c, stuck);
-		if (!cycle.isEmpty() && cycle.getFirst()
-				.equals(cycle.stream().sorted().findFirst().orElseThrow())) {
-			ctx.error(DiagnosticCodes.CYCLIC_IMPLEMENTS, loc,
-					"cycle detected: " + String.join(" implements ", cycle)
-							+ " implements " + cycle.getFirst());
+		String template = c.templateName();
+		if (unit.findModel(template).isEmpty() && !broken.contains(template)
+				&& !neverBuilt.contains(template)) {
+			ctx.error(DiagnosticCodes.UNKNOWN_MODEL, loc,
+					UNKNOWN_MODEL_MSG + template + "'");
 		}
+		// Otherwise the template never completes, because of a failure
+		// reported where it is.
 	}
 
 	/**
-	 * The models of the {@code implements} cycle starting at {@code c}, in
-	 * order, or nothing when the chain of stuck {@code implements} it starts
-	 * does not come back to it. A cycle is reported once, from its first model
-	 * in alphabetical order.
+	 * The models of a cycle of stuck commands that starts at {@code c}'s model,
+	 * in order, or nothing when what it waits on never comes back to it. A
+	 * model waits on its template, and the result of an operator call on its
+	 * sources: a cycle may go through both (#183).
 	 */
-	private static List<String> implementsCycle(ImplementsTemplate c,
+	private static List<String> cycleThrough(ImplementsTemplate c,
 			List<Command> stuck) {
-		List<String> chain = new ArrayList<>(List.of(c.modelName()));
-		String next = c.templateName();
-		while (!chain.contains(next)) {
-			chain.add(next);
-			String current = next;
-			next = stuck.stream().<ImplementsTemplate>mapMulti((cmd, out) -> {
-				if (cmd instanceof ImplementsTemplate i
-						&& i.modelName().equals(current)) {
-					out.accept(i);
-				}
-			}).map(ImplementsTemplate::templateName).findFirst().orElse(null);
-			if (next == null) {
-				return List.of();
+		List<String> path = new ArrayList<>(List.of(c.modelName()));
+		return extend(path, c.templateName(), stuck, new HashSet<>())
+				? path
+				: List.of();
+	}
+
+	/**
+	 * Whether {@code path}, followed by {@code next}, leads back to its first
+	 * model through what each stuck model waits on; {@code path} then holds the
+	 * cycle.
+	 */
+	private static boolean extend(List<String> path, String next,
+			List<Command> stuck, Set<String> visited) {
+		if (next.equals(path.getFirst())) {
+			return true;
+		}
+		if (!visited.add(next)) {
+			return false;
+		}
+		path.add(next);
+		for (String after : dependencies(next, stuck)) {
+			if (extend(path, after, stuck, visited)) {
+				return true;
 			}
 		}
-		return next.equals(c.modelName()) ? chain : List.of();
+		path.removeLast();
+		return false;
+	}
+
+	/** The models the stuck commands building {@code model} wait on. */
+	private static List<String> dependencies(String model,
+			List<Command> stuck) {
+		return stuck.stream().<String>mapMulti((cmd, out) -> {
+			if (cmd instanceof ImplementsTemplate i
+					&& i.modelName().equals(model)) {
+				out.accept(i.templateName());
+			} else if (cmd instanceof ApplyOperator a
+					&& a.resultName().equals(model)) {
+				a.sourceNames().forEach(out);
+			}
+		}).toList();
+	}
+
+	/**
+	 * Whether {@code c} reports its cycle: a cycle is reported once, by the
+	 * {@code implements} of its first model in alphabetical order that has one.
+	 */
+	private static boolean reportsCycle(ImplementsTemplate c,
+			List<String> cycle, List<Command> stuck) {
+		Set<String> implementing = stuckImplementations(stuck);
+		return cycle.stream().filter(implementing::contains).sorted()
+				.findFirst().orElseThrow().equals(c.modelName());
+	}
+
+	/**
+	 * A cycle as a sentence: {@code a implements b implements a}, and, through
+	 * an operator call, {@code j implements t, which 'assemble' builds from
+	 * j}.
+	 */
+	private static String describeCycle(List<String> cycle,
+			List<Command> stuck) {
+		StringBuilder text = new StringBuilder(cycle.getFirst());
+		for (int i = 0; i < cycle.size(); i++) {
+			String model = cycle.get(i);
+			String next = cycle.get((i + 1) % cycle.size());
+			text.append(builtBy(model, stuck)
+					.map(op -> ", which '" + op.operatorName()
+							+ "' builds from " + next)
+					.orElse(" implements " + next));
+		}
+		return text.toString();
+	}
+
+	/** The stuck operator call that builds {@code model}, if any. */
+	private static Optional<ApplyOperator> builtBy(String model,
+			List<Command> stuck) {
+		return stuck.stream().<ApplyOperator>mapMulti((cmd, out) -> {
+			if (cmd instanceof ApplyOperator a
+					&& a.resultName().equals(model)) {
+				out.accept(a);
+			}
+		}).findFirst();
 	}
 
 	private static void diagnoseOverrideAbstractSupport(

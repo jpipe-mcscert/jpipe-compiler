@@ -56,6 +56,9 @@ Feature: Every diagnostic says where, and only once
     When I run the diagnostic compiler with format "json"
     Then the report signals errors
       And the JSON report has a diagnostic with code "unknown-model" at line 9
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 28
+      And the JSON report has a diagnostic with code "cyclic-implements" at line 38
+      And the JSON report has no diagnostic at line 32
       And the JSON report has no diagnostic with code "execution-error"
       And the JSON report has no diagnostic with code "unresolved-symbol"
 

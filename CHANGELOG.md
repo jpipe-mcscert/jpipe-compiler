@@ -202,7 +202,9 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - A model whose `implements` fails or never completes, such as two templates
   implementing each other, is reported once. Its other statements and its
   completeness are no longer reported as mistakes of their own, and no operator
-  call consumes it (#177).
+  call consumes it (#177). A cycle that goes through an operator call, such as
+  `j implements t` where `t` is `assemble(j, a)`, is reported as
+  `cyclic-implements` too.
 - An error in a `load`-ed file is reported in that file, at its own line. It was
   reported against the file being compiled, often at a line that file does not
   have, so the IDE pointed at the wrong place (#173).

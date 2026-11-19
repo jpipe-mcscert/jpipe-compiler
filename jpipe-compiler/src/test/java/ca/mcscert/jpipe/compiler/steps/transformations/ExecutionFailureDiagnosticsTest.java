@@ -153,6 +153,50 @@ class ExecutionFailureDiagnosticsTest {
 		}
 
 		@Test
+		void a_cycle_through_an_operator_call_is_reported_once_as_cyclic() {
+			// t is built from j, which implements t: each waits on the other.
+			// It used to be reported as an unknown model 't'.
+			unit.add(new Justification("j"));
+			unit.add(new Justification("a"));
+			ExecutionFailureDiagnostics.diagnoseDeadlock(
+					List.of(new ImplementsTemplate("j", "t"),
+							call("t", "assemble", "j", "a")),
+					unit, Set.of(), ctx);
+			assertThat(ctx.diagnostics()).filteredOn(d -> d.code() != null)
+					.singleElement().satisfies(d -> {
+						assertThat(d.code()).isEqualTo("cyclic-implements");
+						assertThat(d.message())
+								.isEqualTo("cycle detected: j implements t,"
+										+ " which 'assemble' builds from j");
+					});
+		}
+
+		@Test
+		void implementing_a_template_whose_call_failed_adds_no_error() {
+			// The call's failure is the one cause: 't' is declared, and was
+			// reported as an unknown model (#183).
+			unit.add(new Justification("j"));
+			ExecutionFailureDiagnostics.diagnoseDeadlock(
+					List.of(new ImplementsTemplate("j", "t")), unit,
+					Set.of("t"), ctx);
+			assertThat(ctx.diagnostics()).isEmpty();
+		}
+
+		@Test
+		void implementing_a_template_never_built_adds_no_error() {
+			// The call that builds 't' reports its unknown source.
+			unit.add(new Justification("j"));
+			unit.add(new Justification("a"));
+			ExecutionFailureDiagnostics.diagnoseDeadlock(
+					List.of(new ImplementsTemplate("j", "t"),
+							call("t", "refine", "typo", "a")),
+					unit, Set.of(), ctx);
+			assertThat(ctx.diagnostics()).filteredOn(d -> d.code() != null)
+					.singleElement().satisfies(d -> assertThat(d.message())
+							.contains("'typo'", "'refine' for 't'"));
+		}
+
+		@Test
 		void unknown_command_type_emits_execution_error() {
 			Command unknown = new CreateJustification("j");
 			ExecutionFailureDiagnostics.diagnoseExecutionFailure(unknown,
