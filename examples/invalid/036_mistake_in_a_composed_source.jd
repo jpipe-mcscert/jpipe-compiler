@@ -33,3 +33,28 @@ justification q is assemble(r, b) {
     conclusionLabel: "Q"
     strategyLabel:   "SQ"
 }
+
+template t {
+    conclusion c is "C"
+    strategy   s is "S"
+    @support   abs is "A"
+    abs supports s
+    s supports c
+}
+
+// 'j' overrides a @support that 't' does not have (line 52). That holds back
+// its relations until nothing else can run, and 'p' is composed only once
+// they have: nothing is reported in 'p'.
+justification j implements t {
+    sub-conclusion t:abs is "Sub"
+    strategy       s2 is "S2"
+    evidence       e2 is "E2"
+    evidence       t:abz is "Typo"
+    e2 supports s2
+    s2 supports t:abs
+}
+
+justification p is assemble(j, b) {
+    conclusionLabel: "P"
+    strategyLabel:   "SP"
+}

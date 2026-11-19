@@ -43,9 +43,13 @@ Feature: Every diagnostic says where, and only once
     Then the compilation has validation errors
       And the unit contains a justification named "r"
       And the unit contains a justification named "q"
+      And the unit contains a justification named "p"
     When I produce a JSON diagnostic report
     Then the JSON report has a diagnostic with code "unknown-element" at line 16
+      And the JSON report has a diagnostic with code "unknown-element" at line 52
       And the JSON report has no diagnostic with code "unresolved-symbol"
+      And the JSON report has no diagnostic with code "strategy-supported"
+      And the JSON report has no diagnostic with code "sub-conclusion-supported"
 
   Scenario: No operator composes a model whose implements never ran
     Given the source file "invalid/037_operator_on_an_unbuilt_model.jd"

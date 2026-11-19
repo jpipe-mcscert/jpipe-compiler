@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.commands;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -40,6 +41,16 @@ public interface Command {
 	 */
 	default boolean runWhenStuck(Unit unit, PendingCommands pending) {
 		return condition().test(unit);
+	}
+
+	/**
+	 * The models this command reads, beyond the one it {@linkplain #target()
+	 * targets}. When nothing is ready, the engine runs what may still change a
+	 * model before a command that reads it, so that a reader acting on an
+	 * incomplete model gets as much of it as its mistakes allow.
+	 */
+	default Set<String> reads() {
+		return Set.of();
 	}
 
 	/**

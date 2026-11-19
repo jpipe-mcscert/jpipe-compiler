@@ -290,6 +290,11 @@ public final class ApplyOperator implements MacroCommand {
 	}
 
 	@Override
+	public Set<String> reads() {
+		return Set.copyOf(config.sourceNames());
+	}
+
+	@Override
 	public Optional<String> target() {
 		return Optional.of(config.resultName());
 	}
