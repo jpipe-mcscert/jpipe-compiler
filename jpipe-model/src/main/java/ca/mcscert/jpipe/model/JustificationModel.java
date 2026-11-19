@@ -9,6 +9,7 @@ import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.model.elements.SupportLeaf;
 import ca.mcscert.jpipe.model.validation.CompletenessValidator;
 import ca.mcscert.jpipe.model.validation.ConsistencyValidator;
+import ca.mcscert.jpipe.util.Aliases;
 import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.ArrayList;
@@ -150,6 +151,14 @@ public abstract sealed class JustificationModel
 	 */
 	public Map<String, String> aliases() {
 		return Collections.unmodifiableMap(aliases);
+	}
+
+	/**
+	 * {@code id} followed through this model's aliases to the id it was last
+	 * merged into: {@code id} itself when it is no alias.
+	 */
+	public String resolveAlias(String id) {
+		return Aliases.follow(id, aliases::get);
 	}
 
 	/**
@@ -433,8 +442,34 @@ public abstract sealed class JustificationModel
 		}
 		// Short-name suffix fallback: resolves a plain id to an inherited
 		// qualified element (e.g. "s" resolves to "t:s" after template
-		// expansion).
-		return inheritedMatches(id).stream().findFirst();
+		// expansion). The first match, in the order of inheritedMatches,
+		// without listing them all: this is the engine's hot path.
+		String suffix = ":" + id;
+		Optional<JustificationElement> inherited = elements.stream()
+				.filter(e -> e.id().endsWith(suffix))
+				.map(JustificationElement.class::cast).findFirst();
+		if (inherited.isPresent() || conclusion == null
+				|| !conclusion.id().endsWith(suffix)) {
+			return inherited;
+		}
+		return Optional.of(conclusion);
+	}
+
+	/**
+	 * The elements {@code id} names ambiguously: when no element has that id,
+	 * the inherited ones it names through the short-name fallback of
+	 * {@link #findById}, if there are several; nothing otherwise. A caller that
+	 * binds an id the source wrote reports these rather than settle on the
+	 * first (ADR-0012, #177).
+	 */
+	public List<JustificationElement> ambiguousMatches(String id) {
+		boolean exact = (conclusion != null && conclusion.id().equals(id))
+				|| elements.stream().anyMatch(e -> e.id().equals(id));
+		if (exact) {
+			return List.of();
+		}
+		List<JustificationElement> matches = inheritedMatches(id);
+		return matches.size() > 1 ? matches : List.of();
 	}
 
 	/**

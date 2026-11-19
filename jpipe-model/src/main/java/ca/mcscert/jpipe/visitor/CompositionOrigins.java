@@ -127,22 +127,12 @@ final class CompositionOrigins {
 				String copy = QualifiedIds.qualify(source.getName(),
 						element.id());
 				List<Origin> list = origins.computeIfAbsent(
-						resolve(model.aliases(), copy), _ -> new ArrayList<>());
+						model.resolveAlias(copy), _ -> new ArrayList<>());
 				list.add(new Origin(source.getName(), copy, element.kind(), 1));
 				deeper.getOrDefault(element.id(), List.of())
 						.forEach(o -> list.add(new Origin(o.model(), o.id(),
 								o.type(), o.level() + 1)));
 			}
 		}
-	}
-
-	/** {@code id} followed through {@code aliases} to the end of the chain. */
-	private static String resolve(Map<String, String> aliases, String id) {
-		String current = id;
-		Set<String> visited = new HashSet<>();
-		while (aliases.containsKey(current) && visited.add(current)) {
-			current = aliases.get(current);
-		}
-		return current;
 	}
 }

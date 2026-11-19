@@ -16,7 +16,7 @@ import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
 import ca.mcscert.jpipe.operators.MergeFunction;
 import ca.mcscert.jpipe.operators.SourcedElement;
-import java.util.HashSet;
+import ca.mcscert.jpipe.util.Aliases;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -143,22 +143,17 @@ public final class RefineOperator extends CompositionOperator {
 		// The unit's aliases form chains, one link per composition step, and
 		// exporters read them as such (an id that is the target of an alias
 		// is an intermediate merge result): followed to the end here.
-		String id = hook;
-		Set<String> visited = new HashSet<>();
-		String next = knownAliases.get(Unit.registryKey(base.getName(), id));
-		while (next != null && visited.add(next)) {
-			id = next;
-			next = knownAliases.get(Unit.registryKey(base.getName(), id));
-		}
+		String id = Aliases.follow(hook,
+				i -> knownAliases.get(Unit.registryKey(base.getName(), i)));
 		JustificationElement element = base.findById(id)
 				.orElseThrow(() -> new InvalidOperatorCallException(
 						"hook element '" + hook + "' not found in base model '"
 								+ base.getName() + "'"));
-		List<JustificationElement> inherited = base.inheritedMatches(id);
-		if (!element.id().equals(id) && inherited.size() > 1) {
+		List<JustificationElement> ambiguous = base.ambiguousMatches(id);
+		if (!ambiguous.isEmpty()) {
 			throw new InvalidOperatorCallException("ambiguous hook '" + hook
 					+ "' in '" + base.getName() + "': it names "
-					+ inherited.stream().map(e -> "'" + e.id() + "'")
+					+ ambiguous.stream().map(e -> "'" + e.id() + "'")
 							.collect(Collectors.joining(", "))
 					+ "; write the qualified id");
 		}
