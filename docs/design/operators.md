@@ -35,6 +35,12 @@ the full four-phase algorithm.
 *after* `apply()` returns, via `Unifier.unify()`. It is not part of the
 sealed template. See the *Unifier* subsection below.
 
+Last, `ApplyOperator.expand()` appends a `RecordComposition` command, which
+records on the result the call that built it (`JustificationModel.composition()`):
+the operator, the source models, and the arguments, with the element ids they
+hold as the unit names them. The JPIPE export writes a composed model back as
+that call.
+
 **Supporting types**
 
 - **`SourcedElement`** — a record pairing a `JustificationElement` with its
@@ -295,6 +301,7 @@ note right of Unifier
   Append RegisterAlias commands
 end note
 Unifier --> ApplyOperator            : unified : List<Command>
+ApplyOperator -> ApplyOperator       : append RecordComposition
 
 @enduml
 ```

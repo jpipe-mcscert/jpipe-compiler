@@ -2,7 +2,11 @@ package ca.mcscert.jpipe.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class LabelEscaperTest {
 
@@ -52,5 +56,57 @@ class LabelEscaperTest {
 	@Test
 	void multipleConsecutiveSpecialChars() {
 		assertThat(LabelEscaper.toMethodName("a --- b")).isEqualTo("a_b");
+	}
+
+	@Test
+	void nonLatinLettersAreKept() {
+		assertThat(LabelEscaper.toMethodName("系统 正确")).isEqualTo("系统_正确");
+		assertThat(LabelEscaper.toMethodName("Система работает"))
+				.isEqualTo("система_работает");
+		assertThat(LabelEscaper.toMethodName("हिन्दी परीक्षण"))
+				.isEqualTo("हिन्दी_परीक्षण");
+	}
+
+	@ParameterizedTest(name = "{0} is {1}")
+	@CsvSource({"x̄ mean, x_mean", "́café, cafe", "q̣́, q", "हि, हि"})
+	void aCombiningMarkAfterALatinLetterIsDropped(String label,
+			String expected) {
+		// A mark NFKC cannot compose with its Latin base folds away, as the
+		// diacritic of a composed letter does; after another letter, it is
+		// part of the word.
+		assertThat(LabelEscaper.toMethodName(label)).isEqualTo(expected);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"aⸯb", "a ⸯ b", "aⸯⸯb"})
+	void aLetterPythonRejectsInIdentifiersIsASeparator(String label) {
+		// U+2E2F VERTICAL TILDE is a letter, but no identifier character.
+		assertThat(LabelEscaper.toMethodName(label)).isEqualTo("a_b");
+	}
+
+	@Test
+	void compatibilityFormsAreNormalised() {
+		// Full-width letters and ligatures fold the way Python normalises
+		// identifiers (NFKC).
+		assertThat(LabelEscaper.toMethodName("ＴＥＳＴ ﬁle"))
+				.isEqualTo("test_file");
+	}
+
+	@Test
+	void lowercasingIgnoresTheDefaultLocale() {
+		Locale saved = Locale.getDefault();
+		Locale.setDefault(Locale.forLanguageTag("tr"));
+		try {
+			assertThat(LabelEscaper.toMethodName("CHECK INPUTS"))
+					.isEqualTo("check_inputs");
+		} finally {
+			Locale.setDefault(saved);
+		}
+	}
+
+	@Test
+	void labelWithoutLetterOrDigitGivesUnderscore() {
+		assertThat(LabelEscaper.toMethodName("!!!")).isEqualTo("_");
+		assertThat(LabelEscaper.toMethodName("")).isEqualTo("_");
 	}
 }

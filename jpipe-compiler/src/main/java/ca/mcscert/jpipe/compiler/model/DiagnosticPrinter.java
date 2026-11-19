@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.compiler.model;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import java.util.Locale;
 
 /**
  * Prints the errors of a compilation as {@code file:line:column: severity:
@@ -31,7 +32,7 @@ final class DiagnosticPrinter {
 				String loc = d.hasLocation()
 						? d.source() + ":" + d.line() + ":" + d.column() + ": "
 						: d.source() + ": ";
-				String level = d.level().name().toLowerCase();
+				String level = d.level().name().toLowerCase(Locale.ROOT);
 				String msg = d.hasCode()
 						? "[" + d.code() + "] " + d.message()
 						: d.message();

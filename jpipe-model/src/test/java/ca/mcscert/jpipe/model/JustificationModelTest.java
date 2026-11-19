@@ -516,6 +516,33 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("inherited copies come before the elements the model already holds")
+		void inlineAfterOwnElementsPutsTheCopiesFirst() {
+			// Its template declared after it, a model gets its own elements
+			// first: their order is still that of a template declared first.
+			Justification j = new Justification("j");
+			j.addElement(new Evidence("e_local", "local evidence"));
+			j.inline(template(), "t");
+
+			assertThat(j.getElements()).extracting(e -> e.id())
+					.containsExactly("t:s", "t:abs", "e_local");
+		}
+
+		@Test
+		@DisplayName("declaredElements() is own elements and overrides, in model order")
+		void declaredElementsAreWhatTheModelDoesNotInherit() {
+			Template t = template();
+			Justification j = new Justification("j");
+			j.inline(t, "t");
+			j.addElement(new Evidence("e_local", "local evidence"));
+			j.removeElement("t:abs");
+			j.addElement(new Evidence("t:abs", "concrete evidence"));
+
+			assertThat(j.declaredElements()).extracting(e -> e.id())
+					.containsExactly("e_local", "t:abs");
+		}
+
+		@Test
 		@DisplayName("multi-level: grandparent elements are inherited in leaf model")
 		void multiLevelInheritanceGrandparentElementsAreInherited() {
 			// root template: conclusion c, strategy s, abstract supports abs1,

@@ -67,3 +67,21 @@ template two_supports {
     abs1 supports s
     abs2 supports s
 }
+
+// 4. Composing 'relations', whose template is declared after it: its elements
+//    come in the same order as had the template been declared first, and so
+//    do the ids the composition gives the elements it unifies.
+justification counterpart {
+    conclusion c    is "A conclusion"
+    strategy   s    is "A strategy"
+    evidence   e1   is "A local evidence"
+    evidence   e2   is "An inherited evidence"
+    e1 supports s
+    e2 supports s
+    s supports c
+}
+
+justification both is assemble(relations, counterpart) {
+    conclusionLabel: "Both hold"
+    strategyLabel: "Check both"
+}

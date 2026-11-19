@@ -6,13 +6,16 @@ import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.Optional;
 import ca.mcscert.jpipe.commands.PendingCommands;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
+import ca.mcscert.jpipe.commands.linking.RecordComposition;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -84,32 +87,13 @@ public final class ApplyOperator implements MacroCommand {
 	 * {@code ns:base:t:abs}.
 	 */
 	static String inUnit(String id, String namespace, Unit unit) {
-		String[] segments = id.split(":");
-		if (namespace.isEmpty() || segments.length < 2) {
+		if (namespace.isEmpty()) {
 			return id;
 		}
-		List<String> out = new ArrayList<>();
-		int i = 0;
-		while (i < segments.length - 1) {
-			int k = segments.length - 1 - i;
-			while (k > 0 && unit
-					.findModel(QualifiedIds.qualify(namespace,
-							String.join(":",
-									Arrays.copyOfRange(segments, i, i + k))))
-					.isEmpty()) {
-				k--;
-			}
-			if (k == 0) {
-				out.add(segments[i]);
-				i++;
-			} else {
-				out.add(QualifiedIds.qualify(namespace, String.join(":",
-						Arrays.copyOfRange(segments, i, i + k))));
-				i += k;
-			}
-		}
-		out.add(segments[segments.length - 1]);
-		return String.join(":", out);
+		return QualifiedIds.renameModels(id, run -> {
+			String name = QualifiedIds.qualify(namespace, run);
+			return unit.findModel(name).map(_ -> name);
+		});
 	}
 
 	/** The arguments, with the element ids they hold as the unit names them. */
@@ -117,20 +101,18 @@ public final class ApplyOperator implements MacroCommand {
 		if (namespace.isEmpty()) {
 			return config.arguments();
 		}
-		Set<String> elementKeys = op.elementArguments();
+		Set<String> idKeys = idArguments(op);
 		Map<String, String> arguments = new LinkedHashMap<>();
-		config.arguments().forEach((key, value) -> {
-			String mapped = value;
-			if (elementKeys.contains(key)) {
-				mapped = inUnit(value.strip(), namespace, unit);
-			} else if (key.equals(Unifier.UNIFY_EXCLUDE_KEY)) {
-				mapped = Arrays.stream(value.split(",")).map(String::strip)
-						.map(id -> inUnit(id, namespace, unit))
-						.collect(Collectors.joining(","));
-			}
-			arguments.put(key, mapped);
-		});
+		config.arguments().forEach((key, value) -> arguments.put(key,
+				idKeys.contains(key) ? idsIn(value, unit) : value));
 		return arguments;
+	}
+
+	/** A comma-separated list of ids, each as the unit names it. */
+	private String idsIn(String value, Unit unit) {
+		return Arrays.stream(value.split(",")).map(String::strip)
+				.map(id -> inUnit(id, namespace, unit))
+				.collect(Collectors.joining(","));
 	}
 
 	public String resultName() {
@@ -182,11 +164,25 @@ public final class ApplyOperator implements MacroCommand {
 		if (actualKind != config.declaredKind()) {
 			throw new InvalidOperatorCallException("operator '"
 					+ config.operatorName() + "' produces a "
-					+ actualKind.name().toLowerCase() + " but was declared as '"
-					+ config.declaredKind().name().toLowerCase() + "'");
+					+ actualKind.name().toLowerCase(Locale.ROOT)
+					+ " but was declared as '"
+					+ config.declaredKind().name().toLowerCase(Locale.ROOT)
+					+ "'");
 		}
-		return new Unifier(unificationEquivalences).unify(config.resultName(),
-				composed, arguments);
+		List<Command> commands = new ArrayList<>(
+				new Unifier(unificationEquivalences).unify(config.resultName(),
+						composed, arguments));
+		commands.add(new RecordComposition(config.resultName(),
+				config.operatorName(), config.sourceNames(), arguments,
+				idArguments(op)));
+		return commands;
+	}
+
+	/** The keys of a call to {@code op} whose value holds element ids. */
+	private static Set<String> idArguments(CompositionOperator op) {
+		Set<String> keys = new HashSet<>(op.elementArguments());
+		keys.add(Unifier.UNIFY_EXCLUDE_KEY);
+		return keys;
 	}
 
 	/**

@@ -55,6 +55,7 @@ public abstract sealed class JustificationModel
 	private final List<JustificationElement> elements = new ArrayList<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
 	private final Set<String> unifiedIds = new LinkedHashSet<>();
+	private Composition composition = null;
 
 	protected JustificationModel(String name) {
 		this.name = name;
@@ -120,6 +121,24 @@ public abstract sealed class JustificationModel
 		unifiedIds.add(id);
 	}
 
+	/**
+	 * Records the operator call this model was built by. The JPIPE export
+	 * writes a composed model back as that call, since its ids, qualified by
+	 * the models it was composed from, cannot be declared in a body.
+	 */
+	public void recordComposition(Composition composition) {
+		if (this.composition != null) {
+			throw new IllegalStateException(
+					"Model '" + name + "' is already composed");
+		}
+		this.composition = composition;
+	}
+
+	/** The operator call this model was built by, if it was composed. */
+	public Optional<Composition> composition() {
+		return Optional.ofNullable(composition);
+	}
+
 	/** Unmodifiable view of the ids unification minted within this model. */
 	public Set<String> unifiedIds() {
 		return Collections.unmodifiableSet(unifiedIds);
@@ -161,6 +180,12 @@ public abstract sealed class JustificationModel
 	 * maintaining its top-level status. If this model already has a conclusion,
 	 * the template's conclusion is mapped to it for edge re-wiring but not
 	 * added as a second conclusion.
+	 *
+	 * <p>
+	 * The copies come before the elements this model already holds, so that its
+	 * elements are in the same order whether its template is declared before or
+	 * after it: a composition meets the elements of its sources in that order,
+	 * and numbers the elements it unifies accordingly.
 	 */
 	public void inline(Template template, String templateName) {
 		setParent(template);
@@ -185,9 +210,9 @@ public abstract sealed class JustificationModel
 		// Step 2: re-wire support edges between copies
 		rewireEdges(template, copies);
 
-		// Step 3: add copies to this model
-		copies.values().stream().filter(c -> !(c instanceof Conclusion))
-				.forEach(this::addElement);
+		// Step 3: add copies to this model, before its own elements
+		elements.addAll(0, copies.values().stream()
+				.filter(c -> !(c instanceof Conclusion)).toList());
 	}
 
 	private void rewireEdges(Template template,
@@ -309,6 +334,17 @@ public abstract sealed class JustificationModel
 	public List<JustificationElement> inheritedElements() {
 		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
 		return elements.stream().filter(e -> pt.get(e.id()) == e.getClass())
+				.toList();
+	}
+
+	/**
+	 * Elements this model declares rather than inherits: its
+	 * {@link #ownElements()} and its {@link #concreteOverrides()}, in model
+	 * order.
+	 */
+	public List<JustificationElement> declaredElements() {
+		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
+		return elements.stream().filter(e -> pt.get(e.id()) != e.getClass())
 				.toList();
 	}
 

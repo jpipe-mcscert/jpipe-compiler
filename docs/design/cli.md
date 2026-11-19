@@ -109,13 +109,31 @@ success, `1` if any ERROR or FATAL diagnostic was reported.
 
 | Value | Description | Requires Graphviz |
 |-------|-------------|:-----------------:|
-| `JPIPE` | Canonical jPipe source (round-trip) | No |
+| `JPIPE` | jPipe source that compiles back to the same model (see below) | No |
 | `DOT` | Graphviz DOT source | No |
 | `PNG` | Rendered PNG image | Yes |
 | `JPEG` | Rendered JPEG image | Yes |
 | `SVG` | Rendered SVG image | Yes |
 | `JSON` | JSON model dump | No |
 | `PYTHON` | Step-library skeleton for [jpipe-runner](https://github.com/jpipe-mcscert/jpipe-runner) 4 | No |
+
+**The `JPIPE` format** is a round-trip: compiling the output gives back the
+model exported, with the same elements, ids, relations and aliases. The output
+is self-contained, and never holds a `load`:
+
+- the model comes after every model it depends on, each written once: the
+  template it implements, that template's own ancestors, and the models it was
+  composed from;
+- a model that implements a template declares only what its source did: its
+  own elements, the `@support`s it overrides, and its own relations;
+- a model built by an operator is written as the operator call that built it,
+  so its ids are the ones the operator gives them again;
+- a model loaded under a namespace is inlined under a plain name, since a
+  model name cannot hold a `:`: `base:t` becomes `base_t` (followed by `_2`,
+  `_3`… if that name is taken), and every id that names it changes with it,
+  `base:t:abs` becoming `base_t:abs`.
+
+Comments and the layout of the original source are not kept.
 
 ### `diagnostic`
 

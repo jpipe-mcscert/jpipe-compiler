@@ -113,6 +113,22 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   function name, which follows its label, an id, or the source path in the
   header.
 
+- **Breaking:** a Python function name keeps the letters of a label in a
+  non-Latin script, which Python 3 accepts in identifiers: `"系统 正确"` gives
+  `def 系统_正确()` instead of `def _()`. A letter with a diacritic still maps to
+  its ASCII base (`"Vérification"` still gives `verification`), but a letter
+  that has none is now kept instead of dropped (`ß`, `ø`, `œ`): a step library
+  generated for such labels must be regenerated or renamed (#187).
+- **Breaking:** the JSON export no longer writes an `escaped` field on each
+  element. It was undocumented, and it was not the Python function name whenever
+  two names collided or a label was a reserved word (#187).
+- **Breaking:** in the DOT export, and the SVG drawn from it, an overridden
+  `@support`'s placeholder node now has its own `id`, ending in `@abstract`. It
+  shared the id of the element overriding it, so a lookup by id, such as the
+  VS Code preview's, could land on either one (#187).
+- The header of a Python export no longer carries the generation date, so
+  regenerating a committed step library leaves it unchanged (#187).
+
 ### Fixed
 - An id repeated in `unifyExclude` (`"c,c"`) no longer fails the composition with
   a misleading `duplicate element` error: the list is a set (#171).
@@ -150,7 +166,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   - a short id in a relation binds to the model's own element, even when that
     element is declared after the relation, instead of to an inherited one;
   - a relation into an abstract support may be written before its override;
-  - an operator call composes its source models once they are complete.
+  - an operator call composes its source models once they are complete;
+  - a model lists its elements in the same order whether its template is
+    declared before or after it, so a composition of that model gives the
+    elements it unifies the same ids (`unified_0`, `unified_1`, …).
 - A relation naming the inherited conclusion by its short id (`s2 supports c`)
   is reported as `reference-into-template`, as for any element of the template
   other than a `@support`, instead of as an unknown element (#177).
@@ -220,6 +239,23 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - A failure to write an export or a report, such as a full disk or a closed
   pipe, is now an error with exit code 42. Text formats used to exit 0 with an
   empty or missing file (#179).
+- The DOT export of a justification no longer draws edges from a template's
+  evidence into a strategy the justification declares itself, without support,
+  under the same short id as a template strategy. Such a strategy is now drawn
+  with no incoming edge, as declared (#189).
+- Python function names, and the severities of the diagnostic report, are now
+  lowercased the same way under every system locale. Under a Turkish locale,
+  `"CHECK INPUTS"` gave `check_nputs` (#187).
+- The JPIPE export compiles back to the model exported, as documented. It
+  did not for a model that implements a template, which declared again every
+  element it inherits; for a composed model, whose qualified ids no body can
+  declare; nor for a model loaded under a namespace, whose name the grammar
+  rejects. The output now holds, first, every model the exported one depends
+  on; a model that implements a template declares only its own elements,
+  overrides and relations; a composed model is written as its operator call;
+  and a model loaded under a namespace is inlined under a plain name (`base:t`
+  becomes `base_t`, and `base:t:abs` becomes `base_t:abs`), never as a
+  `load` (#185).
 
 ---
 
