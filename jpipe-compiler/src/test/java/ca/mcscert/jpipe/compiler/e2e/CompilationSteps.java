@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.ArrayDeque;
@@ -68,6 +69,23 @@ public class CompilationSteps {
 	@Given("the source file {string}")
 	public void theSourceFile(String filename) {
 		sourcePath = System.getProperty(EXAMPLES_DIR) + "/" + filename;
+	}
+
+	/**
+	 * The fixture {@code filename}, copied after a UTF-8 byte-order mark, as
+	 * some Windows editors and PowerShell save it.
+	 */
+	@Given("the source file {string} saved with a byte-order mark")
+	public void theSourceFileWithAByteOrderMark(String filename)
+			throws IOException {
+		byte[] bom = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+		byte[] text = Files.readAllBytes(
+				Path.of(System.getProperty(EXAMPLES_DIR), filename));
+		Path copy = Files.createTempFile("bom", ".jd");
+		copy.toFile().deleteOnExit();
+		Files.write(copy, bom);
+		Files.write(copy, text, StandardOpenOption.APPEND);
+		sourcePath = copy.toString();
 	}
 
 	@When("I compile it into a unit")

@@ -15,6 +15,15 @@ Feature: Lexing string literals and unrecognised characters
       And it has evidence with id "p" and label 'Archived in share\ and in C:\releases'
       And the evidence "p" supports the strategy "s"
 
+  # The byte-order mark was skipped as an unknown character until #176 made
+  # those syntax errors.
+  Scenario: A source saved with a UTF-8 byte-order mark compiles as without it
+    Given the source file "025_string_literals.jd" saved with a byte-order mark
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a justification named "strings"
+    Then it has a conclusion with id "c" and label "The release is safe"
+
   Scenario: A single-quoted label is a located syntax error, not a crash
     Given the source file "invalid/027_single_quotes.jd"
     When I run the diagnostic compiler with format "json"
