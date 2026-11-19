@@ -34,7 +34,8 @@ Feature: Every diagnostic says where, and only once
     Then the report signals errors
       And the JSON report has a diagnostic with code "abstract-support-used" at line 14
       And the JSON report has a diagnostic with code "unresolved-override" at line 21
-      And the JSON report has a diagnostic with code "execution-error" at line 22
+      And the JSON report has no diagnostic at line 22
+      And the JSON report has no diagnostic with code "no-abstract-support"
       And the JSON report has no diagnostic with code "strategy-supported"
 
   Scenario: A source with a mistake of its own is still composed

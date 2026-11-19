@@ -162,6 +162,24 @@ class OverrideAbstractSupportTest {
 		}
 
 		@Test
+		void replacesAPlaceholderThatSupportsNoStrategy() {
+			// That is a mistake of the template, reported there once; it used
+			// to fail every override as well (#183).
+			Unit unit = engine.spawn("src",
+					List.of(new CreateTemplate("t"),
+							new CreateConclusion("t", "tc",
+									"Template conclusion"),
+							new CreateAbstractSupport("t", "as", "Unused"),
+							new CreateJustification("j"),
+							new ImplementsTemplate("j", "t")));
+			engine.enrich(unit, List.of(new OverrideAbstractSupport("j", "t:as",
+					"evidence", "Concrete")));
+
+			assertThat(unit.get("j").findById("t:as")).get()
+					.isInstanceOf(Evidence.class);
+		}
+
+		@Test
 		void unknownTypeThrowsIllegalArgumentException() {
 			Unit unit = unitWithAbstractSupport();
 			var cmd = new OverrideAbstractSupport("j", "t:as", "strategy",
