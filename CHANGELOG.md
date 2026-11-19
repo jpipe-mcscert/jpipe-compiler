@@ -166,7 +166,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   - a short id in a relation binds to the model's own element, even when that
     element is declared after the relation, instead of to an inherited one;
   - a relation into an abstract support may be written before its override;
-  - an operator call composes its source models once they are complete.
+  - an operator call composes its source models once they are complete;
+  - a model lists its elements in the same order whether its template is
+    declared before or after it, so a composition of that model gives the
+    elements it unifies the same ids (`unified_0`, `unified_1`, …).
 - A relation naming the inherited conclusion by its short id (`s2 supports c`)
   is reported as `reference-into-template`, as for any element of the template
   other than a `@support`, instead of as an unknown element (#177).

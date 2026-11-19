@@ -3,7 +3,6 @@ package ca.mcscert.jpipe.util;
 import java.text.Normalizer;
 import java.util.Locale;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Converts a human-readable jPipe element label into a valid Python identifier
@@ -14,9 +13,10 @@ import java.util.stream.Collectors;
  * <ol>
  * <li>Unicode NFKC normalisation, the form Python itself gives identifiers,
  * then folding of every character that reduces to ASCII once its diacritics are
- * stripped (e.g. {@code é} → {@code e}, {@code ü} → {@code u}). Any other
- * letter is kept as written: Python 3 accepts Unicode identifiers, so a label
- * in a non-Latin script keeps its words.</li>
+ * stripped (e.g. {@code é} → {@code e}, {@code ü} → {@code u}, and {@code x̄},
+ * an {@code x} followed by a combining macron, → {@code x}). Any other letter
+ * is kept as written: Python 3 accepts Unicode identifiers, so a label in a
+ * non-Latin script keeps its words.</li>
  * <li>Lowercasing, independently of the default locale, collapsing any run of
  * characters that are not letters, digits or combining marks to a single
  * underscore, and stripping leading/trailing underscores.</li>
@@ -62,9 +62,7 @@ public final class LabelEscaper {
 	 * @return a non-empty string that is a valid Python identifier.
 	 */
 	public static String toMethodName(String label) {
-		String folded = Normalizer.normalize(label, Normalizer.Form.NFKC)
-				.codePoints().mapToObj(LabelEscaper::foldToAscii)
-				.collect(Collectors.joining());
+		String folded = fold(Normalizer.normalize(label, Normalizer.Form.NFKC));
 		String snake = EDGE_UNDERSCORES.matcher(NOT_IN_IDENTIFIER
 				.matcher(folded.toLowerCase(Locale.ROOT)).replaceAll("_"))
 				.replaceAll("");
@@ -76,6 +74,42 @@ public final class LabelEscaper {
 	}
 
 	/**
+	 * {@code text} with every character folded to its ASCII base when it has
+	 * one, and every combining mark that follows an ASCII character dropped: a
+	 * mark NFKC could not compose with its Latin base, such as the macron of
+	 * {@code x̄}, goes the way of the diacritics of a composed letter. A mark
+	 * that follows any other letter, such as a Devanagari vowel sign, is part
+	 * of the word and kept.
+	 */
+	private static String fold(String text) {
+		StringBuilder folded = new StringBuilder();
+		boolean afterAscii = true;
+		for (int codePoint : text.codePoints().toArray()) {
+			if (isCombiningMark(codePoint)) {
+				if (!afterAscii) {
+					folded.appendCodePoint(codePoint);
+				}
+			} else {
+				String base = foldToAscii(codePoint);
+				folded.append(base);
+				afterAscii = isAscii(base);
+			}
+		}
+		return folded.toString();
+	}
+
+	private static boolean isCombiningMark(int codePoint) {
+		int type = Character.getType(codePoint);
+		return type == Character.NON_SPACING_MARK
+				|| type == Character.COMBINING_SPACING_MARK
+				|| type == Character.ENCLOSING_MARK;
+	}
+
+	private static boolean isAscii(String text) {
+		return text.chars().allMatch(c -> c < 0x80);
+	}
+
+	/**
 	 * The ASCII base of {@code codePoint} when stripping its diacritics leaves
 	 * one, the code point itself otherwise: {@code é} becomes {@code e}, but a
 	 * CJK ideograph or a Devanagari vowel sign is kept.
@@ -84,7 +118,7 @@ public final class LabelEscaper {
 		String stripped = MARKS.matcher(Normalizer
 				.normalize(Character.toString(codePoint), Normalizer.Form.NFD))
 				.replaceAll("");
-		return !stripped.isEmpty() && stripped.chars().allMatch(c -> c < 0x80)
+		return !stripped.isEmpty() && isAscii(stripped)
 				? stripped
 				: Character.toString(codePoint);
 	}

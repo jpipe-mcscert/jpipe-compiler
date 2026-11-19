@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class LabelEscaperTest {
@@ -64,6 +65,16 @@ class LabelEscaperTest {
 				.isEqualTo("система_работает");
 		assertThat(LabelEscaper.toMethodName("हिन्दी परीक्षण"))
 				.isEqualTo("हिन्दी_परीक्षण");
+	}
+
+	@ParameterizedTest(name = "{0} is {1}")
+	@CsvSource({"x̄ mean, x_mean", "́café, cafe", "q̣́, q", "हि, हि"})
+	void aCombiningMarkAfterALatinLetterIsDropped(String label,
+			String expected) {
+		// A mark NFKC cannot compose with its Latin base folds away, as the
+		// diacritic of a composed letter does; after another letter, it is
+		// part of the word.
+		assertThat(LabelEscaper.toMethodName(label)).isEqualTo(expected);
 	}
 
 	@ParameterizedTest

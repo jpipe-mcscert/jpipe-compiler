@@ -180,6 +180,12 @@ public abstract sealed class JustificationModel
 	 * maintaining its top-level status. If this model already has a conclusion,
 	 * the template's conclusion is mapped to it for edge re-wiring but not
 	 * added as a second conclusion.
+	 *
+	 * <p>
+	 * The copies come before the elements this model already holds, so that its
+	 * elements are in the same order whether its template is declared before or
+	 * after it: a composition meets the elements of its sources in that order,
+	 * and numbers the elements it unifies accordingly.
 	 */
 	public void inline(Template template, String templateName) {
 		setParent(template);
@@ -204,9 +210,9 @@ public abstract sealed class JustificationModel
 		// Step 2: re-wire support edges between copies
 		rewireEdges(template, copies);
 
-		// Step 3: add copies to this model
-		copies.values().stream().filter(c -> !(c instanceof Conclusion))
-				.forEach(this::addElement);
+		// Step 3: add copies to this model, before its own elements
+		elements.addAll(0, copies.values().stream()
+				.filter(c -> !(c instanceof Conclusion)).toList());
 	}
 
 	private void rewireEdges(Template template,
