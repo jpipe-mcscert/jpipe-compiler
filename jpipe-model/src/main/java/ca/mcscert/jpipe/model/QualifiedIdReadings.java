@@ -203,17 +203,18 @@ public final class QualifiedIdReadings {
 			return held.computeIfAbsent(model, Reader::idsOf).contains(id);
 		}
 
+		/** What follows {@code name:} in {@code id}, if it starts with it. */
+		private static Optional<String> restAfter(String name, String id) {
+			String prefix = name + SEPARATOR;
+			return id.startsWith(prefix) && id.length() > prefix.length()
+					? Optional.of(id.substring(prefix.length()))
+					: Optional.empty();
+		}
+
 		private static Set<String> idsOf(JustificationModel model) {
 			Set<String> ids = new HashSet<>(model.aliases().keySet());
 			model.allElements().forEach(e -> ids.add(e.id()));
 			return ids;
 		}
-	}
-
-	private static Optional<String> restAfter(String name, String id) {
-		String prefix = name + SEPARATOR;
-		return id.startsWith(prefix) && id.length() > prefix.length()
-				? Optional.of(id.substring(prefix.length()))
-				: Optional.empty();
 	}
 }

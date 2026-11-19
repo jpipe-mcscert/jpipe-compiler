@@ -16,6 +16,8 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class JsonExporterTest {
 
@@ -96,12 +98,15 @@ class JsonExporterTest {
 		assertThat(json).contains("\"j:outer:unified_0\"", "\"j:outer:a:s1\"");
 	}
 
-	@Test
-	void export_withoutAliases_omitsAliasesKey() {
+	@ParameterizedTest(name = "a plain model has no \"{0}\" key")
+	@ValueSource(strings = {"aliases", "origins", "implements"})
+	void export_plainModel_omitsTheOptionalKeys(String key) {
+		// aliases: no merge; origins: no operator built it (#200);
+		// implements: it implements no template (#199).
 		String json = new JsonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(json).doesNotContain("\"aliases\"");
+		assertThat(json).doesNotContain("\"" + key + "\"");
 	}
 
 	/** The origins of the element {@code id} of {@code json}, as text. */
@@ -160,14 +165,6 @@ class JsonExporterTest {
 	}
 
 	@Test
-	void export_modelNoOperatorBuiltHasNoOrigins() {
-		String json = new JsonExporter()
-				.export(ModelFixtures.simpleJustification());
-
-		assertThat(json).doesNotContain("\"origins\"");
-	}
-
-	@Test
 	void export_implementingModelLaysOutItsTemplatesParentFirst() {
 		// leaf implements base:mid, which implements root and fills its
 		// @support abs (#199). A cluster draws the template's own elements,
@@ -207,11 +204,4 @@ class JsonExporterTest {
 						.isEqualTo("abstract-support"));
 	}
 
-	@Test
-	void export_modelImplementingNothingHasNoLayout() {
-		String json = new JsonExporter()
-				.export(ModelFixtures.simpleJustification());
-
-		assertThat(json).doesNotContain("\"implements\"");
-	}
 }
