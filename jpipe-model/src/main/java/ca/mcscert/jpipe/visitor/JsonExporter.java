@@ -32,7 +32,13 @@ import org.json.JSONObject;
  *                   "aliases": [ "..." ],
  *                   "origins": [ { "model": "...", "id": "...",
  *                                  "type": "..." }, ... ] }, ... ],
- *   "relations": [ { "source": "...", "target": "..." }, ... ]
+ *   "relations": [ { "source": "...", "target": "..." }, ... ],
+ *   "implements": {
+ *     "elements": [ "..." ],
+ *     "templates": [ { "name": "...", "elements": [ "..." ],
+ *                      "placeholders": [ { "id": "...", "label": "...",
+ *                                          "supports": [ "..." ] } ] } ]
+ *   }
  * }
  * }</pre>
  *
@@ -54,6 +60,20 @@ import org.json.JSONObject;
  * the conclusion of a source {@code assemble} takes) says what it was. It is
  * omitted for an element the operator created itself, and for every element of
  * a model no operator built (#200).
+ *
+ * <p>
+ * The optional {@code "implements"} object is written for a model that
+ * implements a template, and says how {@link DotExporter} draws it (#199).
+ * {@code elements} lists the ids drawn outside every template, in drawing
+ * order. {@code templates} lists the ancestors, the parent first, each drawn
+ * inside the one before it: its name, the ids drawn in its cluster in drawing
+ * order, and its placeholders. A placeholder is a {@code @support} filled
+ * further down the chain: its id is also in the cluster's {@code elements},
+ * where the placeholder is drawn with its own label, and it is filled by the
+ * element of the model with the same id, drawn elsewhere. {@code supports}
+ * lists the strategies whose edge from that id is drawn from the placeholder
+ * rather than from the element filling it. The flattened {@code elements} and
+ * {@code relations} are unchanged, and never hold a placeholder.
  */
 public class JsonExporter extends AbstractModelExporter {
 
@@ -133,6 +153,9 @@ public class JsonExporter extends AbstractModelExporter {
 		result.put("type", type);
 		result.put("elements", elements);
 		result.put("relations", relations);
+		if (model.getParent().isPresent()) {
+			result.put("implements", layoutOf(model));
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -156,6 +179,33 @@ public class JsonExporter extends AbstractModelExporter {
 			obj.put("origins", array);
 		}
 		elements.put(obj);
+	}
+
+	/** How {@link DotExporter} lays the model out; see the class comment. */
+	private JSONObject layoutOf(JustificationModel model) {
+		TemplateLayout layout = TemplateLayout.of(model);
+		JSONArray templates = new JSONArray();
+		for (TemplateLayout.Cluster cluster : layout.clusters()) {
+			JSONArray placeholders = new JSONArray();
+			cluster.nodes().stream().filter(TemplateLayout.Node::placeholder)
+					.forEach(node -> placeholders.put(new JSONObject()
+							.put("id", qualify(node.id()))
+							.put("label", node.element().label())
+							.put("supports", new JSONArray(layout
+									.supportedThroughPlaceholder(node).stream()
+									.map(s -> qualify(s.id())).toList()))));
+			templates.put(new JSONObject()
+					.put("name", cluster.template().getName())
+					.put("elements",
+							new JSONArray(cluster.nodes().stream()
+									.map(node -> qualify(node.id())).toList()))
+					.put("placeholders", placeholders));
+		}
+		return new JSONObject()
+				.put("elements",
+						new JSONArray(layout.outside().stream()
+								.map(e -> qualify(e.id())).toList()))
+				.put("templates", templates);
 	}
 
 	private void appendRelation(String source, String target) {

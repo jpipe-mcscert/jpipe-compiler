@@ -166,4 +166,52 @@ class JsonExporterTest {
 
 		assertThat(json).doesNotContain("\"origins\"");
 	}
+
+	@Test
+	void export_implementingModelLaysOutItsTemplatesParentFirst() {
+		// leaf implements base:mid, which implements root and fills its
+		// @support abs (#199). A cluster draws the template's own elements,
+		// then the @supports it fills.
+		JSONObject layout = new JSONObject(
+				new JsonExporter().export(ProvenanceFixtures.templateChain()))
+				.getJSONObject("implements");
+
+		assertThat(layout.getJSONArray("elements")).isEmpty();
+		JSONArray templates = layout.getJSONArray("templates");
+		assertThat(templates.getJSONObject(0).getString("name"))
+				.isEqualTo("base:mid");
+		assertThat(templates.getJSONObject(0).getJSONArray("elements"))
+				.containsExactly("leaf:base:mid:m", "leaf:root:abs");
+		JSONObject root = templates.getJSONObject(1);
+		assertThat(root.getString("name")).isEqualTo("root");
+		assertThat(root.getJSONArray("elements")).containsExactly("leaf:root:c",
+				"leaf:root:s", "leaf:root:abs");
+		JSONObject placeholder = root.getJSONArray("placeholders")
+				.getJSONObject(0);
+		assertThat(placeholder.getString("id")).isEqualTo("leaf:root:abs");
+		assertThat(placeholder.getString("label")).isEqualTo("Some support");
+		assertThat(placeholder.getJSONArray("supports"))
+				.containsExactly("leaf:root:s");
+	}
+
+	@Test
+	void export_placeholderIsNeverAnElement() {
+		// The runner rejects an element of an unknown type: the placeholder
+		// lives in the layout only.
+		JSONArray elements = new JSONObject(
+				new JsonExporter().export(ProvenanceFixtures.templateChain()))
+				.getJSONArray("elements");
+
+		assertThat(elements)
+				.noneSatisfy(e -> assertThat(((JSONObject) e).getString("type"))
+						.isEqualTo("abstract-support"));
+	}
+
+	@Test
+	void export_modelImplementingNothingHasNoLayout() {
+		String json = new JsonExporter()
+				.export(ModelFixtures.simpleJustification());
+
+		assertThat(json).doesNotContain("\"implements\"");
+	}
 }

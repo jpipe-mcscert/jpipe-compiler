@@ -21,6 +21,7 @@ import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.visitor.DotExporter;
 import ca.mcscert.jpipe.visitor.JpipeExporter;
 import ca.mcscert.jpipe.visitor.JsonExporter;
+import ca.mcscert.jpipe.visitor.DotFromJson;
 import ca.mcscert.jpipe.visitor.PlainModelNames;
 import ca.mcscert.jpipe.visitor.PythonExporter;
 import io.cucumber.java.en.Given;
@@ -403,6 +404,11 @@ public class CompilationSteps {
 		assertThat(jsonOutput).contains(fragment);
 	}
 
+	@Then("the JSON output does not contain {string}")
+	public void theJsonOutputDoesNotContain(String fragment) {
+		assertThat(jsonOutput).doesNotContain(fragment);
+	}
+
 	@Then("the JSON element {string} has the origin {string} of model {string}, a {string}")
 	public void theJsonElementHasTheOrigin(String id, String originId,
 			String model, String type) {
@@ -500,6 +506,16 @@ public class CompilationSteps {
 		return types;
 	}
 
+	@Then("the DOT export of every model of the unit is rebuilt from its JSON export")
+	public void theDotExportOfEveryModelIsRebuiltFromItsJsonExport() {
+		assertThat(unit.getModels()).isNotEmpty();
+		for (JustificationModel model : unit.getModels()) {
+			assertThat(DotFromJson.rebuild(new JsonExporter().export(model)))
+					.as("DOT of '%s' rebuilt from its JSON", model.getName())
+					.isEqualTo(new DotExporter().export(model));
+		}
+	}
+
 	@Then("every model of the unit compiles back from its JPIPE export")
 	public void everyModelCompilesBackFromItsJpipeExport() throws IOException {
 		assertThat(unit.getModels()).isNotEmpty();
@@ -582,7 +598,33 @@ public class CompilationSteps {
 						+ " " + r.getString("target")));
 		json.put("elements", new JSONArray(elements));
 		json.put("relations", new JSONArray(relations));
+		JSONObject layout = json.optJSONObject("implements");
+		if (layout != null) {
+			layout.put("elements",
+					renamedAll(layout.getJSONArray("elements"), rename));
+			layout.getJSONArray("templates").forEach(t -> {
+				JSONObject template = (JSONObject) t;
+				template.put("name", names.name(template.getString("name")));
+				template.put("elements",
+						renamedAll(template.getJSONArray("elements"), rename));
+				template.getJSONArray("placeholders").forEach(ph -> {
+					JSONObject placeholder = (JSONObject) ph;
+					placeholder.put("id",
+							rename.apply(placeholder.getString("id")));
+					placeholder.put("supports", renamedAll(
+							placeholder.getJSONArray("supports"), rename));
+				});
+			});
+		}
 		return json.toString(2);
+	}
+
+	/** Each id of {@code ids}, renamed. */
+	private static JSONArray renamedAll(JSONArray ids,
+			UnaryOperator<String> rename) {
+		JSONArray renamed = new JSONArray();
+		ids.forEach(id -> renamed.put(rename.apply((String) id)));
+		return renamed;
 	}
 
 	/** The model named {@code name} that {@code model} is composed from. */

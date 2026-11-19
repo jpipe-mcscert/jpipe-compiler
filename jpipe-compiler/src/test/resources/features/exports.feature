@@ -89,6 +89,42 @@ Feature: Exporting compiled models to various formats
       | 028_refine_templates_and_chains.jd |
       | 029_namespace_prefix_of_another.jd |
 
+  Scenario: JSON export lays out the templates a justification implements
+    Given the source file "006_multi_inheritance.jd"
+    When I compile it into a unit
+    Then the unit contains a justification named "leaf_intermediate"
+    When I export the current model to JSON format
+    Then the JSON output contains "\"implements\""
+      And the JSON output contains "\"placeholders\""
+      And the JSON output contains "A root abstract support #1"
+
+  Scenario: JSON export of a model that implements nothing has no layout
+    Given the source file "000_minimal.jd"
+    When I compile it into a unit
+    Then the unit contains a justification named "minimal"
+    When I export the current model to JSON format
+    Then the JSON output does not contain "\"implements\""
+
+  Scenario Outline: The DOT export of every model of <file> is rebuilt from its JSON export
+    Given the source file "<file>"
+    When I compile it into a unit
+    Then the DOT export of every model of the unit is rebuilt from its JSON export
+
+    Examples:
+      | file |
+      | 000_minimal.jd |
+      | 003_shared.jd |
+      | 004_template.jd |
+      | 005_override.jd |
+      | 006_multi_inheritance.jd |
+      | 007_load_user.jd |
+      | 009_refine.jd |
+      | 012_chaining_operators.jd |
+      | 015_load_diamond_left.jd |
+      | 026_declaration_order.jd |
+      | 027_load_under_namespaces.jd |
+      | 028_refine_templates_and_chains.jd |
+
   Scenario: Python export names the merged element by its original ids only
     Given the source file "011_unifying_while_compising.jd"
     When I compile it into a unit

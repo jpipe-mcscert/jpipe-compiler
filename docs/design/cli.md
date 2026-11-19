@@ -172,6 +172,45 @@ justification and to draw it.
 `aliases` and `origins` are left out when they would be empty, so the JSON of
 a model no operator built has neither.
 
+A model that implements a template also gets an `implements` object, with
+everything the `DOT` export draws for the template chain, so that the diagram
+can be rebuilt from the JSON alone. The model below implements `intermediate`,
+which implements `root` and fills its `@support abs1`:
+
+```jsonc
+"implements": {
+  "elements": [ "leaf:intermediate:abs_i", "leaf:root:abs2" ],
+  "templates": [
+    { "name": "intermediate",
+      "elements": [ "leaf:intermediate:s", "leaf:intermediate:abs_i", "leaf:root:abs1" ],
+      "placeholders": [ { "id": "leaf:intermediate:abs_i",
+                          "label": "An intermediate abstract support",
+                          "supports": [ "leaf:intermediate:s" ] } ] },
+    { "name": "root",
+      "elements": [ "leaf:root:c", "leaf:root:s", "leaf:root:abs1", "leaf:root:abs2" ],
+      "placeholders": [ … ] }
+  ]
+}
+```
+
+- `elements` lists the elements drawn outside every template, in drawing
+  order: the model's own, then the `@support`s it fills.
+- `templates` lists the template chain, the template the model implements
+  first. Each template is drawn as a cluster labelled `<<template>> name`,
+  inside the cluster of the one before it, and lists the ids drawn in it, in
+  drawing order: its own elements, then the `@support`s it fills further up.
+- A placeholder is a template's `@support` that is filled further down the
+  chain. Its id is in its template's `elements`, where it is drawn with its own
+  `label`, and it is filled by the element with the same id, drawn where that
+  element's own template (or the model) draws it. The diagram links the two.
+- `supports` lists the strategies whose edge from that id, in `relations`, is
+  drawn from the placeholder rather than from the element that fills it: the
+  edge belongs to the template.
+
+Placeholders are never in `elements`, whose types stay `conclusion`,
+`sub-conclusion`, `strategy` and `evidence` for a justification. The JSON of a
+model that implements no template has no `implements` key.
+
 ### `diagnostic`
 
 Parses and validates a `.jd` source file and reports on it without exporting
