@@ -156,7 +156,7 @@ class OverrideAbstractSupportTest {
 			Evidence concrete = (Evidence) j.findById("t:as").orElseThrow();
 			assertThat(Stream.of("t:ts1", "t:ts2")
 					.map(id -> (Strategy) j.findById(id).orElseThrow())
-					.map(Strategy::getSupports))
+					.map(Strategy::getSupports)).hasSize(2)
 					.allSatisfy(supports -> assertThat(supports)
 							.containsExactly(concrete));
 		}
