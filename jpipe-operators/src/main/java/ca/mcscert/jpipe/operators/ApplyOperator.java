@@ -90,6 +90,9 @@ public final class ApplyOperator implements MacroCommand {
 	 * segment names a model only when the rest of the id is an id of that
 	 * model, so that {@code b:ns:a:e} is never read as {@code (b:ns)(a)(e)}
 	 * when only {@code (b)(ns:a)(e)} names an element (#202).
+	 *
+	 * @throws InvalidOperatorCallException
+	 *             if the id names several elements of the unit
 	 */
 	static String inUnit(String id, String namespace,
 			List<JustificationModel> sources) {
@@ -101,11 +104,14 @@ public final class ApplyOperator implements MacroCommand {
 				.startsWith(prefix)
 						? m.getName().substring(prefix.length())
 						: m.getName();
-		// Every reading writes the same unit id: each model name it holds gets
-		// the same prefix. What differs between them is which models the id
-		// passes through, and only an export renaming those models can tell.
-		return QualifiedIdReadings.inCall(sources, id, asWritten).getFirst()
-				.with(JustificationModel::getName);
+		List<String> ids = QualifiedIdReadings.rewritten(
+				QualifiedIdReadings.inCall(sources, id, asWritten),
+				JustificationModel::getName);
+		if (ids.size() > 1) {
+			throw new InvalidOperatorCallException(
+					"the id '" + id + "' names several elements: " + ids);
+		}
+		return ids.getFirst();
 	}
 
 	/** The arguments, with the element ids they hold as the unit names them. */

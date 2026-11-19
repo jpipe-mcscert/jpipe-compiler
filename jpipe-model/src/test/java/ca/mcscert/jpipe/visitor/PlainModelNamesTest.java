@@ -1,7 +1,6 @@
 package ca.mcscert.jpipe.visitor;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.ProvenanceFixtures;
@@ -56,14 +55,14 @@ class PlainModelNamesTest {
 	}
 
 	@Test
-	void an_id_two_models_can_hold_is_refused() {
+	void an_id_that_names_two_elements_keeps_its_first_reading() {
+		// Two elements of out share the id b:ns:a:e, which compilation reports
+		// as a duplicate id: the export keeps the reading through the first
+		// source rather than fail.
 		JustificationModel out = ProvenanceFixtures.collision();
 		PlainModelNames names = PlainModelNames
 				.of(List.of("ns:a", "b", "b:ns", "a", "out"));
 
-		assertThatThrownBy(() -> names.id(out, "b:ns:a:e"))
-				.isInstanceOf(IllegalStateException.class)
-				.hasMessageContaining("b:ns_a:e")
-				.hasMessageContaining("b_ns:a:e");
+		assertThat(names.id(out, "b:ns:a:e")).isEqualTo("b:ns_a:e");
 	}
 }

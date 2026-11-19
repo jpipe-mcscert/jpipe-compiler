@@ -77,6 +77,11 @@ import org.json.JSONObject;
  */
 public class JsonExporter extends AbstractModelExporter {
 
+	private static final String ELEMENTS = "elements";
+	private static final String ID = "id";
+	private static final String TYPE = "type";
+	private static final String LABEL = "label";
+
 	private JSONObject result;
 	private JSONArray elements;
 	private JSONArray relations;
@@ -150,8 +155,8 @@ public class JsonExporter extends AbstractModelExporter {
 
 		result = new JSONObject();
 		result.put("name", model.getName());
-		result.put("type", type);
-		result.put("elements", elements);
+		result.put(TYPE, type);
+		result.put(ELEMENTS, elements);
 		result.put("relations", relations);
 		if (model.getParent().isPresent()) {
 			result.put("implements", layoutOf(model));
@@ -164,9 +169,9 @@ public class JsonExporter extends AbstractModelExporter {
 
 	private void appendElement(String type, JustificationElement element) {
 		JSONObject obj = new JSONObject();
-		obj.put("type", type);
-		obj.put("id", qualify(element.id()));
-		obj.put("label", element.label());
+		obj.put(TYPE, type);
+		obj.put(ID, qualify(element.id()));
+		obj.put(LABEL, element.label());
 		List<String> aliases = qualifiedOriginalsOf(element.id());
 		if (!aliases.isEmpty()) {
 			obj.put("aliases", new JSONArray(aliases));
@@ -175,7 +180,7 @@ public class JsonExporter extends AbstractModelExporter {
 		if (from != null) {
 			JSONArray array = new JSONArray();
 			from.forEach(o -> array.put(new JSONObject().put("model", o.model())
-					.put("id", o.id()).put("type", o.type())));
+					.put(ID, o.id()).put(TYPE, o.type())));
 			obj.put("origins", array);
 		}
 		elements.put(obj);
@@ -189,20 +194,20 @@ public class JsonExporter extends AbstractModelExporter {
 			JSONArray placeholders = new JSONArray();
 			cluster.nodes().stream().filter(TemplateLayout.Node::placeholder)
 					.forEach(node -> placeholders.put(new JSONObject()
-							.put("id", qualify(node.id()))
-							.put("label", node.element().label())
+							.put(ID, qualify(node.id()))
+							.put(LABEL, node.element().label())
 							.put("supports", new JSONArray(layout
 									.supportedThroughPlaceholder(node).stream()
 									.map(s -> qualify(s.id())).toList()))));
 			templates.put(new JSONObject()
 					.put("name", cluster.template().getName())
-					.put("elements",
+					.put(ELEMENTS,
 							new JSONArray(cluster.nodes().stream()
 									.map(node -> qualify(node.id())).toList()))
 					.put("placeholders", placeholders));
 		}
 		return new JSONObject()
-				.put("elements",
+				.put(ELEMENTS,
 						new JSONArray(layout.outside().stream()
 								.map(e -> qualify(e.id())).toList()))
 				.put("templates", templates);

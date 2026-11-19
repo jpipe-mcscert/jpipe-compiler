@@ -2,16 +2,12 @@ package ca.mcscert.jpipe.visitor;
 
 import ca.mcscert.jpipe.model.Composition;
 import ca.mcscert.jpipe.model.JustificationModel;
-import ca.mcscert.jpipe.model.elements.AbstractSupport;
-import ca.mcscert.jpipe.model.elements.Conclusion;
-import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
-import ca.mcscert.jpipe.model.elements.Strategy;
-import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,25 +55,39 @@ final class CompositionOrigins {
 	 * for an element the operator created itself.
 	 */
 	static Map<String, List<Origin>> of(JustificationModel model) {
+		return of(model, new IdentityHashMap<>());
+	}
+
+	/**
+	 * The origins of {@code model}, each model's computed once: a model a
+	 * composition reaches by several paths is walked once.
+	 */
+	private static Map<String, List<Origin>> of(JustificationModel model,
+			Map<JustificationModel, Map<String, List<Origin>>> known) {
+		Map<String, List<Origin>> cached = known.get(model);
+		if (cached != null) {
+			return cached;
+		}
 		Map<String, List<Origin>> origins = new LinkedHashMap<>();
-		model.composition()
-				.ifPresent(composition -> collect(model, composition, origins));
+		model.composition().ifPresent(
+				composition -> collect(model, composition, origins, known));
 		origins.values().forEach(
 				list -> list.sort(Comparator.comparingInt(Origin::level)));
+		known.put(model, origins);
 		return origins;
 	}
 
 	private static void collect(JustificationModel model,
-			Composition composition, Map<String, List<Origin>> origins) {
+			Composition composition, Map<String, List<Origin>> origins,
+			Map<JustificationModel, Map<String, List<Origin>>> known) {
 		for (JustificationModel source : composition.sources()) {
-			Map<String, List<Origin>> deeper = of(source);
+			Map<String, List<Origin>> deeper = of(source, known);
 			for (JustificationElement element : source.allElements()) {
 				String copy = QualifiedIds.qualify(source.getName(),
 						element.id());
 				List<Origin> list = origins.computeIfAbsent(
 						resolve(model.aliases(), copy), _ -> new ArrayList<>());
-				list.add(
-						new Origin(source.getName(), copy, typeOf(element), 1));
+				list.add(new Origin(source.getName(), copy, element.kind(), 1));
 				deeper.getOrDefault(element.id(), List.of())
 						.forEach(o -> list.add(new Origin(o.model(), o.id(),
 								o.type(), o.level() + 1)));
@@ -93,16 +103,5 @@ final class CompositionOrigins {
 			current = aliases.get(current);
 		}
 		return current;
-	}
-
-	/** The kind of {@code element}, as the JSON export writes it. */
-	static String typeOf(JustificationElement element) {
-		return switch (element) {
-			case Conclusion _ -> "conclusion";
-			case SubConclusion _ -> "sub-conclusion";
-			case Strategy _ -> "strategy";
-			case Evidence _ -> "evidence";
-			case AbstractSupport _ -> "abstract-support";
-		};
 	}
 }

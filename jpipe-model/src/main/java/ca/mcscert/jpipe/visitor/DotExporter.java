@@ -36,17 +36,17 @@ import java.util.List;
  */
 public class DotExporter extends AbstractModelExporter {
 
-	private static final String INDENT = "  ";
+	static final String INDENT = "  ";
 
 	/** DOT graph-level attributes applied to every template cluster. */
-	private static final String CLUSTER_ATTRS = "style=filled; fillcolor=lightyellow; color=grey;";
+	static final String CLUSTER_ATTRS = "style=filled; fillcolor=lightyellow; color=grey;";
 
 	/**
 	 * Suffix appended to the DOT node id of an abstract support that was
 	 * overridden in the current model. Keeps the node distinct from the
 	 * concrete element that fulfils it.
 	 */
-	private static final String ABSTRACT_SUFFIX = "@abstract";
+	static final String ABSTRACT_SUFFIX = "@abstract";
 
 	// -------------------------------------------------------------------------
 	// Per-export state (reset by exportModel)

@@ -1,12 +1,17 @@
 package ca.mcscert.jpipe.model;
 
-import ca.mcscert.jpipe.model.elements.JustificationElement;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -54,7 +59,7 @@ public final class QualifiedIdReadings {
 		/** The id this reading stands for, with each model named by names. */
 		public String with(Function<JustificationModel, String> names) {
 			return Stream.concat(models.stream().map(names), Stream.of(local))
-					.reduce((a, b) -> a + SEPARATOR + b).orElse(local);
+					.collect(Collectors.joining(SEPARATOR));
 		}
 
 		private Reading under(JustificationModel model) {
@@ -73,14 +78,7 @@ public final class QualifiedIdReadings {
 	 */
 	public static List<Reading> in(JustificationModel model, String id,
 			Function<JustificationModel, String> names) {
-		Set<Reading> readings = new LinkedHashSet<>();
-		model.composition().ifPresent(
-				c -> readings.addAll(throughSources(c.sources(), id, names)));
-		model.getParent().ifPresent(
-				parent -> readings.addAll(throughParent(parent, id, names)));
-		return readings.isEmpty()
-				? List.of(new Reading(List.of(), id))
-				: List.copyOf(readings);
+		return orLocal(new Reader(names).in(model, id), id);
 	}
 
 	/**
@@ -94,56 +92,122 @@ public final class QualifiedIdReadings {
 	 */
 	public static List<Reading> inCall(List<JustificationModel> sources,
 			String id, Function<JustificationModel, String> names) {
+		Reader reader = new Reader(names);
 		Set<Reading> readings = new LinkedHashSet<>(
-				throughSources(sources, id, names));
+				reader.throughSources(sources, id));
 		for (JustificationModel source : sources) {
-			in(source, id, names).stream()
-					.filter(r -> !r.models().isEmpty() && holds(source,
-							r.with(JustificationModel::getName)))
+			reader.in(source, id).stream().filter(reader.heldBy(source))
 					.forEach(readings::add);
 		}
+		return orLocal(readings, id);
+	}
+
+	/**
+	 * The ids {@code readings} stand for, each model named by {@code names},
+	 * each once, in the order of the readings. More than one when the id they
+	 * read names several elements.
+	 */
+	public static List<String> rewritten(List<Reading> readings,
+			Function<JustificationModel, String> names) {
+		return readings.stream().map(r -> r.with(names)).distinct().toList();
+	}
+
+	private static List<Reading> orLocal(Collection<Reading> readings,
+			String id) {
 		return readings.isEmpty()
 				? List.of(new Reading(List.of(), id))
 				: List.copyOf(readings);
 	}
 
 	/**
-	 * {@code source:rest}, for a source of a composition, where {@code rest} is
-	 * an id the source holds.
+	 * Reads ids with one naming, and remembers the ids each model holds, so
+	 * that reading through a chain does not list a model's elements again at
+	 * every step.
 	 */
-	private static List<Reading> throughSources(
-			List<JustificationModel> sources, String id,
-			Function<JustificationModel, String> names) {
-		List<Reading> readings = new ArrayList<>();
-		for (JustificationModel source : sources) {
-			restAfter(names.apply(source), id)
-					.ifPresent(rest -> in(source, rest, names).stream()
-							.filter(r -> holds(source,
-									r.with(JustificationModel::getName)))
-							.map(r -> r.under(source)).forEach(readings::add));
-		}
-		return readings;
-	}
+	private static final class Reader {
 
-	/**
-	 * {@code parent:rest}, for an element the parent declares with the plain id
-	 * {@code rest}, or an id the parent holds as is: one it inherited, which
-	 * template expansion does not qualify twice.
-	 */
-	private static List<Reading> throughParent(JustificationModel parent,
-			String id, Function<JustificationModel, String> names) {
-		List<Reading> readings = new ArrayList<>();
-		restAfter(names.apply(parent), id).filter(
-				rest -> !rest.contains(SEPARATOR) && holds(parent, rest))
-				.ifPresent(rest -> readings
-						.add(new Reading(List.of(parent), rest)));
-		if (id.contains(SEPARATOR)) {
-			in(parent, id, names).stream()
-					.filter(r -> !r.models().isEmpty() && holds(parent,
-							r.with(JustificationModel::getName)))
-					.forEach(readings::add);
+		private final Function<JustificationModel, String> names;
+		private final Map<JustificationModel, Set<String>> held = new IdentityHashMap<>();
+
+		Reader(Function<JustificationModel, String> names) {
+			this.names = names;
 		}
-		return readings;
+
+		/** The readings of {@code id} in {@code model}, none if it is local. */
+		Set<Reading> in(JustificationModel model, String id) {
+			Set<Reading> readings = new LinkedHashSet<>();
+			model.composition().ifPresent(
+					c -> readings.addAll(throughSources(c.sources(), id)));
+			model.getParent().ifPresent(
+					parent -> readings.addAll(throughParent(parent, id)));
+			return readings;
+		}
+
+		/**
+		 * {@code source:rest}, for a source of a composition, where
+		 * {@code rest} is an id the source holds.
+		 */
+		List<Reading> throughSources(List<JustificationModel> sources,
+				String id) {
+			List<Reading> readings = new ArrayList<>();
+			for (JustificationModel source : sources) {
+				restAfter(names.apply(source), id).ifPresent(rest -> {
+					Set<Reading> inner = in(source, rest);
+					Stream<Reading> candidates = inner.isEmpty()
+							? Stream.of(new Reading(List.of(), rest))
+							: inner.stream();
+					candidates.filter(r -> holds(source, r))
+							.map(r -> r.under(source)).forEach(readings::add);
+				});
+			}
+			return readings;
+		}
+
+		/**
+		 * {@code parent:rest}, for an element the parent declares with the
+		 * plain id {@code rest}, or an id the parent holds as is: one it
+		 * inherited, which template expansion does not qualify twice.
+		 */
+		private List<Reading> throughParent(JustificationModel parent,
+				String id) {
+			List<Reading> readings = new ArrayList<>();
+			restAfter(names.apply(parent), id).filter(
+					rest -> !rest.contains(SEPARATOR) && holds(parent, rest))
+					.ifPresent(rest -> readings
+							.add(new Reading(List.of(parent), rest)));
+			if (id.contains(SEPARATOR)) {
+				in(parent, id).stream().filter(heldBy(parent))
+						.forEach(readings::add);
+			}
+			return readings;
+		}
+
+		/**
+		 * Whether a reading names models, and stands for an id {@code model}
+		 * holds.
+		 */
+		Predicate<Reading> heldBy(JustificationModel model) {
+			return r -> !r.models().isEmpty() && holds(model, r);
+		}
+
+		/**
+		 * Whether {@code model} holds the id {@code reading} stands for, as the
+		 * unit names it: as the id of one of its elements, or as an id one was
+		 * merged from.
+		 */
+		private boolean holds(JustificationModel model, Reading reading) {
+			return holds(model, reading.with(JustificationModel::getName));
+		}
+
+		private boolean holds(JustificationModel model, String id) {
+			return held.computeIfAbsent(model, Reader::idsOf).contains(id);
+		}
+
+		private static Set<String> idsOf(JustificationModel model) {
+			Set<String> ids = new HashSet<>(model.aliases().keySet());
+			model.allElements().forEach(e -> ids.add(e.id()));
+			return ids;
+		}
 	}
 
 	private static Optional<String> restAfter(String name, String id) {
@@ -151,14 +215,5 @@ public final class QualifiedIdReadings {
 		return id.startsWith(prefix) && id.length() > prefix.length()
 				? Optional.of(id.substring(prefix.length()))
 				: Optional.empty();
-	}
-
-	/**
-	 * Whether {@code model} holds {@code id}: as the id of one of its elements,
-	 * or as an id one was merged from.
-	 */
-	private static boolean holds(JustificationModel model, String id) {
-		return model.aliases().containsKey(id) || model.allElements().stream()
-				.map(JustificationElement::id).anyMatch(id::equals);
 	}
 }

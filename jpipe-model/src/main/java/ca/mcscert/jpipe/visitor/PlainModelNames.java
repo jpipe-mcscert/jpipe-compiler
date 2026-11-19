@@ -9,8 +9,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 /**
  * Names the JPIPE export gives the models it writes, so that every name is a
@@ -77,7 +75,7 @@ public final class PlainModelNames {
 	public String id(JustificationModel owner, String id) {
 		return renamed.isEmpty()
 				? id
-				: rewrite(id, QualifiedIdReadings.in(owner, id,
+				: rewrite(QualifiedIdReadings.in(owner, id,
 						JustificationModel::getName));
 	}
 
@@ -89,20 +87,20 @@ public final class PlainModelNames {
 	public String argument(List<JustificationModel> sources, String id) {
 		return renamed.isEmpty()
 				? id
-				: rewrite(id, QualifiedIdReadings.inCall(sources, id,
+				: rewrite(QualifiedIdReadings.inCall(sources, id,
 						JustificationModel::getName));
 	}
 
-	private String rewrite(String id, List<Reading> readings) {
-		Set<String> rewritten = readings.stream()
-				.map(r -> r.with(m -> name(m.getName())))
-				.collect(Collectors.toCollection(TreeSet::new));
-		if (rewritten.size() > 1) {
-			// Two models whose ids are equal once qualified cannot be
-			// composed together: their elements would collide.
-			throw new IllegalStateException("the id '" + id
-					+ "' reads as several elements: " + rewritten);
-		}
-		return rewritten.iterator().next();
+	/**
+	 * The id the readings stand for, under the export's names. Two readings
+	 * that stand for different ids mean the id names two elements: two elements
+	 * of one model then share an id, which compilation reports
+	 * ({@code no-duplicate-ids}). The export of such a model cannot be faithful
+	 * anyway, so it keeps the first reading, in the order of the call's
+	 * sources, rather than fail.
+	 */
+	private String rewrite(List<Reading> readings) {
+		return QualifiedIdReadings.rewritten(readings, m -> name(m.getName()))
+				.getFirst();
 	}
 }

@@ -17,9 +17,9 @@ import org.json.JSONObject;
  */
 public final class DotFromJson {
 
-	private static final String INDENT = "  ";
+	private static final String INDENT = DotExporter.INDENT;
 	private static final String NL = System.lineSeparator();
-	private static final String GHOST = "@abstract";
+	private static final String GHOST = DotExporter.ABSTRACT_SUFFIX;
 
 	private DotFromJson() {
 	}
@@ -92,9 +92,7 @@ public final class DotFromJson {
 							.quoted("cluster_" + template.getString("name")))
 					.append(" {").append(NL);
 			String inner = indent + INDENT;
-			dot.append(inner)
-					.append("style=filled; fillcolor=lightyellow; color=grey;")
-					.append(NL);
+			dot.append(inner).append(DotExporter.CLUSTER_ATTRS).append(NL);
 			dot.append(inner).append("label=")
 					.append(DotLabel.wrapAndQuote(
 							display(template.getString("name"), "template")))

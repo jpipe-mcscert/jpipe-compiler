@@ -282,5 +282,20 @@ class ApplyOperatorTest {
 			assertThat(ApplyOperator.inUnit("b:ns:a:e", "ns", List.of(b, bNs)))
 					.isEqualTo("ns:b:ns:ns:a:e");
 		}
+
+		@Test
+		void an_id_that_names_two_elements_is_refused() {
+			// Under p, b:ns:a:e is p:b's p:ns:a:e or p:b:ns's p:a:e: two
+			// elements, which no reading can choose between.
+			Justification b = composed("p:b", withEvidence("p:ns:a", "e"));
+			Justification bNs = composed("p:b:ns", withEvidence("p:a", "e"));
+			List<JustificationModel> sources = List.of(b, bNs);
+
+			assertThatThrownBy(
+					() -> ApplyOperator.inUnit("b:ns:a:e", "p", sources))
+					.isInstanceOf(InvalidOperatorCallException.class)
+					.hasMessageContaining("p:b:p:ns:a:e")
+					.hasMessageContaining("p:b:ns:p:a:e");
+		}
 	}
 }
