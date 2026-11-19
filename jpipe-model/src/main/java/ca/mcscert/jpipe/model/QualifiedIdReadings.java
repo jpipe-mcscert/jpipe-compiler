@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.model;
 
+import ca.mcscert.jpipe.model.elements.JustificationElement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -82,24 +83,71 @@ public final class QualifiedIdReadings {
 	}
 
 	/**
-	 * The readings of {@code id}, an id given as an argument of an operator
-	 * call on {@code sources}. Which model such an id belongs to is the
-	 * operator's to say ({@code unifyExclude} names an element of the result,
-	 * {@code source:id}; {@code refine}'s {@code hook} one of its first source,
-	 * as that source names it), so it is read in every one: in the result, and
-	 * in each source. Two readings that write the id the same way are the same
-	 * for any caller that rewrites it.
+	 * The readings of {@code id}, an argument of an operator call on
+	 * {@code sources} that names an element of the result, such as
+	 * {@code unifyExclude}: {@code source:rest}, where {@code rest} is an id of
+	 * that source.
 	 */
-	public static List<Reading> inCall(List<JustificationModel> sources,
+	public static List<Reading> inResult(List<JustificationModel> sources,
 			String id, Function<JustificationModel, String> names) {
+		return orLocal(new Reader(names).throughSources(sources, id), id);
+	}
+
+	/**
+	 * A reading of an id in one of the sources of a call.
+	 *
+	 * @param source
+	 *            the source the id was read in.
+	 * @param reading
+	 *            the reading, of an id of that source.
+	 */
+	public record SourceReading(JustificationModel source, Reading reading) {
+	}
+
+	/**
+	 * The readings of {@code id}, an argument of an operator call on
+	 * {@code sources} that names an element of a source as that source names
+	 * it, such as {@code refine}'s {@code hook}. It is read in every source,
+	 * since which one is the operator's to say. A qualified id no source reads
+	 * stands for the elements whose id ends with it, the short form
+	 * {@link JustificationModel#findById} accepts: those elements are read
+	 * instead. Empty when the id names no model: a plain id, or an id that
+	 * names nothing.
+	 */
+	public static List<SourceReading> inSources(
+			List<JustificationModel> sources, String id,
+			Function<JustificationModel, String> names) {
 		Reader reader = new Reader(names);
-		Set<Reading> readings = new LinkedHashSet<>(
-				reader.throughSources(sources, id));
+		List<SourceReading> readings = new ArrayList<>();
 		for (JustificationModel source : sources) {
 			reader.in(source, id).stream().filter(reader.heldBy(source))
+					.forEach(r -> readings.add(new SourceReading(source, r)));
+		}
+		if (readings.isEmpty() && id.contains(SEPARATOR)) {
+			sources.forEach(
+					source -> readings.addAll(endingWith(source, id, names)));
+		}
+		return List.copyOf(readings);
+	}
+
+	/**
+	 * The readings of the elements of {@code source} whose id, written with
+	 * {@code names}, is {@code id} or ends with {@code :id}.
+	 */
+	private static List<SourceReading> endingWith(JustificationModel source,
+			String id, Function<JustificationModel, String> names) {
+		Reader unit = new Reader(JustificationModel::getName);
+		List<SourceReading> readings = new ArrayList<>();
+		for (JustificationElement element : source.allElements()) {
+			orLocal(unit.in(source, element.id()), element.id()).stream()
+					.filter(r -> {
+						String written = r.with(names);
+						return written.equals(id)
+								|| written.endsWith(SEPARATOR + id);
+					}).map(r -> new SourceReading(source, r))
 					.forEach(readings::add);
 		}
-		return orLocal(readings, id);
+		return readings;
 	}
 
 	/**

@@ -459,8 +459,9 @@ public final class MyOperator extends CompositionOperator {
     @Override
     protected Set<String> optionalArguments() { return Set.of("myOption"); }
 
-    // Optional: the arguments that hold an element id, renamed with the models
-    // when the file is loaded under a namespace (`load "f.jd" as ns`).
+    // Optional: the arguments that hold the id of an element of a source, as
+    // that source names it, renamed with the models when the file is loaded
+    // under a namespace (`load "f.jd" as ns`).
     @Override
     public Set<String> elementArguments() { return Set.of(); }
 

@@ -58,8 +58,10 @@ import org.json.JSONObject;
  * level of composition, nearest first, so that an element whose kind
  * composition changed (the hook {@code refine} merges into a sub-conclusion,
  * the conclusion of a source {@code assemble} takes) says what it was. It is
- * omitted for an element the operator created itself, and for every element of
- * a model no operator built (#200).
+ * omitted for an element the operator created itself. An element inherited from
+ * a template an operator built has the origins it has in the template; a model
+ * that no operator built, and that implements no such template, has none
+ * (#200).
  *
  * <p>
  * The optional {@code "implements"} object is written for a model that

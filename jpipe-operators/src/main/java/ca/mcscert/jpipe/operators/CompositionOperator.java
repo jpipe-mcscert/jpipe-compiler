@@ -84,10 +84,11 @@ public abstract class CompositionOperator {
 	}
 
 	/**
-	 * Declares which argument keys hold the id of an element, such as
-	 * {@code refine}'s {@code hook}. A call read from a file loaded under a
-	 * namespace renames the qualified ids they hold, as it renames its source
-	 * models. Default: none.
+	 * Declares which argument keys hold the id of an element of a source,
+	 * written as that source names it, such as {@code refine}'s {@code hook}. A
+	 * call read from a file loaded under a namespace renames the qualified ids
+	 * they hold, as it renames its source models, and so does the JPIPE export
+	 * of the result. Default: none.
 	 */
 	public Set<String> elementArguments() {
 		return Set.of();

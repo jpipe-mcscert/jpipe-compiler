@@ -627,7 +627,10 @@ public class CompilationSteps {
 		return renamed;
 	}
 
-	/** The model named {@code name} that {@code model} is composed from. */
+	/**
+	 * The model named {@code name} that {@code model} is built from, through
+	 * its compositions and the templates it implements.
+	 */
 	private static JustificationModel composedFrom(JustificationModel model,
 			String name) {
 		Deque<JustificationModel> pending = new ArrayDeque<>(List.of(model));
@@ -637,9 +640,10 @@ public class CompilationSteps {
 				return next;
 			}
 			next.composition().ifPresent(c -> pending.addAll(c.sources()));
+			next.getParent().ifPresent(pending::add);
 		}
 		throw new AssertionError(
-				model.getName() + " is composed from no model " + name);
+				model.getName() + " is built from no model " + name);
 	}
 
 	/**

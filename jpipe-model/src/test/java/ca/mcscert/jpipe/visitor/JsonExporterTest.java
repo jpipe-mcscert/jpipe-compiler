@@ -204,4 +204,36 @@ class JsonExporterTest {
 						.isEqualTo("abstract-support"));
 	}
 
+	@Test
+	void export_originFoundThroughSeveralPathsIsListedOnce() {
+		// A diamond: b1 and b2 both compose first, and top merges their copies
+		// of first's e. first:e is reached through both branches, but is one
+		// origin (review of #203).
+		Justification first = new Justification("first");
+		first.addElement(new Evidence("e", "The tests pass"));
+		Justification b1 = copyOf("b1", first);
+		Justification b2 = copyOf("b2", first);
+		Justification top = new Justification("top");
+		top.addElement(new Evidence("u", "The tests pass"));
+		top.recordComposition(new Composition("assemble", List.of(b1, b2),
+				Map.of(), Set.of()));
+		top.recordAlias("b1:first:e", "u");
+		top.recordAlias("b2:first:e", "u");
+
+		String json = new JsonExporter().export(top);
+
+		assertThat(originsOf(json, "top:u")).containsExactly(
+				"b1 b1:first:e evidence", "b2 b2:first:e evidence",
+				"first first:e evidence");
+	}
+
+	/** {@code name}, composed of {@code source} alone, keeping its ids. */
+	private static Justification copyOf(String name, Justification source) {
+		Justification copy = new Justification(name);
+		source.allElements().forEach(e -> copy.addElement(
+				new Evidence(source.getName() + ":" + e.id(), e.label())));
+		copy.recordComposition(new Composition("assemble", List.of(source),
+				Map.of(), Set.of()));
+		return copy;
+	}
 }

@@ -162,7 +162,8 @@ justification and to draw it.
   ids it was merged from, at every level, qualified like `id`.
 - `origins`, on an element of a model built by an operator, lists the
   elements of the models it was composed from that it was built from, at every
-  level, nearest first. Each gives its model, its id as that model's own JSON
+  level, nearest first, each once. An element a model inherits from a template
+  built by an operator has the origins it has in that template. Each gives its model, its id as that model's own JSON
   export writes it, and its kind there. An element whose kind composition
   changed says what it was: the hook `refine` merges into a sub-conclusion, or
   the conclusion of a source that `assemble` turns into a sub-conclusion. An
@@ -170,7 +171,8 @@ justification and to draw it.
   none.
 
 `aliases` and `origins` are left out when they would be empty, so the JSON of
-a model no operator built has neither.
+a model that no operator built, and that implements no template an operator
+built, has neither.
 
 A model that implements a template also gets an `implements` object, with
 everything the `DOT` export draws for the template chain, so that the diagram

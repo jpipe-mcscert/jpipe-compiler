@@ -252,11 +252,13 @@ class ApplyOperatorTest {
 			return j;
 		}
 
-		@ParameterizedTest(name = "under ns, {0} is {1}")
-		@CsvSource({"e, e", "a:e, ns:a:e", "both:a:e, ns:both:ns:a:e",
-				"base:t:abs, ns:base:t:abs", "unknown:e, unknown:e"})
+		@ParameterizedTest(name = "under ns, {0} in the {1} is {2}")
+		@CsvSource({"e, RESULT, e", "e, SOURCE, e", "a:e, RESULT, ns:a:e",
+				"a:e, SOURCE, ns:a:e", "both:a:e, RESULT, ns:both:ns:a:e",
+				"base:t:abs, SOURCE, ns:base:t:abs",
+				"unknown:e, RESULT, unknown:e", "unknown:e, SOURCE, unknown:e"})
 		void an_element_id_is_mapped_onto_the_models_that_exist(String id,
-				String expected) {
+				ApplyOperator.Scope scope, String expected) {
 			// A two-stage composition under a namespace names its elements
 			// ns:both:ns:a:e: rewriting both:a:e as text gave ns:both:a:e,
 			// which names nothing (#178).
@@ -268,7 +270,7 @@ class ApplyOperatorTest {
 			List<JustificationModel> sources = List.of(a,
 					composed("ns:both", a), j);
 
-			assertThat(ApplyOperator.inUnit(id, "ns", sources))
+			assertThat(ApplyOperator.inUnit(id, "ns", sources, scope))
 					.isEqualTo(expected);
 		}
 
@@ -279,8 +281,8 @@ class ApplyOperatorTest {
 			Justification b = composed("ns:b", withEvidence("ns:ns:a", "e"));
 			Justification bNs = withEvidence("ns:b:ns", "e");
 
-			assertThat(ApplyOperator.inUnit("b:ns:a:e", "ns", List.of(b, bNs)))
-					.isEqualTo("ns:b:ns:ns:a:e");
+			assertThat(ApplyOperator.inUnit("b:ns:a:e", "ns", List.of(b, bNs),
+					ApplyOperator.Scope.RESULT)).isEqualTo("ns:b:ns:ns:a:e");
 		}
 
 		@Test
@@ -291,11 +293,64 @@ class ApplyOperatorTest {
 			Justification bNs = composed("p:b:ns", withEvidence("p:a", "e"));
 			List<JustificationModel> sources = List.of(b, bNs);
 
-			assertThatThrownBy(
-					() -> ApplyOperator.inUnit("b:ns:a:e", "p", sources))
+			assertThatThrownBy(() -> ApplyOperator.inUnit("b:ns:a:e", "p",
+					sources, ApplyOperator.Scope.RESULT))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("p:b:p:ns:a:e")
 					.hasMessageContaining("p:b:ns:p:a:e");
+		}
+
+		@Test
+		void a_source_id_is_read_in_the_sources_not_in_the_result() {
+			// refine(base, ns) { hook: "ns:a:e" } under p: base's p:ns:a:e.
+			// Read
+			// in the result too, it was also ns's p:a:e, and refused (review of
+			// #203).
+			Justification base = composed("p:base",
+					withEvidence("p:ns:a", "e"));
+			Justification ns = composed("p:ns", withEvidence("p:a", "e"));
+
+			assertThat(ApplyOperator.inUnit("ns:a:e", "p", List.of(base, ns),
+					ApplyOperator.Scope.SOURCE)).isEqualTo("p:ns:a:e");
+		}
+
+		@Test
+		void a_short_form_of_a_source_id_is_mapped_in_full() {
+			// refine accepts b:foo:a:e for extra:b:foo:a:e; under p, the
+			// element is p:extra:p:b:p:foo:a:e, which b:foo:a:e no longer ends
+			// (review of #203).
+			Justification base = composed("p:base", composed("p:extra",
+					composed("p:b", withEvidence("p:foo:a", "e"))));
+
+			assertThat(ApplyOperator.inUnit("b:foo:a:e", "p", List.of(base),
+					ApplyOperator.Scope.SOURCE))
+					.isEqualTo("p:extra:p:b:p:foo:a:e");
+		}
+
+		@Test
+		void two_spellings_of_one_merged_element_are_one_element() {
+			// In base, b:ns:a:e is p:b:p:ns:a:e or p:b:ns:p:a:e, and a merge
+			// made both one element: either is that element (review of #203).
+			Justification base = composed("p:base",
+					composed("p:b", withEvidence("p:ns:a", "e")),
+					composed("p:b:ns", withEvidence("p:a", "e")));
+			base.recordAlias("p:b:p:ns:a:e", "unified_0");
+			base.recordAlias("p:b:ns:p:a:e", "unified_0");
+
+			assertThat(ApplyOperator.inUnit("b:ns:a:e", "p", List.of(base),
+					ApplyOperator.Scope.SOURCE)).isEqualTo("p:b:p:ns:a:e");
+		}
+
+		@Test
+		void two_spellings_of_two_elements_of_a_source_are_refused() {
+			Justification base = composed("p:base",
+					composed("p:b", withEvidence("p:ns:a", "e")),
+					composed("p:b:ns", withEvidence("p:a", "e")));
+			List<JustificationModel> sources = List.of(base);
+
+			assertThatThrownBy(() -> ApplyOperator.inUnit("b:ns:a:e", "p",
+					sources, ApplyOperator.Scope.SOURCE))
+					.isInstanceOf(InvalidOperatorCallException.class);
 		}
 	}
 }

@@ -28,8 +28,11 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   each with its model, its id and the kind it had there. A consumer such as
   jpipe-runner can now tell which elements composition changed, and what they
   were: the hook `refine` merges into a sub-conclusion, or the conclusion of a
-  source that `assemble` turns into a sub-conclusion. The new key is optional,
-  and the JSON of a model no operator built is unchanged (#200).
+  source that `assemble` turns into a sub-conclusion. A model that implements
+  a template built by an operator passes the template's origins on to the
+  elements it inherits. The new key is optional, and the JSON of a model that
+  no operator built, and that implements no template an operator built, is
+  unchanged (#200).
 - The JSON export of a model that implements a template describes how the DOT
   export draws the template chain, in a new `implements` key: each template's
   cluster and the elements drawn in it, the `@support` placeholders and their

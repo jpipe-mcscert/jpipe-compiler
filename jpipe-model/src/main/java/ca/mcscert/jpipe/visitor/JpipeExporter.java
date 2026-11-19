@@ -223,16 +223,25 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 				.append(key).append(": ")
 				.append(Quoting
 						.doubleQuoted(composition.idArguments().contains(key)
-								? renameIds(composition, value)
+								? renameIds(composition,
+										composition.resultIdArguments()
+												.contains(key),
+										value)
 								: value))
 				.append(System.lineSeparator()));
 		builder.append("}").append(System.lineSeparator());
 	}
 
-	/** A comma-separated list of ids, each renamed. */
-	private String renameIds(Composition composition, String value) {
+	/**
+	 * A comma-separated list of ids, each renamed: as ids of the result when
+	 * {@code resultIds}, of a source otherwise.
+	 */
+	private String renameIds(Composition composition, boolean resultIds,
+			String value) {
 		return Arrays.stream(value.split(",", -1)).map(String::strip)
-				.map(id -> names.argument(composition.sources(), id))
+				.map(id -> resultIds
+						? names.resultArgument(composition.sources(), id)
+						: names.sourceArgument(composition.sources(), id))
 				.collect(Collectors.joining(","));
 	}
 

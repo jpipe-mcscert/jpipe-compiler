@@ -34,6 +34,35 @@ public final class ProvenanceFixtures {
 	}
 
 	/**
+	 * The sources of {@code refine(base, ns) { hook: "ns:a:e" }}: {@code base}
+	 * holds {@code ns:a:e}, taken from {@code ns:a}, and {@code ns} holds
+	 * {@code a:e}, taken from {@code a}. The hook names an element of
+	 * {@code base}, as {@code base} names it; read as an id of the result, it
+	 * would be {@code ns}'s {@code a:e} instead.
+	 */
+	public static Map<String, JustificationModel> hookScope() {
+		Justification nsA = leaf("ns:a", "e");
+		Justification a = leaf("a", "e");
+		return Map.of("ns:a", nsA, "a", a, "base",
+				composed("base", List.of(nsA), Map.of()), "ns",
+				composed("ns", List.of(a), Map.of()));
+	}
+
+	/**
+	 * {@code base} holds {@code extra:b:foo:a:e}, through three compositions:
+	 * {@code extra} of {@code b}, {@code b} of {@code foo:a}. {@code refine}
+	 * accepts {@code b:foo:a:e} for it, the short form
+	 * {@link JustificationModel#findById} resolves.
+	 */
+	public static Map<String, JustificationModel> suffixChain() {
+		Justification fooA = leaf("foo:a", "e");
+		Justification b = composed("b", List.of(fooA), Map.of());
+		Justification extra = composed("extra", List.of(b), Map.of());
+		return Map.of("foo:a", fooA, "b", b, "extra", extra, "base",
+				composed("base", List.of(extra), Map.of()));
+	}
+
+	/**
 	 * Two models whose ids collide once composed: {@code b} holds
 	 * {@code ns:a:e}, taken from {@code ns:a}, and {@code b:ns} holds
 	 * {@code a:e}, the override of the template {@code a}'s {@code @support}.

@@ -46,12 +46,38 @@ class PlainModelNamesTest {
 	}
 
 	@Test
-	void a_call_argument_is_renamed_through_the_call_sources() {
+	void a_result_argument_is_renamed_through_the_call_sources() {
 		PlainModelNames names = PlainModelNames.of(MODELS.keySet());
 		List<JustificationModel> sources = List.of(MODELS.get("b"),
 				MODELS.get("b:ns"));
 
-		assertThat(names.argument(sources, "b:ns:a:e")).isEqualTo("b:ns_a:e");
+		assertThat(names.resultArgument(sources, "b:ns:a:e"))
+				.isEqualTo("b:ns_a:e");
+	}
+
+	@Test
+	void a_source_argument_is_renamed_in_the_source_that_holds_it() {
+		// refine(base, ns) { hook: "ns:a:e" }: base's ns:a:e, so ns_a:e, not
+		// ns's a:e (review of #203).
+		Map<String, JustificationModel> models = ProvenanceFixtures.hookScope();
+		PlainModelNames names = PlainModelNames.of(models.keySet());
+		List<JustificationModel> sources = List.of(models.get("base"),
+				models.get("ns"));
+
+		assertThat(names.sourceArgument(sources, "ns:a:e")).isEqualTo("ns_a:e");
+	}
+
+	@Test
+	void a_short_form_of_a_source_id_is_written_in_full() {
+		// b:foo:a:e stands for extra:b:foo:a:e; renaming foo:a in the middle
+		// of the short form would leave an id that ends no element.
+		Map<String, JustificationModel> models = ProvenanceFixtures
+				.suffixChain();
+		PlainModelNames names = PlainModelNames.of(models.keySet());
+
+		assertThat(
+				names.sourceArgument(List.of(models.get("base")), "b:foo:a:e"))
+				.isEqualTo("extra:b:foo_a:e");
 	}
 
 	@Test

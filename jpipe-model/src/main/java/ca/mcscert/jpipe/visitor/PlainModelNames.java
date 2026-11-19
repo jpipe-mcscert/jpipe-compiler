@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.visitor;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.QualifiedIdReadings;
 import ca.mcscert.jpipe.model.QualifiedIdReadings.Reading;
+import ca.mcscert.jpipe.model.QualifiedIdReadings.SourceReading;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,15 +81,32 @@ public final class PlainModelNames {
 	}
 
 	/**
-	 * {@code id}, an id given as an argument of an operator call on
-	 * {@code sources}, with every model it names renamed; see
-	 * {@link QualifiedIdReadings#inCall}.
+	 * {@code id}, an argument of an operator call on {@code sources} that names
+	 * an element of the result ({@code source:id}), with every model it names
+	 * renamed; see {@link QualifiedIdReadings#inResult}.
 	 */
-	public String argument(List<JustificationModel> sources, String id) {
+	public String resultArgument(List<JustificationModel> sources, String id) {
 		return renamed.isEmpty()
 				? id
-				: rewrite(QualifiedIdReadings.inCall(sources, id,
+				: rewrite(QualifiedIdReadings.inResult(sources, id,
 						JustificationModel::getName));
+	}
+
+	/**
+	 * {@code id}, an argument of an operator call on {@code sources} that names
+	 * an element of a source as that source names it, with every model it names
+	 * renamed; see {@link QualifiedIdReadings#inSources}. A short form is
+	 * written in full, since the models it names may change name in the middle
+	 * of the id.
+	 */
+	public String sourceArgument(List<JustificationModel> sources, String id) {
+		if (renamed.isEmpty()) {
+			return id;
+		}
+		List<Reading> readings = QualifiedIdReadings
+				.inSources(sources, id, JustificationModel::getName).stream()
+				.map(SourceReading::reading).toList();
+		return readings.isEmpty() ? id : rewrite(readings);
 	}
 
 	/**

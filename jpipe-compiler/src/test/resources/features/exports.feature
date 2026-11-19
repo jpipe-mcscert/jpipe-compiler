@@ -65,6 +65,14 @@ Feature: Exporting compiled models to various formats
       And the JSON element "with_refine_1:hook" has the origin "first:e" of model "first", a "evidence"
       And the JSON element "with_refine_1:both:first:c" has the origin "first:c" of model "first", a "conclusion"
 
+  Scenario: JSON export passes a template's origins on to the models implementing it
+    Given the source file "028_refine_templates_and_chains.jd"
+    When I compile it into a unit
+    Then the unit contains a justification named "ready"
+    When I export the current model to JSON format
+    Then the JSON element "ready:refined_pattern:hook" has the origin "first_part:c" of model "first_part", a "conclusion"
+      And the JSON element "ready:refined_pattern:hook" has the origin "pattern:abs1" of model "pattern", a "abstract-support"
+
   Scenario: JSON export gives no origins to a model nothing was composed into
     Given the source file "000_minimal.jd"
     When I compile it into a unit

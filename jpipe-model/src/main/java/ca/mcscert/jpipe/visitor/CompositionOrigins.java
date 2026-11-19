@@ -1,5 +1,7 @@
 package ca.mcscert.jpipe.visitor;
 
+import static ca.mcscert.jpipe.util.QualifiedIds.qualifyIfPlain;
+
 import ca.mcscert.jpipe.model.Composition;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
@@ -51,8 +53,9 @@ final class CompositionOrigins {
 	/**
 	 * The origins of each element of {@code model}, keyed by its id, nearest
 	 * level first, and within a level in the order of the call's sources and of
-	 * their elements. Empty for a model no operator built, and with no entry
-	 * for an element the operator created itself.
+	 * their elements. Empty for a model no operator built and that inherits
+	 * from no template an operator built, and with no entry for an element the
+	 * operator created itself.
 	 */
 	static Map<String, List<Origin>> of(JustificationModel model) {
 		return of(model, new IdentityHashMap<>());
@@ -71,10 +74,48 @@ final class CompositionOrigins {
 		Map<String, List<Origin>> origins = new LinkedHashMap<>();
 		model.composition().ifPresent(
 				composition -> collect(model, composition, origins, known));
-		origins.values().forEach(
-				list -> list.sort(Comparator.comparingInt(Origin::level)));
+		model.getParent()
+				.ifPresent(parent -> inherit(model, parent, origins, known));
+		origins.replaceAll((_, list) -> nearestOnce(list));
 		known.put(model, origins);
 		return origins;
+	}
+
+	/**
+	 * Gives each element {@code model} inherits from {@code parent} unchanged
+	 * the origins it has there: a template built by an operator passes them on
+	 * to the models that implement it. An element that fills a placeholder is
+	 * the model's own, and has none.
+	 */
+	private static void inherit(JustificationModel model,
+			JustificationModel parent, Map<String, List<Origin>> origins,
+			Map<JustificationModel, Map<String, List<Origin>>> known) {
+		Set<String> inherited = new HashSet<>();
+		model.inheritedElements().forEach(e -> inherited.add(e.id()));
+		if (!model.hasOwnConclusion()) {
+			model.conclusion().ifPresent(c -> inherited.add(c.id()));
+		}
+		of(parent, known).forEach((id, list) -> {
+			String copy = qualifyIfPlain(parent.getName(), id);
+			if (inherited.contains(copy)) {
+				origins.computeIfAbsent(copy, _ -> new ArrayList<>())
+						.addAll(list);
+			}
+		});
+	}
+
+	/**
+	 * {@code origins} nearest level first, each origin once, at the nearest
+	 * level it was found: a model reached by several paths, as a diamond whose
+	 * branches are merged again, is found once per path.
+	 */
+	private static List<Origin> nearestOnce(List<Origin> origins) {
+		Set<List<String>> seen = new HashSet<>();
+		List<Origin> once = new ArrayList<>();
+		origins.stream().sorted(Comparator.comparingInt(Origin::level))
+				.filter(o -> seen.add(List.of(o.model(), o.id(), o.type())))
+				.forEach(once::add);
+		return once;
 	}
 
 	private static void collect(JustificationModel model,
