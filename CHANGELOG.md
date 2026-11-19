@@ -18,6 +18,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+---
+
+## [4.0.0] — 2026-11-19
+
 ### Added
 - Strings accept two escapes: `\"` for a double quote and `\\` for a backslash.
   Any other backslash is kept as written, so a path such as `"dir\file.jd"`
@@ -131,7 +135,6 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   from the model has nowhere to break and can still run past the limit: a
   function name, which follows its label, an id, or the source path in the
   header.
-
 - **Breaking:** a Python function name keeps the letters of a label in a
   non-Latin script, which Python 3 accepts in identifiers: `"系统 正确"` gives
   `def 系统_正确()` instead of `def _()`. A letter with a diacritic still maps to
@@ -700,7 +703,8 @@ server.
 ### Added
 - Initial commit: first version of the compiler.
 
-[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v4.0.0...HEAD
+[4.0.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v3.0.0...v4.0.0
 [3.0.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.5.0...v3.0.0
 [2.5.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.1...v2.4.0
