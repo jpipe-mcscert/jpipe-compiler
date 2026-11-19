@@ -1,13 +1,20 @@
 package ca.mcscert.jpipe.visitor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.ProvenanceFixtures;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class PlainModelNamesTest {
+
+	private static final Map<String, JustificationModel> MODELS = ProvenanceFixtures
+			.nestedNamespaces();
 
 	@Test
 	void a_plain_name_is_kept_and_a_namespaced_one_is_flattened() {
@@ -26,19 +33,37 @@ class PlainModelNamesTest {
 		assertThat(names.name("base:t")).isEqualTo("base_t_3");
 	}
 
-	@ParameterizedTest
+	@ParameterizedTest(name = "in out, {0} is written {1}")
 	@CsvSource({
-			// every run naming a renamed model, longest first
-			"ns:both:ns:a:e, ns_both:ns_a:e", "ns:both:x:y:e, ns_both:x_y:e",
-			"ns:both:x:e, ns_both:x:e",
-			// the local id is never a model name
-			"j:ns:both, j:ns:both",
+			// b:ns:a:e is (b)(ns:a)(e): b:ns holds no a:e (#202)
+			"b:ns:a:e, b:ns_a:e", "b:ns:e, b_ns:e", "b:k:e, b:k:e",
 			// plain and unrelated ids are unchanged
-			"e, e", "a:e, a:e"})
-	void ids_naming_a_renamed_model_are_renamed(String id, String expected) {
-		PlainModelNames names = PlainModelNames
-				.of(List.of("ns:both", "ns:a", "x:y", "x:y:z", "a"));
+			"assembleConclusion, assembleConclusion", "x:y:e, x:y:e"})
+	void an_id_is_renamed_through_the_models_it_comes_from(String id,
+			String expected) {
+		PlainModelNames names = PlainModelNames.of(MODELS.keySet());
 
-		assertThat(names.id(id)).isEqualTo(expected);
+		assertThat(names.id(MODELS.get("out"), id)).isEqualTo(expected);
+	}
+
+	@Test
+	void a_call_argument_is_renamed_through_the_call_sources() {
+		PlainModelNames names = PlainModelNames.of(MODELS.keySet());
+		List<JustificationModel> sources = List.of(MODELS.get("b"),
+				MODELS.get("b:ns"));
+
+		assertThat(names.argument(sources, "b:ns:a:e")).isEqualTo("b:ns_a:e");
+	}
+
+	@Test
+	void an_id_two_models_can_hold_is_refused() {
+		JustificationModel out = ProvenanceFixtures.collision();
+		PlainModelNames names = PlainModelNames
+				.of(List.of("ns:a", "b", "b:ns", "a", "out"));
+
+		assertThatThrownBy(() -> names.id(out, "b:ns:a:e"))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("b:ns_a:e")
+				.hasMessageContaining("b_ns:a:e");
 	}
 }

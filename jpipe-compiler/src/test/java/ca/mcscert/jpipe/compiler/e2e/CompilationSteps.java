@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.UnaryOperator;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import org.json.JSONArray;
@@ -446,14 +447,15 @@ public class CompilationSteps {
 			PlainModelNames names) {
 		JSONObject json = new JSONObject(new JsonExporter().export(model));
 		json.put("name", names.name(json.getString("name")));
+		UnaryOperator<String> rename = id -> renamed(model, names, id);
 		List<JSONObject> elements = new ArrayList<>();
 		json.getJSONArray("elements").forEach(e -> {
 			JSONObject element = (JSONObject) e;
-			element.put("id", names.id(element.getString("id")));
+			element.put("id", rename.apply(element.getString("id")));
 			if (element.has("aliases")) {
 				JSONArray aliases = new JSONArray();
 				element.getJSONArray("aliases")
-						.forEach(a -> aliases.put(names.id((String) a)));
+						.forEach(a -> aliases.put(rename.apply((String) a)));
 				element.put("aliases", aliases);
 			}
 			elements.add(element);
@@ -462,8 +464,8 @@ public class CompilationSteps {
 		List<JSONObject> relations = new ArrayList<>();
 		json.getJSONArray("relations").forEach(r -> {
 			JSONObject relation = (JSONObject) r;
-			relation.put("source", names.id(relation.getString("source")));
-			relation.put("target", names.id(relation.getString("target")));
+			relation.put("source", rename.apply(relation.getString("source")));
+			relation.put("target", rename.apply(relation.getString("target")));
 			relations.add(relation);
 		});
 		relations.sort(
@@ -472,6 +474,17 @@ public class CompilationSteps {
 		json.put("elements", new JSONArray(elements));
 		json.put("relations", new JSONArray(relations));
 		return json.toString(2);
+	}
+
+	/**
+	 * {@code id}, an id of the JSON export of {@code model}, renamed by
+	 * {@code names}: the model's own name, then the id it qualifies, read
+	 * through the models {@code model} is built from.
+	 */
+	private static String renamed(JustificationModel model,
+			PlainModelNames names, String id) {
+		String local = id.substring(model.getName().length() + 1);
+		return names.name(model.getName()) + ":" + names.id(model, local);
 	}
 
 	@When("I export the current model to Python format")

@@ -1,12 +1,16 @@
 package ca.mcscert.jpipe.visitor;
 
-import ca.mcscert.jpipe.util.QualifiedIds;
+import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.QualifiedIdReadings;
+import ca.mcscert.jpipe.model.QualifiedIdReadings.Reading;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * Names the JPIPE export gives the models it writes, so that every name is a
@@ -64,14 +68,41 @@ public final class PlainModelNames {
 	}
 
 	/**
-	 * {@code id} with every run of segments that names a renamed model, longest
-	 * first, replaced by that model's new name. Its last segment, the local id,
-	 * is never a model name.
+	 * {@code id}, an id of {@code owner}, with every model it names renamed.
+	 * Which segments name a model is read by provenance, through the models
+	 * {@code owner} is built from (see {@link QualifiedIdReadings}): in
+	 * {@code b:ns:a:e}, {@code b:ns} names a model only when the rest,
+	 * {@code a:e}, is an id of that model (#202).
 	 */
-	public String id(String id) {
+	public String id(JustificationModel owner, String id) {
 		return renamed.isEmpty()
 				? id
-				: QualifiedIds.renameModels(id,
-						run -> Optional.ofNullable(renamed.get(run)));
+				: rewrite(id, QualifiedIdReadings.in(owner, id,
+						JustificationModel::getName));
+	}
+
+	/**
+	 * {@code id}, an id given as an argument of an operator call on
+	 * {@code sources}, with every model it names renamed; see
+	 * {@link QualifiedIdReadings#inCall}.
+	 */
+	public String argument(List<JustificationModel> sources, String id) {
+		return renamed.isEmpty()
+				? id
+				: rewrite(id, QualifiedIdReadings.inCall(sources, id,
+						JustificationModel::getName));
+	}
+
+	private String rewrite(String id, List<Reading> readings) {
+		Set<String> rewritten = readings.stream()
+				.map(r -> r.with(m -> name(m.getName())))
+				.collect(Collectors.toCollection(TreeSet::new));
+		if (rewritten.size() > 1) {
+			// Two models whose ids are equal once qualified cannot be
+			// composed together: their elements would collide.
+			throw new IllegalStateException("the id '" + id
+					+ "' reads as several elements: " + rewritten);
+		}
+		return rewritten.iterator().next();
 	}
 }

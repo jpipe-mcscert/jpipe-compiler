@@ -135,6 +135,7 @@ Feature: Load directive
       And the unit contains a justification named "c:with_refine_1"
       And the unit contains a justification named "rc:detailed"
       And the unit contains a justification named "rc:pqr"
+      And the unit contains a justification named "np:out"
       And the unit contains a justification named "u:my_justification"
       And the unit contains a template named "L:shared:t"
       And the unit contains a template named "R:shared:t"

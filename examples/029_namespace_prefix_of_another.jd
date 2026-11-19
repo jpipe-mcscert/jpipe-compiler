@@ -1,0 +1,34 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// A model name that is a namespace prefix of another's: 'b' is declared here,
+// and loading 000_minimal.jd under 'b' gives 'b:minimal'. Loading
+// 001_unordered.jd under 'minimal' gives 'minimal:j'.
+load "001_unordered.jd" as minimal
+load "000_minimal.jd" as b
+
+justification k {
+    conclusion c is "K holds"
+    strategy   s is "Check K"
+    evidence   e is "K evidence"
+
+    s supports c
+    e supports s
+}
+
+justification b is assemble(minimal:j, k) {
+    conclusionLabel: "B holds"
+    strategyLabel: "Check B"
+}
+
+// In 'out', 'b:minimal:j:e' splits as (b)(minimal:j)(e): the evidence 'e' of
+// 'minimal:j', as 'b' holds it. The other split, (b:minimal)(j)(e), names
+// nothing, since 'b:minimal' holds 'e' and no 'j:e'.
+justification out is assemble(b, b:minimal) {
+    conclusionLabel: "Out holds"
+    strategyLabel: "Check out"
+    unifyExclude: "b:minimal:j:e"
+}

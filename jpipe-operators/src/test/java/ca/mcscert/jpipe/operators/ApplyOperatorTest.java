@@ -7,12 +7,16 @@ import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
+import ca.mcscert.jpipe.model.Composition;
 import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.operators.equivalences.SameLabel;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -226,6 +230,28 @@ class ApplyOperatorTest {
 	@Nested
 	class Namespaces {
 
+		/** A model holding one evidence {@code e}. */
+		private static Justification withEvidence(String name, String id) {
+			Justification j = new Justification(name);
+			j.addElement(new Evidence(id, "Evidence of " + name));
+			return j;
+		}
+
+		/**
+		 * {@code name}, holding the elements of {@code sources} as source:id.
+		 */
+		private static Justification composed(String name,
+				JustificationModel... sources) {
+			Justification j = new Justification(name);
+			for (JustificationModel source : sources) {
+				source.allElements().forEach(e -> j.addElement(new Evidence(
+						source.getName() + ":" + e.id(), e.label())));
+			}
+			j.recordComposition(new Composition("assemble", List.of(sources),
+					Map.of(), Set.of()));
+			return j;
+		}
+
 		@ParameterizedTest(name = "under ns, {0} is {1}")
 		@CsvSource({"e, e", "a:e, ns:a:e", "both:a:e, ns:both:ns:a:e",
 				"base:t:abs, ns:base:t:abs", "unknown:e, unknown:e"})
@@ -234,13 +260,27 @@ class ApplyOperatorTest {
 			// A two-stage composition under a namespace names its elements
 			// ns:both:ns:a:e: rewriting both:a:e as text gave ns:both:a:e,
 			// which names nothing (#178).
-			Unit unit = new Unit("src");
-			unit.add(new Justification("ns:a"));
-			unit.add(new Justification("ns:both"));
-			unit.add(new Template("ns:base:t"));
+			Justification a = withEvidence("ns:a", "e");
+			Template t = new Template("ns:base:t");
+			t.addElement(new AbstractSupport("abs", "Some support"));
+			Justification j = new Justification("ns:j");
+			j.inline(t, "ns:base:t");
+			List<JustificationModel> sources = List.of(a,
+					composed("ns:both", a), j);
 
-			assertThat(ApplyOperator.inUnit(id, "ns", unit))
+			assertThat(ApplyOperator.inUnit(id, "ns", sources))
 					.isEqualTo(expected);
+		}
+
+		@Test
+		void a_segment_names_a_model_only_when_the_rest_is_one_of_its_ids() {
+			// Under ns, b:ns:a:e is (b)(ns:a)(e): b:ns holds e, not a:e. The
+			// longest model name, b:ns, was read first (#202).
+			Justification b = composed("ns:b", withEvidence("ns:ns:a", "e"));
+			Justification bNs = withEvidence("ns:b:ns", "e");
+
+			assertThat(ApplyOperator.inUnit("b:ns:a:e", "ns", List.of(b, bNs)))
+					.isEqualTo("ns:b:ns:ns:a:e");
 		}
 	}
 }
