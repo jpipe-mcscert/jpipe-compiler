@@ -33,11 +33,12 @@ public interface Command {
 
 	/**
 	 * Whether this command may still run once nothing in the queue is ready,
-	 * every command waiting on another. The engine then runs, best effort, the
-	 * first one that may, so that one mistake does not hold back everything
-	 * waiting on it. By default, when its {@link #condition()} holds: what it
-	 * needs exists, complete or not. A command that must never act on an
-	 * incomplete model refuses.
+	 * every command waiting on another. The engine then runs, best effort, one
+	 * that may, so that one mistake does not hold back everything waiting on
+	 * it: the first that {@linkplain #reads() reads} no model another of them
+	 * may still change, or else the first. By default, when its
+	 * {@link #condition()} holds: what it needs exists, complete or not. A
+	 * command that must never act on an incomplete model refuses.
 	 */
 	default boolean runWhenStuck(Unit unit, PendingCommands pending) {
 		return condition().test(unit);

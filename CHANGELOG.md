@@ -79,10 +79,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   can no longer declare its own: that is now an `inherited-conclusion` error. It
   used to be accepted or rejected depending on whether the template was declared
   before or after the model (#177).
-- **Breaking:** a relation whose short id names several inherited elements, such
-  as `a` when both `root:a` and `mid:a` are inherited, is now an `ambiguous-id`
-  error asking for the qualified id. It used to bind to the first one found
-  (#177).
+- **Breaking:** a relation whose id is the end of several inherited ids, such as
+  `a` when both `root:a` and `mid:a` are inherited, or `t:a` for both `x:t:a`
+  and `y:t:a`, is now an `ambiguous-id` error asking for the full qualified id.
+  It used to bind to the first one found (#177).
 - **Breaking:** a template's `@support` that supports no strategy is now an error
   in that template (completeness rule `abstract-support-used`). It compiled, but
   no justification could override it, and the failure was only reported, without

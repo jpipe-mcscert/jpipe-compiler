@@ -360,6 +360,9 @@ final class ExecutionFailureDiagnostics {
 	/**
 	 * Whether {@code c} reports its cycle: a cycle is reported once, by the
 	 * {@code implements} of its first model in alphabetical order that has one.
+	 * Operator calls with several sources can tie cycles into one knot: the
+	 * knot's first model always reports one of them, and another may show only
+	 * once that one is broken.
 	 */
 	private static boolean reportsCycle(ImplementsTemplate c,
 			List<String> cycle, List<Command> stuck) {

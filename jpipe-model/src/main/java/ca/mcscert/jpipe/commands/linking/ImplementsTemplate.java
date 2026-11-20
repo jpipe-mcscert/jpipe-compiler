@@ -9,7 +9,6 @@ import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 import java.util.Optional;
-import java.util.Set;
 import ca.mcscert.jpipe.commands.PendingCommands;
 
 /**
@@ -99,11 +98,6 @@ public final class ImplementsTemplate extends RegularCommand {
 	@Override
 	public boolean runWhenStuck(Unit unit, PendingCommands pending) {
 		return false;
-	}
-
-	@Override
-	public Set<String> reads() {
-		return Set.of(templateName);
 	}
 
 	@Override
