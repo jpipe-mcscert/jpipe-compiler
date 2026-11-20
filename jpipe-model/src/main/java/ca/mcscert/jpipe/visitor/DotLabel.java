@@ -24,7 +24,7 @@ final class DotLabel {
 	 * backslashes and double-quotes escaped.
 	 */
 	static String quoted(String value) {
-		return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+		return Quoting.doubleQuoted(value);
 	}
 
 	/**
@@ -43,8 +43,7 @@ final class DotLabel {
 		List<String> lines = new ArrayList<>();
 		StringBuilder current = new StringBuilder();
 		for (String word : words) {
-			String escaped = word.replace("\\", "\\\\").replace("\"", "\\\"")
-					.replace("_", "\\_");
+			String escaped = Quoting.escaped(word).replace("_", "\\_");
 			if (!current.isEmpty()
 					&& current.length() + 1 + escaped.length() > WRAP_WIDTH) {
 				lines.add(current.toString());
@@ -65,7 +64,7 @@ final class DotLabel {
 	 * with {@code <<template>>} to distinguish them from concrete
 	 * justifications.
 	 */
-	static String display(JustificationModel<?> model) {
+	static String display(JustificationModel model) {
 		return model instanceof Template
 				? "<<template>> " + model.getName()
 				: model.getName();

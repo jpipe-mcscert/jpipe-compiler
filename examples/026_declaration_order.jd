@@ -1,0 +1,87 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// The meaning of a model does not depend on the order of its declarations: a
+// command waits until what it depends on is complete.
+
+// 1. The justification implementing 'ordered' is declared first, and the
+//    template uses its strategy before declaring it: the copy is still whole.
+justification user implements ordered {
+    evidence ordered:abs is "An evidence"
+}
+
+template ordered {
+    conclusion c is "A conclusion"
+    s supports c
+    strategy   s is "A strategy"
+    @support abs is "An abstract support"
+    abs supports s
+}
+
+// 2. A chain declared bottom-up: 'leaf' implements 'mid', which implements
+//    'root', declared last. 'leaf' gets the whole chain.
+justification leaf implements mid {
+    evidence mid:abs_m is "Evidence for mid"
+    evidence root:abs_l is "Evidence for root"
+}
+
+template mid implements root {
+    sub-conclusion root:abs_r is "A mid sub-conclusion"
+    strategy   s_m   is "A mid strategy"
+    @support   abs_m is "A mid abstract support"
+    s_m supports root:abs_r
+    abs_m supports s_m
+}
+
+template root {
+    conclusion c     is "A root conclusion"
+    strategy   s     is "A root strategy"
+    @support   abs_r is "A root abstract support, for mid"
+    @support   abs_l is "A root abstract support, for leaf"
+    s supports c
+    abs_r supports s
+    abs_l supports s
+}
+
+// 3. A relation written before the elements it names: 'local' is the
+//    justification's own evidence, declared after the relation, and the
+//    relation into the abstract support comes before its override.
+justification relations implements two_supports {
+    s2 supports two_supports:abs1
+    local supports s2
+    sub-conclusion two_supports:abs1 is "A sub-conclusion"
+    strategy s2 is "A local strategy"
+    evidence local is "A local evidence"
+    evidence two_supports:abs2 is "An inherited evidence"
+}
+
+template two_supports {
+    conclusion c    is "A conclusion"
+    strategy   s    is "A strategy"
+    @support   abs1 is "A first abstract support"
+    @support   abs2 is "A second abstract support"
+    s supports c
+    abs1 supports s
+    abs2 supports s
+}
+
+// 4. Composing 'relations', whose template is declared after it: its elements
+//    come in the same order as had the template been declared first, and so
+//    do the ids the composition gives the elements it unifies.
+justification counterpart {
+    conclusion c    is "A conclusion"
+    strategy   s    is "A strategy"
+    evidence   e1   is "A local evidence"
+    evidence   e2   is "An inherited evidence"
+    e1 supports s
+    e2 supports s
+    s supports c
+}
+
+justification both is assemble(relations, counterpart) {
+    conclusionLabel: "Both hold"
+    strategyLabel: "Check both"
+}

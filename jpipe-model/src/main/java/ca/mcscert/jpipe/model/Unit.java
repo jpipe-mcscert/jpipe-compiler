@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.model;
 
 import ca.mcscert.jpipe.model.elements.CommonElement;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
+import ca.mcscert.jpipe.util.Aliases;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.Collection;
 import java.util.Collections;
@@ -10,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Root of a compiled jPipe file. Contains all named justification models
@@ -18,9 +21,11 @@ import java.util.Optional;
 public final class Unit {
 
 	private final String source;
-	private final Map<String, JustificationModel<?>> models = new LinkedHashMap<>();
+	private final Map<String, JustificationModel> models = new LinkedHashMap<>();
 	private final Map<String, SourceLocation> locations = new LinkedHashMap<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
+	private final Set<String> incomplete = new LinkedHashSet<>();
+	private final Set<String> failedOverrides = new LinkedHashSet<>();
 
 	public Unit(String source) {
 		this.source = source;
@@ -30,7 +35,7 @@ public final class Unit {
 		return source;
 	}
 
-	public void add(JustificationModel<?> model) {
+	public void add(JustificationModel model) {
 		if (models.containsKey(model.getName())) {
 			throw new IllegalStateException(
 					"Duplicate model name: '" + model.getName() + "'");
@@ -38,16 +43,44 @@ public final class Unit {
 		models.put(model.getName(), model);
 	}
 
-	public Collection<JustificationModel<?>> getModels() {
+	/**
+	 * Records that {@code modelName} could not be built in full: its
+	 * {@code implements} failed or never ran. Nothing should consume it, and
+	 * its gaps are no separate mistakes: the cause is reported where it is.
+	 */
+	public void markIncomplete(String modelName) {
+		incomplete.add(modelName);
+	}
+
+	/** Whether {@code modelName} was built in full; see markIncomplete. */
+	public boolean isComplete(String modelName) {
+		return !incomplete.contains(modelName);
+	}
+
+	/**
+	 * Records that an override of {@code elementId} in {@code modelName}
+	 * failed. The placeholder it meant to replace is left in the model, and is
+	 * no second mistake: the failure is reported where it is.
+	 */
+	public void recordFailedOverride(String modelName, String elementId) {
+		failedOverrides.add(registryKey(modelName, elementId));
+	}
+
+	/** Whether an override of {@code elementId} in {@code modelName} failed. */
+	public boolean overrideFailed(String modelName, String elementId) {
+		return failedOverrides.contains(registryKey(modelName, elementId));
+	}
+
+	public Collection<JustificationModel> getModels() {
 		return Collections.unmodifiableCollection(models.values());
 	}
 
-	public Optional<JustificationModel<?>> findModel(String name) {
+	public Optional<JustificationModel> findModel(String name) {
 		return Optional.ofNullable(models.get(name));
 	}
 
 	@SuppressWarnings("java:S1452")
-	public JustificationModel<?> get(String name) {
+	public JustificationModel get(String name) {
 		return findModel(name).orElseThrow(
 				() -> new NoSuchElementException("Unknown model: " + name));
 	}
@@ -55,12 +88,14 @@ public final class Unit {
 	public void addInto(String modelName, JustificationElement element) {
 		switch (get(modelName)) {
 			case Justification j -> {
-				if (!(element instanceof CommonElement ce)) {
+				// A justification declares common elements only; placeholders
+				// reach it through template expansion, not through here.
+				if (!(element instanceof CommonElement)) {
 					throw new IllegalArgumentException("Justification '"
 							+ modelName + "' only accepts CommonElement; got "
 							+ element.getClass().getSimpleName());
 				}
-				j.addElement(ce);
+				j.addElement(element);
 			}
 			case Template t -> t.addElement(element);
 		}
@@ -112,7 +147,7 @@ public final class Unit {
 	public void recordLocation(String modelName, String elementId,
 			SourceLocation loc) {
 		if (loc.isKnown()) {
-			locations.put(modelName + "/" + elementId, loc);
+			locations.put(registryKey(modelName, elementId), loc);
 		}
 	}
 
@@ -121,7 +156,7 @@ public final class Unit {
 	 * {@link SourceLocation#UNKNOWN}.
 	 */
 	public SourceLocation locationOf(String modelName, String elementId) {
-		return locations.getOrDefault(modelName + "/" + elementId,
+		return locations.getOrDefault(registryKey(modelName, elementId),
 				SourceLocation.UNKNOWN);
 	}
 
@@ -130,7 +165,7 @@ public final class Unit {
 	 * {@code newId}.
 	 */
 	public void recordAlias(String modelName, String oldId, String newId) {
-		aliases.put(modelName + "/" + oldId, newId);
+		aliases.put(registryKey(modelName, oldId), newId);
 		findModel(modelName).ifPresent(m -> m.recordAlias(oldId, newId));
 	}
 
@@ -143,14 +178,22 @@ public final class Unit {
 	}
 
 	/**
-	 * Returns the id that {@code id} resolves to in {@code modelName}, or
-	 * {@code id} itself if no alias was registered.
+	 * Returns the id that {@code id} resolves to in {@code modelName}, followed
+	 * to the end of its alias chain, or {@code id} itself if no alias was
+	 * registered. See {@link JustificationModel#resolveAlias(String)}.
 	 */
 	public String resolveAlias(String modelName, String id) {
-		return aliases.getOrDefault(modelName + "/" + id, id);
+		return Aliases.follow(id, i -> aliases.get(registryKey(modelName, i)));
 	}
 
 	public <R> R accept(JustificationVisitor<R> visitor) {
 		return visitor.visit(this);
+	}
+
+	/**
+	 * Registry key of an element inside a model: {@code "modelName/elementId"}.
+	 */
+	public static String registryKey(String modelName, String elementId) {
+		return modelName + "/" + elementId;
 	}
 }

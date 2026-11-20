@@ -120,8 +120,8 @@ All element declarations share the form:
 <keyword> <id> is "<label>"
 ```
 
-where `<id>` is a [qualified id](#qualified-id) and `<label>` is a quoted
-string.
+where `<id>` is a [qualified id](#qualified-id) and `<label>` is a
+[string](#strings).
 
 ### `conclusion`
 
@@ -204,7 +204,7 @@ replaced by a parameter list and an optional configuration block.
 
 ```
 justification Refined is refine(Base, Detail) {
-    hook: "Base/targetElement"
+    hook: "targetElement"
 }
 ```
 
@@ -249,5 +249,29 @@ Whitespace and newlines are insignificant. Both comment styles are supported:
 | Token | Pattern |
 |-------|---------|
 | `ID` | `[A-Za-z_][A-Za-z0-9_]*` |
-| `STRING` | `"…"` or `'…'` — any characters except newline |
+| `STRING` | `"…"` — see [Strings](#strings) |
 | `INTEGER` | `[0-9]+` — reserved for future use |
+
+Any character outside these tokens, whitespace and comments, such as the `-`
+in `e-1`, is a syntax error reported where it sits. It is never dropped
+silently.
+
+### Strings
+
+Labels, `load` paths and operator parameters are strings, written between
+double quotes on a single line. A string ends at its first unescaped double
+quote, so several strings can share a line:
+
+```
+conclusion c is "The release is safe" strategy s is "Check the logs"
+evidence   e is "Logs say \"OK\"" // a "comment" is not part of the label
+```
+
+| Escape | Stands for |
+|--------|------------|
+| `\"` | a double quote |
+| `\\` | a backslash |
+
+Any other backslash is kept as written, so a path such as `"dir\file.jd"` needs
+no escaping; a string that ends with a backslash writes it `\\`. Single quotes
+do not delimit strings.

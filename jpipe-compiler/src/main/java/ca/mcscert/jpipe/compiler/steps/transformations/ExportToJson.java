@@ -8,12 +8,10 @@ import ca.mcscert.jpipe.visitor.JsonExporter;
 /**
  * Compilation step that serialises a {@link JustificationModel} to JSON text.
  */
-public class ExportToJson
-		extends
-			Transformation<JustificationModel<?>, String> {
+public class ExportToJson extends Transformation<JustificationModel, String> {
 
 	@Override
-	protected String run(JustificationModel<?> input, CompilationContext ctx) {
+	protected String run(JustificationModel input, CompilationContext ctx) {
 		return new JsonExporter().export(input);
 	}
 }

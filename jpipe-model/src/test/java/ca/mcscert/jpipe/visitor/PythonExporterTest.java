@@ -44,7 +44,8 @@ class PythonExporterTest {
 
 		assertThat(py).contains(
 				"""
-						# The runner concludes this claim from what supports it unless it is bound. Uncomment to check it.
+						# The runner concludes this claim from what supports it unless it is bound.
+						# Uncomment to check it.
 						# @conclusion("j:c", consumes=[])
 						# def the_system_is_correct() -> Outcome:
 						#     \"""[conclusion] The system is correct\"""
@@ -75,11 +76,11 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
-		assertThat(py).contains(
-				"""
-						# The runner passes this claim through unless it is bound. Uncomment to check it.
-						# @sub_conclusion("j:sc", consumes=[], produces=[])
-						""");
+		assertThat(py).contains("""
+				# The runner passes this claim through unless it is bound.
+				# Uncomment to check it.
+				# @sub_conclusion("j:sc", consumes=[], produces=[])
+				""");
 	}
 
 	@Test
@@ -177,7 +178,7 @@ class PythonExporterTest {
 		PythonExporter exporter = new PythonExporter();
 
 		assertThatThrownBy(() -> exporter.export(j))
-				.isInstanceOf(IllegalStateException.class)
+				.isInstanceOf(AmbiguousIdentifierException.class)
 				.hasMessageContainingAll("\"j:e1\"", "testing", "test_results",
 						"unique-identifiers");
 	}
@@ -286,14 +287,21 @@ class PythonExporterTest {
 		String py = new PythonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(py)
-				.startsWith(
-						"""
-								from jpipe_runner import Fail, Outcome, Pass, conclusion, evidence, strategy
+		assertThat(py).startsWith("""
+				from pathlib import Path
 
-								""")
-				.doesNotContain("sub_conclusion", "jpipe_runner.framework",
-						"JpipeProduce", "typing");
+				from jpipe_runner import conclusion, evidence, strategy
+				from jpipe_runner import Fail, Outcome, Pass
+
+				""").doesNotContain("sub_conclusion", "jpipe_runner.framework",
+				"JpipeProduce", "typing");
+	}
+
+	@Test
+	void export_preambleImportsPathForATemplatesAbstractSupport() {
+		String py = new PythonExporter().export(ModelFixtures.simpleTemplate());
+
+		assertThat(py).startsWith("from pathlib import Path\n\n");
 	}
 
 	@Test
@@ -310,9 +318,145 @@ class PythonExporterTest {
 
 		String py = new PythonExporter().export(j);
 
+		assertThat(py).startsWith("""
+				from jpipe_runner import conclusion, strategy, sub_conclusion
+				from jpipe_runner import Fail, Outcome, Pass
+
+				""").doesNotContain("pathlib");
+	}
+
+	@Test
+	void export_longDecorator_putsItsArgumentsOnALineOfTheirOwn() {
+		Justification j = ModelFixtures.simpleJustification();
+		j.recordAlias("first_source_model:s1", "s");
+		j.recordAlias("second_source_model:s2", "s");
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py).contains(
+				"""
+						@strategy(
+						    "first_source_model:s1", "second_source_model:s2", consumes=[], produces=[]
+						)
+						def testing(\
+						""");
+	}
+
+	@Test
+	void export_veryLongDecorator_putsOneArgumentALine() {
+		Justification j = ModelFixtures.simpleJustification();
+		j.recordAlias("a_first_and_rather_long_source_model:s1", "s");
+		j.recordAlias("a_second_and_rather_long_source_model:s2", "s");
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py).contains("""
+				@strategy(
+				    "a_first_and_rather_long_source_model:s1",
+				    "a_second_and_rather_long_source_model:s2",
+				    consumes=[],
+				    produces=[],
+				)
+				def testing(\
+				""");
+	}
+
+	@Test
+	void export_longLabel_wrapsTheDocstringBetweenWords() {
+		Justification j = new Justification("j");
+		j.setConclusion(new Conclusion("c", "Overall"));
+		j.addElement(new Evidence("e", "The nightly regression suite passes"
+				+ " on every supported platform and configuration"));
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py).contains(
+				"""
+						    \"""[evidence] The nightly regression suite passes on every supported
+						    platform and configuration
+						    \"""
+						""");
+	}
+
+	@Test
+	void export_wrappedLabel_keepsTheSpacingWithinALine() {
+		Justification j = new Justification("j");
+		j.setConclusion(new Conclusion("c", "Overall"));
+		j.addElement(new Evidence("e", "The nightly  regression suite passes"
+				+ " on every supported platform and configuration"));
+
+		String py = new PythonExporter().export(j);
+
+		assertThat(py).contains(
+				"""
+						    \"""[evidence] The nightly  regression suite passes on every supported
+						    platform and configuration
+						    \"""
+						""");
+	}
+
+	@Test
+	void export_modelWithNoElement_importsOnlyTheOutcomes() {
+		String py = new PythonExporter().export(new Justification("j"));
+
 		assertThat(py)
-				.startsWith("from jpipe_runner import Fail, Outcome, Pass,"
-						+ " conclusion, strategy, sub_conclusion\n");
+				.startsWith("from jpipe_runner import Fail, Outcome, Pass\n")
+				.doesNotContain("import \n", "pathlib");
+	}
+
+	@Test
+	void export_longRaise_putsItsMessageOnLinesOfItsOwn() {
+		Template t = new Template("a_template_with_a_long_name");
+		Conclusion c = new Conclusion("c", "Conclusion");
+		Strategy s = new Strategy("s", "Strategy");
+		AbstractSupport abs = new AbstractSupport("abs", "Abstract step");
+		t.setConclusion(c);
+		t.addElement(s);
+		t.addElement(abs);
+		s.addSupport(abs);
+		c.addSupport(s);
+
+		String py = new PythonExporter().export(t);
+
+		assertThat(py).contains("""
+				    raise NotImplementedError(
+				        "a_template_with_a_long_name:s is not implemented yet"
+				    )
+				""",
+				"""
+						    raise NotImplementedError(
+						        "a_template_with_a_long_name:abs is abstract and must be overridden"
+						        " before execution"
+						    )
+						""");
+	}
+
+	@Test
+	void export_everyLineFitsTheWidth_commentedOutStepsIncluded() {
+		Justification j = new Justification("a_justification_with_a_long_name");
+		// The longest label whose function still fits on its line: a name
+		// has nowhere to break.
+		Conclusion c = new Conclusion("c", "The system as a whole is correct"
+				+ " under each condition found");
+		Strategy s = new Strategy("s", "By parts");
+		SubConclusion sc = new SubConclusion("sc", "Part holds");
+		Evidence e = new Evidence("e", "Proof");
+		j.setConclusion(c);
+		j.addElement(s);
+		j.addElement(sc);
+		j.addElement(e);
+		s.addSupport(e);
+		sc.addSupport(s);
+		c.addSupport(s);
+		j.recordAlias("a_first_and_rather_long_source_model:sc1", "sc");
+		j.recordAlias("a_second_and_rather_long_source_model:sc2", "sc");
+		j.recordAlias("a_first_and_rather_long_source_model:c1", "c");
+		j.recordAlias("a_second_and_rather_long_source_model:c2", "c");
+
+		String py = new PythonExporter().export(j, "examples/simple.jd");
+
+		assertThat(py.lines()).isNotEmpty().allSatisfy(line -> assertThat(line)
+				.hasSizeLessThanOrEqualTo(PythonExporter.LINE_WIDTH));
 	}
 
 	@Test
@@ -330,10 +474,23 @@ class PythonExporterTest {
 				ModelFixtures.simpleJustification(), "examples/simple.jd");
 
 		assertThat(py).contains("# Generated by jPipe",
-				"# Source : examples/simple.jd", "# Date   :",
-				"# Step library for jpipe-runner 4: "
+				"# Source : examples/simple.jd",
+				"# Step library for jpipe-runner 4:\n# "
 						+ PythonExporter.AUTHORING_GUIDE + "\n\n"
+						+ "from pathlib import Path\n\n"
 						+ "from jpipe_runner import ");
+	}
+
+	@Test
+	void export_withSourcePath_isReproducible() {
+		// No timestamp: regenerating a committed step library must not
+		// change it (#187).
+		String first = new PythonExporter().export(
+				ModelFixtures.simpleJustification(), "examples/simple.jd");
+		String second = new PythonExporter().export(
+				ModelFixtures.simpleJustification(), "examples/simple.jd");
+
+		assertThat(first).isEqualTo(second).doesNotContain("# Date");
 	}
 
 	@Test
@@ -359,8 +516,12 @@ class PythonExporterTest {
 		String py = new PythonExporter().export(t);
 
 		assertThat(py)
-				.contains("raise NotImplementedError(\"t:abs is abstract"
-						+ " and must be overridden before execution\")")
+				.contains(
+						"""
+								    raise NotImplementedError(
+								        "t:abs is abstract and must be overridden before execution"
+								    )
+								""")
 				.doesNotContain("t:abs is not implemented yet");
 	}
 
@@ -485,7 +646,7 @@ class PythonExporterTest {
 		PythonExporter exporter = new PythonExporter();
 
 		assertThatThrownBy(() -> exporter.export(j))
-				.isInstanceOf(IllegalStateException.class)
+				.isInstanceOf(AmbiguousIdentifierException.class)
 				.hasMessageContainingAll("\"j:dup\"", "no-duplicate-ids");
 	}
 }

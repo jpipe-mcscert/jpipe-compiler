@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.model;
 
 import ca.mcscert.jpipe.commands.ExecutedAction;
+import ca.mcscert.jpipe.model.SourceLocation;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -91,6 +92,27 @@ public final class CompilationContext {
 		report(Diagnostic.error(code, sourcePath, line, column, message));
 	}
 
+	/**
+	 * Convenience: append a coded non-fatal ERROR diagnostic, located at
+	 * {@code location} when that location is known. The diagnostic names the
+	 * file the location is in, which is not the file being compiled when the
+	 * element comes from a {@code load}-ed one (#173).
+	 *
+	 * @param code
+	 *            stable kebab-case identifier, see {@link DiagnosticCodes}.
+	 * @param location
+	 *            where the error was found, or {@link SourceLocation#UNKNOWN}.
+	 * @param message
+	 *            human-readable description, without the code.
+	 */
+	public void error(String code, SourceLocation location, String message) {
+		String source = sourceOf(location);
+		report(location.isKnown()
+				? Diagnostic.error(code, source, location.line(),
+						location.column(), message)
+				: Diagnostic.error(code, source, message));
+	}
+
 	/** Convenience: append a FATAL diagnostic. */
 	public void fatal(String message) {
 		report(Diagnostic.fatal(sourcePath, message));
@@ -99,6 +121,23 @@ public final class CompilationContext {
 	/** Convenience: append a FATAL diagnostic with source location. */
 	public void fatal(int line, int column, String message) {
 		report(Diagnostic.fatal(sourcePath, line, column, message));
+	}
+
+	/**
+	 * Convenience: append a FATAL diagnostic located at {@code location} when
+	 * it is known, in the file that location is in.
+	 */
+	public void fatal(SourceLocation location, String message) {
+		String source = sourceOf(location);
+		report(location.isKnown()
+				? Diagnostic.fatal(source, location.line(), location.column(),
+						message)
+				: Diagnostic.fatal(source, message));
+	}
+
+	/** The file {@code location} is in: its own, or the one being compiled. */
+	private String sourceOf(SourceLocation location) {
+		return location.source() != null ? location.source() : sourcePath;
 	}
 
 	/** True if any ERROR or FATAL diagnostic has been reported. */

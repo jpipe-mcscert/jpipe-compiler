@@ -1,5 +1,7 @@
 package ca.mcscert.jpipe.operators;
 
+import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.MarkUnified;
@@ -14,6 +16,8 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import java.util.HashSet;
+import java.util.TreeSet;
 
 /**
  * Base class for all composition operators. Owns the partition + two-phase
@@ -39,6 +43,58 @@ public abstract class CompositionOperator {
 	private final Logger logger = LogManager.getLogger(getClass());
 
 	/**
+	 * Declares which argument keys this operator accepts without requiring
+	 * them. Any key that is neither required, optional, nor one of the
+	 * unification keys ({@code unifyBy}, {@code unifyExclude}) is refused, so
+	 * that a misspelt key is an error instead of being ignored (#184). Default:
+	 * none.
+	 */
+	protected Set<String> optionalArguments() {
+		return Set.of();
+	}
+
+	/** Refuses the keys no part of the call reads: see optionalArguments. */
+	private void requireKnownArguments(Map<String, String> args) {
+		Set<String> accepted = new TreeSet<>(requiredArguments());
+		accepted.addAll(optionalArguments());
+		accepted.add(Unifier.UNIFY_BY_KEY);
+		accepted.add(Unifier.UNIFY_EXCLUDE_KEY);
+		List<String> unknown = args.keySet().stream()
+				.filter(key -> !accepted.contains(key)).sorted().toList();
+		if (!unknown.isEmpty()) {
+			throw new InvalidOperatorCallException("unknown argument(s) "
+					+ unknown + "; accepted: " + accepted);
+		}
+	}
+
+	/**
+	 * Refuses the same model given twice: composing a model with itself either
+	 * merges every element with its copy or fails on an unrelated unification
+	 * error (#181).
+	 */
+	private static void requireDistinctSources(
+			List<JustificationModel> sources) {
+		Set<String> seen = new HashSet<>();
+		for (JustificationModel source : sources) {
+			if (!seen.add(source.getName())) {
+				throw new InvalidOperatorCallException("the model '"
+						+ source.getName() + "' is given more than once");
+			}
+		}
+	}
+
+	/**
+	 * Declares which argument keys hold the id of an element of a source,
+	 * written as that source names it, such as {@code refine}'s {@code hook}. A
+	 * call read from a file loaded under a namespace renames the qualified ids
+	 * they hold, as it renames its source models, and so does the JPIPE export
+	 * of the result. Default: none.
+	 */
+	public Set<String> elementArguments() {
+		return Set.of();
+	}
+
+	/**
 	 * Declares which argument keys this operator requires. The framework
 	 * validates their presence at the start of {@link #apply} and throws
 	 * {@link InvalidOperatorCallException} listing any missing keys. Default:
@@ -46,20 +102,6 @@ public abstract class CompositionOperator {
 	 */
 	protected Set<String> requiredArguments() {
 		return Set.of();
-	}
-
-	/**
-	 * Returns the {@link ModelKind} of the model produced by this operator for
-	 * the given {@code sources} and {@code args}. Defaults to
-	 * {@link ModelKind#JUSTIFICATION}. Override in subclasses whose result kind
-	 * depends on the input models (e.g. an operator that produces a
-	 * {@code Template} when any source is a {@code Template}).
-	 */
-	@SuppressWarnings("java:S1172") // params unused in default but required by
-									// overrides
-	public ModelKind resultKind(List<JustificationModel<?>> sources,
-			Map<String, String> args) {
-		return ModelKind.JUSTIFICATION;
 	}
 
 	/**
@@ -72,7 +114,7 @@ public abstract class CompositionOperator {
 	 *            element ids that were renamed by a prior composition step.
 	 */
 	protected abstract EquivalenceRelation equivalenceRelation(
-			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			List<JustificationModel> sources, Map<String, String> arguments,
 			Map<String, String> knownAliases);
 
 	/**
@@ -80,11 +122,14 @@ public abstract class CompositionOperator {
 	 * {@code sources} and {@code arguments}.
 	 */
 	protected abstract MergeFunction mergeFunction(
-			List<JustificationModel<?>> sources, Map<String, String> arguments);
+			List<JustificationModel> sources, Map<String, String> arguments);
 
 	/**
 	 * Returns the command that creates the result model (typically
-	 * {@code CreateJustification} or {@code CreateTemplate}).
+	 * {@code CreateJustification} or {@code CreateTemplate}), once the commands
+	 * creating its elements are known, so that an operator whose result kind
+	 * depends on what it produced (as {@code refine}'s does on whether a
+	 * {@code @support} remains) can tell.
 	 *
 	 * @param location
 	 *            the source location of the operator call; forwarded to the
@@ -94,10 +139,12 @@ public abstract class CompositionOperator {
 	 *            the source models being composed; provided so operators can
 	 *            choose the result model type (e.g. {@code Template} vs
 	 *            {@code Justification}) based on the source types.
+	 * @param elements
+	 *            the commands creating the result's elements, in Phase 1.
 	 */
 	protected abstract Command createResultModel(String name,
-			SourceLocation location, List<JustificationModel<?>> sources,
-			Map<String, String> arguments);
+			SourceLocation location, List<JustificationModel> sources,
+			Map<String, String> arguments, List<Command> elements);
 
 	/**
 	 * Returns additional commands to append after Phase 2 edge reconstruction.
@@ -107,7 +154,7 @@ public abstract class CompositionOperator {
 	@SuppressWarnings("java:S1172") // params unused in default but required by
 									// overrides
 	protected List<Command> additionalCommands(String resultName,
-			List<JustificationModel<?>> sources, AliasRegistry aliases,
+			List<JustificationModel> sources, AliasRegistry aliases,
 			Map<String, String> args) {
 		return List.of();
 	}
@@ -122,11 +169,12 @@ public abstract class CompositionOperator {
 	 *
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
-			List<JustificationModel<?>> sources,
-			Map<String, String> arguments) {
+			List<JustificationModel> sources, Map<String, String> arguments) {
 		return apply(resultName, sources, arguments, SourceLocation.UNKNOWN);
 	}
 
@@ -140,10 +188,12 @@ public abstract class CompositionOperator {
 	 *            in the symbol table.
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
-			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			List<JustificationModel> sources, Map<String, String> arguments,
 			SourceLocation location) {
 		return apply(resultName, sources, arguments, location, Map.of(),
 				Map.of());
@@ -163,10 +213,12 @@ public abstract class CompositionOperator {
 	 *            element's original location to its copy in the result model.
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
-			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			List<JustificationModel> sources, Map<String, String> arguments,
 			SourceLocation location,
 			Map<String, SourceLocation> knownLocations) {
 		return apply(resultName, sources, arguments, location, knownLocations,
@@ -192,10 +244,12 @@ public abstract class CompositionOperator {
 	 *            step (e.g. unification after {@code assemble}).
 	 * @throws InvalidOperatorCallException
 	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}
+	 *             from {@code arguments}, if a key is neither required,
+	 *             optional ({@link #optionalArguments()}) nor a unification
+	 *             key, or if a source model is given more than once
 	 */
 	public final List<Command> apply(String resultName,
-			List<JustificationModel<?>> sources, Map<String, String> arguments,
+			List<JustificationModel> sources, Map<String, String> arguments,
 			SourceLocation location, Map<String, SourceLocation> knownLocations,
 			Map<String, String> knownAliases) {
 
@@ -206,28 +260,25 @@ public abstract class CompositionOperator {
 				.filter(key -> !args.containsKey(key)).sorted().toList();
 		if (!missing.isEmpty()) {
 			throw new InvalidOperatorCallException(
-					getClass().getSimpleName() + " requires argument(s) "
-							+ missing + " but they were not provided");
+					"missing required argument(s) " + missing);
 		}
+		requireKnownArguments(args);
+		requireDistinctSources(sources);
 
 		// Collect all sourced elements from every source model, attaching each
 		// element's original location from knownLocations when available.
 		List<SourcedElement> all = new ArrayList<>();
-		for (JustificationModel<?> source : sources) {
-			source.conclusion()
-					.ifPresent(c -> all.add(new SourcedElement(c, source,
-							knownLocations.getOrDefault(
-									source.getName() + "/" + c.id(),
-									SourceLocation.UNKNOWN))));
-			source.getElements()
-					.forEach(e -> all.add(new SourcedElement(e, source,
-							knownLocations.getOrDefault(
-									source.getName() + "/" + e.id(),
-									SourceLocation.UNKNOWN))));
+		for (JustificationModel source : sources) {
+			for (JustificationElement e : source.allElements()) {
+				all.add(new SourcedElement(e, source,
+						knownLocations.getOrDefault(
+								Unit.registryKey(source.getName(), e.id()),
+								SourceLocation.UNKNOWN)));
+			}
 		}
 
 		// Partition into equivalence classes
-		List<ElementGroup> groups = partition(all,
+		List<ElementGroup> groups = Partitions.partition(all,
 				equivalenceRelation(sources, args, knownAliases));
 		logger.debug("{} element(s) partitioned into {} group(s)", all.size(),
 				groups.size());
@@ -235,13 +286,16 @@ public abstract class CompositionOperator {
 		// Phase 1: element creation — merge function populates alias registry
 		AliasRegistry aliases = new AliasRegistry();
 		List<Command> commands = new ArrayList<>();
-		commands.add(createResultModel(resultName, location, sources, args));
 		MergeFunction merge = mergeFunction(sources, args);
+		List<Command> elements = new ArrayList<>();
 		for (ElementGroup group : groups) {
 			logger.debug("Merging group of {} member(s)",
 					group.members().size());
-			commands.addAll(merge.merge(resultName, group, aliases));
+			elements.addAll(merge.merge(resultName, group, aliases));
 		}
+		commands.add(createResultModel(resultName, location, sources, args,
+				elements));
+		commands.addAll(elements);
 
 		// Carry forward transitive aliases from source models.
 		// For each prior alias "sourceName/oldId → intermId" (recorded in a
@@ -249,15 +303,17 @@ public abstract class CompositionOperator {
 		// current local registry to find the final id in this result, then
 		// register "sourceName:oldId → finalId" so callers can still reach
 		// the element under its pre-composition name.
-		for (JustificationModel<?> source : sources) {
+		for (JustificationModel source : sources) {
 			String prefix = source.getName() + "/";
 			for (Map.Entry<String, String> entry : knownAliases.entrySet()) {
 				if (!entry.getKey().startsWith(prefix)) {
 					continue;
 				}
 				String oldId = entry.getKey().substring(prefix.length());
-				String qualOldId = qualId(source, oldId);
-				String qualIntermId = qualId(source, entry.getValue());
+				String qualOldId = QualifiedIds.qualify(source.getName(),
+						oldId);
+				String qualIntermId = QualifiedIds.qualify(source.getName(),
+						entry.getValue());
 				String finalId = aliases.resolve(qualIntermId);
 				if (!qualOldId.equals(finalId)) {
 					aliases.register(finalId, qualOldId);
@@ -273,22 +329,10 @@ public abstract class CompositionOperator {
 
 		// Phase 2: link reconstruction
 		Set<String> seenEdges = new LinkedHashSet<>();
-		for (JustificationModel<?> source : sources) {
-			source.conclusion()
-					.ifPresent(c -> c.getSupport()
-							.ifPresent(s -> addEdge(commands, seenEdges,
-									resultName, aliases, source, c.id(),
-									s.id())));
-			source.subConclusions()
-					.forEach(sc -> sc.getSupport()
-							.ifPresent(s -> addEdge(commands, seenEdges,
-									resultName, aliases, source, sc.id(),
-									s.id())));
-			source.strategies().forEach(s -> s.getSupports().forEach(leaf -> {
-				String leafId = ((JustificationElement) leaf).id();
-				addEdge(commands, seenEdges, resultName, aliases, source,
-						s.id(), leafId);
-			}));
+		for (JustificationModel source : sources) {
+			source.forEachSupportEdge(
+					(supported, supporter) -> addEdge(commands, seenEdges,
+							resultName, aliases, source, supported, supporter));
 		}
 
 		// Phase 3: operator-specific synthesized elements and edges
@@ -301,11 +345,12 @@ public abstract class CompositionOperator {
 	// ───────────────────────────────────────────────────────────────
 
 	private static void addEdge(List<Command> commands, Set<String> seen,
-			String resultName, AliasRegistry aliases,
-			JustificationModel<?> source, String supportableId,
-			String supporterId) {
-		String newSupportable = aliases.resolve(qualId(source, supportableId));
-		String newSupporter = aliases.resolve(qualId(source, supporterId));
+			String resultName, AliasRegistry aliases, JustificationModel source,
+			String supportableId, String supporterId) {
+		String newSupportable = aliases
+				.resolve(QualifiedIds.qualify(source.getName(), supportableId));
+		String newSupporter = aliases
+				.resolve(QualifiedIds.qualify(source.getName(), supporterId));
 		String key = newSupportable + "->" + newSupporter;
 		if (seen.add(key)) {
 			commands.add(
@@ -320,21 +365,11 @@ public abstract class CompositionOperator {
 	 * an element or lives on only as an alias of a further merge.
 	 */
 	private static List<Command> carryForwardUnifiedIds(String resultName,
-			List<JustificationModel<?>> sources) {
-		return sources.stream()
-				.flatMap(
-						source -> source.unifiedIds().stream()
-								.map(unified -> (Command) new MarkUnified(
-										resultName, qualId(source, unified))))
+			List<JustificationModel> sources) {
+		return sources.stream().flatMap(source -> source.unifiedIds().stream()
+				.map(unified -> (Command) new MarkUnified(resultName,
+						QualifiedIds.qualify(source.getName(), unified))))
 				.toList();
 	}
 
-	private static String qualId(JustificationModel<?> source, String id) {
-		return source.getName() + ":" + id;
-	}
-
-	private static List<ElementGroup> partition(List<SourcedElement> elements,
-			EquivalenceRelation rel) {
-		return Partitions.partition(elements, rel);
-	}
 }

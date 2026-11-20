@@ -1,0 +1,110 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// 1. Refining a template that keeps a @support gives a template: 'abs1' is
+//    refined, 'abs2' is left for the justification implementing the result.
+template pattern {
+    conclusion c    is "The system is ready"
+    strategy   s    is "Check every part"
+    @support   abs1 is "The first part is ready"
+    @support   abs2 is "The second part is ready"
+    s    supports c
+    abs1 supports s
+    abs2 supports s
+}
+
+justification first_part {
+    conclusion c is "The first part is ready"
+    strategy   s is "Run its tests"
+    evidence   e is "Test report"
+    s supports c
+    e supports s
+}
+
+template refined_pattern is refine(pattern, first_part) {
+    hook: "abs1"
+}
+
+justification ready implements refined_pattern {
+    evidence pattern:abs2 is "Second part checklist"
+}
+
+// 2. A hook reached through two composition steps: 'a:e' is renamed by the
+//    unification of 'both', then again by that of 'all'.
+justification a {
+    conclusion c is "A holds"
+    strategy   s is "Check A"
+    evidence   e is "Shared evidence"
+    s supports c
+    e supports s
+}
+
+justification b {
+    conclusion c is "B holds"
+    strategy   s is "Check B"
+    evidence   e is "Shared evidence"
+    s supports c
+    e supports s
+}
+
+justification d {
+    conclusion c is "D holds"
+    strategy   s is "Check D"
+    evidence   e is "Shared evidence"
+    s supports c
+    e supports s
+}
+
+justification both is assemble(a, b) {
+    conclusionLabel: "A and B hold"
+    strategyLabel:   "Check both"
+}
+
+justification all is assemble(both, d) {
+    conclusionLabel: "A, B and D hold"
+    strategyLabel:   "Check all"
+}
+
+justification detailed is refine(all, first_part) {
+    hook: "both:a:e"
+}
+
+// 3. An exclusion across two stages: 'x' of 'p' and 'x' of 'r' share a label,
+//    but 'p:x', reached through 'pq', is kept apart from 'r:x'.
+justification p {
+    conclusion c is "P holds"
+    strategy   s is "Check P"
+    evidence   x is "Common evidence"
+    s supports c
+    x supports s
+}
+
+justification q {
+    conclusion c is "Q holds"
+    strategy   s is "Check Q"
+    evidence   y is "Evidence for Q"
+    s supports c
+    y supports s
+}
+
+justification r {
+    conclusion c is "R holds"
+    strategy   s is "Check R"
+    evidence   x is "Common evidence"
+    s supports c
+    x supports s
+}
+
+justification pq is assemble(p, q) {
+    conclusionLabel: "P and Q hold"
+    strategyLabel:   "Check P and Q"
+}
+
+justification pqr is assemble(pq, r) {
+    conclusionLabel: "P, Q and R hold"
+    strategyLabel:   "Check P, Q and R"
+    unifyExclude:    "pq:p:x"
+}

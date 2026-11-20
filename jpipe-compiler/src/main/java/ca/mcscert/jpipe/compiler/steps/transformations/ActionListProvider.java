@@ -24,12 +24,13 @@ import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
@@ -76,7 +77,25 @@ public final class ActionListProvider
 		private final CompilationContext compilationCtx;
 		private final OperatorRegistry operators;
 		private final UnificationEquivalenceRegistry unificationEquivalences;
-		private final Set<String> seenConclusionModels = new HashSet<>();
+		/**
+		 * Whether the model declaration being read already declared a
+		 * conclusion. Tracked per declaration, not per name: two models that
+		 * share a name are a duplicate-model error, not a model with two
+		 * conclusions (#183).
+		 */
+		private boolean conclusionDeclared;
+
+		/**
+		 * The conclusions the declaration being read declared although it
+		 * inherits one, and which were therefore dropped. The relations of the
+		 * declaration that use them are dropped too, once its body has been
+		 * read, wherever they are written: reporting them as unknown elements
+		 * would only repeat the inherited-conclusion error (#177).
+		 */
+		private final Set<String> rejectedConclusions = new HashSet<>();
+
+		/** Where the commands of the declaration being read start. */
+		private int declarationStart;
 
 		public ActionBuilder(String name, CompilationContext compilationCtx,
 				OperatorRegistry operators,
@@ -94,27 +113,31 @@ public final class ActionListProvider
 
 		@Override
 		public void enterEveryRule(ParserRuleContext ctx) {
-			String rule = JPipeParser.ruleNames[ctx.getRuleIndex()];
-			int line = ctx.start.getLine();
-			int col = ctx.start.getCharPositionInLine();
-			String model = buildContext.justificationId();
-			if (model != null) {
-				logger.debug("enter: {} @ {}:{} [{}]", rule, line, col, model);
-			} else {
-				logger.debug("enter: {} @ {}:{}", rule, line, col);
-			}
+			logRule("enter:", ctx);
 		}
 
 		@Override
 		public void exitEveryRule(ParserRuleContext ctx) {
+			logRule("exit: ", ctx);
+		}
+
+		/**
+		 * Traces one parse-tree node. Called on every enter and exit, so it
+		 * returns before computing anything when DEBUG is off.
+		 */
+		private void logRule(String event, ParserRuleContext ctx) {
+			if (!logger.isDebugEnabled()) {
+				return;
+			}
 			String rule = JPipeParser.ruleNames[ctx.getRuleIndex()];
 			int line = ctx.start.getLine();
 			int col = ctx.start.getCharPositionInLine();
 			String model = buildContext.justificationId();
 			if (model != null) {
-				logger.debug("exit:  {} @ {}:{} [{}]", rule, line, col, model);
+				logger.debug("{} {} @ {}:{} [{}]", event, rule, line, col,
+						model);
 			} else {
-				logger.debug("exit:  {} @ {}:{}", rule, line, col);
+				logger.debug("{} {} @ {}:{}", event, rule, line, col);
 			}
 		}
 
@@ -126,11 +149,12 @@ public final class ActionListProvider
 		@Override
 		public void enterLoad(JPipeParser.LoadContext ctx) {
 			String raw = ctx.path.getText();
-			String path = strip(raw);
+			String path = StringLiteral.value(raw);
 			String namespace = ctx.namespace != null
 					? ctx.namespace.getText()
 					: null;
-			result.add(new LoadResolver.LoadDirective(path, namespace));
+			result.add(new LoadResolver.LoadDirective(path, namespace,
+					locationOf(ctx.getStart())));
 		}
 
 		/*
@@ -141,82 +165,91 @@ public final class ActionListProvider
 
 		@Override
 		public void enterJustification(JPipeParser.JustificationContext ctx) {
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.id.getLine(), ctx.id.getCharPositionInLine());
-			if (ctx.operator != null) {
-				List<String> sources = ctx.params_decl() != null
-						? ctx.params_decl().id.stream().map(t -> t.getText())
-								.toList()
-						: List.of();
-				var callConfig = new OperatorCallConfig(ctx.id.getText(),
-						ctx.operator.getText(), sources,
-						collectConfig(ctx.rule_config()), loc,
-						ModelKind.JUSTIFICATION);
-				result.add(new ApplyOperator(callConfig, operators,
-						unificationEquivalences));
+			enterModel(ctx.id, ctx.parent, ctx.operator, ctx.params_decl(),
+					ctx.rule_config(), ModelKind.JUSTIFICATION);
+		}
+
+		/**
+		 * Drops the relations of the declaration just read that use a rejected
+		 * conclusion: see rejectedConclusions.
+		 */
+		private void dropRelationsToRejectedConclusions() {
+			if (rejectedConclusions.isEmpty()) {
 				return;
 			}
-			String parentName = ctx.parent != null
-					? ctx.parent.getText()
-					: null;
-			this.buildContext = buildContext
-					.updateCurrentJustification(ctx.id.getText(), parentName);
-			result.add(new CreateJustification(ctx.id.getText(), loc));
-			// ImplementsTemplate must be enqueued before body commands so that
-			// inherited elements exist when override commands run.
-			if (ctx.parent != null) {
-				SourceLocation parentLoc = new SourceLocation(
-						buildContext.unitFileName,
-						ctx.parent.getStart().getLine(),
-						ctx.parent.getStart().getCharPositionInLine());
-				result.add(new ImplementsTemplate(ctx.id.getText(),
-						ctx.parent.getText(), parentLoc));
-			}
+			result.subList(declarationStart, result.size()).removeIf(
+					cmd -> cmd instanceof AddSupport a && (rejectedConclusions
+							.contains(a.supportableId())
+							|| rejectedConclusions.contains(a.supporterId())));
 		}
 
 		@Override
 		public void exitJustification(JPipeParser.JustificationContext ctx) {
+			dropRelationsToRejectedConclusions();
 			this.buildContext = buildContext.updateCurrentJustification(null,
 					null);
 		}
 
 		@Override
 		public void enterTemplate(JPipeParser.TemplateContext ctx) {
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.id.getLine(), ctx.id.getCharPositionInLine());
-			if (ctx.operator != null) {
-				List<String> sources = ctx.params_decl() != null
-						? ctx.params_decl().id.stream().map(t -> t.getText())
+			enterModel(ctx.id, ctx.parent, ctx.operator, ctx.params_decl(),
+					ctx.rule_config(), ModelKind.TEMPLATE);
+		}
+
+		/**
+		 * Shared by justification and template declarations, which the grammar
+		 * shapes alike: a model is either the result of an operator call, or
+		 * declared with a body, optionally implementing a template.
+		 */
+		private void enterModel(Token id,
+				JPipeParser.Qualified_idContext parent,
+				JPipeParser.Qualified_idContext operator,
+				JPipeParser.Params_declContext params,
+				JPipeParser.Rule_configContext config, ModelKind kind) {
+			String name = id.getText();
+			SourceLocation loc = locationOf(id);
+			if (operator != null) {
+				if (parent != null) {
+					// The grammar allows it, but nothing would apply it: the
+					// result's structure is the operator's (#184).
+					compilationCtx.error(DiagnosticCodes.INVALID_OPERATOR_CALL,
+							locationOf(parent.getStart()),
+							"'" + name + "' is built by '" + operator.getText()
+									+ "': it cannot also implement '"
+									+ parent.getText() + "'");
+				}
+				List<String> sources = params != null
+						? params.id.stream().map(ParserRuleContext::getText)
 								.toList()
 						: List.of();
-				var callConfig = new OperatorCallConfig(ctx.id.getText(),
-						ctx.operator.getText(), sources,
-						collectConfig(ctx.rule_config()), loc,
-						ModelKind.TEMPLATE);
+				var callConfig = new OperatorCallConfig(name,
+						operator.getText(), sources, collectConfig(config), loc,
+						kind);
 				result.add(new ApplyOperator(callConfig, operators,
 						unificationEquivalences));
 				return;
 			}
-			String parentName = ctx.parent != null
-					? ctx.parent.getText()
-					: null;
-			this.buildContext = buildContext
-					.updateCurrentJustification(ctx.id.getText(), parentName);
-			result.add(new CreateTemplate(ctx.id.getText(), loc));
+			String parentName = parent != null ? parent.getText() : null;
+			this.buildContext = buildContext.updateCurrentJustification(name,
+					parentName);
+			this.conclusionDeclared = false;
+			this.rejectedConclusions.clear();
+			this.declarationStart = result.size();
+			result.add(switch (kind) {
+				case JUSTIFICATION -> new CreateJustification(name, loc);
+				case TEMPLATE -> new CreateTemplate(name, loc);
+			});
 			// ImplementsTemplate must be enqueued before body commands so that
 			// inherited elements exist when override commands run.
-			if (ctx.parent != null) {
-				SourceLocation parentLoc = new SourceLocation(
-						buildContext.unitFileName,
-						ctx.parent.getStart().getLine(),
-						ctx.parent.getStart().getCharPositionInLine());
-				result.add(new ImplementsTemplate(ctx.id.getText(),
-						ctx.parent.getText(), parentLoc));
+			if (parent != null) {
+				result.add(new ImplementsTemplate(name, parentName,
+						locationOf(parent.getStart())));
 			}
 		}
 
 		@Override
 		public void exitTemplate(JPipeParser.TemplateContext ctx) {
+			dropRelationsToRejectedConclusions();
 			this.buildContext = buildContext.updateCurrentJustification(null,
 					null);
 		}
@@ -229,10 +262,8 @@ public final class ActionListProvider
 		@Override
 		public void enterEvidence(JPipeParser.EvidenceContext ctx) {
 			String identifier = ctx.element().id.getText();
-			String label = strip(ctx.element().name.getText());
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.element().id.getStart().getLine(),
-					ctx.element().id.getStart().getCharPositionInLine());
+			String label = StringLiteral.value(ctx.element().name.getText());
+			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			if (identifier.contains(":")) {
 				if (!validOverridePrefix(identifier, loc)) {
 					return;
@@ -249,47 +280,54 @@ public final class ActionListProvider
 		@Override
 		public void enterAbstract(JPipeParser.AbstractContext ctx) {
 			String identifier = ctx.element().id.getText();
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.element().id.getStart().getLine(),
-					ctx.element().id.getStart().getCharPositionInLine());
+			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			result.add(new CreateAbstractSupport(buildContext.justificationId,
-					identifier, strip(ctx.element().name.getText()), loc));
+					identifier,
+					StringLiteral.value(ctx.element().name.getText()), loc));
 		}
 
 		@Override
 		public void enterStrategy(JPipeParser.StrategyContext ctx) {
 			String identifier = ctx.element().id.getText();
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.element().id.getStart().getLine(),
-					ctx.element().id.getStart().getCharPositionInLine());
+			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			result.add(new CreateStrategy(buildContext.justificationId,
-					identifier, strip(ctx.element().name.getText()), loc));
+					identifier,
+					StringLiteral.value(ctx.element().name.getText()), loc));
 		}
 
 		@Override
 		public void enterConclusion(JPipeParser.ConclusionContext ctx) {
 			String identifier = ctx.element().id.getText();
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.element().id.getStart().getLine(),
-					ctx.element().id.getStart().getCharPositionInLine());
+			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			String modelId = buildContext.justificationId;
-			if (!seenConclusionModels.add(modelId)) {
+			String parent = buildContext.parentTemplateName;
+			if (parent != null) {
+				// A model that implements a template inherits its conclusion
+				// (ADR-0012). Decided here, from the declaration alone, it no
+				// longer depends on which of the two is declared first (#177).
+				rejectedConclusions.add(identifier);
+				compilationCtx.error(DiagnosticCodes.INHERITED_CONCLUSION, loc,
+						"Model '" + modelId + "' implements '" + parent
+								+ "' and inherits its conclusion: it cannot"
+								+ " declare its own");
+				return;
+			}
+			if (conclusionDeclared) {
 				compilationCtx.error(DiagnosticCodes.SINGLE_CONCLUSION,
 						loc.line(), loc.column(), "Model '" + modelId
 								+ "' declares multiple conclusions");
 				return;
 			}
+			conclusionDeclared = true;
 			result.add(new CreateConclusion(modelId, identifier,
-					strip(ctx.element().name.getText()), loc));
+					StringLiteral.value(ctx.element().name.getText()), loc));
 		}
 
 		@Override
 		public void enterSub_conclusion(JPipeParser.Sub_conclusionContext ctx) {
 			String identifier = ctx.element().id.getText();
-			String label = strip(ctx.element().name.getText());
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.element().id.getStart().getLine(),
-					ctx.element().id.getStart().getCharPositionInLine());
+			String label = StringLiteral.value(ctx.element().name.getText());
+			SourceLocation loc = locationOf(ctx.element().id.getStart());
 			if (identifier.contains(":")) {
 				if (!validOverridePrefix(identifier, loc)) {
 					return;
@@ -309,9 +347,7 @@ public final class ActionListProvider
 			// full id (e.g. "t:s")
 			String from = ctx.from.getText();
 			String to = ctx.to.getText();
-			SourceLocation loc = new SourceLocation(buildContext.unitFileName,
-					ctx.from.getStart().getLine(),
-					ctx.from.getStart().getCharPositionInLine());
+			SourceLocation loc = locationOf(ctx.from.getStart());
 			if (from.contains(":") && !validOverridePrefix(from, loc)) {
 				return;
 			}
@@ -333,14 +369,25 @@ public final class ActionListProvider
 			// enterJustification / enterTemplate.
 		}
 
-		private static Map<String, String> collectConfig(
+		/**
+		 * The arguments of an operator call. A key given twice is reported, and
+		 * its first value kept: the last one used to win silently (#184).
+		 */
+		private Map<String, String> collectConfig(
 				JPipeParser.Rule_configContext ctx) {
 			if (ctx == null) {
 				return Map.of();
 			}
 			Map<String, String> map = new LinkedHashMap<>();
 			for (var kv : ctx.key_val_decl()) {
-				map.put(kv.key.getText(), strip(kv.value.getText()));
+				String key = kv.key.getText();
+				if (map.containsKey(key)) {
+					compilationCtx.error(DiagnosticCodes.INVALID_OPERATOR_CALL,
+							locationOf(kv.key),
+							"argument '" + key + "' is given more than once");
+					continue;
+				}
+				map.put(key, StringLiteral.value(kv.value.getText()));
 			}
 			return Collections.unmodifiableMap(map);
 		}
@@ -348,6 +395,12 @@ public final class ActionListProvider
 		/*
 		 * ******************** * * Helper functions * * ********************
 		 */
+
+		/** Where {@code token} sits in the file being compiled. */
+		private SourceLocation locationOf(Token token) {
+			return new SourceLocation(buildContext.unitFileName,
+					token.getLine(), token.getCharPositionInLine());
+		}
 
 		/**
 		 * Returns true if the qualified {@code identifier} is allowed in the
@@ -368,24 +421,6 @@ public final class ActionListProvider
 			// The actual resolution is deferred to command execution via
 			// findById.
 			return true;
-		}
-
-		/**
-		 * Removes the surrounding double-quote characters from a STRING lexer
-		 * token. The grammar guarantees that every label and path token is
-		 * quoted, so receiving an unquoted string here indicates a
-		 * grammar/parser mismatch.
-		 *
-		 * @throws IllegalArgumentException
-		 *             if {@code s} is not a properly quoted string literal.
-		 */
-		private static String strip(String s) {
-			if (s.length() < 2 || s.charAt(0) != '"'
-					|| s.charAt(s.length() - 1) != '"') {
-				throw new IllegalArgumentException(
-						"Expected a quoted string literal, got: " + s);
-			}
-			return s.substring(1, s.length() - 1);
 		}
 	}
 }

@@ -1,0 +1,16 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// A string ends at its first unescaped double quote. Inside one, \" stands for
+// a double quote and \\ for a backslash; any other backslash is kept as is.
+justification strings {
+    conclusion c is "The release is safe" strategy s is "Check the logs"
+    evidence   e is "Logs say \"OK\"" // a "comment" is not part of the label
+    evidence   p is "Archived in share\\ and in C:\releases"
+    s supports c
+    e supports s
+    p supports s
+}

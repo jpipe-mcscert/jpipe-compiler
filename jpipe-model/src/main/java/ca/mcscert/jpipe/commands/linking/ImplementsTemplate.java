@@ -5,8 +5,11 @@ import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
+import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
+import java.util.Optional;
+import ca.mcscert.jpipe.commands.PendingCommands;
 
 /**
  * Links a justification model to the {@link Template} it implements, by setting
@@ -40,6 +43,7 @@ public final class ImplementsTemplate extends RegularCommand {
 		return templateName;
 	}
 
+	@Override
 	public SourceLocation location() {
 		return location;
 	}
@@ -67,20 +71,38 @@ public final class ImplementsTemplate extends RegularCommand {
 	 * for elements that were inherited rather than declared directly.
 	 */
 	private void propagateLocations(Unit context, Template template) {
-		template.conclusion().ifPresent(tc -> {
-			SourceLocation loc = context.locationOf(templateName, tc.id());
-			String key = tc.id().contains(":")
-					? tc.id()
-					: templateName + ":" + tc.id();
-			context.recordLocation(modelName, key, loc);
-		});
-		for (JustificationElement elem : template.getElements()) {
-			SourceLocation loc = context.locationOf(templateName, elem.id());
-			String key = elem.id().contains(":")
-					? elem.id()
-					: templateName + ":" + elem.id();
-			context.recordLocation(modelName, key, loc);
+		for (JustificationElement elem : template.allElements()) {
+			context.recordLocation(modelName,
+					QualifiedIds.qualifyIfPlain(templateName, elem.id()),
+					context.locationOf(templateName, elem.id()));
 		}
+	}
+
+	/**
+	 * Waits, beyond both models existing, until no pending command still
+	 * changes the template: its elements, its links and its own
+	 * {@code implements}. The copy is then the whole template, whatever the
+	 * order of the declarations (#177).
+	 */
+	@Override
+	public boolean ready(Unit unit, PendingCommands pending) {
+		return condition().test(unit) && !pending.target(templateName)
+				&& unit.isComplete(templateName);
+	}
+
+	/**
+	 * Never: a template that never completes is never copied, so that a model
+	 * never inherits half a template. The model is left unbuilt, and the reason
+	 * the template never completes is reported where it is.
+	 */
+	@Override
+	public boolean runWhenStuck(Unit unit, PendingCommands pending) {
+		return false;
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(modelName);
 	}
 
 	@Override

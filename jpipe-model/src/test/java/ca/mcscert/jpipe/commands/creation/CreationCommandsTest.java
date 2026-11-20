@@ -11,9 +11,14 @@ import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class CreationCommandsTest {
 
@@ -55,6 +60,45 @@ class CreationCommandsTest {
 							ElementCreationCommand::label,
 							ElementCreationCommand::location)
 					.containsExactly("myContainer", "myId", "myLabel", loc);
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// ElementCreationCommand.of: the creation command for an element's kind
+	// -------------------------------------------------------------------------
+
+	@Nested
+	class CreationCommandForAnElementKind {
+
+		private final SourceLocation loc = new SourceLocation("a.jd", 3, 4);
+
+		static Stream<Arguments> kinds() {
+			return Stream.of(
+					Arguments.of(new Conclusion("p", "label"),
+							CreateConclusion.class),
+					Arguments.of(new SubConclusion("p", "label"),
+							CreateSubConclusion.class),
+					Arguments.of(new Strategy("p", "label"),
+							CreateStrategy.class),
+					Arguments.of(new Evidence("p", "label"),
+							CreateEvidence.class),
+					Arguments.of(new AbstractSupport("p", "label"),
+							CreateAbstractSupport.class));
+		}
+
+		@ParameterizedTest
+		@MethodSource("kinds")
+		void buildsTheCommandOfThePrototypesKind(JustificationElement prototype,
+				Class<? extends ElementCreationCommand> expected) {
+			ElementCreationCommand cmd = ElementCreationCommand.of("target",
+					"newId", prototype, loc);
+
+			assertThat(cmd).isInstanceOf(expected)
+					.extracting(ElementCreationCommand::container,
+							ElementCreationCommand::identifier,
+							ElementCreationCommand::label,
+							ElementCreationCommand::location)
+					.containsExactly("target", "newId", "label", loc);
 		}
 	}
 

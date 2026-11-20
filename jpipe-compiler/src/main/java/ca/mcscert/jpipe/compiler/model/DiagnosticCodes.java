@@ -27,6 +27,21 @@ public final class DiagnosticCodes {
 	public static final String SINGLE_CONCLUSION = "single-conclusion";
 
 	/**
+	 * A model that implements a template declares a conclusion, which it
+	 * inherits from the template instead.
+	 */
+	public static final String INHERITED_CONCLUSION = "inherited-conclusion";
+
+	/**
+	 * An operator call written in a way the call cannot honour: an
+	 * {@code implements} on its result, an argument given twice.
+	 */
+	public static final String INVALID_OPERATOR_CALL = "invalid-operator-call";
+
+	/** A short id names several inherited elements of a model. */
+	public static final String AMBIGUOUS_ID = "ambiguous-id";
+
+	/**
 	 * A qualified override reference appears in a model that does not implement
 	 * any template.
 	 */
@@ -34,7 +49,11 @@ public final class DiagnosticCodes {
 
 	// ---- template linking ---------------------------------------------------
 
-	/** Two models mutually implement each other, creating a cycle. */
+	/**
+	 * A model waits on itself through its {@code implements}: two templates
+	 * implement each other, or a template is built by an operator call from the
+	 * model that implements it.
+	 */
 	public static final String CYCLIC_IMPLEMENTS = "cyclic-implements";
 
 	/** An {@code implements} directive could not be applied. */
@@ -53,6 +72,9 @@ public final class DiagnosticCodes {
 	 * An {@code AddSupport} command references an element that does not exist.
 	 */
 	public static final String INVALID_SUPPORT = "invalid-support";
+
+	/** A model declared under a name already taken, in any loaded file. */
+	public static final String DUPLICATE_MODEL = "duplicate-model";
 
 	/** A command references a model name that does not exist in the unit. */
 	public static final String UNKNOWN_MODEL = "unknown-model";

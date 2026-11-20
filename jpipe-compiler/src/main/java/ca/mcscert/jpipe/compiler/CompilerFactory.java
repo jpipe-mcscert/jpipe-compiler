@@ -4,6 +4,8 @@ import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
+import ca.mcscert.jpipe.operators.builtin.AssembleOperator;
+import ca.mcscert.jpipe.operators.builtin.RefineOperator;
 import ca.mcscert.jpipe.operators.equivalences.SameLabel;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.compiler.steps.checkers.CompletenessChecker;
@@ -19,6 +21,7 @@ import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.CollectDiagnostics;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticRenderer;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticReport;
+import ca.mcscert.jpipe.compiler.steps.transformations.DuplicateModelFilter;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToDot;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJson;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJpipe;
@@ -157,10 +160,8 @@ public final class CompilerFactory {
 
 	private static OperatorRegistry builtInOperators() {
 		OperatorRegistry operators = new OperatorRegistry();
-		operators.register("refine",
-				new ca.mcscert.jpipe.operators.builtin.RefineOperator());
-		operators.register("assemble",
-				new ca.mcscert.jpipe.operators.builtin.AssembleOperator());
+		operators.register("refine", new RefineOperator());
+		operators.register("assemble", new AssembleOperator());
 		return operators;
 	}
 
@@ -172,10 +173,13 @@ public final class CompilerFactory {
 
 	/**
 	 * Full unit builder: extends the parsing chain with model construction,
-	 * consistency checking, and completeness checking.
+	 * after dropping models declared twice, then consistency and completeness
+	 * checking.
 	 */
 	public static Transformation<List<Command>, Unit> unitBuilder() {
-		return new ActionListInterpretation().andThen(new ConsistencyChecker())
+		return new DuplicateModelFilter()
+				.andThen(new ActionListInterpretation())
+				.andThen(new ConsistencyChecker())
 				.andThen(new CompletenessChecker());
 	}
 

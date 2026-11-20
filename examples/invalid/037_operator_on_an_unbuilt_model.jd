@@ -1,0 +1,45 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// 'j' implements a template that does not exist (line 9): it never gets its
+// inherited structure, so no operator composes it, and only that is reported.
+justification j implements missing {
+    evidence e is "An evidence"
+}
+
+justification b {
+    conclusion c is "C"
+    strategy   s is "S"
+    evidence   e is "E"
+    s supports c
+    e supports s
+}
+
+justification r is assemble(j, b) {
+    conclusionLabel: "R"
+    strategyLabel:   "SR"
+}
+
+// 'refined' is declared, and its call fails (line 28: 'b' given twice). 'k'
+// implements it (line 32): only the call is reported, never 'refined' unknown.
+template refined is refine(b, b) {
+    hook: "e"
+}
+
+justification k implements refined {
+    evidence e is "An evidence"
+}
+
+// 'cyc' implements 'built', which 'assemble' builds from 'cyc': each waits on
+// the other, and the cycle is reported once, at line 38.
+justification cyc implements built {
+    evidence e is "An evidence"
+}
+
+template built is assemble(cyc, b) {
+    conclusionLabel: "Built"
+    strategyLabel:   "SB"
+}

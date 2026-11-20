@@ -14,13 +14,9 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SpecificationVersion;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,12 +27,15 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Holds the published JSON Schema and the emitter to the same contract.
@@ -56,17 +55,18 @@ class JsonDiagnosticReportSchemaTest {
 	private static final String SCHEMA_RESOURCE = "/schema/diagnostic-report-v1.schema.json";
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-	private static final JsonSchema SCHEMA = loadSchema();
+	private static final Schema SCHEMA = loadSchema();
 
-	private static JsonSchema loadSchema() {
+	private static Schema loadSchema() {
 		try (InputStream in = JsonDiagnosticReportSchemaTest.class
 				.getResourceAsStream(SCHEMA_RESOURCE)) {
 			if (in == null) {
 				throw new IllegalStateException(
 						"Schema not on the classpath: " + SCHEMA_RESOURCE);
 			}
-			return JsonSchemaFactory
-					.getInstance(SpecVersion.VersionFlag.V202012).getSchema(in);
+			return SchemaRegistry
+					.withDefaultDialect(SpecificationVersion.DRAFT_2020_12)
+					.getSchema(in);
 		} catch (IOException e) {
 			throw new IllegalStateException("Cannot read the schema", e);
 		}
@@ -83,7 +83,7 @@ class JsonDiagnosticReportSchemaTest {
 	}
 
 	@Test
-	void schemaDeclaresTheVersionTheEmitterWrites() throws IOException {
+	void schemaDeclaresTheVersionTheEmitterWrites() {
 		JsonNode schema = MAPPER.readTree(JsonDiagnosticReportSchemaTest.class
 				.getResourceAsStream(SCHEMA_RESOURCE));
 
@@ -216,7 +216,7 @@ class JsonDiagnosticReportSchemaTest {
 	// These pin the constraints that matter most.
 
 	@Test
-	void schemaRejectsAnUnexpectedKey() throws IOException {
+	void schemaRejectsAnUnexpectedKey() {
 		JsonNode report = MAPPER.readTree(
 				reportOf(new Unit("test.jd"), new CompilationContext("t.jd")));
 		((ObjectNode) report).put("oops", 1);
@@ -225,14 +225,14 @@ class JsonDiagnosticReportSchemaTest {
 	}
 
 	@Test
-	void schemaRejectsABracketedCode() throws IOException {
+	void schemaRejectsABracketedCode() {
 		JsonNode report = MAPPER.readTree(reportWithCode("[unknown-model]"));
 
 		assertThat(SCHEMA.validate(report)).isNotEmpty();
 	}
 
 	@Test
-	void schemaAcceptsABareCode() throws IOException {
+	void schemaAcceptsABareCode() {
 		JsonNode report = MAPPER.readTree(reportWithCode("unknown-model"));
 
 		assertThat(SCHEMA.validate(report)).isEmpty();
@@ -244,7 +244,7 @@ class JsonDiagnosticReportSchemaTest {
 	 * is held to what the emitter actually produces.
 	 */
 	@Test
-	void schemaAcceptsARealFatalDiagnostic() throws IOException {
+	void schemaAcceptsARealFatalDiagnostic() {
 		CompilationContext ctx = new CompilationContext("t.jd");
 		ctx.fatal("unrecoverable");
 
@@ -252,13 +252,13 @@ class JsonDiagnosticReportSchemaTest {
 				.readTree(renderedReportOf(new Unit("t.jd"), ctx));
 
 		assertThat(SCHEMA.validate(report)).isEmpty();
-		assertThat(report.at("/diagnostics/0/severity").asText())
+		assertThat(report.at("/diagnostics/0/severity").asString())
 				.isEqualTo("fatal");
 		assertThat(report.at("/diagnostics/0").has("code")).isFalse();
 	}
 
 	@Test
-	void schemaRejectsAnUnknownSeverity() throws IOException {
+	void schemaRejectsAnUnknownSeverity() {
 		JsonNode report = MAPPER.readTree(reportWithCode("unknown-model"));
 		((ObjectNode) report.at("/diagnostics/0")).put("severity", "warning");
 
@@ -266,7 +266,7 @@ class JsonDiagnosticReportSchemaTest {
 	}
 
 	@Test
-	void schemaRejectsASynthesizedSymbolCarryingALocation() throws IOException {
+	void schemaRejectsASynthesizedSymbolCarryingALocation() {
 		JsonNode report = MAPPER.readTree(
 				reportOf(unitWithOneSymbol(), new CompilationContext("t.jd")));
 		ObjectNode symbol = (ObjectNode) report.at("/models/0/symbols/0");
@@ -278,7 +278,7 @@ class JsonDiagnosticReportSchemaTest {
 	}
 
 	@Test
-	void schemaRejectsADiagnosticWithALineButNoColumn() throws IOException {
+	void schemaRejectsADiagnosticWithALineButNoColumn() {
 		CompilationContext ctx = new CompilationContext("t.jd");
 		ctx.error(DiagnosticCodes.UNKNOWN_MODEL, 3, 1, "unknown model 'x'");
 		JsonNode report = MAPPER.readTree(reportOf(new Unit("t.jd"), ctx));
@@ -292,13 +292,14 @@ class JsonDiagnosticReportSchemaTest {
 	// -------------------------------------------------------------------------
 
 	private void assertConforms(String json) {
-		Set<ValidationMessage> errors;
+		JsonNode report;
 		try {
-			errors = SCHEMA.validate(MAPPER.readTree(json));
-		} catch (IOException e) {
+			report = MAPPER.readTree(json);
+		} catch (JacksonException e) {
 			throw new AssertionError("report is not valid JSON", e);
 		}
-		assertThat(errors).as("schema violations in:%n%s", json).isEmpty();
+		assertThat(SCHEMA.validate(report))
+				.as("schema violations in:%n%s", json).isEmpty();
 	}
 
 	private static String reportOf(Unit unit, CompilationContext ctx) {

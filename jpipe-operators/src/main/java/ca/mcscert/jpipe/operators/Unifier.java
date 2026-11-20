@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Arrays;
 
 /**
  * Phase 4 post-processor for composition operators.
@@ -103,21 +104,19 @@ public final class Unifier {
 		String equivName = args.getOrDefault(UNIFY_BY_KEY, DEFAULT_UNIFY_BY);
 		EquivalenceRelation equiv = registry.find(equivName)
 				.orElseThrow(() -> new InvalidOperatorCallException(
-						"[execution-error] unknown unification method '"
-								+ equivName + "'; registered: "
+						"unknown unification method '" + equivName
+								+ "'; registered: "
 								+ registry.registeredNames()));
 
 		Set<String> excluded = parseExcludeList(
 				args.getOrDefault(UNIFY_EXCLUDE_KEY, ""));
+		requireExcludedIdsExist(excluded, commands);
 
-		// Collect element (non-model) creation commands
-		List<Command> elementCmds = commands.stream().filter(Unifier::isElement)
-				.toList();
-
-		// Gather non-excluded element commands — no wrapping needed
-		List<ElementCreationCommand> candidates = elementCmds.stream()
-				.filter(cmd -> !excluded.contains(idOf(cmd)))
-				.map(ElementCreationCommand.class::cast).toList();
+		// Gather non-excluded element (non-model) creation commands
+		List<ElementCreationCommand> candidates = commands.stream()
+				.filter(ElementCreationCommand.class::isInstance)
+				.map(ElementCreationCommand.class::cast)
+				.filter(cmd -> !excluded.contains(cmd.identifier())).toList();
 
 		// Partition by equivalence relation
 		List<List<ElementCreationCommand>> groups = Partitions
@@ -161,32 +160,28 @@ public final class Unifier {
 		Set<String> insertedUnified = new LinkedHashSet<>();
 		Set<String> seenEdges = new LinkedHashSet<>();
 		for (Command cmd : commands) {
-			if (isElement(cmd)) {
-				appendElement(result, cmd, phase4Aliases, prototypes,
-						insertedUnified);
-			} else if (cmd instanceof AddSupport as) {
-				appendEdge(result, resultName, as, phase4Aliases, seenEdges);
-			} else {
-				result.add(cmd);
+			switch (cmd) {
+				case ElementCreationCommand ecc -> appendElement(result, ecc,
+						phase4Aliases, prototypes, insertedUnified);
+				case AddSupport as -> appendEdge(result, resultName, as,
+						phase4Aliases, seenEdges);
+				default -> result.add(cmd);
 			}
 		}
 		return result;
 	}
 
-	private static void appendElement(List<Command> result, Command cmd,
-			Map<String, String> phase4Aliases,
+	private static void appendElement(List<Command> result,
+			ElementCreationCommand cmd, Map<String, String> phase4Aliases,
 			Map<String, ElementCreationCommand> prototypes,
 			Set<String> insertedUnified) {
-		String id = idOf(cmd);
-		if (phase4Aliases.containsKey(id)) {
-			String unifiedId = phase4Aliases.get(id);
+		String unifiedId = phase4Aliases.get(cmd.identifier());
+		if (unifiedId == null) {
+			result.add(cmd);
+		} else if (insertedUnified.add(unifiedId)) {
 			// The merged element takes the position of the first member met,
 			// but is built from the group's dominant one.
-			if (insertedUnified.add(unifiedId)) {
-				result.add(prototypes.get(unifiedId).withId(unifiedId));
-			}
-		} else {
-			result.add(cmd);
+			result.add(prototypes.get(unifiedId).withId(unifiedId));
 		}
 	}
 
@@ -260,11 +255,11 @@ public final class Unifier {
 						(ElementCreationCommand c) -> c.element().kind())
 						.thenComparing(ElementCreationCommand::identifier))
 				.toList();
-		ElementCreationCommand first = sorted.get(0);
+		ElementCreationCommand first = sorted.getFirst();
 		ElementCreationCommand clashing = sorted.stream()
 				.filter(c -> !subsumes(first.element(), c.element())
 						&& !subsumes(c.element(), first.element()))
-				.findFirst().orElse(sorted.get(sorted.size() - 1));
+				.findFirst().orElse(sorted.getLast());
 		return new IncompatibleUnificationException("cannot unify "
 				+ describe(first) + " with " + describe(clashing)
 				+ " in model '" + resultName
@@ -291,30 +286,39 @@ public final class Unifier {
 		}
 	}
 
+	/**
+	 * Refuses an {@code unifyExclude} id that names no element of the result: a
+	 * typo, or a plain id where the result's are qualified, would otherwise
+	 * leave the elements it meant unified without a word (#184).
+	 */
+	private static void requireExcludedIdsExist(Set<String> excluded,
+			List<Command> commands) {
+		if (excluded.isEmpty()) {
+			return;
+		}
+		Set<String> ids = commands.stream()
+				.filter(ElementCreationCommand.class::isInstance)
+				.map(ElementCreationCommand.class::cast)
+				.map(ElementCreationCommand::identifier)
+				.collect(Collectors.toCollection(LinkedHashSet::new));
+		List<String> unknown = excluded.stream().filter(id -> !ids.contains(id))
+				.sorted().toList();
+		if (!unknown.isEmpty()) {
+			throw new InvalidOperatorCallException(
+					UNIFY_EXCLUDE_KEY + " names no element of the result: "
+							+ unknown + "; its elements are " + ids);
+		}
+	}
+
 	private static Set<String> parseExcludeList(String raw) {
 		if (raw.isBlank()) {
 			return Set.of();
 		}
-		return Set.of(raw.split(",")).stream().map(String::trim)
+		// A set: a repeated id means one mention, however it is spaced. Set.of
+		// used to throw on "c,c" while "c, c" passed (#171).
+		return Arrays.stream(raw.split(",")).map(String::strip)
+				.filter(id -> !id.isEmpty())
 				.collect(Collectors.toUnmodifiableSet());
-	}
-
-	/**
-	 * Returns true for commands that create a model element (not a model
-	 * itself).
-	 */
-	static boolean isElement(Command cmd) {
-		return cmd instanceof ElementCreationCommand;
-	}
-
-	/** Extracts the element id from an element-creation command. */
-	static String idOf(Command cmd) {
-		return ((ElementCreationCommand) cmd).identifier();
-	}
-
-	/** Extracts the label from an element-creation command. */
-	static String labelOf(Command cmd) {
-		return ((ElementCreationCommand) cmd).label();
 	}
 
 	private static String resolve(String id, Map<String, String> aliases) {

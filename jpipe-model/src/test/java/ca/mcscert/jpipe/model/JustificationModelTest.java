@@ -8,8 +8,11 @@ import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -67,6 +70,42 @@ class JustificationModelTest {
 		@DisplayName("findById returns empty when the ID is not found")
 		void findByIdReturnsEmptyWhenAbsent() {
 			assertThat(model.findById("unknown")).isEmpty();
+		}
+
+		@Test
+		@DisplayName("findById falls back to the first inherited element ending with the id")
+		void findByIdFallsBackToTheFirstInheritedMatch() {
+			Justification j = new Justification("j");
+			j.setConclusion(new Conclusion("a:e", "Inherited conclusion"));
+			j.addElement(new Evidence("b:e", "First"));
+			j.addElement(new Evidence("c:e", "Second"));
+			assertThat(j.findById("e")).get()
+					.extracting(JustificationElement::id).isEqualTo("b:e");
+		}
+
+		@Test
+		@DisplayName("ambiguousMatches lists the inherited elements a short id names, when several")
+		void ambiguousMatchesListsSeveralInheritedMatches() {
+			Justification j = new Justification("j");
+			j.addElement(new Evidence("ns1:t:e", "First"));
+			j.addElement(new Evidence("ns2:t:e", "Second"));
+			j.addElement(new Evidence("u:f", "Alone"));
+			// A qualified short form is ambiguous too; it used to bind the
+			// first in a relation.
+			assertThat(j.ambiguousMatches("t:e"))
+					.extracting(JustificationElement::id)
+					.containsExactly("ns1:t:e", "ns2:t:e");
+			assertThat(j.ambiguousMatches("f")).isEmpty();
+		}
+
+		@Test
+		@DisplayName("ambiguousMatches is empty when an element has the id itself")
+		void ambiguousMatchesIsEmptyForAnExactId() {
+			Justification j = new Justification("j");
+			j.addElement(new Evidence("e", "Own"));
+			j.addElement(new Evidence("a:e", "Inherited"));
+			j.addElement(new Evidence("b:e", "Inherited too"));
+			assertThat(j.ambiguousMatches("e")).isEmpty();
 		}
 
 		@Test
@@ -432,6 +471,29 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("after inline into Justification: placeholders are held as what they are")
+		void inlinedPlaceholdersAreTypedElementsOfAJustification() {
+			// They used to sit in a List<CommonElement> through an unchecked
+			// cast: reading them as CommonElement threw (#190).
+			Template t = new Template("t");
+			t.setConclusion(new Conclusion("c", "conclusion"));
+			Strategy ts = new Strategy("s", "strategy");
+			AbstractSupport abs = new AbstractSupport("abs", "placeholder");
+			t.addElement(ts);
+			t.addElement(abs);
+			ts.addSupport(abs);
+
+			Justification j = new Justification("j");
+			j.inline(t, "t");
+
+			List<JustificationElement> elements = j.getElements();
+			assertThat(elements).extracting(JustificationElement::id)
+					.containsExactlyInAnyOrder("t:s", "t:abs");
+			assertThat(elements)
+					.hasAtLeastOneElementOfType(AbstractSupport.class);
+		}
+
+		@Test
 		@DisplayName("after inline: conclusion is inherited, hasOwnConclusion() is false")
 		void inlinedConclusionIsNotOwn() {
 			Template t = template();
@@ -487,6 +549,33 @@ class JustificationModelTest {
 			assertThat(j.ownElements().size() + j.inheritedElements().size()
 					+ j.concreteOverrides().size())
 					.isEqualTo(j.getElements().size());
+		}
+
+		@Test
+		@DisplayName("inherited copies come before the elements the model already holds")
+		void inlineAfterOwnElementsPutsTheCopiesFirst() {
+			// Its template declared after it, a model gets its own elements
+			// first: their order is still that of a template declared first.
+			Justification j = new Justification("j");
+			j.addElement(new Evidence("e_local", "local evidence"));
+			j.inline(template(), "t");
+
+			assertThat(j.getElements()).extracting(e -> e.id())
+					.containsExactly("t:s", "t:abs", "e_local");
+		}
+
+		@Test
+		@DisplayName("declaredElements() is own elements and overrides, in model order")
+		void declaredElementsAreWhatTheModelDoesNotInherit() {
+			Template t = template();
+			Justification j = new Justification("j");
+			j.inline(t, "t");
+			j.addElement(new Evidence("e_local", "local evidence"));
+			j.removeElement("t:abs");
+			j.addElement(new Evidence("t:abs", "concrete evidence"));
+
+			assertThat(j.declaredElements()).extracting(e -> e.id())
+					.containsExactly("e_local", "t:abs");
 		}
 
 		@Test
@@ -561,6 +650,91 @@ class JustificationModelTest {
 			assertThatThrownBy(() -> unit.get("nonexistent"))
 					.isInstanceOf(NoSuchElementException.class)
 					.hasMessageContaining("nonexistent");
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// JustificationModel: allElements, forEachSupportEdge
+	// -------------------------------------------------------------------------
+
+	@Nested
+	@DisplayName("Element and edge traversal (allElements, forEachSupportEdge)")
+	class Traversal {
+
+		private Justification model;
+
+		@BeforeEach
+		void setUp() {
+			model = new Justification("j");
+			Conclusion c = new Conclusion("c", "Overall");
+			Strategy s1 = new Strategy("s1", "By parts");
+			Strategy s2 = new Strategy("s2", "By part one");
+			SubConclusion sc = new SubConclusion("sc", "Part one holds");
+			Evidence e1 = new Evidence("e1", "Proof one");
+			Evidence e2 = new Evidence("e2", "Proof two");
+			model.setConclusion(c);
+			model.addElement(s1);
+			model.addElement(sc);
+			model.addElement(s2);
+			model.addElement(e1);
+			model.addElement(e2);
+			c.addSupport(s1);
+			sc.addSupport(s2);
+			s1.addSupport(sc);
+			s1.addSupport(e2);
+			s2.addSupport(e1);
+		}
+
+		@Test
+		@DisplayName("allElements lists the conclusion first, then the elements in model order")
+		void allElementsListsTheConclusionFirst() {
+			assertThat(model.allElements()).extracting(e -> e.id())
+					.containsExactly("c", "s1", "sc", "s2", "e1", "e2");
+		}
+
+		@Test
+		@DisplayName("allElements without a conclusion lists only the elements")
+		void allElementsWithoutAConclusion() {
+			Justification noConclusion = new Justification("j");
+			noConclusion.addElement(new Evidence("e", "Proof"));
+
+			assertThat(noConclusion.allElements()).extracting(e -> e.id())
+					.containsExactly("e");
+		}
+
+		@Test
+		@DisplayName("allElements is read-only")
+		void allElementsIsReadOnly() {
+			List<?> all = model.allElements();
+
+			assertThatThrownBy(() -> all.add(null))
+					.isInstanceOf(UnsupportedOperationException.class);
+		}
+
+		@Test
+		@DisplayName("forEachSupportEdge visits the conclusion, then sub-conclusions, then strategies")
+		void forEachSupportEdgeVisitsEdgesInOrder() {
+			List<String> edges = new ArrayList<>();
+
+			model.forEachSupportEdge((supported, supporter) -> edges
+					.add(supported + "<-" + supporter));
+
+			assertThat(edges).containsExactly("c<-s1", "sc<-s2", "s1<-sc",
+					"s1<-e2", "s2<-e1");
+		}
+
+		@Test
+		@DisplayName("forEachSupportEdge skips elements with no support")
+		void forEachSupportEdgeSkipsUnsupportedElements() {
+			Justification bare = new Justification("j");
+			bare.setConclusion(new Conclusion("c", "Overall"));
+			bare.addElement(new Strategy("s", "By parts"));
+			List<String> edges = new ArrayList<>();
+
+			bare.forEachSupportEdge((supported, supporter) -> edges
+					.add(supported + "<-" + supporter));
+
+			assertThat(edges).isEmpty();
 		}
 	}
 }

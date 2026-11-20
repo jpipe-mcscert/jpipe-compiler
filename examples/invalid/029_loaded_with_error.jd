@@ -1,0 +1,15 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// Loaded by 029_error_in_loaded_file.jd; 'missing' (line 14) is declared nowhere.
+justification lib {
+    conclusion c is "C"
+    strategy   s is "S"
+    evidence   e is "E"
+    s supports c
+    e supports s
+    missing supports s
+}

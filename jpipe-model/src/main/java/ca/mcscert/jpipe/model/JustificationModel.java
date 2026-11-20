@@ -9,6 +9,8 @@ import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.model.elements.SupportLeaf;
 import ca.mcscert.jpipe.model.validation.CompletenessValidator;
 import ca.mcscert.jpipe.model.validation.ConsistencyValidator;
+import ca.mcscert.jpipe.util.Aliases;
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 /**
  * Abstract base for all named justification models. Sealed to exactly two
@@ -25,11 +28,12 @@ import java.util.Set;
  * (abstract/reusable).
  *
  * <p>
- * The type parameter {@code E} constrains which elements can be added:
- * {@link Justification} accepts only
- * {@link ca.mcscert.jpipe.model.elements.CommonElement}, while {@link Template}
- * accepts any {@link JustificationElement} including
- * {@link ca.mcscert.jpipe.model.elements.AbstractSupport}.
+ * Both kinds of model hold any {@link JustificationElement}: a
+ * {@link Justification} that implements a template holds the template's
+ * {@link ca.mcscert.jpipe.model.elements.AbstractSupport} placeholders until
+ * they are overridden. What a justification may <em>declare</em> is narrower,
+ * and enforced where elements are declared ({@link Unit#addInto}) and by the
+ * completeness check ({@code no-abstract-support}).
  *
  * <p>
  * Every model has exactly one {@link Conclusion}, set via
@@ -43,15 +47,16 @@ import java.util.Set;
  * {@link ca.mcscert.jpipe.model.validation.ConsistencyValidator} and
  * {@link ca.mcscert.jpipe.model.validation.CompletenessValidator} directly.
  */
-public abstract sealed class JustificationModel<E extends JustificationElement>
+public abstract sealed class JustificationModel
 		permits Justification, Template {
 
 	private final String name;
 	private Conclusion conclusion;
 	private Template parent = null;
-	private final List<E> elements = new ArrayList<>();
+	private final List<JustificationElement> elements = new ArrayList<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
 	private final Set<String> unifiedIds = new LinkedHashSet<>();
+	private Composition composition = null;
 
 	protected JustificationModel(String name) {
 		this.name = name;
@@ -117,6 +122,24 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		unifiedIds.add(id);
 	}
 
+	/**
+	 * Records the operator call this model was built by. The JPIPE export
+	 * writes a composed model back as that call, since its ids, qualified by
+	 * the models it was composed from, cannot be declared in a body.
+	 */
+	public void recordComposition(Composition composition) {
+		if (this.composition != null) {
+			throw new IllegalStateException(
+					"Model '" + name + "' is already composed");
+		}
+		this.composition = composition;
+	}
+
+	/** The operator call this model was built by, if it was composed. */
+	public Optional<Composition> composition() {
+		return Optional.ofNullable(composition);
+	}
+
 	/** Unmodifiable view of the ids unification minted within this model. */
 	public Set<String> unifiedIds() {
 		return Collections.unmodifiableSet(unifiedIds);
@@ -131,10 +154,18 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	}
 
 	/**
+	 * {@code id} followed through this model's aliases to the id it was last
+	 * merged into: {@code id} itself when it is no alias.
+	 */
+	public String resolveAlias(String id) {
+		return Aliases.follow(id, aliases::get);
+	}
+
+	/**
 	 * Rejects {@link Conclusion} — use {@link #setConclusion(Conclusion)}
 	 * instead.
 	 */
-	public void addElement(E element) {
+	public void addElement(JustificationElement element) {
 		if (element instanceof Conclusion) {
 			throw new IllegalArgumentException(
 					"Use setConclusion() to assign the conclusion of a model");
@@ -149,16 +180,21 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * operators can mutate it freely without affecting the original template.
 	 *
 	 * <p>
-	 * Whether a copy is added is controlled by {@link #includeInExpansion}:
-	 * {@link Justification} excludes {@link AbstractSupport} copies (type
-	 * constraint; abstract supports must be overridden by concrete elements);
-	 * {@link Template} includes everything.
+	 * Every template element is copied, {@link AbstractSupport} placeholders
+	 * included, so that override commands can find and replace them in a
+	 * {@link Justification} after inlining.
 	 *
 	 * <p>
 	 * The template's conclusion is always copied as a {@link Conclusion},
 	 * maintaining its top-level status. If this model already has a conclusion,
 	 * the template's conclusion is mapped to it for edge re-wiring but not
 	 * added as a second conclusion.
+	 *
+	 * <p>
+	 * The copies come before the elements this model already holds, so that its
+	 * elements are in the same order whether its template is declared before or
+	 * after it: a composition meets the elements of its sources in that order,
+	 * and numbers the elements it unifies accordingly.
 	 */
 	public void inline(Template template, String templateName) {
 		setParent(template);
@@ -177,23 +213,15 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 			copies.put(tc.id(), this.conclusion);
 		});
 
-		template.getElements().forEach(elem -> {
-			JustificationElement copy = qualifiedCopy(elem, templateName);
-			if (includeInExpansion(copy)) {
-				copies.put(elem.id(), copy);
-			}
-		});
+		template.getElements().forEach(elem -> copies.put(elem.id(),
+				qualifiedCopy(elem, templateName)));
 
-		// Step 2: re-wire support edges between included copies only
+		// Step 2: re-wire support edges between copies
 		rewireEdges(template, copies);
 
-		// Step 3: add included copies to this model
-		copies.values().stream().filter(c -> !(c instanceof Conclusion))
-				.forEach(copy -> {
-					@SuppressWarnings("unchecked")
-					E typed = (E) copy;
-					addElement(typed);
-				});
+		// Step 3: add copies to this model, before its own elements
+		elements.addAll(0, copies.values().stream()
+				.filter(c -> !(c instanceof Conclusion)).toList());
 	}
 
 	private void rewireEdges(Template template,
@@ -207,10 +235,9 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 			}
 		}));
 		template.strategies().forEach(s -> s.getSupports().forEach(leaf -> {
-			String leafId = ((JustificationElement) leaf).id();
-			if (copies.containsKey(s.id()) && copies.containsKey(leafId)) {
+			if (copies.containsKey(s.id()) && copies.containsKey(leaf.id())) {
 				((Strategy) copies.get(s.id()))
-						.addSupport((SupportLeaf) copies.get(leafId));
+						.addSupport((SupportLeaf) copies.get(leaf.id()));
 			}
 		}));
 	}
@@ -230,13 +257,6 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 			}
 		});
 	}
-
-	/**
-	 * Returns true if the given element copy should be added to this model
-	 * during template expansion. {@link Justification} returns false for
-	 * {@link AbstractSupport}; {@link Template} returns true for all elements.
-	 */
-	protected abstract boolean includeInExpansion(JustificationElement copy);
 
 	/**
 	 * Validates this model for consistency and completeness without requiring a
@@ -264,8 +284,34 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		elements.removeIf(e -> e.id().equals(id));
 	}
 
-	public List<E> getElements() {
+	public List<JustificationElement> getElements() {
 		return Collections.unmodifiableList(elements);
+	}
+
+	/**
+	 * Every element of this model: the conclusion, when one is set, followed by
+	 * {@link #getElements()}.
+	 */
+	public List<JustificationElement> allElements() {
+		List<JustificationElement> all = new ArrayList<>(elements.size() + 1);
+		conclusion().ifPresent(all::add);
+		all.addAll(elements);
+		return Collections.unmodifiableList(all);
+	}
+
+	/**
+	 * Calls {@code action} once per support edge of this model, passing the id
+	 * of the supported element and then the id of its supporter. The
+	 * conclusion's edge comes first, then those of the sub-conclusions, then
+	 * those of the strategies, each in model order.
+	 */
+	public void forEachSupportEdge(BiConsumer<String, String> action) {
+		conclusion().ifPresent(c -> c.getSupport()
+				.ifPresent(s -> action.accept(c.id(), s.id())));
+		subConclusions().forEach(sc -> sc.getSupport()
+				.ifPresent(s -> action.accept(sc.id(), s.id())));
+		strategies().forEach(s -> s.getSupports()
+				.forEach(leaf -> action.accept(s.id(), leaf.id())));
 	}
 
 	/**
@@ -285,7 +331,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Elements defined directly in this model — their id has no counterpart in
 	 * any ancestor template.
 	 */
-	public List<E> ownElements() {
+	public List<JustificationElement> ownElements() {
 		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
 		return elements.stream().filter(e -> !pt.containsKey(e.id())).toList();
 	}
@@ -294,9 +340,20 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Elements copied from an ancestor template whose runtime type is unchanged
 	 * (not overridden).
 	 */
-	public List<E> inheritedElements() {
+	public List<JustificationElement> inheritedElements() {
 		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
 		return elements.stream().filter(e -> pt.get(e.id()) == e.getClass())
+				.toList();
+	}
+
+	/**
+	 * Elements this model declares rather than inherits: its
+	 * {@link #ownElements()} and its {@link #concreteOverrides()}, in model
+	 * order.
+	 */
+	public List<JustificationElement> declaredElements() {
+		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
+		return elements.stream().filter(e -> pt.get(e.id()) != e.getClass())
 				.toList();
 	}
 
@@ -309,7 +366,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 * Together with {@link #ownElements()} and {@link #inheritedElements()},
 	 * these three lists partition {@link #getElements()}.
 	 */
-	public List<E> concreteOverrides() {
+	public List<JustificationElement> concreteOverrides() {
 		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
 		return elements.stream().filter(
 				e -> pt.containsKey(e.id()) && pt.get(e.id()) != e.getClass())
@@ -351,25 +408,27 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		}
 		String parentName = parent.getName();
 		Map<String, Class<? extends JustificationElement>> map = new LinkedHashMap<>();
-		parent.conclusion().ifPresent(
-				c -> map.put(qualifiedId(c.id(), parentName), c.getClass()));
-		parent.getElements().forEach(
-				e -> map.put(qualifiedId(e.id(), parentName), e.getClass()));
+		// Reads the parent's fields directly rather than through allElements(),
+		// which copies them: AddSupport calls this on every edge.
+		parent.conclusion()
+				.ifPresent(c -> map.put(
+						QualifiedIds.qualifyIfPlain(parentName, c.id()),
+						c.getClass()));
+		parent.getElements()
+				.forEach(e -> map.put(
+						QualifiedIds.qualifyIfPlain(parentName, e.id()),
+						e.getClass()));
 		return map;
-	}
-
-	/**
-	 * Returns {@code id} qualified with {@code prefix} when it is a plain id
-	 * (no colon), or returns {@code id} unchanged when it is already qualified.
-	 * Mirrors the id-preservation rule applied by {@link #qualifiedCopy}.
-	 */
-	private static String qualifiedId(String id, String prefix) {
-		return id.contains(":") ? id : prefix + ":" + id;
 	}
 
 	/**
 	 * Searches both the conclusion field and the elements list, so callers do
 	 * not need to know how the conclusion is stored.
+	 *
+	 * <p>
+	 * Command conditions call this on every pass of the execution engine, so it
+	 * reads the fields directly rather than going through
+	 * {@link #allElements()}, which copies the model's elements.
 	 */
 	public Optional<JustificationElement> findById(String id) {
 		if (conclusion != null && conclusion.id().equals(id)) {
@@ -377,16 +436,59 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 		}
 		Optional<JustificationElement> exact = elements.stream()
 				.filter(e -> e.id().equals(id))
-				.map(e -> (JustificationElement) e).findFirst();
+				.map(JustificationElement.class::cast).findFirst();
 		if (exact.isPresent()) {
 			return exact;
 		}
 		// Short-name suffix fallback: resolves a plain id to an inherited
 		// qualified element (e.g. "s" resolves to "t:s" after template
-		// expansion).
+		// expansion). The first match, in the order of inheritedMatches,
+		// without listing them all: this is the engine's hot path.
 		String suffix = ":" + id;
-		return elements.stream().filter(e -> e.id().endsWith(suffix))
-				.map(e -> (JustificationElement) e).findFirst();
+		Optional<JustificationElement> inherited = elements.stream()
+				.filter(e -> e.id().endsWith(suffix))
+				.map(JustificationElement.class::cast).findFirst();
+		if (inherited.isPresent() || conclusion == null
+				|| !conclusion.id().endsWith(suffix)) {
+			return inherited;
+		}
+		return Optional.of(conclusion);
+	}
+
+	/**
+	 * The elements {@code id} names ambiguously: when no element has that id,
+	 * the inherited ones it names through the short-name fallback of
+	 * {@link #findById}, if there are several; nothing otherwise. A caller that
+	 * binds an id the source wrote reports these rather than settle on the
+	 * first (ADR-0012, #177).
+	 */
+	public List<JustificationElement> ambiguousMatches(String id) {
+		boolean exact = (conclusion != null && conclusion.id().equals(id))
+				|| elements.stream().anyMatch(e -> e.id().equals(id));
+		if (exact) {
+			return List.of();
+		}
+		List<JustificationElement> matches = inheritedMatches(id);
+		return matches.size() > 1 ? matches : List.of();
+	}
+
+	/**
+	 * The inherited elements a plain {@code id} names through the short-name
+	 * fallback of {@link #findById}: every element, the inherited conclusion
+	 * included, whose qualified id ends with {@code :id}. More than one is an
+	 * ambiguity the caller must not settle by picking the first (ADR-0012).
+	 */
+	public List<JustificationElement> inheritedMatches(String id) {
+		String suffix = ":" + id;
+		List<JustificationElement> matches = new ArrayList<>();
+		elements.stream().filter(e -> e.id().endsWith(suffix))
+				.forEach(matches::add);
+		// Last, so that the conclusion never takes the place of the element
+		// the fallback picked before it was considered.
+		if (conclusion != null && conclusion.id().endsWith(suffix)) {
+			matches.add(conclusion);
+		}
+		return matches;
 	}
 
 	public <T extends JustificationElement> List<T> elementsOfType(
@@ -413,12 +515,6 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 
 	protected abstract <R> R visitSelf(JustificationVisitor<R> visitor);
 
-	/** Returns the last colon-separated segment of a qualified id. */
-	protected static String plainId(String id) {
-		int colon = id.lastIndexOf(':');
-		return colon >= 0 ? id.substring(colon + 1) : id;
-	}
-
 	/**
 	 * Creates a copy of {@code elem}. If the element's id is already qualified
 	 * (contains {@code :}), the id is preserved as-is — it was inherited from a
@@ -427,9 +523,7 @@ public abstract sealed class JustificationModel<E extends JustificationElement>
 	 */
 	protected static JustificationElement qualifiedCopy(
 			JustificationElement elem, String prefix) {
-		String qualifiedId = elem.id().contains(":")
-				? elem.id()
-				: prefix + ":" + elem.id();
+		String qualifiedId = QualifiedIds.qualifyIfPlain(prefix, elem.id());
 		return switch (elem) {
 			case Evidence e -> new Evidence(qualifiedId, e.label());
 			case Strategy s -> new Strategy(qualifiedId, s.label());

@@ -12,6 +12,7 @@ import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.ImplementorInfo;
 import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.ModelInfo;
 import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.SymbolInfo;
 import ca.mcscert.jpipe.model.SourceLocation;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.json.JSONArray;
@@ -90,7 +91,7 @@ public final class JsonDiagnosticReport extends DiagnosticRenderer {
 		JSONArray array = new JSONArray();
 		for (Diagnostic d : input.diagnostics()) {
 			JSONObject entry = new JSONObject();
-			entry.put("severity", d.level().name().toLowerCase());
+			entry.put("severity", d.level().name().toLowerCase(Locale.ROOT));
 			if (d.hasCode()) {
 				entry.put("code", d.code());
 			}

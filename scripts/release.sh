@@ -218,7 +218,8 @@ check_build() {
 print_manual_checklist() {
   head2 "Manual checks — these are required, not optional housekeeping"
   cat <<'EOF'
-  [ ] Dependency review: `mvn versions:display-dependency-updates` (ADR-0007)
+  [ ] Held-back dependencies (ADR-0007): run `mvn versions:display-dependency-updates`
+      and confirm each major Dependabot holds back is still held for a reason
   [ ] Ubuntu series matrix in .github/workflows/release.yml still matches the
       policy in ADR-0023 — add a series entering support, drop one past EOL
   [ ] Windows/Scoop smoke test — CI cannot run it (ADR-0025)

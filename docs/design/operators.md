@@ -35,6 +35,12 @@ the full four-phase algorithm.
 *after* `apply()` returns, via `Unifier.unify()`. It is not part of the
 sealed template. See the *Unifier* subsection below.
 
+Last, `ApplyOperator.expand()` appends a `RecordComposition` command, which
+records on the result the call that built it (`JustificationModel.composition()`):
+the operator, the source models, and the arguments, with the element ids they
+hold as the unit names them. The JPIPE export writes a composed model back as
+that call.
+
 **Supporting types**
 
 - **`SourcedElement`** — a record pairing a `JustificationElement` with its
@@ -50,8 +56,9 @@ sealed template. See the *Unifier* subsection below.
   compiler startup in `CompilerFactory.builtInOperators()`; looked up by
   `ApplyOperator` at model-build time.
 - **`ModelKind`** — two-value enum (`JUSTIFICATION`, `TEMPLATE`).
-  `ApplyOperator` validates that the operator's `resultKind()` matches the
-  kind declared in the source file.
+  `ApplyOperator` checks that the model the operator created (the first command
+  `apply` returns) is of the kind declared in the source file, once the call
+  is otherwise valid.
 - **`InvalidOperatorCallException`** — unchecked exception thrown for unknown
   operators, missing required arguments, incompatible kinds, or unknown
   unification methods. The engine wraps it in `CompilationException`.
@@ -68,9 +75,10 @@ until all named source models are present in the `Unit`.
 
 - `condition()` — defers until `unit.findModel(name)` succeeds for every
   source name.
-- `expand(Unit)` — looks up the operator, validates `resultKind`, gathers
-  source models, calls `op.apply(…)`, then passes the result through
-  `Unifier.unify()` before returning the final command list.
+- `expand(Unit)` — looks up the operator, gathers source models, calls
+  `op.apply(…)`, checks the kind of the model it created against the declared
+  one, then passes the result through `Unifier.unify()` before returning the
+  final command list.
 
 **`Unifier`**
 
@@ -86,6 +94,28 @@ Controlled by two optional operator config parameters:
 |-----------|---------|---------|
 | `unifyBy` | `"sameLabel"` | Name of the equivalence relation to use |
 | `unifyExclude` | *(empty)* | Comma-separated result-model element ids to exclude from unification |
+
+`unifyExclude` is a set: an id listed twice is one mention, however it is
+spaced. Every id it lists must name an element of the result, as the result
+names it (`a:e`, not `e`, for an element `e` of source `a`): an id that names
+nothing is an error at the call, listing the result's ids, so that a typo can
+never leave elements unified silently.
+
+**Equivalent elements are merged, and nothing else decides.** Unification is
+brainless: the equivalence relation says which elements are equivalent, and
+those are merged, whatever their kind and whatever produced them. Two
+consequences follow from the default `sameLabel` relation, and are intended:
+
+- two **strategies** with the same label, from independent sources, become one
+  strategy, and the evidence of both now supports it: each source's conclusion
+  rests on the other's evidence (#188);
+- an element the **operator itself creates** takes part like any other: an
+  `assemble` whose `strategyLabel` equals the label of a source strategy merges
+  the two, which forms a support cycle, reported as `acyclic-support` (#181).
+
+To keep such elements apart, exclude them (`unifyExclude`) or choose another
+relation (`unifyBy`): what is equivalent is the relation's call, not the
+merge's.
 
 **Merging a group that mixes element kinds.** Because the default relation
 compares labels, a group can legitimately hold elements of different kinds:
@@ -122,18 +152,19 @@ hide empty members
 interface Command
 interface MacroCommand
 class Unit
-abstract class JustificationModel<E>
+abstract class JustificationModel
 class JustificationElement <<sealed>>
 class SourceLocation
 
 package "operators" {
 
   abstract class CompositionOperator {
-    + resultKind() : ModelKind
     # requiredArguments() : Set<String>
+    # optionalArguments() : Set<String>
+    + elementArguments() : Set<String>
     # {abstract} equivalenceRelation(sources, args) : EquivalenceRelation
     # {abstract} mergeFunction(sources, args) : MergeFunction
-    # {abstract} createResultModel(name, loc, sources, args) : Command
+    # {abstract} createResultModel(name, loc, sources, args, elements) : Command
     # additionalCommands(name, sources, aliases, args) : List<Command>
     + {final} apply(name, sources, args) : List<Command>
     + {final} apply(name, sources, args, loc) : List<Command>
@@ -209,7 +240,6 @@ package "operators" {
   CompositionOperator ..> MergeFunction : uses
   CompositionOperator ..> AliasRegistry : creates
   CompositionOperator ..> Partitions : uses
-  CompositionOperator ..> ModelKind : resultKind
 
   MergeFunction ..> ElementGroup : receives
   MergeFunction ..> AliasRegistry : populates
@@ -271,6 +301,7 @@ note right of Unifier
   Append RegisterAlias commands
 end note
 Unifier --> ApplyOperator            : unified : List<Command>
+ApplyOperator -> ApplyOperator       : append RecordComposition
 
 @enduml
 ```
@@ -296,12 +327,24 @@ Built-in operator implementations. Each is registered in
 
 **`RefineOperator`** (`"refine"`)
 
-Syntax: `justification R is refine(base, refinement) { hook: "base/elementId" }`
+Syntax: `justification R is refine(base, refinement) { hook: "elementId" }`
 
 Merges one element from `base` (the *hook*) with the conclusion of
 `refinement` into a single `SubConclusion` whose id is `"hook"`. All other
 elements are copied with `sourceName:elementId` qualified ids. Requires the
-`hook` argument in `"modelName/elementId"` form.
+`hook` argument: the id of an element of `base` as `base` names it, plain
+(`e`) or qualified (`first:e`, for an element `base` got from a composition).
+
+- The hook is looked up through the unit's aliases, followed to the end of the
+  chain, so it can name an element renamed by several composition steps
+  (`both:a:e`, after two unifications).
+- It must be an **evidence or an `@support`**: only a leaf can be refined. A
+  strategy, a conclusion or a sub-conclusion is an error at the call.
+- A plain id that names several inherited elements of `base` is an
+  **ambiguous hook**, an error asking for the qualified id.
+- The result is a **template** when it keeps an `@support`, that is when a
+  source holds one other than the hook, and a justification otherwise. A model
+  declared with the other kind is an error at the call.
 
 **`AssembleOperator`** (`"assemble"`)
 
@@ -312,6 +355,14 @@ sub-conclusions through a synthesized aggregating `Strategy` (id:
 `"assembleStrategy"`), and tops them with a synthesized `Conclusion` (id:
 `"assembleConclusion"`). All other elements are copied with source-prefixed
 ids. Result is a `Template` if any source is a `Template`.
+
+**Every operator call.** Each operator declares the arguments it requires and
+those it accepts (`requiredArguments`, `optionalArguments`), plus the
+unification keys `unifyBy` and `unifyExclude`. Any other key, a misspelt one
+included, is an error at the call naming the accepted keys. A key given twice
+is reported and its first value kept. A source model given more than once is
+an error, and so is `implements` on a model built by an operator: its structure
+is the operator's.
 
 ## Extension Points
 
@@ -399,26 +450,33 @@ import ca.mcscert.jpipe.operators.*;
 
 public final class MyOperator extends CompositionOperator {
 
-    // (1) Declare the result kind — JUSTIFICATION or TEMPLATE
-    @Override
-    public ModelKind resultKind() { return ModelKind.JUSTIFICATION; }
-
-    // (2) Required argument names (empty if none)
+    // (1) Required argument names (empty if none)
     @Override
     protected Set<String> requiredArguments() { return Set.of("myParam"); }
 
-    // (3) How source elements are partitioned into equivalence classes
+    // Optional argument names (empty if none). Any key neither required nor
+    // optional, other than unifyBy and unifyExclude, is refused at the call.
+    @Override
+    protected Set<String> optionalArguments() { return Set.of("myOption"); }
+
+    // Optional: the arguments that hold the id of an element of a source, as
+    // that source names it, renamed with the models when the file is loaded
+    // under a namespace (`load "f.jd" as ns`).
+    @Override
+    public Set<String> elementArguments() { return Set.of(); }
+
+    // (2) How source elements are partitioned into equivalence classes
     @Override
     protected EquivalenceRelation equivalenceRelation(
-            List<JustificationModel<?>> sources,
+            List<JustificationModel> sources,
             Map<String, String> args) {
         return new SameShortId();   // Phase 1 only — not registered for unification
     }
 
-    // (4) How each equivalence class is merged into a new element
+    // (3) How each equivalence class is merged into a new element
     @Override
     protected MergeFunction mergeFunction(
-            List<JustificationModel<?>> sources,
+            List<JustificationModel> sources,
             Map<String, String> args) {
         return (resultName, group, aliases) -> {
             // Build Create* commands; call aliases.register(newId, oldIds)
@@ -426,18 +484,20 @@ public final class MyOperator extends CompositionOperator {
         };
     }
 
-    // (5) The command that creates the result model itself
+    // (4) The command that creates the result model, which decides its kind
+    //     (JUSTIFICATION or TEMPLATE); `elements` are
+    //     the commands creating its elements, for a kind that depends on them
     @Override
     protected Command createResultModel(String name, SourceLocation loc,
-            List<JustificationModel<?>> sources,
-            Map<String, String> args) {
+            List<JustificationModel> sources,
+            Map<String, String> args, List<Command> elements) {
         return new CreateJustification(name, loc);
     }
 
-    // (6) Optional: synthesize elements/edges with no counterpart in any source
+    // (5) Optional: synthesize elements/edges with no counterpart in any source
     @Override
     protected List<Command> additionalCommands(String name,
-            List<JustificationModel<?>> sources,
+            List<JustificationModel> sources,
             AliasRegistry aliases,
             Map<String, String> args) {
         return List.of(/* synthesized Create* and AddSupport commands */);

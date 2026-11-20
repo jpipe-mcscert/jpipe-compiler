@@ -20,7 +20,7 @@ Two structural choices for logger declaration arise:
 
 All operational output (parse events, compilation progress, errors) goes through the logging framework. `System.out` and `System.err` are reserved for the CLI's user-facing output (e.g. final results rendered to the terminal), not for internal pipeline events.
 
-**Exception — compilation diagnostics:** `ChainCompiler.printDiagnostics()` writes accumulated `ERROR`/`FATAL` diagnostics to `System.err` at the end of `compile()`. This is intentional: these messages are the user-facing result of compilation (analogous to `gcc` printing errors to stderr) rather than internal pipeline observability. They are not subject to log-level filtering and must always reach the user. New pipeline code that needs to report an error condition should use `CompilationContext` (which feeds `printDiagnostics`), not `System.err` directly.
+**Exception — compilation diagnostics:** at the end of `compile()`, `ChainCompiler` has `DiagnosticPrinter` print the accumulated `ERROR`/`FATAL` diagnostics on stderr, as bare `file:line:column: severity: message` lines. These messages are the user-facing result of compilation (analogous to `gcc` printing errors to stderr) rather than internal pipeline observability. They are not subject to log-level filtering and must always reach the user: `DiagnosticPrinter` writes them through the dedicated `jpipe.diagnostics` logger, which sits outside the `ca.mcscert.jpipe` hierarchy that `--log-level` tunes, and which the CLI's Log4j configuration always enables. New pipeline code that needs to report an error condition should use `CompilationContext` (which feeds `printDiagnostics`), not `System.err` directly.
 
 ### Logger declaration
 

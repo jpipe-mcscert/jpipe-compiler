@@ -2,7 +2,22 @@ package ca.mcscert.jpipe.visitor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ca.mcscert.jpipe.model.Composition;
+import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.ProvenanceFixtures;
+import ca.mcscert.jpipe.model.elements.Conclusion;
+import ca.mcscert.jpipe.model.elements.Evidence;
+import ca.mcscert.jpipe.model.elements.SubConclusion;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class JsonExporterTest {
 
@@ -21,6 +36,19 @@ class JsonExporterTest {
 				.export(ModelFixtures.simpleJustification());
 
 		assertThat(json).contains("\"j:c\"", "\"j:s\"", "\"j:e1\"");
+	}
+
+	@Test
+	void export_elementCarriesOnlyItsDocumentedFields() {
+		// The undocumented "escaped" slug is gone (#187): the Python function
+		// name it echoed differs whenever names collide or are reserved.
+		JSONArray elements = new JSONObject(
+				new JsonExporter().export(ModelFixtures.simpleJustification()))
+				.getJSONArray("elements");
+
+		assertThat(elements).isNotEmpty()
+				.allSatisfy(e -> assertThat(((JSONObject) e).keySet())
+						.containsExactlyInAnyOrder("type", "id", "label"));
 	}
 
 	@Test
@@ -70,11 +98,142 @@ class JsonExporterTest {
 		assertThat(json).contains("\"j:outer:unified_0\"", "\"j:outer:a:s1\"");
 	}
 
-	@Test
-	void export_withoutAliases_omitsAliasesKey() {
+	@ParameterizedTest(name = "a plain model has no \"{0}\" key")
+	@ValueSource(strings = {"aliases", "origins", "implements"})
+	void export_plainModel_omitsTheOptionalKeys(String key) {
+		// aliases: no merge; origins: no operator built it (#200);
+		// implements: it implements no template (#199).
 		String json = new JsonExporter()
 				.export(ModelFixtures.simpleJustification());
 
-		assertThat(json).doesNotContain("\"aliases\"");
+		assertThat(json).doesNotContain("\"" + key + "\"");
+	}
+
+	/** The origins of the element {@code id} of {@code json}, as text. */
+	private static List<String> originsOf(String json, String id) {
+		List<String> origins = new ArrayList<>();
+		new JSONObject(json).getJSONArray("elements").forEach(e -> {
+			JSONObject element = (JSONObject) e;
+			if (element.getString("id").equals(id) && element.has("origins")) {
+				element.getJSONArray("origins").forEach(o -> {
+					JSONObject origin = (JSONObject) o;
+					origins.add(origin.getString("model") + " "
+							+ origin.getString("id") + " "
+							+ origin.getString("type"));
+				});
+			}
+		});
+		return origins;
+	}
+
+	@Test
+	void export_composedElementListsItsOriginsAtEveryLevelNearestFirst() {
+		// out assembles b, which assembles ns:a: out's b:ns:a:e is b's ns:a:e,
+		// which is the evidence e of ns:a (#200).
+		JustificationModel out = ProvenanceFixtures.nestedNamespaces()
+				.get("out");
+
+		String json = new JsonExporter().export(out);
+
+		assertThat(originsOf(json, "out:b:ns:a:e"))
+				.containsExactly("b b:ns:a:e evidence", "ns:a ns:a:e evidence");
+		assertThat(originsOf(json, "out:b:ns:e"))
+				.containsExactly("b:ns b:ns:e evidence");
+		assertThat(originsOf(json, "out:assembleConclusion")).isEmpty();
+	}
+
+	@Test
+	void export_mergedElementListsEveryElementMergedIntoIt() {
+		// refine merges the hook evidence and the refinement's conclusion into
+		// one sub-conclusion: the aliases say which ids, the origins what
+		// they were.
+		Justification base = new Justification("base");
+		base.addElement(new Evidence("e", "The tests pass"));
+		Justification refinement = new Justification("refinement");
+		refinement.setConclusion(new Conclusion("c", "The code is tested"));
+		Justification refined = new Justification("refined");
+		refined.addElement(new SubConclusion("hook", "The code is tested"));
+		refined.recordComposition(new Composition("refine",
+				List.of(base, refinement), Map.of(), Set.of()));
+		refined.recordAlias("base:e", "hook");
+		refined.recordAlias("refinement:c", "hook");
+
+		String json = new JsonExporter().export(refined);
+
+		assertThat(originsOf(json, "refined:hook")).containsExactly(
+				"base base:e evidence", "refinement refinement:c conclusion");
+	}
+
+	@Test
+	void export_implementingModelLaysOutItsTemplatesParentFirst() {
+		// leaf implements base:mid, which implements root and fills its
+		// @support abs (#199). A cluster draws the template's own elements,
+		// then the @supports it fills.
+		JSONObject layout = new JSONObject(
+				new JsonExporter().export(ProvenanceFixtures.templateChain()))
+				.getJSONObject("implements");
+
+		assertThat(layout.getJSONArray("elements")).isEmpty();
+		JSONArray templates = layout.getJSONArray("templates");
+		assertThat(templates.getJSONObject(0).getString("name"))
+				.isEqualTo("base:mid");
+		assertThat(templates.getJSONObject(0).getJSONArray("elements"))
+				.containsExactly("leaf:base:mid:m", "leaf:root:abs");
+		JSONObject root = templates.getJSONObject(1);
+		assertThat(root.getString("name")).isEqualTo("root");
+		assertThat(root.getJSONArray("elements")).containsExactly("leaf:root:c",
+				"leaf:root:s", "leaf:root:abs");
+		JSONObject placeholder = root.getJSONArray("placeholders")
+				.getJSONObject(0);
+		assertThat(placeholder.getString("id")).isEqualTo("leaf:root:abs");
+		assertThat(placeholder.getString("label")).isEqualTo("Some support");
+		assertThat(placeholder.getJSONArray("supports"))
+				.containsExactly("leaf:root:s");
+	}
+
+	@Test
+	void export_placeholderIsNeverAnElement() {
+		// The runner rejects an element of an unknown type: the placeholder
+		// lives in the layout only.
+		JSONArray elements = new JSONObject(
+				new JsonExporter().export(ProvenanceFixtures.templateChain()))
+				.getJSONArray("elements");
+
+		assertThat(elements)
+				.noneSatisfy(e -> assertThat(((JSONObject) e).getString("type"))
+						.isEqualTo("abstract-support"));
+	}
+
+	@Test
+	void export_originFoundThroughSeveralPathsIsListedOnce() {
+		// A diamond: b1 and b2 both compose first, and top merges their copies
+		// of first's e. first:e is reached through both branches, but is one
+		// origin (review of #203).
+		Justification first = new Justification("first");
+		first.addElement(new Evidence("e", "The tests pass"));
+		Justification b1 = copyOf("b1", first);
+		Justification b2 = copyOf("b2", first);
+		Justification top = new Justification("top");
+		top.addElement(new Evidence("u", "The tests pass"));
+		top.recordComposition(new Composition("assemble", List.of(b1, b2),
+				Map.of(), Set.of()));
+		top.recordAlias("b1:first:e", "u");
+		top.recordAlias("b2:first:e", "u");
+
+		String json = new JsonExporter().export(top);
+
+		assertThat(originsOf(json, "top:u")).containsExactly(
+				"b1 b1:first:e evidence", "b2 b2:first:e evidence",
+				"first first:e evidence");
+	}
+
+	/** {@code name}, composed of {@code source} alone, keeping its ids. */
+	private static Justification copyOf(String name, Justification source) {
+		Justification copy = new Justification(name);
+		source.allElements().forEach(e -> copy.addElement(
+				new Evidence(source.getName() + ":" + e.id(), e.label())));
+		copy.recordComposition(new Composition("assemble", List.of(source),
+				Map.of(), Set.of()));
+		return copy;
 	}
 }

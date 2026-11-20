@@ -41,6 +41,12 @@ Prior to this ADR:
 
 `ERROR` is the default level for diagnosed problems. It signals "something is wrong
 and the user must see it", but allows the pipeline to continue and produce output.
+Within model construction, a statement whose command fails is an `ERROR` too: the
+execution engine records it and runs the remaining commands, so that one mistake
+yields one diagnostic, not a cascade about statements that never ran.
+
+Every diagnostic tied to a statement is located at that statement, in the file it
+is written in, which for a `load`-ed file is not the file being compiled.
 
 `FATAL` means "continuing is meaningless or dangerous". It is promoted from `ERROR`
 only by `HaltAndCatchFire`, and only in contexts where downstream steps cannot
@@ -128,8 +134,10 @@ model export and a report written into it would corrupt the artefact.
 | Compilation succeeded, no errors | 0 |
 | Compilation succeeded, errors diagnosed | 1 |
 | Pipeline aborted (syntax errors or explicit FATAL) | 1 |
+| Invalid command line (unknown option, invalid value, output that is the input file) | 2 |
 | Source file unreadable, under `diagnostic` | 1 |
 | Source file unreadable, under `process` | 42 |
+| Output file cannot be written | 42 |
 | Unexpected exception (system error) | 42 |
 
 A source file that cannot be read is a `FATAL` under `diagnostic` for the same
@@ -138,9 +146,11 @@ consuming it, so a tool gets a document naming the problem instead of an empty
 stream. Under `process` it stays a system error — there is no artefact to
 produce and nothing to report into.
 
-Exit code 42 is reserved for exceptions that escape all `CompilationException` and
-`UnsupportedOperationException` handlers — i.e., bugs or environmental failures
-outside the compiler's control.
+Exit code 42 is reserved for failures outside the compiler's control: a file the command
+cannot read or write, and exceptions that escape all `CompilationException` and
+`UnsupportedOperationException` handlers, i.e. bugs. A file is named in the message
+(`error: cannot write '<path>': <reason>`); an exception is reported as one
+`internal error: …` line.
 
 ## Rationale
 

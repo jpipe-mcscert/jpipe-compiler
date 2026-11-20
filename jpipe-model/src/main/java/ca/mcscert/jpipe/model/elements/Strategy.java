@@ -38,9 +38,8 @@ public final class Strategy implements CommonElement {
 	 * nothing is added.
 	 */
 	public void addSupport(SupportLeaf supporter) {
-		String supporterId = ((JustificationElement) supporter).id();
-		boolean present = supporters.stream().anyMatch(
-				s -> ((JustificationElement) s).id().equals(supporterId));
+		boolean present = supporters.stream()
+				.anyMatch(s -> s.id().equals(supporter.id()));
 		if (!present) {
 			this.supporters.add(supporter);
 		}
@@ -58,9 +57,8 @@ public final class Strategy implements CommonElement {
 	 * different objects and types).
 	 */
 	public void replaceSupport(SupportLeaf oldSupport, SupportLeaf newSupport) {
-		String oldId = ((JustificationElement) oldSupport).id();
 		for (int i = 0; i < supporters.size(); i++) {
-			if (((JustificationElement) supporters.get(i)).id().equals(oldId)) {
+			if (supporters.get(i).id().equals(oldSupport.id())) {
 				supporters.set(i, newSupport);
 				return;
 			}

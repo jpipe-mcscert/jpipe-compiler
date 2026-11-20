@@ -20,6 +20,271 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [4.0.0] — 2026-11-19
+
+### Added
+- Strings accept two escapes: `\"` for a double quote and `\\` for a backslash.
+  Any other backslash is kept as written, so a path such as `"dir\file.jd"`
+  needs no change. The JPIPE export escapes labels the same way, so a label
+  holding a quote compiles back to itself (#176).
+- The JSON export gives each element of a model built by an operator its
+  `origins`: the elements of the models it was composed from, at every level,
+  each with its model, its id and the kind it had there. A consumer such as
+  jpipe-runner can now tell which elements composition changed, and what they
+  were: the hook `refine` merges into a sub-conclusion, or the conclusion of a
+  source that `assemble` turns into a sub-conclusion. A model that implements
+  a template built by an operator passes the template's origins on to the
+  elements it inherits. The new key is optional, and the JSON of a model that
+  no operator built, and that implements no template an operator built, is
+  unchanged (#200).
+- The JSON export of a model that implements a template describes how the DOT
+  export draws the template chain, in a new `implements` key: each template's
+  cluster and the elements drawn in it, the `@support` placeholders and their
+  labels, which element fills each one, and which edges are drawn from a
+  placeholder. A consumer such as jpipe-runner can now draw the model as the
+  compiler does. `elements` and `relations` are unchanged, and the JSON of a
+  model that implements nothing is unchanged. The DOT export now writes its
+  override arrows in drawing order, so their order can change once in a DOT
+  file generated with an earlier version (#199).
+
+### Changed
+- **Breaking:** mistakes in an operator call are errors at the call instead of
+  being accepted (#184):
+  - `implements` on a model built by an operator, which was dropped;
+  - a configuration key given twice, where the last value won;
+  - a key the operator does not accept, such as a misspelt `unifyExlude` or a
+    `hook` passed to `assemble`, which was ignored;
+  - an `unifyExclude` id that names no element of the result, such as a plain
+    `e` where the result names it `a:e`, which was ignored.
+- **Breaking:** `refine`'s hook must be an evidence or a `@support`. A strategy
+  or a conclusion was accepted, and broke the model (#181).
+- **Breaking:** a source model given more than once to an operator
+  (`assemble(a, a)`) is an error (#181).
+- `refine` produces a template when its result keeps a `@support`, so a template
+  can be refined; it could only produce a justification (#181).
+- **Breaking, for custom operators:** `CompositionOperator.resultKind` is
+  removed. The kind of the result is the model `createResultModel` creates,
+  which now also receives the commands creating the result's elements, and an
+  operator declares the optional keys it reads with `optionalArguments()`
+  (#181, #184).
+- A mistake in an operator call is reported with the code
+  `invalid-operator-call`, at the call: an unknown operator, a missing, unknown
+  or repeated argument, a hook that cannot be refined, a source given twice.
+  These were `execution-error` (#184).
+- The documentation now states that unification merges whatever its equivalence
+  relation deems equivalent: under the default `sameLabel`, two strategies with
+  the same label are merged and pool their evidence, and an element the operator
+  creates is merged like any other (#188, #181).
+- **Breaking:** a model that implements a template inherits its conclusion and
+  can no longer declare its own: that is now an `inherited-conclusion` error. It
+  used to be accepted or rejected depending on whether the template was declared
+  before or after the model (#177).
+- **Breaking:** a relation or an override whose id is the end of several
+  inherited ids, such as `a` when both `root:a` and `mid:a` are inherited, or
+  `t:a` for both `x:t:a` and `y:t:a`, is now an `ambiguous-id` error asking for
+  the full qualified id. It used to bind to the first one found (#177).
+- **Breaking:** a template's `@support` that supports no strategy is now an error
+  in that template (completeness rule `abstract-support-used`). It compiled, but
+  no justification could override it, and the failure was only reported, without
+  a line, in each one that tried (#183).
+- A model declared under a name already taken, in the same file or in a loaded
+  one, is reported once, at the second declaration and naming where the first
+  is, with the new code `duplicate-model`. It used to be an `execution-error`,
+  plus a misleading `single-conclusion` error. Nothing in the second
+  declaration is added to the first model any more (#183).
+- **Breaking:** a string now ends at its first unescaped double quote. It used
+  to run to the last quote on its line, so a trailing `// see "doc"` comment
+  became part of the label, and two declarations written on one line were
+  merged into one element. A label that holds a double quote must now write it
+  `\"` (#176).
+- **Breaking:** two backslashes in a string now stand for one. A label written
+  `"a\\b"` reads `a\b`, and a Windows network path in a `load` must double
+  its leading backslashes, `"\\\\server\\share\\lib.jd"`, or use forward
+  slashes (#176).
+- **Breaking:** a character the language does not know, such as the `-` in
+  `e-1` or the `é` in `café`, is now a syntax error reported where it sits. It
+  used to be dropped without a word, so `e-1` and `e-2` both became `e` (#176).
+- The compilation errors of `jpipe process` are now printed on standard error as
+  bare `file:line:column: error: message` lines, without a timestamp or logger
+  name, and no `--log-level` hides them: `--log-level OFF` used to leave only
+  `Compilation failed`, with no line or column (#186).
+- **Breaking:** `--log-level` now rejects an unknown level with exit code 2, as
+  `-f` does. It used to fall back to `ERROR` without a word (#186).
+- The `jpipe` launchers installed by Homebrew, Scoop and the Debian package no
+  longer refuse to start when Graphviz is missing. That blocked `jpipe doctor`,
+  which exists to diagnose it, and every format that does not need it; the image
+  formats still report a missing `dot` (#186).
+- **Breaking:** a source file that is not valid UTF-8 is now a fatal error,
+  located at the first invalid byte. Its bytes used to be replaced with `�`
+  without a word, so a file saved in Latin-1 compiled with mangled labels
+  (#179). A UTF-8 file that starts with a byte-order mark is still accepted.
+- Updated build and test dependencies to their current majors: JUnit 6
+  (→ 6.1.3, Jupiter and Platform), Cucumber 8 (→ 8.0.4), Checkstyle 14
+  (→ 14.4.0) and `json-schema-validator` 3 (→ 3.0.9). This lifts the JUnit 6
+  deferral noted in 2.1.0: Cucumber 8 targets JUnit Platform 6. Every CI
+  workflow now runs the latest major of each GitHub Action.
+- Python export now imports `Path` from `pathlib` in every module that holds an
+  evidence, since jpipe-runner injects each artifact an evidence `observes` as a
+  `Path` parameter. Annotating those parameters no longer needs an import added
+  by hand.
+- Python export now hard-wraps the boilerplate of the generated module at 80
+  columns, commented-out steps included: `jpipe_runner` is imported on two
+  lines, one for the decorators and one for the outcomes; a long decorator,
+  docstring or `NotImplementedError` message is broken over several lines; and
+  the header and the note above a commented-out step each take two. What comes
+  from the model has nowhere to break and can still run past the limit: a
+  function name, which follows its label, an id, or the source path in the
+  header.
+- **Breaking:** a Python function name keeps the letters of a label in a
+  non-Latin script, which Python 3 accepts in identifiers: `"系统 正确"` gives
+  `def 系统_正确()` instead of `def _()`. A letter with a diacritic still maps to
+  its ASCII base (`"Vérification"` still gives `verification`), but a letter
+  that has none is now kept instead of dropped (`ß`, `ø`, `œ`): a step library
+  generated for such labels must be regenerated or renamed (#187).
+- **Breaking:** the JSON export no longer writes an `escaped` field on each
+  element. It was undocumented, and it was not the Python function name whenever
+  two names collided or a label was a reserved word (#187).
+- **Breaking:** in the DOT export, and the SVG drawn from it, an overridden
+  `@support`'s placeholder node now has its own `id`, ending in `@abstract`. It
+  shared the id of the element overriding it, so a lookup by id, such as the
+  VS Code preview's, could land on either one (#187).
+- The header of a Python export no longer carries the generation date, so
+  regenerating a committed step library leaves it unchanged (#187).
+
+### Fixed
+- On Windows, compiling a source read from standard input no longer fails with
+  an internal error (exit code 42).
+- An id repeated in `unifyExclude` (`"c,c"`) no longer fails the composition with
+  a misleading `duplicate element` error: the list is a set (#171).
+- A plain `refine` hook that names several elements of the base model is an
+  `ambiguous hook` error, instead of silently taking the first (#181).
+- A `refine` hook is found through every composition step that renamed it, not
+  only the last one (#181).
+- The documentation, the language reference included, gives the `refine` hook as
+  an element id (`first:e`); it gave a `base/elementId` form that never worked
+  (#181).
+- A model declared as a justification but built by `refine` as a template, or
+  the other way round, is reported only once the call is otherwise valid: a
+  mistake in the hook is reported as itself, not as a kind mismatch (#181).
+- A file that compiles on its own now also compiles once loaded under a
+  namespace (`load "f.jd" as ns`) (#178):
+  - its operator calls are prefixed like its models, the element ids of their
+    `hook` and `unifyExclude` included, however many composition steps they go
+    through; the calls used to wait forever for their unprefixed sources;
+  - its overrides and relations that use a qualified id, such as
+    `evidence base:t:abs`, are prefixed too; the overrides used to be lost;
+  - a file that two namespaced files both load is loaded in each namespace; the
+    second one used to be skipped, leaving unknown models;
+  - a file loaded flat inside a namespaced file is loaded into that namespace,
+    even when it is also loaded flat elsewhere.
+- The same file reached through a symbolic link, or spelled differently on a
+  case-insensitive file system, is loaded once instead of twice (#178).
+- A `load` path the file system does not accept is a located error instead of a
+  Java stack trace, and a glob that meets a directory it cannot read names that
+  directory instead of a Java exception (#178).
+- The order of declarations no longer changes what a model means (#177):
+  - a template is copied whole into the model that implements it, even when its
+    relations are written after that model;
+  - a chain of templates declared bottom-up (`j implements mid`, then
+    `mid implements root`, then `root`) is inherited in full;
+  - a short id in a relation binds to the model's own element, even when that
+    element is declared after the relation, instead of to an inherited one;
+  - a relation into an abstract support may be written before its override;
+  - an operator call composes its source models once they are complete;
+  - a model lists its elements in the same order whether its template is
+    declared before or after it, so a composition of that model gives the
+    elements it unifies the same ids (`unified_0`, `unified_1`, …).
+- A relation naming the inherited conclusion by its short id (`s2 supports c`)
+  is reported as `reference-into-template`, as for any element of the template
+  other than a `@support`, instead of as an unknown element (#177).
+- A mistake in one model no longer holds back what does not depend on it: a
+  model with a broken relation is still composed by the operator calls that use
+  it, and a stuck override no longer blocks the other relations of its model
+  (#177).
+- A model whose `implements` fails or never completes, such as two templates
+  implementing each other, is reported once. Its other statements and its
+  completeness are no longer reported as mistakes of their own, and no operator
+  call consumes it (#177). A cycle that goes through an operator call, such as
+  `j implements t` where `t` is `assemble(j, a)`, is reported as
+  `cyclic-implements` too.
+- An error in a `load`-ed file is reported in that file, at its own line. It was
+  reported against the file being compiled, often at a line that file does not
+  have, so the IDE pointed at the wrong place (#173).
+- One failing statement no longer stops the construction of its model: the
+  statements after it still run, so they are no longer reported as missing, as
+  in `Strategy 's2' has no supporting element` after a conclusion was given two
+  strategies. What only waits on a model whose operator call failed, however
+  indirectly, adds no error of its own (#183).
+- Diagnostics carry the line of the statement that caused them (#183):
+  - a failing operator call is reported at the call, names the operator
+    (`'assemble' for 'r'`, not `AssembleOperator`), and no longer repeats
+    `[execution-error]` in its message;
+  - a call to a model that does not exist names that model;
+  - a `load` that fails is reported at its `load` statement, naming the path as
+    written;
+  - duplicate models, a second conclusion and other failing statements give
+    their line.
+- Overriding an abstract support twice, or overriding an element that is not
+  one, is reported as `unresolved-override` at the override, instead of only
+  `unresolved symbol(s) — model cannot be built` (#183).
+- `jpipe diagnostic` no longer reports `"status": "ok"` and exits 0 on a source
+  it never read, such as standard input redirected from a directory: the
+  failure is a fatal diagnostic, with exit code 1. Under `process`, that source
+  is a system error (exit code 42), as one that cannot be opened is (#180).
+- A single-quoted label (`'A label'`) is now a syntax error at its location,
+  instead of a crash with a Java stack trace and no diagnostic report. Strings
+  are written between double quotes only (#172).
+- The logo banner is now printed on standard error. It used to start every
+  export written to standard output, so `jpipe process` without `--headless`
+  produced JSON, Python and images that could not be read (#175).
+- An unexpected failure now prints one `internal error: …` line and exits with
+  code 42, as documented, instead of a Java stack trace and exit code 1, which
+  looked like an ordinary compile error. `--log-level DEBUG` shows the trace
+  (#182).
+- `jpipe process -f PYTHON` on a model in which two elements share an id now
+  fails like any other compile error, with exit code 1 and no stack trace
+  (#182).
+- `jpipe --log-level=INFO …`, the form `--help` shows, is accepted when no
+  subcommand is given; it used to fail as an unknown option (#186).
+- An argument that happens to be a subcommand name, such as a model called
+  `doctor`, no longer stops `process` from being the default subcommand (#186).
+- `-V` on a subcommand (`jpipe process -V`) prints the version; it printed
+  nothing (#186).
+- The error for a missing Graphviz now suggests `jpipe doctor`; it suggested
+  `jpipe --doctor`, which does not exist (#186).
+- `-o` no longer truncates its file before compiling. An `-o` naming the input
+  file erased the source; it is now refused with exit code 2. A run that
+  aborts, on a fatal error or an unknown model, wiped the previous output; the
+  file is now written only once the command has produced its output (#174).
+- An `-o` that cannot be written (a directory, a read-only file, a missing or
+  read-only directory) is reported as `error: cannot write '<path>': <reason>` before
+  compiling, instead of `unexpected error: …` (#186).
+- Text exports and reports written to standard output are now always UTF-8.
+  They followed the terminal's encoding, so on a non-UTF-8 console, the Windows
+  console included, every non-ASCII letter became `?` (#179).
+- A failure to write an export or a report, such as a full disk or a closed
+  pipe, is now an error with exit code 42. Text formats used to exit 0 with an
+  empty or missing file (#179).
+- The DOT export of a justification no longer draws edges from a template's
+  evidence into a strategy the justification declares itself, without support,
+  under the same short id as a template strategy. Such a strategy is now drawn
+  with no incoming edge, as declared (#189).
+- Python function names, and the severities of the diagnostic report, are now
+  lowercased the same way under every system locale. Under a Turkish locale,
+  `"CHECK INPUTS"` gave `check_nputs` (#187).
+- The JPIPE export compiles back to the model exported, as documented. It
+  did not for a model that implements a template, which declared again every
+  element it inherits; for a composed model, whose qualified ids no body can
+  declare; nor for a model loaded under a namespace, whose name the grammar
+  rejects. The output now holds, first, every model the exported one depends
+  on; a model that implements a template declares only its own elements,
+  overrides and relations; a composed model is written as its operator call;
+  and a model loaded under a namespace is inlined under a plain name (`base:t`
+  becomes `base_t`, and `base:t:abs` becomes `base_t:abs`), never as a
+  `load` (#185).
+
+---
+
 ## [3.0.0] — 2026-11-10
 
 ### Changed
@@ -442,7 +707,8 @@ server.
 ### Added
 - Initial commit: first version of the compiler.
 
-[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v4.0.0...HEAD
+[4.0.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v3.0.0...v4.0.0
 [3.0.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.5.0...v3.0.0
 [2.5.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.3.1...v2.4.0

@@ -138,8 +138,8 @@ After building from source, the fat JAR is at `jpipe-cli/target/jpipe-cli-*.jar`
 `process` subcommand is the default, so these two invocations are equivalent:
 
 ```bash
-java -jar jpipe-cli/target/jpipe-cli-*.jar -i my.jd -d MyModel -f dot
-java -jar jpipe-cli/target/jpipe-cli-*.jar process -i my.jd -d MyModel -f dot
+java -jar jpipe-cli/target/jpipe-cli-*.jar -i my.jd -m MyModel -f dot
+java -jar jpipe-cli/target/jpipe-cli-*.jar process -i my.jd -m MyModel -f dot
 ```
 
 ### Common flags
@@ -148,10 +148,10 @@ java -jar jpipe-cli/target/jpipe-cli-*.jar process -i my.jd -d MyModel -f dot
 |------|-------|-------------|
 | `--input FILE` | `-i` | Input `.jd` source file (default: stdin) |
 | `--output FILE` | `-o` | Output file (default: stdout) |
-| `--diagram NAME` | `-d` | Name of the model to export (required) |
+| `--model NAME` | `-m` | Name of the model to export (required) |
 | `--format FORMAT` | `-f` | Output format — see table below (default: `JPIPE`) |
-| `--headless` | | Suppress the logo banner |
-| `--log-level LEVEL` | | Log verbosity: `OFF` `ERROR` `WARN` `INFO` `DEBUG` `TRACE` |
+| `--headless` | | Suppress the logo banner (printed on stderr) |
+| `--log-level LEVEL` | | Log verbosity: `OFF` `ERROR` `WARN` `INFO` `DEBUG` `TRACE`. Compilation errors are shown at every level |
 
 ### Output formats
 
@@ -199,7 +199,7 @@ justification MyModel {
 Compile it to a DOT diagram:
 
 ```bash
-java -jar jpipe-cli/target/jpipe-cli-*.jar -i my.jd -d MyModel -f dot -o my.dot
+java -jar jpipe-cli/target/jpipe-cli-*.jar -i my.jd -m MyModel -f dot -o my.dot
 dot -Tpng my.dot -o my.png
 ```
 
@@ -218,7 +218,7 @@ More examples are in the [`examples/`](examples/) directory.
 
 ## How to contribute?
 
-Found a bug, or want to add a cool feature? Feel free to fork this repository and send a pull request.
+Found a bug, or want to add a cool feature? Feel free to fork this repository and send a pull request. The organization's [contributing guide](https://github.com/jpipe-mcscert/.github/blob/main/CONTRIBUTING.md) describes the branches (pull requests target `dev`) and the steps a pull request goes through. In this repository, maintainers may also push small changes (version bumps, changelog close-out, CI configuration, small fixes carried by their tests) straight to `dev` once `mvn verify` is green ([ADR-0024](docs/adr/0024-git-branching-model.md)).
 
 If you're interested in contributing to the research effort related to jPipe, feel free to contact the PI: [Dr. Sébastien Mosser](mailto:mossers@mcmaster.ca).
 

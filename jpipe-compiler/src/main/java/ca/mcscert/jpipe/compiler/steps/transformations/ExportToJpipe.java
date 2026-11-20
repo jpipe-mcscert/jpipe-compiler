@@ -9,12 +9,10 @@ import ca.mcscert.jpipe.visitor.JpipeExporter;
  * Compilation step that serialises a {@link JustificationModel} to {@code .jd}
  * source text.
  */
-public class ExportToJpipe
-		extends
-			Transformation<JustificationModel<?>, String> {
+public class ExportToJpipe extends Transformation<JustificationModel, String> {
 
 	@Override
-	protected String run(JustificationModel<?> input, CompilationContext ctx) {
+	protected String run(JustificationModel input, CompilationContext ctx) {
 		return new JpipeExporter().export(input);
 	}
 }

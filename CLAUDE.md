@@ -4,15 +4,19 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Critical Rules
 
-- **Never commit or push code without explicit user consent.** Always show the diff and ask before running any `git commit` or `git push` command.
-- **Never commit directly to `main` or `dev`.** `main` is release-only (see [Git Workflow](#git-workflow)); `dev` accepts direct pushes from human authors, but Claude works on a topic branch unless explicitly told otherwise.
-- **Never merge a pull request or push a git tag.** Merging (including the release `dev`→`main` merge) and tagging (`vX.Y.Z`) are **human-only** actions. Claude prepares the branch/PR and hands off; it does not run `gh pr merge`, merge branches into `dev`/`main`, or push tags.
+- **Stay on the session's branch.** Never create a branch without the maintainer's approval: if the work seems to need one, say so and wait. If the session is on `main` or `dev`, ask for a branch before committing anything. The default is to commit on the current branch, push it, report, and stop: the maintainer reviews the work in the pull request, not commit by commit.
+- **Never commit to `main`.** It is release-only (see [Git Workflow](#git-workflow)). **Never commit to `dev`** unless explicitly asked: human authors push small changes there directly, Claude only on request.
+- **Never merge a pull request or push a git tag.** Merging is a **human** action unless the maintainer explicitly asks Claude to merge a given PR into `dev`. Merges into `main` (releases and hotfixes) and tags (`vX.Y.Z`) are always **human-only**.
+- **Open a pull request only when asked**, then follow the org guide's [pull request steps](https://github.com/jpipe-mcscert/.github/blob/main/CONTRIBUTING.md#pull-requests) in order: local `/code-review` and fixes → open as a **draft** against `dev` (`main` for a release or a hotfix) → fix the SonarQube issues, or justify in the report the ones kept (a suppression still needs approval, see [Code Quality Conventions](#code-quality-conventions)); the `SonarCloud Code Analysis` check carries the quality gate → request **one** Copilot review (`gh pr edit <n> --add-reviewer "@copilot"`), never re-requested → reply to every comment on GitHub, resolve the addressed threads, leave unsure or disputed ones open → `gh pr ready`. Report the threads left open, and stop.
 
 ---
 
 ## Git Workflow
 
-The repository uses a two-tier branching model (ADR-0024):
+The repository follows the organization's
+[contributing workflow](https://github.com/jpipe-mcscert/.github/blob/main/CONTRIBUTING.md),
+with the two-tier branching model of ADR-0024. On top of it, human authors may push
+small changes straight to `dev`:
 
 - **`main` — release-only.** Every commit on `main` is a released, tagged
   version; `main@HEAD` always equals the latest published release. Never commit
@@ -27,13 +31,15 @@ The repository uses a two-tier branching model (ADR-0024):
   (version bumps, changelog close-out, CI configuration, small fixes carried by
   their tests) straight to `dev` once `mvn verify` is green (ADR-0024, amendment
   of 2026-08-07). Only `main` requires a PR. **This relaxation is for human
-  authors.** Claude still branches, commits, pushes the topic branch and stops;
-  it pushes to `dev` directly only when explicitly asked, and never commits
-  without showing the diff first (see Critical Rules).
+  authors.** Claude commits on the session's branch, pushes it and stops; it
+  creates a branch only with the maintainer's approval, and pushes to `dev`
+  only when explicitly asked.
 - **Releasing** — the full runbook is [`docs/releasing.md`](docs/releasing.md),
   driven by `scripts/release.sh`. **The `dev`→`main` merge and the tag push are
-  human-only actions** (see Critical Rules); Claude only prepares the release
-  commit (changelog close-out, version bump).
+  human-only actions** (see Critical Rules). Claude prepares the release commit
+  (changelog close-out, version bump) only when explicitly asked, which is the
+  request to commit to `dev`: it shows `scripts/release.sh prepare X.Y.Z
+  --dry-run` first, since the script commits by itself.
 - **Hotfixes** — branch from `main`, merge into `main`, release via a patch tag,
   then merge back into `dev`.
 
@@ -53,7 +59,7 @@ defining justifications that support software maintenance and CI/CD activities.
 - **Language:** Java 25
 - **Build system:** Maven (multi-module)
 - **Key libraries:** ANTLR4 (grammar/parsing), PicoCLI (CLI), Cucumber (E2E
-  tests), JUnit 5 + AssertJ (unit tests), Log4j 2 (logging)
+  tests), JUnit 6 + AssertJ (unit tests), Log4j 2 (logging)
 - **Core patterns:** Typed pipeline DSL, Command pattern (model construction),
   Visitor pattern (model traversal), sealed type hierarchies
 
@@ -124,7 +130,8 @@ The four roles:
 - **`Source<I>`** — reads the source file, produces the initial pipeline value
 - **`Transformation<I,O>`** — converts one type to another; subclasses
   implement `protected run(I, ctx)`, callers use `final fire(I, ctx)` which
-  handles logging, null detection, fatal fast-fail, and exception wrapping
+  handles logging, null detection and fatal fast-fail; exceptions from `run`
+  propagate unchanged
 - **`Checker<I>`** — `Transformation<I,I>`; guaranteed not to modify its input;
   used for validation steps
 - **`Sink<O>`** — serialises the final value to a file or stream
@@ -142,7 +149,8 @@ new FileSource()
     .andThen(new LoadResolver(operators, unification));
 
 // unitBuilder(): List<Command> → Unit
-new ActionListInterpretation()
+new DuplicateModelFilter()
+    .andThen(new ActionListInterpretation())
     .andThen(new ConsistencyChecker())
     .andThen(new CompletenessChecker());
 ```
@@ -172,8 +180,9 @@ JustificationElement (sealed)
 SupportLeaf (marker interface) — implemented by SubConclusion, Evidence, AbstractSupport
 ```
 
-`JustificationModel<E>` (sealed abstract base):
-- `Justification` — accepts only `CommonElement`; concrete justification
+`JustificationModel` (sealed abstract base):
+- `Justification` — concrete justification; declares only `CommonElement`s,
+  but holds a template's `AbstractSupport` placeholders until they are overridden
 - `Template` — accepts any `JustificationElement`; abstract/reusable structure
 
 Model construction uses the **Command pattern** (ADR-0005). Traversal uses the
@@ -212,8 +221,9 @@ Architecture decisions live in `docs/adr/`. Notable ones:
 ## Development Conventions
 
 - **Diagnostics:** Use `CompilationContext` to report `ERROR` or `FATAL`
-  diagnostics. Avoid throwing raw exceptions; prefer wrapping in
-  `CompilationException` via the pipeline's `fire()` method.
+  diagnostics. Avoid throwing raw exceptions: `fire()` does not wrap them, so
+  a step that cannot continue reports through the context or throws
+  `CompilationException` itself.
 - **Pipeline steps:** New compilation phases must be implemented as
   `Transformation<I,O>` or `Checker<I>` subclasses and placed under
   `ca.mcscert.jpipe.compiler.steps`.
@@ -290,7 +300,7 @@ should pass the plain id when possible.
 
 ## Code Quality Conventions
 
-### Test code (AssertJ / JUnit 5)
+### Test code (AssertJ / JUnit 6)
 
 - **Chain assertions**: use one `assertThat(x)` chain with multiple matchers — never
   split into separate `assertThat(x).contains(a)` + `assertThat(x).contains(b)` (S5853)

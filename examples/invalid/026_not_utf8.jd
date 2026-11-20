@@ -1,0 +1,16 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// This file is encoded in ISO-8859-1, not UTF-8. The accented letters in the
+// conclusion's label are single bytes that are not valid UTF-8: the compiler
+// reports the first one where it sits, instead of replacing it silently.
+justification latin1 {
+    conclusion c is "Le système est sûr"
+    strategy   s is "A strategy"
+    evidence   e is "An evidence"
+    s supports c
+    e supports s
+}

@@ -4,6 +4,7 @@ import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
+import java.util.Optional;
 
 /** Creates a {@link Justification} inside a unit. */
 public final class CreateJustification extends RegularCommand {
@@ -24,6 +25,7 @@ public final class CreateJustification extends RegularCommand {
 		return identifier;
 	}
 
+	@Override
 	public SourceLocation location() {
 		return location;
 	}
@@ -32,6 +34,11 @@ public final class CreateJustification extends RegularCommand {
 	public void doExecute(Unit context) {
 		context.add(new Justification(identifier));
 		context.recordLocation(identifier, location);
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(identifier);
 	}
 
 	@Override

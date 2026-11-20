@@ -1,0 +1,38 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// 'dangling' supports no strategy: it is reported once, in the template, line
+// 14, and not again where 'j' overrides it, line 22.
+// Overriding 'abs' twice is reported at the second override, line 21.
+template t {
+    conclusion c        is "C"
+    strategy   s        is "S"
+    @support   abs      is "A"
+    @support   dangling is "D"
+    abs supports s
+    s supports c
+}
+
+justification j implements t {
+    evidence t:abs      is "E"
+    evidence t:abs      is "E again"
+    evidence t:dangling is "D"
+    strategy s2         is "An unrelated strategy"
+    evidence e2         is "Its evidence"
+    e2 supports s2
+}
+
+// 'u' inherits 'dangling', and 'v' composes it twice: neither reports it again.
+template u implements t {
+    strategy s3 is "S3"
+    evidence e3 is "E3"
+    e3 supports s3
+}
+
+template v is assemble(t, u) {
+    conclusionLabel: "V"
+    strategyLabel:   "SV"
+}

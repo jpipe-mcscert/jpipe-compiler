@@ -5,9 +5,12 @@ import ca.mcscert.jpipe.commands.CommandExecutionException;
 import ca.mcscert.jpipe.commands.DeadlockException;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.MacroCommand;
+import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
+import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.Unit;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -15,9 +18,10 @@ import java.util.List;
  * through the {@link ExecutionEngine}.
  *
  * <p>
- * If execution deadlocks, each stuck command is analysed to emit a specific
- * semantic diagnostic (e.g. {@code [unknown-element]}) rather than propagating
- * an unexpected exception.
+ * A command that fails is reported and the others still run. If execution
+ * deadlocks, each stuck command is analysed to emit a specific semantic
+ * diagnostic (e.g. {@code [unknown-element]}) rather than propagating an
+ * unexpected exception.
  */
 public final class ActionListInterpretation
 		extends
@@ -30,24 +34,44 @@ public final class ActionListInterpretation
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_TOTAL, input.size());
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_MACROS, macros);
 
-		ExecutionEngine engine = new ExecutionEngine();
+		// A failing command is recorded and the rest still run, so that one
+		// error does not hide the others, or make the checkers report as
+		// missing what the source declares (#183).
+		List<CommandExecutionException> failures = new ArrayList<>();
+		ExecutionEngine engine = new ExecutionEngine(failure -> {
+			failures.add(failure);
+			// A model whose `implements` failed is unusable: nothing may
+			// consume it, and the checkers leave it alone. One whose override
+			// failed is still checked, but for the placeholder it keeps.
+			Unit partial = failure.partialUnit();
+			switch (failure.failedCommand()) {
+				case ImplementsTemplate it ->
+					partial.markIncomplete(it.modelName());
+				case OverrideAbstractSupport o ->
+					partial.findModel(o.container())
+							.ifPresent(m -> o.namedIds(m).forEach(id -> partial
+									.recordFailedOverride(o.container(), id)));
+				default -> {
+					// The model is still checked: see #183.
+				}
+			}
+		});
 		Unit unit;
+		DeadlockException deadlock = null;
 		try {
 			unit = engine.spawn(ctx.sourcePath(), input);
 		} catch (DeadlockException ex) {
-			ExecutionFailureDiagnostics.diagnoseDeadlock(ex.stuckCommands(),
-					ex.partialUnit(), ctx);
-			ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,
-					engine.totalDeferrals());
-			ctx.recordActions(engine.executedCommands());
-			return ex.partialUnit();
-		} catch (CommandExecutionException ex) {
-			ExecutionFailureDiagnostics.diagnoseExecutionFailure(
-					ex.failedCommand(), ex.partialUnit(), ex.getCause(), ctx);
-			ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,
-					engine.totalDeferrals());
-			ctx.recordActions(engine.executedCommands());
-			return ex.partialUnit();
+			deadlock = ex;
+			unit = ex.partialUnit();
+		}
+		ExecutionFailureDiagnostics.diagnoseExecutionFailures(failures, ctx);
+		if (deadlock != null) {
+			ExecutionFailureDiagnostics.diagnoseDeadlock(
+					deadlock.stuckCommands(), unit,
+					ExecutionFailureDiagnostics.brokenModels(failures), ctx);
+			ExecutionFailureDiagnostics
+					.stuckImplementations(deadlock.stuckCommands())
+					.forEach(unit::markIncomplete);
 		}
 
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,

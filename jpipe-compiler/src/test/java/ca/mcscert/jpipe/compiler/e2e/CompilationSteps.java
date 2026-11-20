@@ -19,7 +19,10 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.visitor.DotExporter;
+import ca.mcscert.jpipe.visitor.JpipeExporter;
 import ca.mcscert.jpipe.visitor.JsonExporter;
+import ca.mcscert.jpipe.visitor.DotFromJson;
+import ca.mcscert.jpipe.visitor.PlainModelNames;
 import ca.mcscert.jpipe.visitor.PythonExporter;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -32,8 +35,15 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
+import java.util.function.UnaryOperator;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import org.json.JSONArray;
@@ -48,7 +58,7 @@ public class CompilationSteps {
 	private CompilationContext ctx;
 	private Unit unit;
 	private Exception compilationError;
-	private JustificationModel<?> currentModel;
+	private JustificationModel currentModel;
 	private String dotOutput;
 	private String pythonOutput;
 	private String jsonOutput;
@@ -59,6 +69,23 @@ public class CompilationSteps {
 	@Given("the source file {string}")
 	public void theSourceFile(String filename) {
 		sourcePath = System.getProperty(EXAMPLES_DIR) + "/" + filename;
+	}
+
+	/**
+	 * The fixture {@code filename}, copied after a UTF-8 byte-order mark, as
+	 * some Windows editors and PowerShell save it.
+	 */
+	@Given("the source file {string} saved with a byte-order mark")
+	public void theSourceFileWithAByteOrderMark(String filename)
+			throws IOException {
+		byte[] bom = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+		byte[] text = Files.readAllBytes(
+				Path.of(System.getProperty(EXAMPLES_DIR), filename));
+		Path copy = Files.createTempFile("bom", ".jd");
+		copy.toFile().deleteOnExit();
+		Files.write(copy, bom);
+		Files.write(copy, text, StandardOpenOption.APPEND);
+		sourcePath = copy.toString();
 	}
 
 	@When("I compile it into a unit")
@@ -248,6 +275,62 @@ public class CompilationSteps {
 		assertThat(severitiesIn(jsonReport)).contains(severity);
 	}
 
+	@Then("the JSON report has a {string} diagnostic at line {int}, column {int}")
+	public void theJsonReportHasADiagnosticAt(String severity, int line,
+			int column) {
+		JSONArray diagnostics = jsonReport.getJSONArray("diagnostics");
+		List<String> located = new ArrayList<>();
+		for (int i = 0; i < diagnostics.length(); i++) {
+			JSONObject d = diagnostics.getJSONObject(i);
+			located.add(d.getString("severity") + "@" + d.optInt("line", -1)
+					+ ":" + d.optInt("column", -1));
+		}
+		assertThat(located).contains(severity + "@" + line + ":" + column);
+	}
+
+	@Then("the JSON report has a diagnostic with code {string} in {string} at line {int}")
+	public void theJsonReportHasACodedDiagnosticInFileAt(String code,
+			String file, int line) {
+		assertThat(locatedCodes()).contains(code + "@" + file + ":" + line);
+	}
+
+	@Then("the JSON report has a diagnostic with code {string} at line {int}")
+	public void theJsonReportHasACodedDiagnosticAt(String code, int line) {
+		assertThat(locatedCodes())
+				.anyMatch(entry -> entry.startsWith(code + "@")
+						&& entry.endsWith(":" + line));
+	}
+
+	@Then("the JSON report has no diagnostic at line {int}")
+	public void theJsonReportHasNoDiagnosticAtLine(int line) {
+		assertThat(locatedCodes())
+				.noneMatch(entry -> entry.endsWith(":" + line));
+	}
+
+	@Then("the JSON report has no diagnostic with code {string}")
+	public void theJsonReportHasNoDiagnosticWithCode(String code) {
+		assertThat(codesIn(jsonReport)).doesNotContain(code);
+	}
+
+	@Then("the JSON report has exactly one diagnostic with code {string}")
+	public void theJsonReportHasExactlyOneDiagnosticWithCode(String code) {
+		assertThat(codesIn(jsonReport)).filteredOn(code::equals).hasSize(1);
+	}
+
+	/** Every coded diagnostic as {@code code@file-name:line}. */
+	private List<String> locatedCodes() {
+		JSONArray diagnostics = jsonReport.getJSONArray("diagnostics");
+		List<String> located = new ArrayList<>();
+		for (int i = 0; i < diagnostics.length(); i++) {
+			JSONObject d = diagnostics.getJSONObject(i);
+			String file = Path.of(d.getString("source")).getFileName()
+					.toString();
+			located.add(d.optString("code", "") + "@" + file + ":"
+					+ d.optInt("line", -1));
+		}
+		return located;
+	}
+
 	@Then("the JSON report describes no model")
 	public void theJsonReportDescribesNoModel() {
 		assertThat(jsonReport.getJSONArray("models")).isEmpty();
@@ -344,6 +427,259 @@ public class CompilationSteps {
 		assertThat(jsonOutput).contains(fragment);
 	}
 
+	@Then("the JSON output does not contain {string}")
+	public void theJsonOutputDoesNotContain(String fragment) {
+		assertThat(jsonOutput).doesNotContain(fragment);
+	}
+
+	@Then("the JSON element {string} has the origin {string} of model {string}, a {string}")
+	public void theJsonElementHasTheOrigin(String id, String originId,
+			String model, String type) {
+		assertThat(originsOf(new JSONObject(jsonOutput), id))
+				.contains(List.of(model, originId, type));
+	}
+
+	@Then("no JSON element has origins")
+	public void noJsonElementHasOrigins() {
+		new JSONObject(jsonOutput).getJSONArray("elements")
+				.forEach(e -> assertThat(((JSONObject) e).has("origins"))
+						.as("origins of %s", e).isFalse());
+	}
+
+	@Then("every composed model of the unit traces each source element to one of its elements")
+	public void everyComposedModelTracesEachSourceElement() {
+		List<JustificationModel> composed = unit.getModels().stream()
+				.filter(m -> m.composition().isPresent()).toList();
+		assertThat(composed).isNotEmpty();
+		for (JustificationModel model : composed) {
+			JSONObject json = new JSONObject(new JsonExporter().export(model));
+			for (JustificationModel source : model.composition().orElseThrow()
+					.sources()) {
+				new JSONObject(new JsonExporter().export(source))
+						.getJSONArray("elements").forEach(e -> {
+							JSONObject element = (JSONObject) e;
+							List<String> origin = List.of(source.getName(),
+									element.getString("id"),
+									element.getString("type"));
+							assertThat(elementsWithOrigin(json, origin))
+									.as("elements of %s built from %s",
+											model.getName(), origin)
+									.hasSize(1);
+						});
+			}
+		}
+	}
+
+	@Then("every origin in the unit is an element of its model, of the kind it gives")
+	public void everyOriginIsAnElementOfItsModel() {
+		for (JustificationModel model : unit.getModels()) {
+			JSONObject json = new JSONObject(new JsonExporter().export(model));
+			json.getJSONArray("elements").forEach(e -> {
+				JSONObject element = (JSONObject) e;
+				originsOf(json, element.getString("id")).forEach(origin -> {
+					JSONObject source = new JSONObject(new JsonExporter()
+							.export(unit.get(origin.getFirst())));
+					assertThat(originsTypes(source, origin.get(1)))
+							.as("origin %s of %s", origin,
+									element.getString("id"))
+							.containsExactly(origin.get(2));
+				});
+			});
+		}
+	}
+
+	/** The origins of the element {@code id}, each as [model, id, type]. */
+	private static List<List<String>> originsOf(JSONObject json, String id) {
+		List<List<String>> origins = new ArrayList<>();
+		json.getJSONArray("elements").forEach(e -> {
+			JSONObject element = (JSONObject) e;
+			if (element.getString("id").equals(id) && element.has("origins")) {
+				element.getJSONArray("origins").forEach(o -> {
+					JSONObject origin = (JSONObject) o;
+					origins.add(List.of(origin.getString("model"),
+							origin.getString("id"), origin.getString("type")));
+				});
+			}
+		});
+		return origins;
+	}
+
+	/** The ids of the elements that have {@code origin} among their origins. */
+	private static List<String> elementsWithOrigin(JSONObject json,
+			List<String> origin) {
+		List<String> ids = new ArrayList<>();
+		json.getJSONArray("elements").forEach(e -> {
+			String id = ((JSONObject) e).getString("id");
+			if (originsOf(json, id).contains(origin)) {
+				ids.add(id);
+			}
+		});
+		return ids;
+	}
+
+	/** The types of the elements of {@code json} whose id is {@code id}. */
+	private static List<String> originsTypes(JSONObject json, String id) {
+		List<String> types = new ArrayList<>();
+		json.getJSONArray("elements").forEach(e -> {
+			JSONObject element = (JSONObject) e;
+			if (element.getString("id").equals(id)) {
+				types.add(element.getString("type"));
+			}
+		});
+		return types;
+	}
+
+	@Then("the DOT export of every model of the unit is rebuilt from its JSON export")
+	public void theDotExportOfEveryModelIsRebuiltFromItsJsonExport() {
+		assertThat(unit.getModels()).isNotEmpty();
+		for (JustificationModel model : unit.getModels()) {
+			assertThat(DotFromJson.rebuild(new JsonExporter().export(model)))
+					.as("DOT of '%s' rebuilt from its JSON", model.getName())
+					.isEqualTo(new DotExporter().export(model));
+		}
+	}
+
+	@Then("every model of the unit compiles back from its JPIPE export")
+	public void everyModelCompilesBackFromItsJpipeExport() throws IOException {
+		assertThat(unit.getModels()).isNotEmpty();
+		for (JustificationModel model : unit.getModels()) {
+			PlainModelNames names = JpipeExporter.namesFor(model);
+			Path exported = Files.createTempFile("roundtrip", ".jd");
+			try {
+				Files.writeString(exported, new JpipeExporter().export(model));
+				Unit recompiled = compileQuietly(exported);
+				JustificationModel back = recompiled
+						.get(names.name(model.getName()));
+				assertThat(canonicalJson(back, PlainModelNames.of(List.of())))
+						.as("JPIPE round-trip of model '%s'", model.getName())
+						.isEqualTo(canonicalJson(model, names));
+			} finally {
+				Files.delete(exported);
+			}
+		}
+	}
+
+	/** Compiles {@code path}, failing on any diagnostic. */
+	private static Unit compileQuietly(Path path) throws IOException {
+		Transformation<InputStream, Unit> pipeline = CompilerFactory
+				.parsingChain().andThen(CompilerFactory.unitBuilder())
+				.asTransformation();
+		CompilationContext context = new CompilationContext(path.toString());
+		try (InputStream stream = Files.newInputStream(path)) {
+			Unit compiled = pipeline.fire(stream, context);
+			assertThat(context.diagnostics())
+					.as("diagnostics compiling back %s:%n%s", path,
+							Files.readString(path))
+					.isEmpty();
+			return compiled;
+		}
+	}
+
+	/**
+	 * The JSON export of {@code model}, with its model names and ids renamed by
+	 * {@code names}, its elements sorted by id and its relations by source and
+	 * target: what a round-trip must preserve, whatever the order the source
+	 * declares things in.
+	 */
+	private static String canonicalJson(JustificationModel model,
+			PlainModelNames names) {
+		JSONObject json = new JSONObject(new JsonExporter().export(model));
+		json.put("name", names.name(json.getString("name")));
+		UnaryOperator<String> rename = id -> renamed(model, names, id);
+		List<JSONObject> elements = new ArrayList<>();
+		json.getJSONArray("elements").forEach(e -> {
+			JSONObject element = (JSONObject) e;
+			element.put("id", rename.apply(element.getString("id")));
+			if (element.has("aliases")) {
+				JSONArray aliases = new JSONArray();
+				element.getJSONArray("aliases")
+						.forEach(a -> aliases.put(rename.apply((String) a)));
+				element.put("aliases", aliases);
+			}
+			if (element.has("origins")) {
+				element.getJSONArray("origins").forEach(o -> {
+					JSONObject origin = (JSONObject) o;
+					JustificationModel from = composedFrom(model,
+							origin.getString("model"));
+					origin.put("model", names.name(from.getName()));
+					origin.put("id",
+							renamed(from, names, origin.getString("id")));
+				});
+			}
+			elements.add(element);
+		});
+		elements.sort(Comparator.comparing(e -> e.getString("id")));
+		List<JSONObject> relations = new ArrayList<>();
+		json.getJSONArray("relations").forEach(r -> {
+			JSONObject relation = (JSONObject) r;
+			relation.put("source", rename.apply(relation.getString("source")));
+			relation.put("target", rename.apply(relation.getString("target")));
+			relations.add(relation);
+		});
+		relations.sort(
+				Comparator.comparing((JSONObject r) -> r.getString("source")
+						+ " " + r.getString("target")));
+		json.put("elements", new JSONArray(elements));
+		json.put("relations", new JSONArray(relations));
+		JSONObject layout = json.optJSONObject("implements");
+		if (layout != null) {
+			layout.put("elements",
+					renamedAll(layout.getJSONArray("elements"), rename));
+			layout.getJSONArray("templates").forEach(t -> {
+				JSONObject template = (JSONObject) t;
+				template.put("name", names.name(template.getString("name")));
+				template.put("elements",
+						renamedAll(template.getJSONArray("elements"), rename));
+				template.getJSONArray("placeholders").forEach(ph -> {
+					JSONObject placeholder = (JSONObject) ph;
+					placeholder.put("id",
+							rename.apply(placeholder.getString("id")));
+					placeholder.put("supports", renamedAll(
+							placeholder.getJSONArray("supports"), rename));
+				});
+			});
+		}
+		return json.toString(2);
+	}
+
+	/** Each id of {@code ids}, renamed. */
+	private static JSONArray renamedAll(JSONArray ids,
+			UnaryOperator<String> rename) {
+		JSONArray renamed = new JSONArray();
+		ids.forEach(id -> renamed.put(rename.apply((String) id)));
+		return renamed;
+	}
+
+	/**
+	 * The model named {@code name} that {@code model} is built from, through
+	 * its compositions and the templates it implements.
+	 */
+	private static JustificationModel composedFrom(JustificationModel model,
+			String name) {
+		Deque<JustificationModel> pending = new ArrayDeque<>(List.of(model));
+		while (!pending.isEmpty()) {
+			JustificationModel next = pending.pop();
+			if (next.getName().equals(name)) {
+				return next;
+			}
+			next.composition().ifPresent(c -> pending.addAll(c.sources()));
+			next.getParent().ifPresent(pending::add);
+		}
+		throw new AssertionError(
+				model.getName() + " is built from no model " + name);
+	}
+
+	/**
+	 * {@code id}, an id of the JSON export of {@code model}, renamed by
+	 * {@code names}: the model's own name, then the id it qualifies, read
+	 * through the models {@code model} is built from.
+	 */
+	private static String renamed(JustificationModel model,
+			PlainModelNames names, String id) {
+		String local = id.substring(model.getName().length() + 1);
+		return names.name(model.getName()) + ":" + names.id(model, local);
+	}
+
 	@When("I export the current model to Python format")
 	public void iExportTheCurrentModelToPythonFormat() {
 		pythonOutput = new PythonExporter().export(currentModel);
@@ -393,13 +729,14 @@ public class CompilationSteps {
 	}
 
 	/**
-	 * A step decorator line, behind {@code prefix}, that takes
-	 * {@code qualifiedId} among its positional ids.
+	 * A step decorator, behind {@code prefix}, that takes {@code qualifiedId}
+	 * among its positional ids, whether it is written on one line or wrapped
+	 * over several.
 	 */
 	private static Pattern bindingOf(String prefix, String qualifiedId) {
-		return Pattern.compile(
-				"(?m)^" + Pattern.quote(prefix) + "@\\w+\\((?:\"[^\"]*\", )*"
-						+ Pattern.quote("\"" + qualifiedId + "\""));
+		return Pattern.compile("(?m)^" + Pattern.quote(prefix)
+				+ "@\\w+\\((?:[\\s#]*\"[^\"]*\",)*[\\s#]*"
+				+ Pattern.quote("\"" + qualifiedId + "\""));
 	}
 
 	@Then("the compilation has validation errors")

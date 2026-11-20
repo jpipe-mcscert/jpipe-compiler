@@ -60,9 +60,14 @@ final class DiagnosticCompiler implements Compiler {
 		try {
 			input = source.provideFrom(sourceFile);
 			unit = analysis.fire(input, ctx);
-		} catch (CompilationException _) {
+		} catch (CompilationException e) {
 			// The abort is the subject of the report, not a reason to skip it.
-			// Only a fatal is caught here: a bug in a step still propagates.
+			// Only a fatal is caught here: a bug in a step still propagates. A
+			// step that aborted without recording why still leaves a fatal, so
+			// the report can never call it a clean compilation (#180).
+			if (!ctx.hasFatalErrors()) {
+				ctx.fatal(e.getMessage());
+			}
 		} catch (IOException e) {
 			// Same reasoning one step earlier: a source the command cannot read
 			// is something to report on, not something to die on. Failing to

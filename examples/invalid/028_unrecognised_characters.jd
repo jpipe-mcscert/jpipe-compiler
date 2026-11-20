@@ -1,0 +1,16 @@
+/*********************************
+ * jPipe  -  Reference Examples  *
+ * @author   Sebastien Mosser    *
+ * @compiler 3.x                 *
+ *********************************/
+
+// An identifier is made of letters, digits and underscores. Any other
+// character is reported where it sits, rather than dropped: e-1 and e-2 would
+// otherwise both be read as e.
+justification j {
+    conclusion c is "A conclusion"
+    strategy   s is "A strategy"
+    evidence   e-1 is "An evidence"
+    s supports c
+    e-1 supports s
+}

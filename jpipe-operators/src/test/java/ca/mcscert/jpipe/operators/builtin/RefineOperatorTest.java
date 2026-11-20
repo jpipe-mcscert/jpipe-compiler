@@ -8,6 +8,7 @@ import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateEvidence;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
+import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.model.Justification;
@@ -24,6 +25,11 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import ca.mcscert.jpipe.model.Template;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.Evidence;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class RefineOperatorTest {
 
@@ -252,7 +258,7 @@ class RefineOperatorTest {
 
 		@Test
 		void throwsWhenHookArgumentMissing() {
-			List<JustificationModel<?>> sources = List.of(buildMinimal(),
+			List<JustificationModel> sources = List.of(buildMinimal(),
 					buildRefinement());
 			Map<String, String> args = Map.of();
 			assertThatThrownBy(() -> refine.apply("refined", sources, args))
@@ -262,7 +268,7 @@ class RefineOperatorTest {
 
 		@Test
 		void throwsWhenSourceCountIsNotTwo() {
-			List<JustificationModel<?>> sources = List.of(buildMinimal());
+			List<JustificationModel> sources = List.of(buildMinimal());
 			Map<String, String> args = Map.of("hook", "e");
 			assertThatThrownBy(() -> refine.apply("refined", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
@@ -271,7 +277,7 @@ class RefineOperatorTest {
 
 		@Test
 		void throwsWhenHookElementNotFoundInBaseModel() {
-			List<JustificationModel<?>> sources = List.of(buildMinimal(),
+			List<JustificationModel> sources = List.of(buildMinimal(),
 					buildRefinement());
 			Map<String, String> args = Map.of("hook", "nonexistent");
 			assertThatThrownBy(() -> refine.apply("refined", sources, args))
@@ -279,5 +285,91 @@ class RefineOperatorTest {
 					.hasMessageContaining("nonexistent")
 					.hasMessageContaining("minimal");
 		}
+	}
+
+	@Nested
+	class Hooks {
+
+		@ParameterizedTest(name = "a {1} hook is refused")
+		@CsvSource({"s, strategy", "c, conclusion"})
+		void only_a_leaf_can_be_a_hook(String hook, String kind) {
+			// Any element was accepted and broke the model (#181).
+			List<JustificationModel> sources = List.of(buildMinimal(),
+					buildRefinement());
+			Map<String, String> args = Map.of("hook", hook);
+
+			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+					.isInstanceOf(InvalidOperatorCallException.class)
+					.hasMessageContaining("is a " + kind);
+		}
+
+		@Test
+		void an_ambiguous_short_hook_is_refused() {
+			// It used to take the first match silently (#181).
+			Justification base = new Justification("base");
+			base.addElement(new Evidence("first:e1", "One"));
+			base.addElement(new Evidence("second:e1", "Two"));
+			List<JustificationModel> sources = List.of(base, buildRefinement());
+			Map<String, String> args = Map.of("hook", "e1");
+
+			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+					.isInstanceOf(InvalidOperatorCallException.class)
+					.hasMessageContainingAll("ambiguous hook 'e1'",
+							"'first:e1'", "'second:e1'");
+		}
+
+		@Test
+		void a_hook_renamed_by_several_compositions_is_found() {
+			// One step only used to be followed (#181).
+			Justification base = buildUnifiedSource();
+			Map<String, String> aliases = Map.of("src/r1:a:e", "r1:unified_0",
+					"src/r1:unified_0", "unified_0");
+
+			assertThat(RefineOperator.resolveHook(base, "r1:a:e", aliases).id())
+					.isEqualTo("unified_0");
+		}
+
+		@Test
+		void an_unknown_argument_is_refused() {
+			// A misspelt key used to be ignored (#184).
+			List<JustificationModel> sources = List.of(buildMinimal(),
+					buildRefinement());
+			Map<String, String> args = Map.of("hook", "e", "unifyExlude", "x");
+
+			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+					.isInstanceOf(InvalidOperatorCallException.class)
+					.hasMessageContainingAll(
+							"unknown argument(s) [unifyExlude]",
+							"accepted: [hook, unifyBy, unifyExclude]");
+		}
+
+		@Test
+		void the_same_model_given_twice_is_refused() {
+			// refine(a, a) used to fail on an unrelated unification error.
+			Justification minimal = buildMinimal();
+			List<JustificationModel> sources = List.of(minimal, minimal);
+			Map<String, String> args = Map.of("hook", "e");
+
+			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+					.isInstanceOf(InvalidOperatorCallException.class)
+					.hasMessageContaining("'minimal' is given more than once");
+		}
+
+		@Test
+		void refining_a_template_that_keeps_a_support_gives_a_template() {
+			// A refine could only produce a justification (#181).
+			Template t = new Template("t");
+			t.addElement(new AbstractSupport("abs1", "A1"));
+			t.addElement(new AbstractSupport("abs2", "A2"));
+			List<JustificationModel> keeps = List.of(t, buildRefinement());
+			List<JustificationModel> replaces = List.of(buildMinimal(),
+					buildRefinement());
+
+			assertThat(refine.apply("r", keeps, Map.of("hook", "abs1"))).first()
+					.isInstanceOf(CreateTemplate.class);
+			assertThat(refine.apply("r", replaces, Map.of("hook", "e"))).first()
+					.isInstanceOf(CreateJustification.class);
+		}
+
 	}
 }

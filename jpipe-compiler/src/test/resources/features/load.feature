@@ -63,7 +63,9 @@ Feature: Load directive
     Given the source file "invalid/019_load_flat_collision.jd"
     When I compile it into a unit
     Then the compilation has validation errors
-      And a validation error is reported for rule "execution-error"
+      And a validation error is reported for rule "duplicate-model"
+    When I produce a JSON diagnostic report
+    Then the JSON report has a diagnostic with code "duplicate-model" in "009_refine.jd" at line 9
 
   Scenario: a glob load expands into every matching file, imported flat
     Given the source file "020_load_glob_flat.jd"
@@ -124,3 +126,19 @@ Feature: Load directive
     When I compile it into a unit
     Then the compilation fails with a fatal error
       And a fatal error mentions "Invalid glob in load pattern"
+
+  Scenario: a file that compiles on its own still compiles under a namespace
+    Given the source file "027_load_under_namespaces.jd"
+    When I compile it into a unit
+    Then the compilation succeeds
+      And the unit contains a justification named "r:refined"
+      And the unit contains a justification named "c:with_refine_1"
+      And the unit contains a justification named "rc:detailed"
+      And the unit contains a justification named "rc:pqr"
+      And the unit contains a justification named "np:out"
+      And the unit contains a justification named "u:my_justification"
+      And the unit contains a template named "L:shared:t"
+      And the unit contains a template named "R:shared:t"
+      And the unit contains a template named "t"
+      And the unit contains a template named "f:t"
+      And the unit contains a justification named "f:flat_justification"

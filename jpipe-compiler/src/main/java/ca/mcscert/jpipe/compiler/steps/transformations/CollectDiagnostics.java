@@ -11,7 +11,6 @@ import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.ModelInfo;
 import ca.mcscert.jpipe.compiler.model.DiagnosticSnapshot.SymbolInfo;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.JustificationModel;
-import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
@@ -34,12 +33,6 @@ import java.util.Map;
 public final class CollectDiagnostics
 		extends
 			Transformation<Unit, DiagnosticSnapshot> {
-
-	private static final String KIND_CONCLUSION = "conclusion";
-	private static final String KIND_SUB_CONCLUSION = "sub-conclusion";
-	private static final String KIND_STRATEGY = "strategy";
-	private static final String KIND_EVIDENCE = "evidence";
-	private static final String KIND_ABSTRACT_SUPPORT = "abstract-support";
 
 	@Override
 	protected DiagnosticSnapshot run(Unit input, CompilationContext ctx) {
@@ -65,7 +58,7 @@ public final class CollectDiagnostics
 		Map<String, List<ImplementorInfo>> implementors = implementorsOf(input);
 		Map<String, Map<String, String>> aliases = groupAliasesByModel(input);
 		List<ModelInfo> models = new ArrayList<>();
-		for (JustificationModel<?> model : input.getModels()) {
+		for (JustificationModel model : input.getModels()) {
 			models.add(describe(input, model, implementors, aliases));
 		}
 		return new DiagnosticSnapshot(ctx.sourcePath(), ctx.diagnostics(),
@@ -76,7 +69,7 @@ public final class CollectDiagnostics
 	// Models
 	// -------------------------------------------------------------------------
 
-	private ModelInfo describe(Unit unit, JustificationModel<?> model,
+	private ModelInfo describe(Unit unit, JustificationModel model,
 			Map<String, List<ImplementorInfo>> implementors,
 			Map<String, Map<String, String>> aliasesByModel) {
 		String name = model.getName();
@@ -98,7 +91,7 @@ public final class CollectDiagnostics
 	/** Maps each template name to the models implementing it. */
 	private Map<String, List<ImplementorInfo>> implementorsOf(Unit unit) {
 		Map<String, List<ImplementorInfo>> implementors = new LinkedHashMap<>();
-		for (JustificationModel<?> model : unit.getModels()) {
+		for (JustificationModel model : unit.getModels()) {
 			model.getParent()
 					.ifPresent(t -> implementors
 							.computeIfAbsent(t.getName(),
@@ -109,7 +102,7 @@ public final class CollectDiagnostics
 		return implementors;
 	}
 
-	private ElementCounts countElements(JustificationModel<?> model) {
+	private ElementCounts countElements(JustificationModel model) {
 		return new ElementCounts(model.conclusion().isPresent() ? 1 : 0,
 				model.subConclusions().size(), model.strategies().size(),
 				model.evidence().size(),
@@ -125,33 +118,17 @@ public final class CollectDiagnostics
 	 * sub-conclusions, strategies, evidence, abstract supports.
 	 */
 	private List<SymbolInfo> collectSymbols(Unit unit,
-			JustificationModel<?> model) {
-		List<SymbolInfo> symbols = new ArrayList<>();
-		model.conclusion().ifPresent(
-				c -> symbols.add(symbol(unit, model, c, KIND_CONCLUSION)));
-		addAll(symbols, unit, model, model.subConclusions(),
-				KIND_SUB_CONCLUSION);
-		addAll(symbols, unit, model, model.strategies(), KIND_STRATEGY);
-		addAll(symbols, unit, model, model.evidence(), KIND_EVIDENCE);
-		addAll(symbols, unit, model,
-				model.elementsOfType(AbstractSupport.class),
-				KIND_ABSTRACT_SUPPORT);
-		return List.copyOf(symbols);
-	}
-
-	private void addAll(List<SymbolInfo> target, Unit unit,
-			JustificationModel<?> model,
-			List<? extends JustificationElement> elements, String kind) {
-		for (JustificationElement element : elements) {
-			target.add(symbol(unit, model, element, kind));
-		}
-	}
-
-	private SymbolInfo symbol(Unit unit, JustificationModel<?> model,
-			JustificationElement element, String kind) {
-		SourceLocation location = unit.locationOf(model.getName(),
-				element.id());
-		return new SymbolInfo(element.id(), kind, location);
+			JustificationModel model) {
+		List<JustificationElement> ordered = new ArrayList<>();
+		model.conclusion().ifPresent(ordered::add);
+		ordered.addAll(model.subConclusions());
+		ordered.addAll(model.strategies());
+		ordered.addAll(model.evidence());
+		ordered.addAll(model.elementsOfType(AbstractSupport.class));
+		return ordered.stream()
+				.map(element -> new SymbolInfo(element.id(), element.kind(),
+						unit.locationOf(model.getName(), element.id())))
+				.toList();
 	}
 
 	private List<AliasInfo> collectAliases(Map<String, String> aliases) {

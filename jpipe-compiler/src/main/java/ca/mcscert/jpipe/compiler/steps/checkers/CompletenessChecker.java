@@ -15,13 +15,7 @@ public final class CompletenessChecker extends Checker<Unit> {
 
 	@Override
 	protected void check(Unit unit, CompilationContext ctx) {
-		new CompletenessValidator().validate(unit).forEach(v -> {
-			if (v.location().isKnown()) {
-				ctx.error(v.rule(), v.location().line(), v.location().column(),
-						v.message());
-			} else {
-				ctx.error(v.rule(), v.message());
-			}
-		});
+		new CompletenessValidator().validate(unit)
+				.forEach(v -> ctx.error(v.rule(), v.location(), v.message()));
 	}
 }

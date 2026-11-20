@@ -44,13 +44,17 @@ Each exposes two entry points:
 
 ```java
 List<Violation> validate(Unit unit)          // location-aware; used by the pipeline
-List<Violation> validateModel(JustificationModel<?> model)  // standalone; used by JustificationModel.validate()
+List<Violation> validateModel(JustificationModel model)  // standalone; used by JustificationModel.validate()
 ```
 
 `validate(Unit)` resolves source locations from `Unit`'s location registry
 (`unit.locationOf(modelName, elementId)`) so that violations carry a precise
 `SourceLocation`. `validateModel` produces `SourceLocation.UNKNOWN` for all
 violations because no location data is available outside a compilation context.
+
+A model marked incomplete on the `Unit` (its `implements` failed or never ran) is
+skipped by both validators: its gaps follow from a failure already reported, and
+reporting them again would bury that cause.
 
 Two thin `Checker<Unit>` steps in `jpipe-compiler` (`ConsistencyChecker`,
 `CompletenessChecker`) invoke the validators and map each `Violation` to a
@@ -124,6 +128,7 @@ others apply to both.
 | `sub-conclusion-supported` | J + T | Every `SubConclusion` has an assigned `Strategy`. |
 | `no-abstract-support` | J | No `AbstractSupport` placeholder remains; all must have been replaced by override commands before the completeness check runs. |
 | `has-abstract-support` | T | The template declares at least one `AbstractSupport`; a template with none is a justification in disguise. |
+| `abstract-support-used` | T | Every `AbstractSupport` supports a `Strategy`. One that supports none can never be overridden, so it is reported in the template rather than in every justification that implements it. |
 
 ## Rationale
 

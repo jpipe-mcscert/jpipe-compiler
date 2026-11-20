@@ -12,8 +12,12 @@ import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.Evidence;
+import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -129,6 +133,84 @@ class OverrideAbstractSupportTest {
 			Justification j = (Justification) unit.get("j");
 			assertThat(j.findById("t:as")).isPresent().get()
 					.isInstanceOf(SubConclusion.class);
+		}
+
+		@Test
+		void rewiresEveryStrategyThePlaceholderSupports() {
+			Unit unit = engine.spawn("src",
+					List.of(new CreateTemplate("t"),
+							new CreateConclusion("t", "tc",
+									"Template conclusion"),
+							new CreateStrategy("t", "ts1", "First strategy"),
+							new CreateStrategy("t", "ts2", "Second strategy"),
+							new CreateAbstractSupport("t", "as", "Placeholder"),
+							new AddSupport("t", "ts1", "as"),
+							new AddSupport("t", "ts2", "as"),
+							new AddSupport("t", "tc", "ts1"),
+							new CreateJustification("j"),
+							new CreateConclusion("j", "c", "My conclusion"),
+							new ImplementsTemplate("j", "t")));
+			engine.enrich(unit, List.of(new OverrideAbstractSupport("j", "t:as",
+					"evidence", "Concrete")));
+
+			Justification j = (Justification) unit.get("j");
+			Evidence concrete = (Evidence) j.findById("t:as").orElseThrow();
+			assertThat(Stream.of("t:ts1", "t:ts2")
+					.map(id -> (Strategy) j.findById(id).orElseThrow())
+					.map(Strategy::getSupports)).hasSize(2)
+					.allSatisfy(supports -> assertThat(supports)
+							.containsExactly(concrete));
+		}
+
+		@Test
+		void replacesAPlaceholderThatSupportsNoStrategy() {
+			// That is a mistake of the template, reported there once; it used
+			// to fail every override as well (#183).
+			Unit unit = engine.spawn("src",
+					List.of(new CreateTemplate("t"),
+							new CreateConclusion("t", "tc",
+									"Template conclusion"),
+							new CreateAbstractSupport("t", "as", "Unused"),
+							new CreateJustification("j"),
+							new ImplementsTemplate("j", "t")));
+			engine.enrich(unit, List.of(new OverrideAbstractSupport("j", "t:as",
+					"evidence", "Concrete")));
+
+			assertThat(unit.get("j").findById("t:as")).get()
+					.isInstanceOf(Evidence.class);
+		}
+
+		@Test
+		void anIdThatNamesTwoPlaceholdersIsAmbiguous() {
+			// A composition keeps each source's copy of a @support: 't:as'
+			// names both, and the element order used to pick one (#177).
+			Unit unit = new Unit("src");
+			Justification j = new Justification("j");
+			j.addElement(new AbstractSupport("l:t:as", "Left"));
+			j.addElement(new AbstractSupport("r:t:as", "Right"));
+			unit.add(j);
+			var cmd = new OverrideAbstractSupport("j", "t:as", "evidence",
+					"Which one?");
+			assertThatThrownBy(() -> cmd.expand(unit))
+					.isInstanceOf(AmbiguousIdException.class)
+					.hasMessageContaining("'l:t:as', 'r:t:as'");
+		}
+
+		@Test
+		void anAmbiguousIdIsReadyWhicheverElementComesFirst() {
+			// The first match is a concrete evidence: it used to wait for a
+			// placeholder forever, and the order of the sources decided
+			// between ambiguous-id and unresolved-override (#177).
+			Unit unit = new Unit("src");
+			Justification j = new Justification("j");
+			j.addElement(new Evidence("l:t:as", "Overridden in l"));
+			j.addElement(new AbstractSupport("r:t:as", "Right"));
+			unit.add(j);
+			var cmd = new OverrideAbstractSupport("j", "t:as", "evidence",
+					"Which one?");
+
+			assertThat(cmd.condition().test(unit)).isTrue();
+			assertThat(cmd.namedIds(j)).containsExactly("l:t:as", "r:t:as");
 		}
 
 		@Test

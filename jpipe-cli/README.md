@@ -8,8 +8,8 @@ a single executable JAR via Maven Shade.
 
 `Main` is the PicoCLI root command. `process` (the default subcommand) and
 `diagnostic` both extend `InputOutputCommand`, which handles stream resolution,
-logo display, and error reporting. `Doctor` probes external tool availability
-(`dot` / Graphviz) before image-format compilation. See
+logo display, and error reporting. `Doctor`, behind `jpipe doctor`, probes
+external tool availability (`dot` / Graphviz). See
 [docs/design/cli.md](../docs/design/cli.md) for the full class diagram and
 per-command documentation.
 

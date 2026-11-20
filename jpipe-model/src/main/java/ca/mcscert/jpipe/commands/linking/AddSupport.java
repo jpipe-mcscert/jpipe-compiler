@@ -10,6 +10,10 @@ import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.model.elements.SupportLeaf;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
+import java.util.Optional;
+import ca.mcscert.jpipe.commands.PendingCommands;
+import ca.mcscert.jpipe.model.JustificationModel;
+import java.util.List;
 
 /**
  * Establishes a support edge between two elements that already exist in the
@@ -62,6 +66,7 @@ public final class AddSupport extends RegularCommand {
 		return supporterId;
 	}
 
+	@Override
 	public SourceLocation location() {
 		return location;
 	}
@@ -77,12 +82,8 @@ public final class AddSupport extends RegularCommand {
 	@Override
 	public void doExecute(Unit context) {
 		var model = context.get(container);
-		JustificationElement supportable = model.findById(supportableId)
-				.orElseThrow(() -> new NoSuchElementException(
-						"No element with id: " + supportableId));
-		JustificationElement supporter = model.findById(supporterId)
-				.orElseThrow(() -> new NoSuchElementException(
-						"No element with id: " + supporterId));
+		JustificationElement supportable = resolve(model, supportableId);
+		JustificationElement supporter = resolve(model, supporterId);
 
 		// Check the resolved element ids (findById resolves plain ids to their
 		// qualified form), otherwise a plain id would bypass the restriction.
@@ -104,6 +105,39 @@ public final class AddSupport extends RegularCommand {
 			default -> throw new IllegalArgumentException("'" + supporterId
 					+ "' cannot support '" + supportableId + "'");
 		}
+	}
+
+	/**
+	 * Waits, beyond both ids resolving, until every element of the model is
+	 * declared: no element creation, {@code implements} or override still
+	 * pending in it. A short id then resolves to the element it names, not to
+	 * an inherited one that happens to exist first, and a link into an abstract
+	 * support follows its override wherever it is written (#177). Other links
+	 * do not hold it back.
+	 */
+	@Override
+	public boolean ready(Unit unit, PendingCommands pending) {
+		return condition().test(unit)
+				&& !pending.target(container, AddSupport.class::isInstance);
+	}
+
+	/**
+	 * The element {@code id} names in {@code model}: its own element of that
+	 * id, or the one inherited element whose id ends with it. Several inherited
+	 * ones are an ambiguity, reported rather than settled by order (#177).
+	 */
+	private JustificationElement resolve(JustificationModel model, String id) {
+		List<JustificationElement> ambiguous = model.ambiguousMatches(id);
+		if (!ambiguous.isEmpty()) {
+			throw new AmbiguousIdException(id, container, ambiguous);
+		}
+		return model.findById(id).orElseThrow(
+				() -> new NoSuchElementException("No element with id: " + id));
+	}
+
+	@Override
+	public Optional<String> target() {
+		return Optional.of(container);
 	}
 
 	@Override

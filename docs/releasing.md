@@ -26,8 +26,11 @@ public API — `jpipe-operators` above all — is a MAJOR bump, new behaviour is
 MINOR, fixes alone are PATCH. What `pom.xml` currently says is *not* an input to
 this decision; Phase 1 sets the pom to whatever you choose here.
 
-**Review dependencies** ([ADR-0007](adr/0007-dependency-freshness-policy.md)) —
-a required step, not optional housekeeping:
+**Review held-back dependencies** ([ADR-0007](adr/0007-dependency-freshness-policy.md)) —
+a required step, not optional housekeeping. Dependabot keeps minors and patches
+current on `dev` week by week; what is left is what it holds back (the majors
+ignored in `.github/dependabot.yml`) and any major pull request still open.
+Decide, for each, whether it stays held for another cycle:
 
 ```bash
 mvn versions:display-dependency-updates
@@ -81,8 +84,11 @@ already taken, changelog closed out, `mvn verify` green. It also reports whether
 `HEAD` is on `main` yet — expect a warning here, since the merge has not
 happened.
 
-Open a pull request from `dev` to `main` titled `Release vX.Y.Z`, and merge it
-once the checks are green. This is the one merge in the process that must go
+Open a pull request from `dev` to `main` titled `Release vX.Y.Z`, take it
+through the organization's
+[pull request steps](https://github.com/jpipe-mcscert/.github/blob/main/CONTRIBUTING.md#pull-requests)
+(draft, quality gate, one Copilot review, every comment answered), and merge it
+once it is ready. This is the one merge in the process that must go
 through a pull request: `main` is release-only, and every commit on it is a
 published version.
 

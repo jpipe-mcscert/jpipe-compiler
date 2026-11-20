@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * <p>
  * Use {@code -m} / {@code --model} on the CLI to supply the name.
  */
-public class SelectModel extends Transformation<Unit, JustificationModel<?>> {
+public class SelectModel extends Transformation<Unit, JustificationModel> {
 
 	private static final Logger logger = LogManager.getLogger();
 
@@ -34,9 +34,9 @@ public class SelectModel extends Transformation<Unit, JustificationModel<?>> {
 	}
 
 	@Override
-	protected JustificationModel<?> run(Unit unit, CompilationContext ctx) {
+	protected JustificationModel run(Unit unit, CompilationContext ctx) {
 		if (diagramName != null) {
-			JustificationModel<?> model = unit.findModel(diagramName)
+			JustificationModel model = unit.findModel(diagramName)
 					.orElseThrow(() -> new CompilationException("SelectModel",
 							"no model named '" + diagramName + "' in "
 									+ ctx.sourcePath()));
@@ -44,9 +44,9 @@ public class SelectModel extends Transformation<Unit, JustificationModel<?>> {
 			return model;
 		}
 
-		Collection<JustificationModel<?>> models = unit.getModels();
+		Collection<JustificationModel> models = unit.getModels();
 		if (models.size() == 1) {
-			JustificationModel<?> model = models.iterator().next();
+			JustificationModel model = models.iterator().next();
 			logger.debug("Auto-selected model [{}]", model.getName());
 			return model;
 		}

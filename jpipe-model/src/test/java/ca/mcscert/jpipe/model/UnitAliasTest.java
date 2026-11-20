@@ -44,6 +44,14 @@ class UnitAliasTest {
 			assertThat(unit.resolveAlias("result", "a:s")).isEqualTo("s");
 			assertThat(unit.resolveAlias("result", "b:s")).isEqualTo("s");
 		}
+
+		@Test
+		void followsAChainOfCompositionSteps() {
+			// One link per composition step: the model's resolveAlias agrees.
+			unit.recordAlias("result", "a:elem", "mid:elem");
+			unit.recordAlias("result", "mid:elem", "elem");
+			assertThat(unit.resolveAlias("result", "a:elem")).isEqualTo("elem");
+		}
 	}
 
 	@Nested

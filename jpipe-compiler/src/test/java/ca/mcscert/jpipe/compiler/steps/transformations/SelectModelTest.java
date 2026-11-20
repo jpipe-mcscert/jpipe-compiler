@@ -26,7 +26,7 @@ class SelectModelTest {
 		Justification j = new Justification("j");
 		unit.add(j);
 
-		JustificationModel<?> result = new SelectModel("j").fire(unit, ctx);
+		JustificationModel result = new SelectModel("j").fire(unit, ctx);
 
 		assertThat(result).isSameAs(j);
 	}
@@ -47,7 +47,7 @@ class SelectModelTest {
 		Justification j = new Justification("j");
 		unit.add(j);
 
-		JustificationModel<?> result = new SelectModel(null).fire(unit, ctx);
+		JustificationModel result = new SelectModel(null).fire(unit, ctx);
 
 		assertThat(result).isSameAs(j);
 	}

@@ -2,7 +2,16 @@ package ca.mcscert.jpipe.model.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ca.mcscert.jpipe.commands.ExecutionEngine;
+import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
+import ca.mcscert.jpipe.commands.creation.CreateConclusion;
+import ca.mcscert.jpipe.commands.creation.CreateJustification;
+import ca.mcscert.jpipe.commands.creation.CreateStrategy;
+import ca.mcscert.jpipe.commands.creation.CreateTemplate;
+import ca.mcscert.jpipe.commands.linking.AddSupport;
+import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.Violation;
@@ -152,10 +161,108 @@ class CompletenessValidatorTest {
 			assertThat(violations).extracting(Violation::rule)
 					.contains("has-abstract-support");
 		}
+
+		@Test
+		void abstract_support_supporting_no_strategy_produces_violation() {
+			Template t = new Template("t");
+			Conclusion c = new Conclusion("c", "C");
+			Strategy s = new Strategy("s", "S");
+			AbstractSupport used = new AbstractSupport("used", "Used");
+			AbstractSupport dangling = new AbstractSupport("dangling", "D");
+			t.setConclusion(c);
+			t.addElement(s);
+			t.addElement(used);
+			t.addElement(dangling);
+			s.addSupport(used);
+			c.addSupport(s);
+
+			List<Violation> violations = validator.validateModel(t);
+
+			assertThat(violations).extracting(Violation::rule)
+					.containsExactly("abstract-support-used");
+			assertThat(violations.getFirst().message()).contains("'dangling'");
+		}
 	}
 
 	@Nested
 	class UnitValidation {
+
+		@Test
+		void validate_unit_skips_a_model_that_could_not_be_built() {
+			// Its gaps follow from a failure reported where it happened.
+			Unit unit = new Unit("src");
+			unit.add(new Justification("broken")); // no conclusion
+			unit.markIncomplete("broken");
+
+			assertThat(validator.validate(unit)).isEmpty();
+		}
+
+		@Test
+		void an_unused_support_is_reported_in_its_template_only() {
+			// 'mid' inherits it: one mistake, reported once (#183).
+			Unit unit = new ExecutionEngine().spawn("src",
+					List.of(new CreateTemplate("root"),
+							new CreateConclusion("root", "c", "C"),
+							new CreateStrategy("root", "s", "S"),
+							new CreateAbstractSupport("root", "used", "U"),
+							new CreateAbstractSupport("root", "dangling", "D"),
+							new AddSupport("root", "c", "s"),
+							new AddSupport("root", "s", "used"),
+							new CreateTemplate("mid"),
+							new ImplementsTemplate("mid", "root")));
+
+			assertThat(validator.validate(unit)).singleElement()
+					.extracting(Violation::message).asString()
+					.contains("'dangling' in template 'root'");
+		}
+
+		@Test
+		void an_unused_support_copied_by_a_composition_is_reported_once() {
+			// The copy keeps the place of the declaration it comes from.
+			SourceLocation declared = new SourceLocation("src", 4, 13);
+			Unit unit = new Unit("src");
+			unit.add(templateWithDangling("t", "dangling"));
+			unit.add(templateWithDangling("both", "unified_0"));
+			unit.recordLocation("t", "dangling", declared);
+			unit.recordLocation("both", "unified_0", declared);
+
+			assertThat(validator.validate(unit)).singleElement()
+					.extracting(Violation::location).isEqualTo(declared);
+		}
+
+		@Test
+		void a_placeholder_whose_override_failed_is_not_reported_again() {
+			Unit unit = new Unit("src");
+			Justification j = simpleJustification();
+			j.addElement(new AbstractSupport("t:abs", "Left behind"));
+			unit.add(j);
+			unit.recordFailedOverride("j", "t:abs");
+
+			assertThat(validator.validate(unit)).isEmpty();
+		}
+
+		@Test
+		void a_placeholder_whose_override_failed_in_a_template_is_spared_where_inherited() {
+			// The template's failure is reported there: a model implementing
+			// it is told only about the placeholders it should override.
+			Unit unit = new ExecutionEngine().spawn("src",
+					List.of(new CreateTemplate("t"),
+							new CreateConclusion("t", "c", "C"),
+							new CreateStrategy("t", "s", "S"),
+							new CreateAbstractSupport("t", "abs", "Failed"),
+							new CreateAbstractSupport("t", "other",
+									"Unrelated"),
+							new AddSupport("t", "c", "s"),
+							new AddSupport("t", "s", "abs"),
+							new AddSupport("t", "s", "other"),
+							new CreateJustification("j"),
+							new ImplementsTemplate("j", "t")));
+			unit.recordFailedOverride("t", "abs");
+
+			assertThat(validator.validate(unit)).singleElement()
+					.extracting(Violation::message).asString().contains(
+							"'t:other' in justification 'j' was not overridden");
+		}
 
 		@Test
 		void validate_unit_checks_all_models() {
@@ -187,8 +294,20 @@ class CompletenessValidatorTest {
 		return j;
 	}
 
+	/** A complete template, but for a @support that supports nothing. */
+	private static Template templateWithDangling(String name,
+			String danglingId) {
+		Template t = simpleTemplate(name);
+		t.addElement(new AbstractSupport(danglingId, "Dangling"));
+		return t;
+	}
+
 	private static Template simpleTemplate() {
-		Template t = new Template("t");
+		return simpleTemplate("t");
+	}
+
+	private static Template simpleTemplate(String name) {
+		Template t = new Template(name);
 		Conclusion c = new Conclusion("c", "Conclusion");
 		Strategy s = new Strategy("s", "Strategy");
 		AbstractSupport abs = new AbstractSupport("abs", "Abstract step");

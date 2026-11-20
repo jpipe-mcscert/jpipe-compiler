@@ -22,7 +22,6 @@ import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.operators.IncompatibleUnificationException;
 import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
-import ca.mcscert.jpipe.operators.ModelKind;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import ca.mcscert.jpipe.operators.Unifier;
 import ca.mcscert.jpipe.operators.equivalences.SameLabel;
@@ -113,19 +112,19 @@ class AssembleOperatorTest {
 		}
 
 		@Test
-		void resultKindIsJustificationWhenAllSourcesAreJustifications() {
+		void theResultIsAJustificationWhenAllSourcesAreJustifications() {
 			var a = buildJustification("a", "C", "S", "E");
 			var b = buildJustification("b", "C", "S", "E");
-			assertThat(assemble.resultKind(List.of(a, b), ARGS))
-					.isEqualTo(ModelKind.JUSTIFICATION);
+			assertThat(assemble.apply("result", List.of(a, b), ARGS)).first()
+					.isInstanceOf(CreateJustification.class);
 		}
 
 		@Test
-		void resultKindIsTemplateWhenAnySourceIsTemplate() {
+		void theResultIsATemplateWhenAnySourceIsATemplate() {
 			var j = buildJustification("j", "C", "S", "E");
 			var t = buildTemplate("t");
-			assertThat(assemble.resultKind(List.of(j, t), ARGS))
-					.isEqualTo(ModelKind.TEMPLATE);
+			assertThat(assemble.apply("result", List.of(j, t), ARGS)).first()
+					.isInstanceOf(CreateTemplate.class);
 		}
 	}
 
@@ -299,7 +298,7 @@ class AssembleOperatorTest {
 		}
 
 		private Justification assembled(String name,
-				List<JustificationModel<?>> sources) {
+				List<JustificationModel> sources) {
 			List<Command> cmds = unifier.unify(name,
 					assemble.apply(name, sources, ARGS), ARGS);
 			return (Justification) engine.spawn("out", cmds).get(name);
@@ -334,7 +333,7 @@ class AssembleOperatorTest {
 
 		@Test
 		void mergingTheGlobalConclusionWithASourceElementIsRejected() {
-			List<JustificationModel<?>> sources = List.of(arguing("deep"),
+			List<JustificationModel> sources = List.of(arguing("deep"),
 					asserting("other"));
 			Map<String, String> clashing = Map.of("conclusionLabel", SHARED,
 					"strategyLabel", "An aggregating strategy");
@@ -346,7 +345,7 @@ class AssembleOperatorTest {
 					.hasMessageContaining(SHARED);
 		}
 
-		private Set<String> nodes(JustificationModel<?> model) {
+		private Set<String> nodes(JustificationModel model) {
 			Set<String> nodes = model.getElements().stream()
 					.map(e -> e.kind() + "|" + e.label())
 					.collect(Collectors.toCollection(HashSet::new));
@@ -355,7 +354,7 @@ class AssembleOperatorTest {
 			return nodes;
 		}
 
-		private Set<String> edges(JustificationModel<?> model) {
+		private Set<String> edges(JustificationModel model) {
 			Set<String> edges = new HashSet<>();
 			model.strategies().forEach(s -> s.getSupports().forEach(
 					leaf -> edges.add(((JustificationElement) leaf).label()
@@ -377,7 +376,7 @@ class AssembleOperatorTest {
 		@Test
 		void throwsWhenConclusionLabelMissing() {
 			var a = buildJustification("a", "C", "S", "E");
-			List<JustificationModel<?>> sources = List.of(a);
+			List<JustificationModel> sources = List.of(a);
 			var args = Map.of("strategyLabel", "s");
 			assertThatThrownBy(() -> assemble.apply("r", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
@@ -387,7 +386,7 @@ class AssembleOperatorTest {
 		@Test
 		void throwsWhenStrategyLabelMissing() {
 			var a = buildJustification("a", "C", "S", "E");
-			List<JustificationModel<?>> sources = List.of(a);
+			List<JustificationModel> sources = List.of(a);
 			var args = Map.of("conclusionLabel", "c");
 			assertThatThrownBy(() -> assemble.apply("r", sources, args))
 					.isInstanceOf(InvalidOperatorCallException.class)
