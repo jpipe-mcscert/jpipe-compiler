@@ -127,15 +127,9 @@ public final class AddSupport extends RegularCommand {
 	 * ones are an ambiguity, reported rather than settled by order (#177).
 	 */
 	private JustificationElement resolve(JustificationModel model, String id) {
-		if (!id.contains(":")) {
-			List<JustificationElement> inherited = model.inheritedMatches(id);
-			boolean own = model.getElements().stream()
-					.anyMatch(e -> e.id().equals(id))
-					|| model.conclusion().filter(c -> c.id().equals(id))
-							.isPresent();
-			if (!own && inherited.size() > 1) {
-				throw new AmbiguousIdException(id, container, inherited);
-			}
+		List<JustificationElement> ambiguous = model.ambiguousMatches(id);
+		if (!ambiguous.isEmpty()) {
+			throw new AmbiguousIdException(id, container, ambiguous);
 		}
 		return model.findById(id).orElseThrow(
 				() -> new NoSuchElementException("No element with id: " + id));

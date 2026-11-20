@@ -34,7 +34,8 @@ Feature: Every diagnostic says where, and only once
     Then the report signals errors
       And the JSON report has a diagnostic with code "abstract-support-used" at line 14
       And the JSON report has a diagnostic with code "unresolved-override" at line 21
-      And the JSON report has a diagnostic with code "execution-error" at line 22
+      And the JSON report has no diagnostic at line 22
+      And the JSON report has no diagnostic with code "no-abstract-support"
       And the JSON report has no diagnostic with code "strategy-supported"
 
   Scenario: A source with a mistake of its own is still composed
@@ -43,15 +44,22 @@ Feature: Every diagnostic says where, and only once
     Then the compilation has validation errors
       And the unit contains a justification named "r"
       And the unit contains a justification named "q"
+      And the unit contains a justification named "p"
     When I produce a JSON diagnostic report
     Then the JSON report has a diagnostic with code "unknown-element" at line 16
+      And the JSON report has a diagnostic with code "unknown-element" at line 52
       And the JSON report has no diagnostic with code "unresolved-symbol"
+      And the JSON report has no diagnostic with code "strategy-supported"
+      And the JSON report has no diagnostic with code "sub-conclusion-supported"
 
   Scenario: No operator composes a model whose implements never ran
     Given the source file "invalid/037_operator_on_an_unbuilt_model.jd"
     When I run the diagnostic compiler with format "json"
     Then the report signals errors
       And the JSON report has a diagnostic with code "unknown-model" at line 9
+      And the JSON report has a diagnostic with code "invalid-operator-call" at line 28
+      And the JSON report has a diagnostic with code "cyclic-implements" at line 38
+      And the JSON report has no diagnostic at line 32
       And the JSON report has no diagnostic with code "execution-error"
       And the JSON report has no diagnostic with code "unresolved-symbol"
 

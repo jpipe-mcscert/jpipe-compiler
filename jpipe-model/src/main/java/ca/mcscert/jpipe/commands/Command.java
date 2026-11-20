@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.commands;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -32,14 +33,25 @@ public interface Command {
 
 	/**
 	 * Whether this command may still run once nothing in the queue is ready,
-	 * every command waiting on another. The engine then runs, best effort, the
-	 * first one that may, so that one mistake does not hold back everything
-	 * waiting on it. By default, when its {@link #condition()} holds: what it
-	 * needs exists, complete or not. A command that must never act on an
-	 * incomplete model refuses.
+	 * every command waiting on another. The engine then runs, best effort, one
+	 * that may, so that one mistake does not hold back everything waiting on
+	 * it: the first that {@linkplain #reads() reads} no model another of them
+	 * may still change, or else the first. By default, when its
+	 * {@link #condition()} holds: what it needs exists, complete or not. A
+	 * command that must never act on an incomplete model refuses.
 	 */
 	default boolean runWhenStuck(Unit unit, PendingCommands pending) {
 		return condition().test(unit);
+	}
+
+	/**
+	 * The models this command reads, beyond the one it {@linkplain #target()
+	 * targets}. When nothing is ready, the engine runs what may still change a
+	 * model before a command that reads it, so that a reader acting on an
+	 * incomplete model gets as much of it as its mistakes allow.
+	 */
+	default Set<String> reads() {
+		return Set.of();
 	}
 
 	/**

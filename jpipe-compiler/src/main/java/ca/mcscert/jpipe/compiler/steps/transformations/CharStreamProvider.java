@@ -11,6 +11,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 
@@ -22,10 +23,18 @@ import org.antlr.v4.runtime.CharStreams;
  * A byte sequence that is not valid UTF-8 is a fatal error, located at the line
  * and column where it sits. It used to be replaced with U+FFFD without a word,
  * so a Latin-1 {@code é} reached every export as {@code �} (#179).
+ *
+ * <p>
+ * A leading byte-order mark, which some Windows editors and PowerShell write at
+ * the start of a UTF-8 file, is not part of the source and is skipped.
  */
 public final class CharStreamProvider
 		extends
 			Transformation<InputStream, CharStream> {
+
+	/** The UTF-8 encoding of the byte-order mark, U+FEFF. */
+	private static final byte[] BYTE_ORDER_MARK = {(byte) 0xEF, (byte) 0xBB,
+			(byte) 0xBF};
 
 	@Override
 	protected CharStream run(InputStream input, CompilationContext ctx) {
@@ -46,7 +55,8 @@ public final class CharStreamProvider
 		CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder()
 				.onMalformedInput(CodingErrorAction.REPORT)
 				.onUnmappableCharacter(CodingErrorAction.REPORT);
-		ByteBuffer in = ByteBuffer.wrap(bytes);
+		int start = startsWithByteOrderMark(bytes) ? BYTE_ORDER_MARK.length : 0;
+		ByteBuffer in = ByteBuffer.wrap(bytes, start, bytes.length - start);
 		// UTF-8 never decodes to more chars than it has bytes.
 		CharBuffer out = CharBuffer.allocate(bytes.length);
 		CoderResult result = decoder.decode(in, out, true);
@@ -58,6 +68,12 @@ public final class CharStreamProvider
 			throw invalid(out.toString(), bytes[in.position()], ctx);
 		}
 		return out.toString();
+	}
+
+	private static boolean startsWithByteOrderMark(byte[] bytes) {
+		return Arrays.equals(bytes, 0,
+				Math.min(bytes.length, BYTE_ORDER_MARK.length), BYTE_ORDER_MARK,
+				0, BYTE_ORDER_MARK.length);
 	}
 
 	/**

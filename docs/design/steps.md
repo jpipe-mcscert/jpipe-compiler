@@ -262,7 +262,9 @@ completes (an `implements` cycle, a template that could not be built), is
 marked incomplete on the `Unit`. Nothing consumes it, what waits in it is not
 reported, and the consistency and completeness checkers skip it: the one cause
 is reported where it is. An `implements` cycle is reported once, as
-`cyclic-implements`.
+`cyclic-implements`, even when it goes through an operator call (`j implements
+t`, where `t` is built from `j`). An `implements` whose template an operator
+call builds, and does not build, adds nothing: the call is reported.
 
 #### `ConsistencyChecker`
 

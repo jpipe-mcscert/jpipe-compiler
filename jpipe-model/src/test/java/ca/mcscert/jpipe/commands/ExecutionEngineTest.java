@@ -18,6 +18,8 @@ import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -363,6 +365,47 @@ class ExecutionEngineTest {
 						assertThat(s2.getSupports()).extracting(e -> e.id())
 								.containsExactly("e2");
 					});
+		}
+
+		@Test
+		void a_stuck_reader_runs_after_what_still_changes_its_model() {
+			// The reader comes first in the queue: it used to run first, and
+			// see s2 without the relation the override held back.
+			List<String> seen = new ArrayList<>();
+			Command reader = new Command() {
+				@Override
+				public boolean ready(Unit unit, PendingCommands pending) {
+					return !pending.target("j");
+				}
+
+				@Override
+				public Set<String> reads() {
+					return Set.of("j");
+				}
+
+				@Override
+				public Optional<String> target() {
+					return Optional.of("r");
+				}
+
+				@Override
+				public void execute(Unit unit) {
+					Strategy s2 = (Strategy) unit.get("j").findById("s2")
+							.orElseThrow();
+					s2.getSupports().forEach(e -> seen.add(e.id()));
+				}
+			};
+			List<Command> cmds = List
+					.of(new CreateJustification("j"),
+							new CreateStrategy("j", "s2", "S2"),
+							new CreateEvidence("j", "e2", "E2"),
+							new OverrideAbstractSupport("j", "t:missing",
+									"evidence", "E"),
+							reader, new AddSupport("j", "s2", "e2"));
+
+			assertThatThrownBy(() -> engine.spawn("src", cmds))
+					.isInstanceOf(DeadlockException.class);
+			assertThat(seen).containsExactly("e2");
 		}
 
 		@Test

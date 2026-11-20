@@ -34,6 +34,22 @@ class CharStreamProviderTest {
 	}
 
 	@Test
+	void skips_a_leading_byte_order_mark() {
+		// Earlier releases skipped it as an unknown character; #176 made
+		// those syntax errors, so a file saved with one stopped compiling.
+		String text = "justification j {}\n";
+		byte[] bom = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+		CompilationContext ctx = new CompilationContext("f.jd");
+
+		CharStream stream = new CharStreamProvider()
+				.fire(stream(concat(bom, utf8(text))), ctx);
+
+		assertThat(stream.getText(Interval.of(0, stream.size() - 1)))
+				.isEqualTo(text);
+		assertThat(ctx.diagnostics()).isEmpty();
+	}
+
+	@Test
 	void a_source_that_fails_while_read_is_a_recorded_fatal() {
 		// The fatal must be in the context, not only in the exception:
 		// `diagnostic` reports from the context (#180).
@@ -62,6 +78,11 @@ class CharStreamProviderTest {
 				// The column counts code points, as the lexer does: 安 is one.
 				Arguments.of("after a wide character",
 						concat(utf8("\"安 "), latin1E, utf8("\"")), 1, 3, "E9"),
+				// A byte-order mark is not a column of the first line.
+				Arguments.of("after a byte-order mark",
+						concat(new byte[]{(byte) 0xEF, (byte) 0xBB,
+								(byte) 0xBF}, utf8("\"ab"), latin1E),
+						1, 3, "E9"),
 				// A multi-byte sequence cut short by the end of the file.
 				Arguments.of("a truncated sequence",
 						concat(utf8("\"x"), new byte[]{(byte) 0xC3}), 1, 2,

@@ -73,6 +73,42 @@ class JustificationModelTest {
 		}
 
 		@Test
+		@DisplayName("findById falls back to the first inherited element ending with the id")
+		void findByIdFallsBackToTheFirstInheritedMatch() {
+			Justification j = new Justification("j");
+			j.setConclusion(new Conclusion("a:e", "Inherited conclusion"));
+			j.addElement(new Evidence("b:e", "First"));
+			j.addElement(new Evidence("c:e", "Second"));
+			assertThat(j.findById("e")).get()
+					.extracting(JustificationElement::id).isEqualTo("b:e");
+		}
+
+		@Test
+		@DisplayName("ambiguousMatches lists the inherited elements a short id names, when several")
+		void ambiguousMatchesListsSeveralInheritedMatches() {
+			Justification j = new Justification("j");
+			j.addElement(new Evidence("ns1:t:e", "First"));
+			j.addElement(new Evidence("ns2:t:e", "Second"));
+			j.addElement(new Evidence("u:f", "Alone"));
+			// A qualified short form is ambiguous too; it used to bind the
+			// first in a relation.
+			assertThat(j.ambiguousMatches("t:e"))
+					.extracting(JustificationElement::id)
+					.containsExactly("ns1:t:e", "ns2:t:e");
+			assertThat(j.ambiguousMatches("f")).isEmpty();
+		}
+
+		@Test
+		@DisplayName("ambiguousMatches is empty when an element has the id itself")
+		void ambiguousMatchesIsEmptyForAnExactId() {
+			Justification j = new Justification("j");
+			j.addElement(new Evidence("e", "Own"));
+			j.addElement(new Evidence("a:e", "Inherited"));
+			j.addElement(new Evidence("b:e", "Inherited too"));
+			assertThat(j.ambiguousMatches("e")).isEmpty();
+		}
+
+		@Test
 		@DisplayName("elementsOfType filters elements correctly by class")
 		void elementsOfTypeFiltersCorrectly() {
 			assertThat(model.elementsOfType(SubConclusion.class)).hasSize(1)

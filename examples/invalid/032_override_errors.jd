@@ -4,8 +4,8 @@
  * @compiler 3.x                 *
  *********************************/
 
-// 'dangling' supports no strategy, so no justification can override it: it is
-// reported in the template, line 14, and overriding it fails at line 22.
+// 'dangling' supports no strategy: it is reported once, in the template, line
+// 14, and not again where 'j' overrides it, line 22.
 // Overriding 'abs' twice is reported at the second override, line 21.
 template t {
     conclusion c        is "C"

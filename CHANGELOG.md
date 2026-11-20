@@ -79,10 +79,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   can no longer declare its own: that is now an `inherited-conclusion` error. It
   used to be accepted or rejected depending on whether the template was declared
   before or after the model (#177).
-- **Breaking:** a relation whose short id names several inherited elements, such
-  as `a` when both `root:a` and `mid:a` are inherited, is now an `ambiguous-id`
-  error asking for the qualified id. It used to bind to the first one found
-  (#177).
+- **Breaking:** a relation whose id is the end of several inherited ids, such as
+  `a` when both `root:a` and `mid:a` are inherited, or `t:a` for both `x:t:a`
+  and `y:t:a`, is now an `ambiguous-id` error asking for the full qualified id.
+  It used to bind to the first one found (#177).
 - **Breaking:** a template's `@support` that supports no strategy is now an error
   in that template (completeness rule `abstract-support-used`). It compiled, but
   no justification could override it, and the failure was only reported, without
@@ -117,7 +117,7 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - **Breaking:** a source file that is not valid UTF-8 is now a fatal error,
   located at the first invalid byte. Its bytes used to be replaced with `�`
   without a word, so a file saved in Latin-1 compiled with mangled labels
-  (#179).
+  (#179). A UTF-8 file that starts with a byte-order mark is still accepted.
 - Updated build and test dependencies to their current majors: JUnit 6
   (→ 6.1.3, Jupiter and Platform), Cucumber 8 (→ 8.0.4), Checkstyle 14
   (→ 14.4.0) and `json-schema-validator` 3 (→ 3.0.9). This lifts the JUnit 6
@@ -202,7 +202,9 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - A model whose `implements` fails or never completes, such as two templates
   implementing each other, is reported once. Its other statements and its
   completeness are no longer reported as mistakes of their own, and no operator
-  call consumes it (#177).
+  call consumes it (#177). A cycle that goes through an operator call, such as
+  `j implements t` where `t` is `assemble(j, a)`, is reported as
+  `cyclic-implements` too.
 - An error in a `load`-ed file is reported in that file, at its own line. It was
   reported against the file being compiled, often at a line that file does not
   have, so the IDE pointed at the wrong place (#173).

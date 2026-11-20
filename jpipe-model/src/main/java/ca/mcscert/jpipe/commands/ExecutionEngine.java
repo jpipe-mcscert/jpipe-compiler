@@ -4,8 +4,10 @@ import ca.mcscert.jpipe.model.Unit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -97,27 +99,40 @@ public final class ExecutionEngine {
 	}
 
 	/**
-	 * Nothing is ready: every command waits on another. Runs, best effort, the
-	 * first one that may run without waiting (see
+	 * Nothing is ready: every command waits on another. Runs, best effort, one
+	 * that may run without waiting (see
 	 * {@link Command#runWhenStuck(Unit, PendingCommands)}), so that one mistake
-	 * does not hold back everything that waits on it. A valid source never gets
-	 * here; an invalid one gets as much built as its mistakes allow, and only
-	 * those mistakes reported. When no command may run, execution deadlocks.
+	 * does not hold back everything that waits on it. A command that
+	 * {@linkplain Command#reads() reads} a model another of them may still
+	 * change runs after it: an operator composes its source with every relation
+	 * the source's mistakes let through. A valid source never gets here; an
+	 * invalid one gets as much built as its mistakes allow, and only those
+	 * mistakes reported. When no command may run, execution deadlocks.
 	 */
 	private void runStuck(List<QueueEntry> queue, PendingIndex pending,
 			Unit unit) {
+		List<Integer> runnable = new ArrayList<>();
+		Set<String> changed = new HashSet<>();
 		for (int i = 0; i < queue.size(); i++) {
 			Command candidate = queue.get(i).command();
 			if (candidate.runWhenStuck(unit, pending.seenBy(candidate))) {
-				QueueEntry entry = queue.remove(i);
-				logger.debug("Running stuck command [{}]", entry.command());
-				run(entry, queue, pending, unit);
-				return;
+				runnable.add(i);
+				candidate.target().ifPresent(changed::add);
 			}
 		}
-		List<Command> stuck = queue.stream().map(QueueEntry::command).toList();
-		throw new DeadlockException("Execution deadlocked — " + stuck.size()
-				+ " command(s) cannot execute", stuck, unit);
+		if (runnable.isEmpty()) {
+			List<Command> stuck = queue.stream().map(QueueEntry::command)
+					.toList();
+			throw new DeadlockException("Execution deadlocked — " + stuck.size()
+					+ " command(s) cannot execute", stuck, unit);
+		}
+		int chosen = runnable.stream()
+				.filter(i -> Collections
+						.disjoint(queue.get(i).command().reads(), changed))
+				.findFirst().orElse(runnable.getFirst());
+		QueueEntry entry = queue.remove(chosen);
+		logger.debug("Running stuck command [{}]", entry.command());
+		run(entry, queue, pending, unit);
 	}
 
 	/** Expands a macro in place, or executes a command, then forgets it. */

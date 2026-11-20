@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.model;
 
 import ca.mcscert.jpipe.model.elements.CommonElement;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
+import ca.mcscert.jpipe.util.Aliases;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.Collection;
 import java.util.Collections;
@@ -162,11 +163,12 @@ public final class Unit {
 	}
 
 	/**
-	 * Returns the id that {@code id} resolves to in {@code modelName}, or
-	 * {@code id} itself if no alias was registered.
+	 * Returns the id that {@code id} resolves to in {@code modelName}, followed
+	 * to the end of its alias chain, or {@code id} itself if no alias was
+	 * registered. See {@link JustificationModel#resolveAlias(String)}.
 	 */
 	public String resolveAlias(String modelName, String id) {
-		return aliases.getOrDefault(registryKey(modelName, id), id);
+		return Aliases.follow(id, i -> aliases.get(registryKey(modelName, i)));
 	}
 
 	public <R> R accept(JustificationVisitor<R> visitor) {

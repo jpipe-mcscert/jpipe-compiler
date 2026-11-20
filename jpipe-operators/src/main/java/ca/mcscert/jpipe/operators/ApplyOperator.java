@@ -141,19 +141,9 @@ public final class ApplyOperator implements MacroCommand {
 		for (SourceReading r : readings) {
 			String unitId = r.reading().with(JustificationModel::getName);
 			elements.putIfAbsent(Unit.registryKey(r.source().getName(),
-					resolved(r.source(), unitId)), unitId);
+					r.source().resolveAlias(unitId)), unitId);
 		}
 		return single(id, List.copyOf(elements.values()));
-	}
-
-	/** {@code id} followed through the aliases of {@code model}. */
-	private static String resolved(JustificationModel model, String id) {
-		String current = id;
-		Set<String> visited = new HashSet<>();
-		while (model.aliases().containsKey(current) && visited.add(current)) {
-			current = model.aliases().get(current);
-		}
-		return current;
 	}
 
 	private static String single(String id, List<String> ids) {
@@ -287,6 +277,11 @@ public final class ApplyOperator implements MacroCommand {
 				&& config.sourceNames().stream()
 						.noneMatch(source -> pending.target(source,
 								c -> !(c instanceof ImplementsTemplate)));
+	}
+
+	@Override
+	public Set<String> reads() {
+		return Set.copyOf(config.sourceNames());
 	}
 
 	@Override
