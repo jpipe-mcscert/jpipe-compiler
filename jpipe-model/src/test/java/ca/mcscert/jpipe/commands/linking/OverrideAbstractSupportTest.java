@@ -12,6 +12,7 @@ import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
@@ -177,6 +178,39 @@ class OverrideAbstractSupportTest {
 
 			assertThat(unit.get("j").findById("t:as")).get()
 					.isInstanceOf(Evidence.class);
+		}
+
+		@Test
+		void anIdThatNamesTwoPlaceholdersIsAmbiguous() {
+			// A composition keeps each source's copy of a @support: 't:as'
+			// names both, and the element order used to pick one (#177).
+			Unit unit = new Unit("src");
+			Justification j = new Justification("j");
+			j.addElement(new AbstractSupport("l:t:as", "Left"));
+			j.addElement(new AbstractSupport("r:t:as", "Right"));
+			unit.add(j);
+			var cmd = new OverrideAbstractSupport("j", "t:as", "evidence",
+					"Which one?");
+			assertThatThrownBy(() -> cmd.expand(unit))
+					.isInstanceOf(AmbiguousIdException.class)
+					.hasMessageContaining("'l:t:as', 'r:t:as'");
+		}
+
+		@Test
+		void anAmbiguousIdIsReadyWhicheverElementComesFirst() {
+			// The first match is a concrete evidence: it used to wait for a
+			// placeholder forever, and the order of the sources decided
+			// between ambiguous-id and unresolved-override (#177).
+			Unit unit = new Unit("src");
+			Justification j = new Justification("j");
+			j.addElement(new Evidence("l:t:as", "Overridden in l"));
+			j.addElement(new AbstractSupport("r:t:as", "Right"));
+			unit.add(j);
+			var cmd = new OverrideAbstractSupport("j", "t:as", "evidence",
+					"Which one?");
+
+			assertThat(cmd.condition().test(unit)).isTrue();
+			assertThat(cmd.namedIds(j)).containsExactly("l:t:as", "r:t:as");
 		}
 
 		@Test

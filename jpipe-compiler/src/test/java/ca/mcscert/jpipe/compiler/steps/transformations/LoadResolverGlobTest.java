@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
+import ca.mcscert.jpipe.compiler.CompilationConfig;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Diagnostic;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
@@ -284,6 +285,25 @@ class LoadResolverGlobTest {
 	private CompilationContext compile(String pattern, String namespace)
 			throws IOException {
 		return compile(pattern, namespace, dir.resolve("main.jd").toString());
+	}
+
+	@Test
+	void aSourceReadFromStdinLoadsRelativeToTheWorkingDirectory()
+			throws IOException {
+		// '<stdin>' names no file, and is no valid path on Windows: it used
+		// to make every compilation from standard input fail there.
+		writeTemplate("a.jd", "alpha");
+		Path workingDirectory = Path.of("").toAbsolutePath();
+		// On Windows, the two may be on different drives.
+		assumeTrue(workingDirectory.getRoot().equals(dir.getRoot()));
+		String relative = workingDirectory.relativize(dir.resolve("a.jd"))
+				.toString();
+
+		CompilationContext ctx = compile(relative, null,
+				CompilationConfig.STDIN);
+
+		assertThat(ctx.hasFatalErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("alpha");
 	}
 
 	@Test

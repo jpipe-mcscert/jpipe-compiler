@@ -6,6 +6,7 @@ import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
+import ca.mcscert.jpipe.compiler.CompilationConfig;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Diagnostic;
 import ca.mcscert.jpipe.model.SourceLocation;
@@ -50,6 +51,21 @@ class DuplicateModelFilterTest {
 			assertThat(d.message())
 					.isEqualTo("Model 't' is already declared at lib.jd:8");
 		});
+	}
+
+	@Test
+	void a_duplicate_read_from_stdin_names_stdin() {
+		// '<stdin>' is no valid path on Windows: it used to fail there.
+		Command first = new CreateTemplate("t",
+				new SourceLocation(CompilationConfig.STDIN, 1, 9));
+		Command again = new CreateTemplate("t",
+				new SourceLocation(CompilationConfig.STDIN, 5, 9));
+
+		new DuplicateModelFilter().fire(List.of(first, again), ctx);
+
+		assertThat(ctx.diagnostics()).singleElement()
+				.extracting(Diagnostic::message)
+				.isEqualTo("Model 't' is already declared at <stdin>:1");
 	}
 
 	@Test

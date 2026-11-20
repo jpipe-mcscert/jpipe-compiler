@@ -75,7 +75,7 @@ final class OutputTarget {
 	 * report, so the commands refuse to run (#174).
 	 */
 	static boolean sameFile(String input, String output) {
-		if (CompilationConfig.STDIN.equals(input)
+		if (CompilationConfig.isStdin(input)
 				|| CompilationConfig.STDOUT.equals(output)) {
 			return false;
 		}

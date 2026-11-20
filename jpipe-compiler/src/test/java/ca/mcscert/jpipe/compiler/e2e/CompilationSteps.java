@@ -312,6 +312,11 @@ public class CompilationSteps {
 		assertThat(codesIn(jsonReport)).doesNotContain(code);
 	}
 
+	@Then("the JSON report has exactly one diagnostic with code {string}")
+	public void theJsonReportHasExactlyOneDiagnosticWithCode(String code) {
+		assertThat(codesIn(jsonReport)).filteredOn(code::equals).hasSize(1);
+	}
+
 	/** Every coded diagnostic as {@code code@file-name:line}. */
 	private List<String> locatedCodes() {
 		JSONArray diagnostics = jsonReport.getJSONArray("diagnostics");

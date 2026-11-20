@@ -213,6 +213,10 @@ final class ExecutionFailureDiagnostics {
 				};
 				ctx.error(code, c.location(), describe(cause));
 			}
+			// An override whose short id names several inherited @supports.
+			case OverrideAbstractSupport c when cause instanceof AmbiguousIdException ->
+				ctx.error(DiagnosticCodes.AMBIGUOUS_ID, c.location(),
+						describe(cause));
 			// A call written in a way it cannot honour is
 			// invalid-operator-call,
 			// as when the parser finds it; anything else is an execution error.

@@ -67,17 +67,43 @@ public final class OverrideAbstractSupport implements MacroCommand {
 		return location;
 	}
 
+	/**
+	 * Ready once the placeholder is there, or once the id is ambiguous: then
+	 * {@link #expand} reports it, whichever element comes first (#177).
+	 */
 	@Override
 	public Predicate<Unit> condition() {
 		return unit -> unit.findModel(container)
-				.map(m -> m.findById(qualifiedId)
+				.map(m -> !m.ambiguousMatches(qualifiedId).isEmpty() || m
+						.findById(qualifiedId)
 						.filter(AbstractSupport.class::isInstance).isPresent())
 				.orElse(false);
+	}
+
+	/**
+	 * The ids of the elements of {@code model} this override names: the one its
+	 * id resolves to, or every one it is ambiguous between.
+	 */
+	public List<String> namedIds(JustificationModel model) {
+		List<JustificationElement> ambiguous = model
+				.ambiguousMatches(qualifiedId);
+		return ambiguous.isEmpty()
+				? model.findById(qualifiedId).map(JustificationElement::id)
+						.stream().toList()
+				: ambiguous.stream().map(JustificationElement::id).toList();
 	}
 
 	@Override
 	public List<Command> expand(Unit unit) {
 		JustificationModel model = unit.get(container);
+		// A short id that names several inherited elements is ambiguous, as in
+		// a relation: the element order must not choose the placeholder that
+		// is replaced (#177).
+		List<JustificationElement> ambiguous = model
+				.ambiguousMatches(qualifiedId);
+		if (!ambiguous.isEmpty()) {
+			throw new AmbiguousIdException(qualifiedId, container, ambiguous);
+		}
 		AbstractSupport old = (AbstractSupport) model.findById(qualifiedId)
 				.orElseThrow(() -> new NoSuchElementException(
 						"No abstract support with id: " + qualifiedId));

@@ -24,3 +24,15 @@ justification j implements t {
     evidence e2         is "Its evidence"
     e2 supports s2
 }
+
+// 'u' inherits 'dangling', and 'v' composes it twice: neither reports it again.
+template u implements t {
+    strategy s3 is "S3"
+    evidence e3 is "E3"
+    e3 supports s3
+}
+
+template v is assemble(t, u) {
+    conclusionLabel: "V"
+    strategyLabel:   "SV"
+}

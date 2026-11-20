@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.compiler.steps.transformations;
 import static ca.mcscert.jpipe.util.QualifiedIds.qualify;
 
 import ca.mcscert.jpipe.commands.Command;
+import ca.mcscert.jpipe.compiler.CompilationConfig;
 import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateEvidence;
@@ -40,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
@@ -150,7 +152,7 @@ public final class LoadResolver
 	protected List<Command> run(List<Command> commands,
 			CompilationContext ctx) {
 		Set<Path> visited = new HashSet<>();
-		visited.add(identity(Paths.get(ctx.sourcePath())));
+		compiledFile(ctx).map(LoadResolver::identity).ifPresent(visited::add);
 		Set<String> loaded = new HashSet<>();
 		return resolve(commands, ctx, visited, loaded, "");
 	}
@@ -183,8 +185,9 @@ public final class LoadResolver
 			Set<Path> visited, Set<String> loaded, String prefix) {
 		logger.debug("Expanding load [{}] as [{}]", load.path(),
 				load.namespace());
-		Path base = Paths.get(ctx.sourcePath()).toAbsolutePath().normalize()
-				.getParent();
+		Path base = compiledFile(ctx)
+				.map(file -> file.toAbsolutePath().normalize().getParent())
+				.orElseGet(() -> Path.of("").toAbsolutePath());
 		try {
 			if (!isGlob(load.path())) {
 				Path resolved = base.resolve(load.path()).toAbsolutePath()
@@ -199,6 +202,17 @@ public final class LoadResolver
 					+ "': " + e.getReason());
 			return List.of();
 		}
+	}
+
+	/**
+	 * The file being compiled, or nothing when the source is read from standard
+	 * input (see {@link CompilationConfig#isStdin}). A load from standard input
+	 * is relative to the working directory.
+	 */
+	private static Optional<Path> compiledFile(CompilationContext ctx) {
+		return CompilationConfig.isStdin(ctx.sourcePath())
+				? Optional.empty()
+				: Optional.of(Paths.get(ctx.sourcePath()));
 	}
 
 	/**
