@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
+import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
@@ -238,6 +239,29 @@ class CompletenessValidatorTest {
 			unit.recordFailedOverride("j", "t:abs");
 
 			assertThat(validator.validate(unit)).isEmpty();
+		}
+
+		@Test
+		void a_placeholder_whose_override_failed_in_a_template_is_spared_where_inherited() {
+			// The template's failure is reported there: a model implementing
+			// it is told only about the placeholders it should override.
+			Unit unit = new ExecutionEngine().spawn("src",
+					List.of(new CreateTemplate("t"),
+							new CreateConclusion("t", "c", "C"),
+							new CreateStrategy("t", "s", "S"),
+							new CreateAbstractSupport("t", "abs", "Failed"),
+							new CreateAbstractSupport("t", "other",
+									"Unrelated"),
+							new AddSupport("t", "c", "s"),
+							new AddSupport("t", "s", "abs"),
+							new AddSupport("t", "s", "other"),
+							new CreateJustification("j"),
+							new ImplementsTemplate("j", "t")));
+			unit.recordFailedOverride("t", "abs");
+
+			assertThat(validator.validate(unit)).singleElement()
+					.extracting(Violation::message).asString().contains(
+							"'t:other' in justification 'j' was not overridden");
 		}
 
 		@Test

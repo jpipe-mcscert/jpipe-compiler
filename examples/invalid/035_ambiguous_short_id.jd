@@ -56,3 +56,16 @@ justification twice implements both {
     evidence top:h   is "Which one?"
     evidence r:top:h is "The right one"
 }
+
+// 'once' makes the same mistake in a template (line 63). 'k' implements it,
+// and is told only about the @support it should override (line 65).
+template once implements both {
+    evidence top:h is "Which one?"
+    strategy w     is "Its own strategy"
+    @support u     is "Its own abstract support"
+    u supports w
+}
+
+justification k implements once {
+    evidence e2 is "An unrelated evidence"
+}

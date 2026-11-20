@@ -11,6 +11,7 @@ import ca.mcscert.jpipe.model.elements.JustificationElement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -159,12 +160,36 @@ public final class CompletenessValidator {
 		// override commands before the completeness check runs.
 		// One whose override failed is reported as that failure.
 		justification.elementsOfType(AbstractSupport.class).stream()
-				.filter(as -> !ctx.overrideFailed(name, as.id()))
+				.filter(as -> !overrideFailed(justification, as.id(), ctx))
 				.forEach(as -> violations.add(new Violation(
 						"no-abstract-support",
 						"Abstract support '" + as.id() + "' in justification '"
 								+ name + "' was not overridden",
 						ctx.locationOf(name, as.id()))));
+	}
+
+	/**
+	 * Whether an override of {@code id} failed in {@code model}, or in a
+	 * template it inherits {@code id} from: there, it is the id without the
+	 * template's prefix, if inheriting added one.
+	 */
+	private static boolean overrideFailed(JustificationModel model, String id,
+			ValidationContext ctx) {
+		String local = id;
+		Optional<? extends JustificationModel> current = Optional.of(model);
+		while (current.isPresent()) {
+			JustificationModel m = current.get();
+			if (ctx.overrideFailed(m.getName(), local)) {
+				return true;
+			}
+			Optional<Template> parent = m.getParent();
+			String prefix = parent.map(t -> t.getName() + ":").orElse("");
+			if (!prefix.isEmpty() && local.startsWith(prefix)) {
+				local = local.substring(prefix.length());
+			}
+			current = parent;
+		}
+		return false;
 	}
 
 	private void checkTemplate(Template template, String name,
