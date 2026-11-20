@@ -205,23 +205,23 @@ public final class LoadResolver
 	}
 
 	/**
+	 * The file being compiled, or nothing when the source is read from standard
+	 * input (see {@link CompilationConfig#isStdin}). A load from standard input
+	 * is relative to the working directory.
+	 */
+	private static Optional<Path> compiledFile(CompilationContext ctx) {
+		return CompilationConfig.isStdin(ctx.sourcePath())
+				? Optional.empty()
+				: Optional.of(Paths.get(ctx.sourcePath()));
+	}
+
+	/**
 	 * What a file is, as opposed to how it is written: its real path once it
 	 * exists, so that a symbolic link or another spelling on a case-insensitive
 	 * file system is the same file, loaded once (#178). Used only to compare
 	 * files: a file is still read, reported and resolved from the path it is
 	 * written as.
 	 */
-	/**
-	 * The file being compiled, or nothing when the source is read from standard
-	 * input: {@code <stdin>} names no file, and is not even a valid path on
-	 * Windows. A load from standard input is relative to the working directory.
-	 */
-	private static Optional<Path> compiledFile(CompilationContext ctx) {
-		return CompilationConfig.STDIN.equals(ctx.sourcePath())
-				? Optional.empty()
-				: Optional.of(Paths.get(ctx.sourcePath()));
-	}
-
 	private static Path identity(Path path) {
 		Path normalized = path.toAbsolutePath().normalize();
 		try {

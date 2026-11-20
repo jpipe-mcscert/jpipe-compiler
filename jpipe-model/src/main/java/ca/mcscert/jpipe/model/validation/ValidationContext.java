@@ -45,4 +45,13 @@ record ValidationContext(Optional<Unit> unit) {
 		return unit.map(u -> u.locationOf(modelName, elementId))
 				.orElse(SourceLocation.UNKNOWN);
 	}
+
+	/**
+	 * Whether an override of {@code elementId} in {@code modelName} failed; see
+	 * {@link Unit#recordFailedOverride}.
+	 */
+	boolean overrideFailed(String modelName, String elementId) {
+		return unit.map(u -> u.overrideFailed(modelName, elementId))
+				.orElse(false);
+	}
 }

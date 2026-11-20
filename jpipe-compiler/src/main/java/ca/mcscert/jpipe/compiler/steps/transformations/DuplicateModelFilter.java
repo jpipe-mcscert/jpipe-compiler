@@ -84,11 +84,11 @@ public final class DuplicateModelFilter
 	}
 
 	/**
-	 * The file name of {@code source}, or {@code <stdin>} as is: it names no
-	 * file, and is not even a valid path on Windows.
+	 * The file name of {@code source}, or {@code <stdin>} as is (see
+	 * {@link CompilationConfig#isStdin}).
 	 */
 	private static String fileName(String source) {
-		return CompilationConfig.STDIN.equals(source)
+		return CompilationConfig.isStdin(source)
 				? source
 				: String.valueOf(Path.of(source).getFileName());
 	}

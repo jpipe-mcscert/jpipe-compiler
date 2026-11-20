@@ -230,6 +230,17 @@ class CompletenessValidatorTest {
 		}
 
 		@Test
+		void a_placeholder_whose_override_failed_is_not_reported_again() {
+			Unit unit = new Unit("src");
+			Justification j = simpleJustification();
+			j.addElement(new AbstractSupport("t:abs", "Left behind"));
+			unit.add(j);
+			unit.recordFailedOverride("j", "t:abs");
+
+			assertThat(validator.validate(unit)).isEmpty();
+		}
+
+		@Test
 		void validate_unit_checks_all_models() {
 			Unit unit = new Unit("src");
 			unit.add(new Justification("j1")); // no conclusion

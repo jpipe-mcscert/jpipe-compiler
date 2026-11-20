@@ -293,8 +293,11 @@ class LoadResolverGlobTest {
 		// '<stdin>' names no file, and is no valid path on Windows: it used
 		// to make every compilation from standard input fail there.
 		writeTemplate("a.jd", "alpha");
-		String relative = Path.of("").toAbsolutePath()
-				.relativize(dir.resolve("a.jd")).toString();
+		Path workingDirectory = Path.of("").toAbsolutePath();
+		// On Windows, the two may be on different drives.
+		assumeTrue(workingDirectory.getRoot().equals(dir.getRoot()));
+		String relative = workingDirectory.relativize(dir.resolve("a.jd"))
+				.toString();
 
 		CompilationContext ctx = compile(relative, null,
 				CompilationConfig.STDIN);

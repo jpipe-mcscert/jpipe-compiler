@@ -25,6 +25,7 @@ public final class Unit {
 	private final Map<String, SourceLocation> locations = new LinkedHashMap<>();
 	private final Map<String, String> aliases = new LinkedHashMap<>();
 	private final Set<String> incomplete = new LinkedHashSet<>();
+	private final Set<String> failedOverrides = new LinkedHashSet<>();
 
 	public Unit(String source) {
 		this.source = source;
@@ -54,6 +55,20 @@ public final class Unit {
 	/** Whether {@code modelName} was built in full; see markIncomplete. */
 	public boolean isComplete(String modelName) {
 		return !incomplete.contains(modelName);
+	}
+
+	/**
+	 * Records that an override of {@code elementId} in {@code modelName}
+	 * failed. The placeholder it meant to replace is left in the model, and is
+	 * no second mistake: the failure is reported where it is.
+	 */
+	public void recordFailedOverride(String modelName, String elementId) {
+		failedOverrides.add(registryKey(modelName, elementId));
+	}
+
+	/** Whether an override of {@code elementId} in {@code modelName} failed. */
+	public boolean overrideFailed(String modelName, String elementId) {
+		return failedOverrides.contains(registryKey(modelName, elementId));
 	}
 
 	public Collection<JustificationModel> getModels() {

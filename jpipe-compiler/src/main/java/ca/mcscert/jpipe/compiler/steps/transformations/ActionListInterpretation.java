@@ -41,13 +41,16 @@ public final class ActionListInterpretation
 		ExecutionEngine engine = new ExecutionEngine(failure -> {
 			failures.add(failure);
 			// A model whose `implements` failed is unusable: nothing may
-			// consume it, and the checkers leave it alone. So is one whose
-			// override failed: the placeholder it keeps is no second mistake.
+			// consume it, and the checkers leave it alone. One whose override
+			// failed is still checked, but for the placeholder it keeps.
+			Unit partial = failure.partialUnit();
 			switch (failure.failedCommand()) {
 				case ImplementsTemplate it ->
-					failure.partialUnit().markIncomplete(it.modelName());
+					partial.markIncomplete(it.modelName());
 				case OverrideAbstractSupport o ->
-					failure.partialUnit().markIncomplete(o.container());
+					partial.findModel(o.container())
+							.ifPresent(m -> o.namedIds(m).forEach(id -> partial
+									.recordFailedOverride(o.container(), id)));
 				default -> {
 					// The model is still checked: see #183.
 				}

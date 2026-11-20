@@ -22,4 +22,12 @@ public record CompilationConfig(String inputFile, String outputFile,
 
 	public static final String STDIN = "<stdin>";
 	public static final String STDOUT = "<stdout>";
+
+	/**
+	 * Whether {@code source} is standard input. It names no file, and is not
+	 * even a valid path on Windows: never turn it into a {@code Path}.
+	 */
+	public static boolean isStdin(String source) {
+		return STDIN.equals(source);
+	}
 }

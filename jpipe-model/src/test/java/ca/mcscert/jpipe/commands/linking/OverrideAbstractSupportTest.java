@@ -197,6 +197,23 @@ class OverrideAbstractSupportTest {
 		}
 
 		@Test
+		void anAmbiguousIdIsReadyWhicheverElementComesFirst() {
+			// The first match is a concrete evidence: it used to wait for a
+			// placeholder forever, and the order of the sources decided
+			// between ambiguous-id and unresolved-override (#177).
+			Unit unit = new Unit("src");
+			Justification j = new Justification("j");
+			j.addElement(new Evidence("l:t:as", "Overridden in l"));
+			j.addElement(new AbstractSupport("r:t:as", "Right"));
+			unit.add(j);
+			var cmd = new OverrideAbstractSupport("j", "t:as", "evidence",
+					"Which one?");
+
+			assertThat(cmd.condition().test(unit)).isTrue();
+			assertThat(cmd.namedIds(j)).containsExactly("l:t:as", "r:t:as");
+		}
+
+		@Test
 		void unknownTypeThrowsIllegalArgumentException() {
 			Unit unit = unitWithAbstractSupport();
 			var cmd = new OverrideAbstractSupport("j", "t:as", "strategy",

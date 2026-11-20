@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Checks that justification models are structurally complete.
@@ -67,16 +68,31 @@ public final class CompletenessValidator {
 		// already; its gaps are consequences, not mistakes of their own.
 		// An unused @support is one mistake, wherever it is copied: a template
 		// built by an operator call keeps its sources' placeholders, at the
-		// place they are declared (#183).
+		// place they are declared (#183). A call runs once its sources are
+		// built, so a source comes before its result in the unit, and the
+		// template that declares the @support is the one that reports it.
 		Set<SourceLocation> unusedSupports = new HashSet<>();
-		unit.getModels().stream()
-				.filter(model -> unit.isComplete(model.getName()))
-				.flatMap(model -> checkModel(model, ctx).stream())
-				.filter(v -> !v.rule().equals(ABSTRACT_SUPPORT_USED)
-						|| !v.location().isKnown()
-						|| unusedSupports.add(v.location()))
-				.forEach(violations::add);
+		for (JustificationModel model : unit.getModels()) {
+			if (!unit.isComplete(model.getName())) {
+				continue;
+			}
+			for (Violation v : checkModel(model, ctx)) {
+				if (!isCopyOfAnUnusedSupport(v, unusedSupports)) {
+					violations.add(v);
+				}
+			}
+		}
 		return violations;
+	}
+
+	/**
+	 * Whether {@code v} reports a @support already reported at the same place:
+	 * a copy of it. Records {@code v}'s place otherwise.
+	 */
+	private static boolean isCopyOfAnUnusedSupport(Violation v,
+			Set<SourceLocation> reported) {
+		return v.rule().equals(ABSTRACT_SUPPORT_USED) && v.location().isKnown()
+				&& !reported.add(v.location());
 	}
 
 	/**
@@ -141,8 +157,11 @@ public final class CompletenessValidator {
 			ValidationContext ctx, List<Violation> violations) {
 		// no-abstract-support: AbstractSupports must have been replaced by
 		// override commands before the completeness check runs.
-		justification.elementsOfType(AbstractSupport.class).forEach(
-				as -> violations.add(new Violation("no-abstract-support",
+		// One whose override failed is reported as that failure.
+		justification.elementsOfType(AbstractSupport.class).stream()
+				.filter(as -> !ctx.overrideFailed(name, as.id()))
+				.forEach(as -> violations.add(new Violation(
+						"no-abstract-support",
 						"Abstract support '" + as.id() + "' in justification '"
 								+ name + "' was not overridden",
 						ctx.locationOf(name, as.id()))));
@@ -161,9 +180,10 @@ public final class CompletenessValidator {
 		// strategy can never be overridden, so it is reported in the template
 		// that declares it, rather than in every model implementing that
 		// template (#183).
-		List<JustificationElement> inherited = template.inheritedElements();
+		Set<String> inherited = template.inheritedElements().stream()
+				.map(JustificationElement::id).collect(Collectors.toSet());
 		template.abstractSupports().stream()
-				.filter(as -> !inherited.contains(as))
+				.filter(as -> !inherited.contains(as.id()))
 				.filter(as -> template.strategies().stream()
 						.noneMatch(s -> s.getSupports().stream()
 								.anyMatch(leaf -> leaf.id().equals(as.id()))))

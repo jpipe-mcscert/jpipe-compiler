@@ -195,13 +195,6 @@ final class ExecutionFailureDiagnostics {
 					describe(cause));
 			return;
 		}
-		if (cause instanceof AmbiguousIdException) {
-			// A relation or an override whose short id names several
-			// inherited elements.
-			ctx.error(DiagnosticCodes.AMBIGUOUS_ID, cmd.location(),
-					describe(cause));
-			return;
-		}
 		switch (cmd) {
 			// A cycle of `implements` never runs: it deadlocks, and is reported
 			// by diagnoseImplementsTemplate. What fails here is the rest, such
@@ -212,11 +205,18 @@ final class ExecutionFailureDiagnostics {
 								+ "' extends '" + c.templateName() + "': "
 								+ describe(cause));
 			case AddSupport c -> {
-				String code = cause instanceof ReferenceIntoTemplateException
-						? DiagnosticCodes.REFERENCE_INTO_TEMPLATE
-						: DiagnosticCodes.INVALID_SUPPORT;
+				String code = switch (cause) {
+					case ReferenceIntoTemplateException _ ->
+						DiagnosticCodes.REFERENCE_INTO_TEMPLATE;
+					case AmbiguousIdException _ -> DiagnosticCodes.AMBIGUOUS_ID;
+					default -> DiagnosticCodes.INVALID_SUPPORT;
+				};
 				ctx.error(code, c.location(), describe(cause));
 			}
+			// An override whose short id names several inherited @supports.
+			case OverrideAbstractSupport c when cause instanceof AmbiguousIdException ->
+				ctx.error(DiagnosticCodes.AMBIGUOUS_ID, c.location(),
+						describe(cause));
 			// A call written in a way it cannot honour is
 			// invalid-operator-call,
 			// as when the parser finds it; anything else is an execution error.
