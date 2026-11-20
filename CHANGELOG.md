@@ -117,7 +117,7 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - **Breaking:** a source file that is not valid UTF-8 is now a fatal error,
   located at the first invalid byte. Its bytes used to be replaced with `�`
   without a word, so a file saved in Latin-1 compiled with mangled labels
-  (#179).
+  (#179). A UTF-8 file that starts with a byte-order mark is still accepted.
 - Updated build and test dependencies to their current majors: JUnit 6
   (→ 6.1.3, Jupiter and Platform), Cucumber 8 (→ 8.0.4), Checkstyle 14
   (→ 14.4.0) and `json-schema-validator` 3 (→ 3.0.9). This lifts the JUnit 6
