@@ -1,0 +1,2030 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Justified Pipelines language and compiler">
+      
+      
+      
+        <link rel="canonical" href="https://ace-design.github.io/jpipe/design/cli/">
+      
+      
+        <link rel="prev" href="../operators/">
+      
+      
+        <link rel="next" href="../diagnostic-schema/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>CLI - jPipe</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/mcmaster.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cli" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="jPipe" class="md-header__button md-logo" aria-label="jPipe" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            jPipe
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CLI
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jpipe-mcscert/jpipe-compiler" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jpipe-mcscert/jpipe-compiler
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="jPipe" class="md-nav__button md-logo" aria-label="jPipe" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    jPipe
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jpipe-mcscert/jpipe-compiler" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jpipe-mcscert/jpipe-compiler
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../language/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../steps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler Steps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#command-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#process-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        process (default)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diagnostic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        diagnostic
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="diagnostic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#json-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON report
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#doctor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        doctor
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shared-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared infrastructure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shared infrastructure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputoutputcommand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InputOutputCommand
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#doctor_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Doctor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unexpectederrorhandler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UnexpectedErrorHandler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#default-subcommand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default subcommand
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#global-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diagnostic-schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostic report JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0001-semver-versioning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0001: Semantic Versioning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0002-multi-module-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0002: Multi-Module Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0003-fat-jar-with-shade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0003: Fat JAR with Maven Shade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0004-sonarcloud-quality-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004: SonarCloud as Mandatory Quality Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0005-command-pattern-for-model-construction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0005: Command Pattern for Model Construction and Modification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0006-logging-conventions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0006: Logging Conventions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0007-dependency-freshness-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007: Dependency Freshness Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0008-visitor-pattern-for-model-traversal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0008: Visitor Pattern for Model Traversal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0009-pipeline-abstraction-for-compilation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0009: Pipeline Abstraction for Compilation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0010-model-visitors-in-jpipe-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0010: Model-Only Visitors Belong in jpipe-model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0011-cucumber-for-compiler-end-to-end-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0011: Cucumber for Compiler End-to-End Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0012-qualified-ids-and-template-expansion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0012: Qualified Ids and Template Expansion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0013-export-strategy-text-vs-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0013: Export Strategy — Text Generation vs. Library-Backed IR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0014-colorblind-safe-dot-palette/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0014: Colorblind-Safe Colour Palette for DOT Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0015-consistency-and-completeness-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0015: Consistency and Completeness Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0016-error-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0016: Error Management — Diagnostic Levels, Codes, Pipeline Interruption, and Exit Codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0017-load-directive-as-compiler-step/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0017: Load Directive Resolved as a Compiler Step
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0018-composition-operators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0018: Composition Operators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0019-ai-assisted-development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: AI-Assisted Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0020-tag-triggered-release-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0020: Tag-Triggered Release Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0021-pin-runtime-binary-to-declared-dependency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0021: Pin Runtime Binary to Declared Dependency Version
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0022-glob-patterns-in-load/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0022: Glob Patterns in the load Directive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0023-ubuntu-release-target-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0023: Ubuntu Release Target Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0024-git-branching-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0024: Git Branching Model — dev for Integration, main for Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0025-mainstream-platform-distribution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0025: Mainstream Platform Distribution Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="cli">CLI</h1>
+<p>The <code>jpipe-cli</code> module is the public entry point for jPipe. It exposes a
+PicoCLI command hierarchy and assembles pipelines via <code>CompilerFactory</code>.</p>
+<h2 id="command-hierarchy">Command hierarchy</h2>
+<p><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBjb250ZW50U2NyaXB0VHlwZT0iYXBwbGljYXRpb24vZWNtYXNjcmlwdCIgY29udGVudFN0eWxlVHlwZT0idGV4dC9jc3MiIGhlaWdodD0iNTYwcHgiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiIHN0eWxlPSJ3aWR0aDoxNjcycHg7aGVpZ2h0OjU2MHB4OyIgdmVyc2lvbj0iMS4xIiB2aWV3Qm94PSIwIDAgMTY3MiA1NjAiIHdpZHRoPSIxNjcycHgiIHpvb21BbmRQYW49Im1hZ25pZnkiPjxkZWZzPjxmaWx0ZXIgaGVpZ2h0PSIzMDAlIiBpZD0iZmpnNGVtYjcyanNwbSIgd2lkdGg9IjMwMCUiIHg9Ii0xIiB5PSItMSI+PGZlR2F1c3NpYW5CbHVyIHJlc3VsdD0iYmx1ck91dCIgc3RkRGV2aWF0aW9uPSIyLjAiLz48ZmVDb2xvck1hdHJpeCBpbj0iYmx1ck91dCIgcmVzdWx0PSJibHVyT3V0MiIgdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIC40IDAiLz48ZmVPZmZzZXQgZHg9IjQuMCIgZHk9IjQuMCIgaW49ImJsdXJPdXQyIiByZXN1bHQ9ImJsdXJPdXQzIi8+PGZlQmxlbmQgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iYmx1ck91dDMiIG1vZGU9Im5vcm1hbCIvPjwvZmlsdGVyPjwvZGVmcz48Zz48IS0tTUQ1PVtlM2E4OWI3MjAxOWQ4ZDY5YjczYjBhOWViYjg0ZWRhNl0KY2x1c3RlciBjbGktLT48cmVjdCBmaWxsPSIjRkZGRkZGIiBmaWx0ZXI9InVybCgjZmpnNGVtYjcyanNwbSkiIGhlaWdodD0iNTI1LjI3IiBzdHlsZT0ic3Ryb2tlOiAjMDAwMDAwOyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxNjM3IiB4PSIyMiIgeT0iMjMuNzMiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTciIHg9IjgzMiIgeT0iMzguNzI1MSI+Y2xpPC90ZXh0PjwhLS1NRDU9Wzg0NzE4Nzc2ZDIxNGJlNDgwZTRjMjU5ZWZjYjczN2ZjXQpjbGFzcyBNYWluLS0+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2ZqZzRlbWI3MmpzcG0pIiBoZWlnaHQ9IjEzMC43NjU2IiBpZD0iTWFpbiIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMjgyIiB4PSI1MTIiIHk9IjU4LjczIi8+PGVsbGlwc2UgY3g9IjU2MS4yNSIgY3k9Ijc3LjY5ODgiIGZpbGw9IiNBREQxQjIiIHJ4PSIxMSIgcnk9IjExIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNTY0LjIxODgsODMuMzM5NCBRNTYzLjY0MDYsODMuNjM2MyA1NjMsODMuNzc2OSBRNTYyLjM1OTQsODMuOTMzMSA1NjEuNjU2Myw4My45MzMxIFE1NTkuMTU2Myw4My45MzMxIDU1Ny44MjgxLDgyLjI5MjUgUTU1Ni41MTU2LDgwLjYzNjMgNTU2LjUxNTYsNzcuNTExMyBRNTU2LjUxNTYsNzQuMzg2MyA1NTcuODI4MSw3Mi43MyBRNTU5LjE1NjMsNzEuMDczOCA1NjEuNjU2Myw3MS4wNzM4IFE1NjIuMzU5NCw3MS4wNzM4IDU2Myw3MS4yMyBRNTYzLjY1NjMsNzEuMzg2MyA1NjQuMjE4OCw3MS42ODMxIEw1NjQuMjE4OCw3NC40MDE5IFE1NjMuNTkzOCw3My44MjM4IDU2Myw3My41NTgxIFE1NjIuNDA2Myw3My4yNzY5IDU2MS43ODEzLDczLjI3NjkgUTU2MC40Mzc1LDczLjI3NjkgNTU5Ljc1LDc0LjM1NSBRNTU5LjA2MjUsNzUuNDE3NSA1NTkuMDYyNSw3Ny41MTEzIFE1NTkuMDYyNSw3OS42MDUgNTU5Ljc1LDgwLjY4MzEgUTU2MC40Mzc1LDgxLjc0NTYgNTYxLjc4MTMsODEuNzQ1NiBRNTYyLjQwNjMsODEuNzQ1NiA1NjMsODEuNDggUTU2My41OTM4LDgxLjE5ODggNTY0LjIxODgsODAuNjIwNiBMNTY0LjIxODgsODMuMzM5NCBaICIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXN0eWxlPSJpdGFsaWMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTc5IiB4PSI1NzkuNzUiIHk9Ijc0Ljg2ODciPsKrQENvbW1hbmQgbmFtZT0ianBpcGUiwrs8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjkiIHg9IjY1NC43NSIgeT0iODguODM3NCI+TWFpbjwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHgxPSI1MTMiIHgyPSI3OTMiIHkxPSI5Ni42Njc1IiB5Mj0iOTYuNjY3NSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHQtZGVjb3JhdGlvbj0idW5kZXJsaW5lIiB0ZXh0TGVuZ3RoPSIxMDUiIHg9IjUxOCIgeT0iMTEwLjg3NzkiPitFWElUX09LIDogaW50ID0gMDwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0LWRlY29yYXRpb249InVuZGVybGluZSIgdGV4dExlbmd0aD0iMTU5IiB4PSI1MTgiIHk9IjEyMy42ODI2Ij4rRVhJVF9KUElQRV9FUlJPUiA6IGludCA9IDE8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dC1kZWNvcmF0aW9uPSJ1bmRlcmxpbmUiIHRleHRMZW5ndGg9IjE4NSIgeD0iNTE4IiB5PSIxMzYuNDg3MyI+K0VYSVRfU1lTVEVNX0VSUk9SIDogaW50ID0gNDI8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTE4IiB4PSI1MTgiIHk9IjE0OS4yOTIiPn5oZWFkbGVzcyA6IGJvb2xlYW48L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB4MT0iNTEzIiB4Mj0iNzkzIiB5MT0iMTU1Ljg4NjMiIHkyPSIxNTUuODg2MyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHQtZGVjb3JhdGlvbj0idW5kZXJsaW5lIiB0ZXh0TGVuZ3RoPSIyNzAiIHg9IjUxOCIgeT0iMTcwLjA5NjciPit3aXRoRGVmYXVsdFN1YmNvbW1hbmQoYXJncywgY21kKSA6IFN0cmluZ1tdPC90ZXh0Pjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHQtZGVjb3JhdGlvbj0idW5kZXJsaW5lIiB0ZXh0TGVuZ3RoPSIxMjIiIHg9IjUxOCIgeT0iMTgyLjkwMTQiPittYWluKFN0cmluZ1tdKSA6IHZvaWQ8L3RleHQ+PCEtLU1ENT1bODI2ZjkzZTgyMmU3MWI5ZWU1NWE3YTMzZjU4NjZiZmZdCmNsYXNzIElucHV0T3V0cHV0Q29tbWFuZC0tPjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmamc0ZW1iNzJqc3BtKSIgaGVpZ2h0PSIxMDUuMTU2MyIgaWQ9IklucHV0T3V0cHV0Q29tbWFuZCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTk1IiB4PSIxMTAyLjUiIHk9IjcxLjUzIi8+PGVsbGlwc2UgY3g9IjExMjkuMiIgY3k9IjkwLjQ5ODciIGZpbGw9IiNBOURDREYiIHJ4PSIxMSIgcnk9IjExIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTEyOS4zMDk0LDg1Ljg0MjUgTDExMjguMTUzMSw5MC45MjA2IEwxMTMwLjQ4MTMsOTAuOTIwNiBMMTEyOS4zMDk0LDg1Ljg0MjUgWiBNMTEyNy44MjUsODMuNjA4MSBMMTEzMC44MDk0LDgzLjYwODEgTDExMzQuMTY4OCw5NS45OTg3IEwxMTMxLjcxNTYsOTUuOTk4NyBMMTEzMC45NSw5Mi45MzYyIEwxMTI3LjY2ODgsOTIuOTM2MiBMMTEyNi45MTg4LDk1Ljk5ODcgTDExMjQuNDgxMyw5NS45OTg3IEwxMTI3LjgyNSw4My42MDgxIFogIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtc3R5bGU9Iml0YWxpYyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMTkiIHg9IjExNTQuOCIgeT0iODcuNjY4NyI+wqtDYWxsYWJsZSZsdDtJbnRlZ2Vywrs8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtc3R5bGU9Iml0YWxpYyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMzciIHg9IjExNDUuOCIgeT0iMTAxLjYzNzQiPklucHV0T3V0cHV0Q29tbWFuZDwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHgxPSIxMTAzLjUiIHgyPSIxMjk2LjUiIHkxPSIxMDkuNDY3NSIgeTI9IjEwOS40Njc1Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODMiIHg9IjExMDguNSIgeT0iMTIzLjY3NzkiPiNpbnB1dCA6IFN0cmluZzwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI5MSIgeD0iMTEwOC41IiB5PSIxMzYuNDgyNiI+I291dHB1dCA6IFN0cmluZzwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHgxPSIxMTAzLjUiIHgyPSIxMjk2LjUiIHkxPSIxNDMuMDc2OSIgeTI9IjE0My4wNzY5Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxODMiIHg9IjExMDguNSIgeT0iMTU3LjI4NzMiPiNkb0NhbGwoT3V0cHV0U3RyZWFtKSA6IEludGVnZXI8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODgiIHg9IjExMDguNSIgeT0iMTcwLjA5MiI+K2NhbGwoKSA6IEludGVnZXI8L3RleHQ+PCEtLU1ENT1bMGE0NWE5MmZmYzNkNjA0YzI3NTQ4MmIxNzg5NmVhYWJdCmNsYXNzIE91dHB1dFRhcmdldC0tPjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmamc0ZW1iNzJqc3BtKSIgaGVpZ2h0PSI5MS4yMTg4IiBpZD0iT3V0cHV0VGFyZ2V0IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIyMTMiIHg9IjEyODIuNSIgeT0iMjY3LjA2Ii8+PGVsbGlwc2UgY3g9IjEzNDIuNzUiIGN5PSIyODMuMDYiIGZpbGw9IiNBREQxQjIiIHJ4PSIxMSIgcnk9IjExIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTM0NS43MTg4LDI4OC43MDA2IFExMzQ1LjE0MDYsMjg4Ljk5NzUgMTM0NC41LDI4OS4xMzgxIFExMzQzLjg1OTQsMjg5LjI5NDQgMTM0My4xNTYzLDI4OS4yOTQ0IFExMzQwLjY1NjMsMjg5LjI5NDQgMTMzOS4zMjgxLDI4Ny42NTM4IFExMzM4LjAxNTYsMjg1Ljk5NzUgMTMzOC4wMTU2LDI4Mi44NzI1IFExMzM4LjAxNTYsMjc5Ljc0NzUgMTMzOS4zMjgxLDI3OC4wOTEzIFExMzQwLjY1NjMsMjc2LjQzNSAxMzQzLjE1NjMsMjc2LjQzNSBRMTM0My44NTk0LDI3Ni40MzUgMTM0NC41LDI3Ni41OTEzIFExMzQ1LjE1NjMsMjc2Ljc0NzUgMTM0NS43MTg4LDI3Ny4wNDQ0IEwxMzQ1LjcxODgsMjc5Ljc2MzEgUTEzNDUuMDkzOCwyNzkuMTg1IDEzNDQuNSwyNzguOTE5NCBRMTM0My45MDYzLDI3OC42MzgxIDEzNDMuMjgxMywyNzguNjM4MSBRMTM0MS45Mzc1LDI3OC42MzgxIDEzNDEuMjUsMjc5LjcxNjMgUTEzNDAuNTYyNSwyODAuNzc4OCAxMzQwLjU2MjUsMjgyLjg3MjUgUTEzNDAuNTYyNSwyODQuOTY2MyAxMzQxLjI1LDI4Ni4wNDQ0IFExMzQxLjkzNzUsMjg3LjEwNjkgMTM0My4yODEzLDI4Ny4xMDY5IFExMzQzLjkwNjMsMjg3LjEwNjkgMTM0NC41LDI4Ni44NDEzIFExMzQ1LjA5MzgsMjg2LjU2IDEzNDUuNzE4OCwyODUuOTgxOSBMMTM0NS43MTg4LDI4OC43MDA2IFogIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODQiIHg9IjEzNjMuMjUiIHk9IjI4Ny4yMTQzIj5PdXRwdXRUYXJnZXQ8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB4MT0iMTI4My41IiB4Mj0iMTQ5NC41IiB5MT0iMjk5LjA2IiB5Mj0iMjk5LjA2Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dC1kZWNvcmF0aW9uPSJ1bmRlcmxpbmUiIHRleHRMZW5ndGg9IjE2NiIgeD0iMTI4OC41IiB5PSIzMTMuMjcwNCI+fm9wZW4oU3RyaW5nKSA6IE91dHB1dFRhcmdldDwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0LWRlY29yYXRpb249InVuZGVybGluZSIgdGV4dExlbmd0aD0iMjAxIiB4PSIxMjg4LjUiIHk9IjMyNi4wNzUxIj5+c2FtZUZpbGUoU3RyaW5nLCBTdHJpbmcpIDogYm9vbGVhbjwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxNTAiIHg9IjEyODguNSIgeT0iMzM4Ljg3OTgiPn5zdHJlYW0oKSA6IE91dHB1dFN0cmVhbTwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI5NCIgeD0iMTI4OC41IiB5PSIzNTEuNjg0NSI+fmNvbW1pdCgpIDogdm9pZDwvdGV4dD48IS0tTUQ1PVtlMjhmYzJlMDQzMmE3MzM3MTY1YTgwNjZkYmViZjQ1Nl0KY2xhc3MgUHJvY2Vzc0NvbW1hbmQtLT48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZmpnNGVtYjcyanNwbSkiIGhlaWdodD0iOTIuMzUxNiIgaWQ9IlByb2Nlc3NDb21tYW5kIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIyMjUiIHg9IjEwMjIuNSIgeT0iMjY2LjQ5Ii8+PGVsbGlwc2UgY3g9IjEwMzcuNSIgY3k9IjI4NS40NTg4IiBmaWxsPSIjQUREMUIyIiByeD0iMTEiIHJ5PSIxMSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHBhdGggZD0iTTEwNDAuNDY4OCwyOTEuMDk5NCBRMTAzOS44OTA2LDI5MS4zOTYzIDEwMzkuMjUsMjkxLjUzNjkgUTEwMzguNjA5NCwyOTEuNjkzMSAxMDM3LjkwNjMsMjkxLjY5MzEgUTEwMzUuNDA2MywyOTEuNjkzMSAxMDM0LjA3ODEsMjkwLjA1MjUgUTEwMzIuNzY1NiwyODguMzk2MyAxMDMyLjc2NTYsMjg1LjI3MTMgUTEwMzIuNzY1NiwyODIuMTQ2MyAxMDM0LjA3ODEsMjgwLjQ5IFExMDM1LjQwNjMsMjc4LjgzMzggMTAzNy45MDYzLDI3OC44MzM4IFExMDM4LjYwOTQsMjc4LjgzMzggMTAzOS4yNSwyNzguOTkgUTEwMzkuOTA2MywyNzkuMTQ2MyAxMDQwLjQ2ODgsMjc5LjQ0MzEgTDEwNDAuNDY4OCwyODIuMTYxOSBRMTAzOS44NDM4LDI4MS41ODM4IDEwMzkuMjUsMjgxLjMxODEgUTEwMzguNjU2MywyODEuMDM2OSAxMDM4LjAzMTMsMjgxLjAzNjkgUTEwMzYuNjg3NSwyODEuMDM2OSAxMDM2LDI4Mi4xMTUgUTEwMzUuMzEyNSwyODMuMTc3NSAxMDM1LjMxMjUsMjg1LjI3MTMgUTEwMzUuMzEyNSwyODcuMzY1IDEwMzYsMjg4LjQ0MzEgUTEwMzYuNjg3NSwyODkuNTA1NiAxMDM4LjAzMTMsMjg5LjUwNTYgUTEwMzguNjU2MywyODkuNTA1NiAxMDM5LjI1LDI4OS4yNCBRMTAzOS44NDM4LDI4OC45NTg4IDEwNDAuNDY4OCwyODguMzgwNiBMMTA0MC40Njg4LDI5MS4wOTk0IFogIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtc3R5bGU9Iml0YWxpYyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxOTciIHg9IjEwNDkuNSIgeT0iMjgyLjYyODciPsKrQENvbW1hbmQgbmFtZT0icHJvY2VzcyLCuzwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMTIiIHg9IjEwOTIiIHk9IjI5Ni41OTc0Ij5Qcm9jZXNzQ29tbWFuZDwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHgxPSIxMDIzLjUiIHgyPSIxMjQ2LjUiIHkxPSIzMDQuNDI3NSIgeTI9IjMwNC40Mjc1Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iOTQiIHg9IjEwMjguNSIgeT0iMzE4LjYzNzkiPi1mb3JtYXQgOiBGb3JtYXQ8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODUiIHg9IjEwMjguNSIgeT0iMzMxLjQ0MjYiPi1tb2RlbCA6IFN0cmluZzwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHgxPSIxMDIzLjUiIHgyPSIxMjQ2LjUiIHkxPSIzMzguMDM2OSIgeTI9IjMzOC4wMzY5Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTg0IiB4PSIxMDI4LjUiIHk9IjM1Mi4yNDczIj4jZG9DYWxsKE91dHB1dFN0cmVhbSkgOiBJbnRlZ2VyPC90ZXh0PjwhLS1NRDU9WzU3MTllODQ5M2ZkYjFhYjA2YTk1ZTQ0ZGEwNzJkMjQwXQpjbGFzcyBEaWFnbm9zdGljQ29tbWFuZC0tPjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmamc0ZW1iNzJqc3BtKSIgaGVpZ2h0PSI1OC43NDIyIiBpZD0iRGlhZ25vc3RpY0NvbW1hbmQiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjI0MSIgeD0iNzQ2LjUiIHk9IjI4My4zIi8+PGVsbGlwc2UgY3g9Ijc2MS41IiBjeT0iMzAyLjI2ODgiIGZpbGw9IiNBREQxQjIiIHJ4PSIxMSIgcnk9IjExIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNzY0LjQ2ODgsMzA3LjkwOTQgUTc2My44OTA2LDMwOC4yMDYzIDc2My4yNSwzMDguMzQ2OSBRNzYyLjYwOTQsMzA4LjUwMzEgNzYxLjkwNjMsMzA4LjUwMzEgUTc1OS40MDYzLDMwOC41MDMxIDc1OC4wNzgxLDMwNi44NjI1IFE3NTYuNzY1NiwzMDUuMjA2MyA3NTYuNzY1NiwzMDIuMDgxMyBRNzU2Ljc2NTYsMjk4Ljk1NjMgNzU4LjA3ODEsMjk3LjMgUTc1OS40MDYzLDI5NS42NDM4IDc2MS45MDYzLDI5NS42NDM4IFE3NjIuNjA5NCwyOTUuNjQzOCA3NjMuMjUsMjk1LjggUTc2My45MDYzLDI5NS45NTYzIDc2NC40Njg4LDI5Ni4yNTMxIEw3NjQuNDY4OCwyOTguOTcxOSBRNzYzLjg0MzgsMjk4LjM5MzggNzYzLjI1LDI5OC4xMjgxIFE3NjIuNjU2MywyOTcuODQ2OSA3NjIuMDMxMywyOTcuODQ2OSBRNzYwLjY4NzUsMjk3Ljg0NjkgNzYwLDI5OC45MjUgUTc1OS4zMTI1LDI5OS45ODc1IDc1OS4zMTI1LDMwMi4wODEzIFE3NTkuMzEyNSwzMDQuMTc1IDc2MCwzMDUuMjUzMSBRNzYwLjY4NzUsMzA2LjMxNTYgNzYyLjAzMTMsMzA2LjMxNTYgUTc2Mi42NTYzLDMwNi4zMTU2IDc2My4yNSwzMDYuMDUgUTc2My44NDM4LDMwNS43Njg4IDc2NC40Njg4LDMwNS4xOTA2IEw3NjQuNDY4OCwzMDcuOTA5NCBaICIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXN0eWxlPSJpdGFsaWMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjEzIiB4PSI3NzMuNSIgeT0iMjk5LjQzODciPsKrQENvbW1hbmQgbmFtZT0iZGlhZ25vc3RpYyLCuzwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMjgiIHg9IjgxNiIgeT0iMzEzLjQwNzQiPkRpYWdub3N0aWNDb21tYW5kPC90ZXh0PjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgeDE9Ijc0Ny41IiB4Mj0iOTg2LjUiIHkxPSIzMjEuMjM3NSIgeTI9IjMyMS4yMzc1Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTg0IiB4PSI3NTIuNSIgeT0iMzM1LjQ0NzkiPiNkb0NhbGwoT3V0cHV0U3RyZWFtKSA6IEludGVnZXI8L3RleHQ+PCEtLU1ENT1bNWQzMmU1NTM1YjI0YzI0N2UyNjEyMGUxYWVhZmIyYTFdCmNsYXNzIERvY3RvckNvbW1hbmQtLT48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZmpnNGVtYjcyanNwbSkiIGhlaWdodD0iNzkuNTQ2OSIgaWQ9IkRvY3RvckNvbW1hbmQiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjIxOCIgeD0iNDkzIiB5PSIyNzIuODkiLz48ZWxsaXBzZSBjeD0iNTA4IiBjeT0iMjkxLjg1ODgiIGZpbGw9IiNBREQxQjIiIHJ4PSIxMSIgcnk9IjExIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNTEwLjk2ODgsMjk3LjQ5OTQgUTUxMC4zOTA2LDI5Ny43OTYzIDUwOS43NSwyOTcuOTM2OSBRNTA5LjEwOTQsMjk4LjA5MzEgNTA4LjQwNjMsMjk4LjA5MzEgUTUwNS45MDYzLDI5OC4wOTMxIDUwNC41NzgxLDI5Ni40NTI1IFE1MDMuMjY1NiwyOTQuNzk2MyA1MDMuMjY1NiwyOTEuNjcxMyBRNTAzLjI2NTYsMjg4LjU0NjMgNTA0LjU3ODEsMjg2Ljg5IFE1MDUuOTA2MywyODUuMjMzOCA1MDguNDA2MywyODUuMjMzOCBRNTA5LjEwOTQsMjg1LjIzMzggNTA5Ljc1LDI4NS4zOSBRNTEwLjQwNjMsMjg1LjU0NjMgNTEwLjk2ODgsMjg1Ljg0MzEgTDUxMC45Njg4LDI4OC41NjE5IFE1MTAuMzQzOCwyODcuOTgzOCA1MDkuNzUsMjg3LjcxODEgUTUwOS4xNTYzLDI4Ny40MzY5IDUwOC41MzEzLDI4Ny40MzY5IFE1MDcuMTg3NSwyODcuNDM2OSA1MDYuNSwyODguNTE1IFE1MDUuODEyNSwyODkuNTc3NSA1MDUuODEyNSwyOTEuNjcxMyBRNTA1LjgxMjUsMjkzLjc2NSA1MDYuNSwyOTQuODQzMSBRNTA3LjE4NzUsMjk1LjkwNTYgNTA4LjUzMTMsMjk1LjkwNTYgUTUwOS4xNTYzLDI5NS45MDU2IDUwOS43NSwyOTUuNjQgUTUxMC4zNDM4LDI5NS4zNTg4IDUxMC45Njg4LDI5NC43ODA2IEw1MTAuOTY4OCwyOTcuNDk5NCBaICIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXN0eWxlPSJpdGFsaWMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTkwIiB4PSI1MjAiIHk9IjI4OS4wMjg3Ij7Cq0BDb21tYW5kIG5hbWU9ImRvY3RvciLCuzwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMDQiIHg9IjU2MyIgeT0iMzAyLjk5NzQiPkRvY3RvckNvbW1hbmQ8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB4MT0iNDk0IiB4Mj0iNzEwIiB5MT0iMzEwLjgyNzUiIHkyPSIzMTAuODI3NSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEyOSIgeD0iNDk5IiB5PSIzMjUuMDM3OSI+LXNwZWMgOiBDb21tYW5kU3BlYzwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHgxPSI0OTQiIHgyPSI3MTAiIHkxPSIzMzEuNjMyMiIgeTI9IjMzMS42MzIyIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODgiIHg9IjQ5OSIgeT0iMzQ1Ljg0MjYiPitjYWxsKCkgOiBJbnRlZ2VyPC90ZXh0PjwhLS1NRDU9WzVhNDJkODk4ZTJhNWQyOTljYzI2NzYxZDFlYWE3ZDg0XQpjbGFzcyBEb2N0b3ItLT48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZmpnNGVtYjcyanNwbSkiIGhlaWdodD0iOTcuMTU2MyIgaWQ9IkRvY3RvciIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMjc1IiB4PSI0NjQuNSIgeT0iNDM1Ljg0Ii8+PGVsbGlwc2UgY3g9IjU3NS43NSIgY3k9IjQ1NC44MDg4IiBmaWxsPSIjQUREMUIyIiByeD0iMTEiIHJ5PSIxMSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHBhdGggZD0iTTU3OC43MTg4LDQ2MC40NDk0IFE1NzguMTQwNiw0NjAuNzQ2MyA1NzcuNSw0NjAuODg2OSBRNTc2Ljg1OTQsNDYxLjA0MzEgNTc2LjE1NjMsNDYxLjA0MzEgUTU3My42NTYzLDQ2MS4wNDMxIDU3Mi4zMjgxLDQ1OS40MDI1IFE1NzEuMDE1Niw0NTcuNzQ2MyA1NzEuMDE1Niw0NTQuNjIxMyBRNTcxLjAxNTYsNDUxLjQ5NjMgNTcyLjMyODEsNDQ5Ljg0IFE1NzMuNjU2Myw0NDguMTgzOCA1NzYuMTU2Myw0NDguMTgzOCBRNTc2Ljg1OTQsNDQ4LjE4MzggNTc3LjUsNDQ4LjM0IFE1NzguMTU2Myw0NDguNDk2MyA1NzguNzE4OCw0NDguNzkzMSBMNTc4LjcxODgsNDUxLjUxMTkgUTU3OC4wOTM4LDQ1MC45MzM4IDU3Ny41LDQ1MC42NjgxIFE1NzYuOTA2Myw0NTAuMzg2OSA1NzYuMjgxMyw0NTAuMzg2OSBRNTc0LjkzNzUsNDUwLjM4NjkgNTc0LjI1LDQ1MS40NjUgUTU3My41NjI1LDQ1Mi41Mjc1IDU3My41NjI1LDQ1NC42MjEzIFE1NzMuNTYyNSw0NTYuNzE1IDU3NC4yNSw0NTcuNzkzMSBRNTc0LjkzNzUsNDU4Ljg1NTYgNTc2LjI4MTMsNDU4Ljg1NTYgUTU3Ni45MDYzLDQ1OC44NTU2IDU3Ny41LDQ1OC41OSBRNTc4LjA5MzgsNDU4LjMwODggNTc4LjcxODgsNDU3LjczMDYgTDU3OC43MTg4LDQ2MC40NDk0IFogIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtc3R5bGU9Iml0YWxpYyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI0OCIgeD0iNTk0LjI1IiB5PSI0NTEuOTc4NyI+wqt1dGlsaXR5wrs8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDIiIHg9IjU5Ny4yNSIgeT0iNDY1Ljk0NzQiPkRvY3RvcjwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHgxPSI0NjUuNSIgeDI9IjczOC41IiB5MT0iNDczLjc3NzUiIHkyPSI0NzMuNzc3NSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHQtZGVjb3JhdGlvbj0idW5kZXJsaW5lIiB0ZXh0TGVuZ3RoPSIxNjEiIHg9IjQ3MC41IiB5PSI0ODcuOTg3OSI+K3J1bihQcmludFN0cmVhbSkgOiBib29sZWFuPC90ZXh0Pjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHQtZGVjb3JhdGlvbj0idW5kZXJsaW5lIiB0ZXh0TGVuZ3RoPSIyMDMiIHg9IjQ3MC41IiB5PSI1MDAuNzkyNiI+fnByb2JlKFN0cmluZ1tdKSA6IE9wdGlvbmFsJmx0O1N0cmluZyZndDs8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dC1kZWNvcmF0aW9uPSJ1bmRlcmxpbmUiIHRleHRMZW5ndGg9IjI2MyIgeD0iNDcwLjUiIHk9IjUxMy41OTczIj5+c3RhdHVzTGluZShTdHJpbmcsIE9wdGlvbmFsJmx0O1N0cmluZyZndDspIDogU3RyaW5nPC90ZXh0Pjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHQtZGVjb3JhdGlvbj0idW5kZXJsaW5lIiB0ZXh0TGVuZ3RoPSIxNDYiIHg9IjQ3MC41IiB5PSI1MjYuNDAyIj5+ZGVzY3JpYmUoU3RyaW5nKSA6IFN0cmluZzwvdGV4dD48IS0tTUQ1PVs2N2YwMTM1NDMxZTQ1ZTg4NjMzNmE0Y2VmNmZmZDM0OV0KY2xhc3MgTG9nby0tPjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmamc0ZW1iNzJqc3BtKSIgaGVpZ2h0PSI1OC43NDIyIiBpZD0iTG9nbyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTEyIiB4PSIxNTMxIiB5PSIyODMuMyIvPjxlbGxpcHNlIGN4PSIxNTYyLjIiIGN5PSIzMDIuMjY4OCIgZmlsbD0iI0FERDFCMiIgcng9IjExIiByeT0iMTEiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwYXRoIGQ9Ik0xNTY1LjE2ODgsMzA3LjkwOTQgUTE1NjQuNTkwNiwzMDguMjA2MyAxNTYzLjk1LDMwOC4zNDY5IFExNTYzLjMwOTQsMzA4LjUwMzEgMTU2Mi42MDYzLDMwOC41MDMxIFExNTYwLjEwNjMsMzA4LjUwMzEgMTU1OC43NzgxLDMwNi44NjI1IFExNTU3LjQ2NTYsMzA1LjIwNjMgMTU1Ny40NjU2LDMwMi4wODEzIFExNTU3LjQ2NTYsMjk4Ljk1NjMgMTU1OC43NzgxLDI5Ny4zIFExNTYwLjEwNjMsMjk1LjY0MzggMTU2Mi42MDYzLDI5NS42NDM4IFExNTYzLjMwOTQsMjk1LjY0MzggMTU2My45NSwyOTUuOCBRMTU2NC42MDYzLDI5NS45NTYzIDE1NjUuMTY4OCwyOTYuMjUzMSBMMTU2NS4xNjg4LDI5OC45NzE5IFExNTY0LjU0MzgsMjk4LjM5MzggMTU2My45NSwyOTguMTI4MSBRMTU2My4zNTYzLDI5Ny44NDY5IDE1NjIuNzMxMywyOTcuODQ2OSBRMTU2MS4zODc1LDI5Ny44NDY5IDE1NjAuNywyOTguOTI1IFExNTYwLjAxMjUsMjk5Ljk4NzUgMTU2MC4wMTI1LDMwMi4wODEzIFExNTYwLjAxMjUsMzA0LjE3NSAxNTYwLjcsMzA1LjI1MzEgUTE1NjEuMzg3NSwzMDYuMzE1NiAxNTYyLjczMTMsMzA2LjMxNTYgUTE1NjMuMzU2MywzMDYuMzE1NiAxNTYzLjk1LDMwNi4wNSBRMTU2NC41NDM4LDMwNS43Njg4IDE1NjUuMTY4OCwzMDUuMTkwNiBMMTU2NS4xNjg4LDMwNy45MDk0IFogIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtc3R5bGU9Iml0YWxpYyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI0OCIgeD0iMTU3Ny44IiB5PSIyOTkuNDM4NyI+wqt1dGlsaXR5wrs8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMzAiIHg9IjE1ODYuOCIgeT0iMzEzLjQwNzQiPkxvZ288L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB4MT0iMTUzMiIgeDI9IjE2NDIiIHkxPSIzMjEuMjM3NSIgeTI9IjMyMS4yMzc1Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dC1kZWNvcmF0aW9uPSJ1bmRlcmxpbmUiIHRleHRMZW5ndGg9IjEwMCIgeD0iMTUzNyIgeT0iMzM1LjQ0NzkiPn5CQU5ORVIgOiBTdHJpbmc8L3RleHQ+PCEtLU1ENT1bMzg0ZmZiNTlmMTgzZjc5MWM5ZGVlNjgzNjM1MTQzMWJdCmNsYXNzIFVuZXhwZWN0ZWRFcnJvckhhbmRsZXItLT48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZmpnNGVtYjcyanNwbSkiIGhlaWdodD0iNTguNzQyMiIgaWQ9IlVuZXhwZWN0ZWRFcnJvckhhbmRsZXIiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjQyMCIgeD0iMzgiIHk9IjI4My4zIi8+PGVsbGlwc2UgY3g9IjE1MC4yNSIgY3k9IjMwMi4yNjg4IiBmaWxsPSIjQUREMUIyIiByeD0iMTEiIHJ5PSIxMSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHBhdGggZD0iTTE1My4yMTg4LDMwNy45MDk0IFExNTIuNjQwNiwzMDguMjA2MyAxNTIsMzA4LjM0NjkgUTE1MS4zNTk0LDMwOC41MDMxIDE1MC42NTYzLDMwOC41MDMxIFExNDguMTU2MywzMDguNTAzMSAxNDYuODI4MSwzMDYuODYyNSBRMTQ1LjUxNTYsMzA1LjIwNjMgMTQ1LjUxNTYsMzAyLjA4MTMgUTE0NS41MTU2LDI5OC45NTYzIDE0Ni44MjgxLDI5Ny4zIFExNDguMTU2MywyOTUuNjQzOCAxNTAuNjU2MywyOTUuNjQzOCBRMTUxLjM1OTQsMjk1LjY0MzggMTUyLDI5NS44IFExNTIuNjU2MywyOTUuOTU2MyAxNTMuMjE4OCwyOTYuMjUzMSBMMTUzLjIxODgsMjk4Ljk3MTkgUTE1Mi41OTM4LDI5OC4zOTM4IDE1MiwyOTguMTI4MSBRMTUxLjQwNjMsMjk3Ljg0NjkgMTUwLjc4MTMsMjk3Ljg0NjkgUTE0OS40Mzc1LDI5Ny44NDY5IDE0OC43NSwyOTguOTI1IFExNDguMDYyNSwyOTkuOTg3NSAxNDguMDYyNSwzMDIuMDgxMyBRMTQ4LjA2MjUsMzA0LjE3NSAxNDguNzUsMzA1LjI1MzEgUTE0OS40Mzc1LDMwNi4zMTU2IDE1MC43ODEzLDMwNi4zMTU2IFExNTEuNDA2MywzMDYuMzE1NiAxNTIsMzA2LjA1IFExNTIuNTkzOCwzMDUuNzY4OCAxNTMuMjE4OCwzMDUuMTkwNiBMMTUzLjIxODgsMzA3LjkwOTQgWiAiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC1zdHlsZT0iaXRhbGljIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjE5MSIgeD0iMTY4Ljc1IiB5PSIyOTkuNDM4NyI+wqtJRXhlY3V0aW9uRXhjZXB0aW9uSGFuZGxlcsK7PC90ZXh0Pjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjE1NSIgeD0iMTg2Ljc1IiB5PSIzMTMuNDA3NCI+VW5leHBlY3RlZEVycm9ySGFuZGxlcjwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHgxPSIzOSIgeDI9IjQ1NyIgeTE9IjMyMS4yMzc1IiB5Mj0iMzIxLjIzNzUiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI0MDgiIHg9IjQ0IiB5PSIzMzUuNDQ3OSI+K2hhbmRsZUV4ZWN1dGlvbkV4Y2VwdGlvbihFeGNlcHRpb24sIENvbW1hbmRMaW5lLCBQYXJzZVJlc3VsdCkgOiBpbnQ8L3RleHQ+PCEtLU1ENT1bYzNmNmM4NjZiM2JlY2ZkMWUyOTA3MTE5YzVjZWVhNWVdCnJldmVyc2UgbGluayBJbnB1dE91dHB1dENvbW1hbmQgdG8gUHJvY2Vzc0NvbW1hbmQtLT48cGF0aCBkPSJNMTE3NC44OCwxOTcuMjEgQzExNjYuODIsMjIwLjM0IDExNTguMTIsMjQ1LjMxIDExNTAuOTEsMjY2LjAxICIgZmlsbD0ibm9uZSIgaWQ9IklucHV0T3V0cHV0Q29tbWFuZCZsdDstUHJvY2Vzc0NvbW1hbmQiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwb2x5Z29uIGZpbGw9Im5vbmUiIHBvaW50cz0iMTE2OC4yMSwxOTUuMDksMTE4MS40LDE3OC41MSwxMTgxLjQzLDE5OS43LDExNjguMjEsMTk1LjA5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48IS0tTUQ1PVs3MjllYTQ2MTU1ZjA4OTQyMWQ4ZDJlYmRiMzgxYzEyM10KcmV2ZXJzZSBsaW5rIElucHV0T3V0cHV0Q29tbWFuZCB0byBEaWFnbm9zdGljQ29tbWFuZC0tPjxwYXRoIGQ9Ik0xMDg4LjU2LDE4Ny41NCBDMTAzMS4wNiwyMTkuNzYgOTYzLjY4LDI1Ny41MSA5MTguNDUsMjgyLjg0ICIgZmlsbD0ibm9uZSIgaWQ9IklucHV0T3V0cHV0Q29tbWFuZCZsdDstRGlhZ25vc3RpY0NvbW1hbmQiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwb2x5Z29uIGZpbGw9Im5vbmUiIHBvaW50cz0iMTA4NS4wNSwxODEuNDgsMTEwNS45MiwxNzcuODIsMTA5MS44OSwxOTMuNywxMDg1LjA1LDE4MS40OCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PCEtLU1ENT1bY2I0OGZmY2I4M2Q2ZDQ5NDU2NTRmODdiYTdiYmZhY2NdCnJldmVyc2UgbGluayBNYWluIHRvIFByb2Nlc3NDb21tYW5kLS0+PHBhdGggZD0iTTgwOS40NSwxODUuNjYgQzg3OC44NCwyMTIuNTIgOTU4Ljk1LDI0My41MyAxMDIyLjMzLDI2OC4wNiAiIGZpbGw9Im5vbmUiIGlkPSJNYWluJmx0Oy1Qcm9jZXNzQ29tbWFuZCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGVsbGlwc2UgY3g9IjgwMy4yMzA1IiBjeT0iMTgzLjI1ODIiIGZpbGw9IiNGRkZGRkYiIHJ4PSI4IiByeT0iOCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iODEwLjY5MDkiIHgyPSI3OTUuNzciIHkxPSIxODYuMTQ2MyIgeTI9IjE4MC4zNyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjgwMC4zNDIzIiB4Mj0iODA2LjExODYiIHkxPSIxOTAuNzE4NiIgeTI9IjE3NS43OTc3Ii8+PCEtLU1ENT1bMTliOTQ2YWQxNGQxZTYyZDMzYWYyZTIxODAxZGUyNGVdCnJldmVyc2UgbGluayBNYWluIHRvIERpYWdub3N0aWNDb21tYW5kLS0+PHBhdGggZD0iTTczOS4zOCwyMDAuNDIgQzc3Mi43NCwyMjkuNSA4MDguODgsMjYxIDgzNC4xNSwyODMuMDMgIiBmaWxsPSJub25lIiBpZD0iTWFpbiZsdDstRGlhZ25vc3RpY0NvbW1hbmQiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxlbGxpcHNlIGN4PSI3MzQuNDE4NiIgY3k9IjE5Ni4wODg5IiBmaWxsPSIjRkZGRkZGIiByeD0iOCIgcnk9IjgiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9Ijc0MC40NDczIiB4Mj0iNzI4LjM5IiB5MT0iMjAxLjM0NzciIHkyPSIxOTAuODMiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSI3MjkuMTU5OCIgeDI9IjczOS42Nzc1IiB5MT0iMjAyLjExNzUiIHkyPSIxOTAuMDYwMiIvPjwhLS1NRDU9W2IzMTcxYzc2YmM3MWY5MDUyNDlkNGNlMThmMGU3YjMyXQpyZXZlcnNlIGxpbmsgTWFpbiB0byBEb2N0b3JDb21tYW5kLS0+PHBhdGggZD0iTTYzMC45OCwyMDUuNjYgQzYyNC42MywyMjguODcgNjE4LDI1My4xNSA2MTIuNjgsMjcyLjYxICIgZmlsbD0ibm9uZSIgaWQ9Ik1haW4mbHQ7LURvY3RvckNvbW1hbmQiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxlbGxpcHNlIGN4PSI2MzIuNzk5OSIgY3k9IjE5OS4wMDY3IiBmaWxsPSIjRkZGRkZGIiByeD0iOCIgcnk9IjgiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjYzMC42ODk4IiB4Mj0iNjM0LjkxIiB5MT0iMjA2LjcyMzQiIHkyPSIxOTEuMjkiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSI2MjUuMDgzMiIgeDI9IjY0MC41MTY2IiB5MT0iMTk2Ljg5NjYiIHkyPSIyMDEuMTE2OCIvPjwhLS1NRDU9W2U5NWNjMWUzMDQ0NDVlZGZmYWMxYzI5ODhlZjNlNjFlXQpsaW5rIERvY3RvckNvbW1hbmQgdG8gRG9jdG9yLS0+PHBhdGggZD0iTTYwMiwzNTIuNjEgQzYwMiwzNzUuMzUgNjAyLDQwNC4zOSA2MDIsNDI5LjMyICIgZmlsbD0ibm9uZSIgaWQ9IkRvY3RvckNvbW1hbmQtJmd0O0RvY3RvciIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IHN0cm9rZS1kYXNoYXJyYXk6IDcuMCw3LjA7Ii8+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSI2MDIsNDM0LjA1LDYwNiw0MjUuMDUsNjAyLDQyOS4wNSw1OTgsNDI1LjA1LDYwMiw0MzQuMDUiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjI4IiB4PSI2MDMiIHk9IjQwMS45MDY5Ij5jYWxsczwvdGV4dD48IS0tTUQ1PVsxMDkzODE3MzU2NDg2MjU3ZGJlZDdjMzJmNzZiMGJjYV0KbGluayBJbnB1dE91dHB1dENvbW1hbmQgdG8gTG9nby0tPjxwYXRoIGQ9Ik0xMjk3LjcyLDE2NS41NSBDMTM2MC4yMiwxOTIuMzEgMTQ0Mi40OSwyMjkuMjMgMTUxMywyNjYuNDkgQzE1MjAuNjgsMjcwLjU1IDE1MjguNjUsMjc1LjA3IDE1MzYuNCwyNzkuNjQgIiBmaWxsPSJub25lIiBpZD0iSW5wdXRPdXRwdXRDb21tYW5kLSZndDtMb2dvIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNy4wLDcuMDsiLz48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjE1NDAuNDIsMjgyLjA0LDE1MzQuNzQwOCwyNzMuOTkzNSwxNTM2LjEyNjIsMjc5LjQ3ODEsMTUzMC42NDE3LDI4MC44NjM1LDE1NDAuNDIsMjgyLjA0IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIyMTQiIHg9IjE0NDYuODIiIHk9IjIzMi41NTY5Ij5wcmludHMgb24gc3RkZXJyICh1bmxlc3MgaGVhZGxlc3MpPC90ZXh0PjwhLS1NRDU9W2RjMWFlOTFkOGZmMGFhODYyMzRlM2QxMzc0ODk5NDk0XQpsaW5rIElucHV0T3V0cHV0Q29tbWFuZCB0byBPdXRwdXRUYXJnZXQtLT48cGF0aCBkPSJNMTIyOS41MiwxNzcuMDUgQzEyNDIuMjksMTk2Ljk1IDEyNTguMzUsMjE5LjA1IDEyNzYsMjM2LjQ5IEMxMjg1LjUyLDI0NS45IDEyOTYuMzgsMjU0LjgzIDEzMDcuNTEsMjYzLjA0ICIgZmlsbD0ibm9uZSIgaWQ9IklucHV0T3V0cHV0Q29tbWFuZC0mZ3Q7T3V0cHV0VGFyZ2V0IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNy4wLDcuMDsiLz48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjEzMTEuNDIsMjY1Ljg3LDEzMDYuNDgzMywyNTcuMzQ3NywxMzA3LjM3MjYsMjYyLjkzNDIsMTMwMS43ODYxLDI2My44MjM1LDEzMTEuNDIsMjY1Ljg3IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI5MSIgeD0iMTI3NyIgeT0iMjMyLjU1NjkiPndyaXRlcyB0aHJvdWdoPC90ZXh0PjwhLS1NRDU9WzBiMDE3MzkyM2VmMjkwOTliOWJkZTgxZjg2MmQ4MTc3XQpsaW5rIE1haW4gdG8gVW5leHBlY3RlZEVycm9ySGFuZGxlci0tPjxwYXRoIGQ9Ik01MTIuMiwxODkuOTcgQzQ0NS44OCwyMjAuNTIgMzY5Ljc5LDI1NS41NyAzMTYuMzUsMjgwLjE4ICIgZmlsbD0ibm9uZSIgaWQ9Ik1haW4tJmd0O1VuZXhwZWN0ZWRFcnJvckhhbmRsZXIiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA3LjAsNy4wOyIvPjxwb2x5Z29uIGZpbGw9IiNBODAwMzYiIHBvaW50cz0iMzExLjk4LDI4Mi4yLDMyMS44MjgxLDI4Mi4wOCwzMTYuNTI0LDI4MC4xMTM4LDMxOC40OTAyLDI3NC44MDk2LDMxMS45OCwyODIuMiIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDQiIHg9IjQzOS4zNiIgeT0iMjMyLjU1NjkiPmluc3RhbGxzPC90ZXh0PjwhLS1NRDU9WzI0OTMyMTVkZDBkMjI5MmJkMGI4YzAyM2IwOGZmZmI4XQpAc3RhcnR1bWwgY2xpDQoNCnNraW5wYXJhbSBwYWNrYWdlU3R5bGUgcmVjdGFuZ2xlDQpza2lucGFyYW0gY2xhc3NBdHRyaWJ1dGVJY29uU2l6ZSAwDQpoaWRlIGVtcHR5IG1lbWJlcnMNCg0KcGFja2FnZSAiY2xpIiB7DQoNCiAgY2xhc3MgTWFpbiA8PEBDb21tYW5kIG5hbWU9ImpwaXBlIj4+IHsNCiAgICArIHtzdGF0aWN9IEVYSVRfT0sgOiBpbnQgPSAwDQogICAgKyB7c3RhdGljfSBFWElUX0pQSVBFX0VSUk9SIDogaW50ID0gMQ0KICAgICsge3N0YXRpY30gRVhJVF9TWVNURU1fRVJST1IgOiBpbnQgPSA0Mg0KICAgIH4gaGVhZGxlc3MgOiBib29sZWFuDQogICAgKyB7c3RhdGljfSB3aXRoRGVmYXVsdFN1YmNvbW1hbmQoYXJncywgY21kKSA6IFN0cmluZ1tdDQogICAgKyB7c3RhdGljfSBtYWluKFN0cmluZ1tdKSA6IHZvaWQNCiAgfQ0KDQogIGFic3RyYWN0IGNsYXNzIElucHV0T3V0cHV0Q29tbWFuZCA8PENhbGxhYmxlPEludGVnZXI+Pj4gew0KICAgICMgaW5wdXQgOiBTdHJpbmcNCiAgICAjIG91dHB1dCA6IFN0cmluZw0KICAgICMge2Fic3RyYWN0fSBkb0NhbGwoT3V0cHV0U3RyZWFtKSA6IEludGVnZXINCiAgICArIGNhbGwoKSA6IEludGVnZXINCiAgfQ0KDQogIGNsYXNzIE91dHB1dFRhcmdldCB7DQogICAgfiB7c3RhdGljfSBvcGVuKFN0cmluZykgOiBPdXRwdXRUYXJnZXQNCiAgICB+IHtzdGF0aWN9IHNhbWVGaWxlKFN0cmluZywgU3RyaW5nKSA6IGJvb2xlYW4NCiAgICB+IHN0cmVhbSgpIDogT3V0cHV0U3RyZWFtDQogICAgfiBjb21taXQoKSA6IHZvaWQNCiAgfQ0KDQogIGNsYXNzIFByb2Nlc3NDb21tYW5kIDw8QENvbW1hbmQgbmFtZT0icHJvY2VzcyI+PiB7DQogICAgLSBmb3JtYXQgOiBGb3JtYXQNCiAgICAtIG1vZGVsIDogU3RyaW5nDQogICAgIyBkb0NhbGwoT3V0cHV0U3RyZWFtKSA6IEludGVnZXINCiAgfQ0KDQogIGNsYXNzIERpYWdub3N0aWNDb21tYW5kIDw8QENvbW1hbmQgbmFtZT0iZGlhZ25vc3RpYyI+PiB7DQogICAgIyBkb0NhbGwoT3V0cHV0U3RyZWFtKSA6IEludGVnZXINCiAgfQ0KDQogIGNsYXNzIERvY3RvckNvbW1hbmQgPDxAQ29tbWFuZCBuYW1lPSJkb2N0b3IiPj4gew0KICAgIC0gc3BlYyA6IENvbW1hbmRTcGVjDQogICAgKyBjYWxsKCkgOiBJbnRlZ2VyDQogIH0NCg0KICBjbGFzcyBEb2N0b3IgPDx1dGlsaXR5Pj4gew0KICAgICsge3N0YXRpY30gcnVuKFByaW50U3RyZWFtKSA6IGJvb2xlYW4NCiAgICB+IHtzdGF0aWN9IHByb2JlKFN0cmluZ1tdKSA6IE9wdGlvbmFsPFN0cmluZz4NCiAgICB+IHtzdGF0aWN9IHN0YXR1c0xpbmUoU3RyaW5nLCBPcHRpb25hbDxTdHJpbmc+KSA6IFN0cmluZw0KICAgIH4ge3N0YXRpY30gZGVzY3JpYmUoU3RyaW5nKSA6IFN0cmluZw0KICB9DQoNCiAgY2xhc3MgTG9nbyA8PHV0aWxpdHk+PiB7DQogICAgfiB7c3RhdGljfSBCQU5ORVIgOiBTdHJpbmcNCiAgfQ0KDQogIElucHV0T3V0cHV0Q29tbWFuZCA8fC0gLSBQcm9jZXNzQ29tbWFuZA0KICBJbnB1dE91dHB1dENvbW1hbmQgPHwtIC0gRGlhZ25vc3RpY0NvbW1hbmQNCg0KICBNYWluICstIC0gUHJvY2Vzc0NvbW1hbmQNCiAgTWFpbiArLSAtIERpYWdub3N0aWNDb21tYW5kDQogIE1haW4gKy0gLSBEb2N0b3JDb21tYW5kDQoNCiAgRG9jdG9yQ29tbWFuZCAuLj4gRG9jdG9yIDogY2FsbHMNCiAgY2xhc3MgVW5leHBlY3RlZEVycm9ySGFuZGxlciA8PElFeGVjdXRpb25FeGNlcHRpb25IYW5kbGVyPj4gew0KICAgICsgaGFuZGxlRXhlY3V0aW9uRXhjZXB0aW9uKEV4Y2VwdGlvbiwgQ29tbWFuZExpbmUsIFBhcnNlUmVzdWx0KSA6IGludA0KICB9DQoNCiAgSW5wdXRPdXRwdXRDb21tYW5kIC4uPiBMb2dvIDogcHJpbnRzIG9uIHN0ZGVyciAodW5sZXNzIGhlYWRsZXNzKQ0KICBJbnB1dE91dHB1dENvbW1hbmQgLi4+IE91dHB1dFRhcmdldCA6IHdyaXRlcyB0aHJvdWdoDQogIE1haW4gLi4+IFVuZXhwZWN0ZWRFcnJvckhhbmRsZXIgOiBpbnN0YWxscw0KfQ0KDQpAZW5kdW1sDQoKUGxhbnRVTUwgdmVyc2lvbiAxLjIwMjAuMDIoU3VuIE1hciAwMSAxMDoyMjowNyBVVEMgMjAyMCkKKEdQTCBzb3VyY2UgZGlzdHJpYnV0aW9uKQpKYXZhIFJ1bnRpbWU6IE9wZW5KREsgUnVudGltZSBFbnZpcm9ubWVudApKVk06IE9wZW5KREsgNjQtQml0IFNlcnZlciBWTQpKYXZhIFZlcnNpb246IDI1LjAuNS4xKzItTFRTCk9wZXJhdGluZyBTeXN0ZW06IExpbnV4CkRlZmF1bHQgRW5jb2Rpbmc6IFVURi04Ckxhbmd1YWdlOiBlbgpDb3VudHJ5OiBudWxsCi0tPjwvZz48L3N2Zz4=" class="uml" alt="uml diagram" title="" /></p>
+<h2 id="commands">Commands</h2>
+<h3 id="process-default"><code>process</code> (default)</h3>
+<p>Compiles a <code>.jd</code> source file and exports the selected model in the requested
+format. This is the default subcommand: invoking <code>jpipe</code> without a subcommand
+name is equivalent to <code>jpipe process</code>.</p>
+<pre><code>jpipe process -i &lt;file&gt; -m &lt;model&gt; [-f &lt;format&gt;] [-o &lt;output&gt;]
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Short</th>
+<th style="text-align: center;">Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--input</code></td>
+<td><code>-i</code></td>
+<td style="text-align: center;">No</td>
+<td>stdin</td>
+<td>Input <code>.jd</code> source file</td>
+</tr>
+<tr>
+<td><code>--output</code></td>
+<td><code>-o</code></td>
+<td style="text-align: center;">No</td>
+<td>stdout</td>
+<td>Output file</td>
+</tr>
+<tr>
+<td><code>--model</code></td>
+<td><code>-m</code></td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+<td>—</td>
+<td>Name of the model to export</td>
+</tr>
+<tr>
+<td><code>--format</code></td>
+<td><code>-f</code></td>
+<td style="text-align: center;">No</td>
+<td><code>JPIPE</code></td>
+<td>Output format (see table below)</td>
+</tr>
+</tbody>
+</table>
+<p>Delegates to <code>CompilerFactory.build(config, out)</code>. Returns exit code <code>0</code> on
+success, <code>1</code> if any ERROR or FATAL diagnostic was reported.</p>
+<p><strong>Output formats</strong></p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+<th style="text-align: center;">Requires Graphviz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>JPIPE</code></td>
+<td>jPipe source that compiles back to the same model (see below)</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td><code>DOT</code></td>
+<td>Graphviz DOT source</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td><code>PNG</code></td>
+<td>Rendered PNG image</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>JPEG</code></td>
+<td>Rendered JPEG image</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>SVG</code></td>
+<td>Rendered SVG image</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>JSON</code></td>
+<td>JSON model dump</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td><code>PYTHON</code></td>
+<td>Step-library skeleton for <a href="https://github.com/jpipe-mcscert/jpipe-runner">jpipe-runner</a> 4</td>
+<td style="text-align: center;">No</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The <code>JPIPE</code> format</strong> is a round-trip: compiling the output gives back the
+model exported, with the same elements, ids, relations and aliases. The output
+is self-contained, and never holds a <code>load</code>:</p>
+<ul>
+<li>the model comes after every model it depends on, each written once: the
+  template it implements, that template's own ancestors, and the models it was
+  composed from;</li>
+<li>a model that implements a template declares only what its source did: its
+  own elements, the <code>@support</code>s it overrides, and its own relations;</li>
+<li>a model built by an operator is written as the operator call that built it,
+  so its ids are the ones the operator gives them again;</li>
+<li>a model loaded under a namespace is inlined under a plain name, since a
+  model name cannot hold a <code>:</code>: <code>base:t</code> becomes <code>base_t</code> (followed by <code>_2</code>,
+  <code>_3</code>… if that name is taken), and every id that names it changes with it,
+  <code>base:t:abs</code> becoming <code>base_t:abs</code>.</li>
+</ul>
+<p>Comments and the layout of the original source are not kept.</p>
+<p><strong>The <code>JSON</code> format</strong> describes one model. jpipe-runner reads it to run a
+justification and to draw it.</p>
+<pre><code class="language-jsonc">{
+  &quot;name&quot;: &quot;readiness&quot;,
+  &quot;type&quot;: &quot;justification&quot;,            // or &quot;template&quot;
+  &quot;elements&quot;: [
+    { &quot;type&quot;: &quot;sub-conclusion&quot;,       // &quot;conclusion&quot;, &quot;sub-conclusion&quot;, &quot;strategy&quot;,
+                                      // &quot;evidence&quot; or &quot;abstract-support&quot;
+      &quot;id&quot;: &quot;readiness:hook&quot;,         // qualified with the model's name
+      &quot;label&quot;: &quot;The code is tested&quot;,
+      &quot;aliases&quot;: [ &quot;readiness:draft:tests&quot;, &quot;readiness:tested:tested&quot; ],
+      &quot;origins&quot;: [ { &quot;model&quot;: &quot;draft&quot;,  &quot;id&quot;: &quot;draft:tests&quot;,   &quot;type&quot;: &quot;evidence&quot; },
+                   { &quot;model&quot;: &quot;tested&quot;, &quot;id&quot;: &quot;tested:tested&quot;, &quot;type&quot;: &quot;conclusion&quot; } ] }
+  ],
+  &quot;relations&quot;: [ { &quot;source&quot;: &quot;readiness:draft:s&quot;, &quot;target&quot;: &quot;readiness:c&quot; } ]
+}
+</code></pre>
+<ul>
+<li><code>elements</code> lists the model's elements once it is built, inherited ones
+  included, and <code>relations</code> its support edges, from the supporting element to
+  the supported one.</li>
+<li><code>aliases</code>, on an element that composition or unification merged, lists the
+  ids it was merged from, at every level, qualified like <code>id</code>.</li>
+<li><code>origins</code>, on an element of a model built by an operator, lists the
+  elements of the models it was composed from that it was built from, at every
+  level, nearest first, each once. An element a model inherits from a template
+  built by an operator has the origins it has in that template. Each gives its model, its id as that model's own JSON
+  export writes it, and its kind there. An element whose kind composition
+  changed says what it was: the hook <code>refine</code> merges into a sub-conclusion, or
+  the conclusion of a source that <code>assemble</code> turns into a sub-conclusion. An
+  element the operator creates itself, such as <code>assemble</code>'s conclusion, has
+  none.</li>
+</ul>
+<p><code>aliases</code> and <code>origins</code> are left out when they would be empty, so the JSON of
+a model that no operator built, and that implements no template an operator
+built, has neither.</p>
+<p>A model that implements a template also gets an <code>implements</code> object, with
+everything the <code>DOT</code> export draws for the template chain, so that the diagram
+can be rebuilt from the JSON alone. The model below implements <code>intermediate</code>,
+which implements <code>root</code> and fills its <code>@support abs1</code>:</p>
+<pre><code class="language-jsonc">&quot;implements&quot;: {
+  &quot;elements&quot;: [ &quot;leaf:intermediate:abs_i&quot;, &quot;leaf:root:abs2&quot; ],
+  &quot;templates&quot;: [
+    { &quot;name&quot;: &quot;intermediate&quot;,
+      &quot;elements&quot;: [ &quot;leaf:intermediate:s&quot;, &quot;leaf:intermediate:abs_i&quot;, &quot;leaf:root:abs1&quot; ],
+      &quot;placeholders&quot;: [ { &quot;id&quot;: &quot;leaf:intermediate:abs_i&quot;,
+                          &quot;label&quot;: &quot;An intermediate abstract support&quot;,
+                          &quot;supports&quot;: [ &quot;leaf:intermediate:s&quot; ] } ] },
+    { &quot;name&quot;: &quot;root&quot;,
+      &quot;elements&quot;: [ &quot;leaf:root:c&quot;, &quot;leaf:root:s&quot;, &quot;leaf:root:abs1&quot;, &quot;leaf:root:abs2&quot; ],
+      &quot;placeholders&quot;: [ … ] }
+  ]
+}
+</code></pre>
+<ul>
+<li><code>elements</code> lists the elements drawn outside every template, in drawing
+  order: the model's own, then the <code>@support</code>s it fills.</li>
+<li><code>templates</code> lists the template chain, the template the model implements
+  first. Each template is drawn as a cluster labelled <code>&lt;&lt;template&gt;&gt; name</code>,
+  inside the cluster of the one before it, and lists the ids drawn in it, in
+  drawing order: its own elements, then the <code>@support</code>s it fills further up.</li>
+<li>A placeholder is a template's <code>@support</code> that is filled further down the
+  chain. Its id is in its template's <code>elements</code>, where it is drawn with its own
+  <code>label</code>, and it is filled by the element with the same id, drawn where that
+  element's own template (or the model) draws it. The diagram links the two.</li>
+<li><code>supports</code> lists the strategies whose edge from that id, in <code>relations</code>, is
+  drawn from the placeholder rather than from the element that fills it: the
+  edge belongs to the template.</li>
+</ul>
+<p>Placeholders are never in <code>elements</code>, whose types stay <code>conclusion</code>,
+<code>sub-conclusion</code>, <code>strategy</code> and <code>evidence</code> for a justification. The JSON of a
+model that implements no template has no <code>implements</code> key.</p>
+<h3 id="diagnostic"><code>diagnostic</code></h3>
+<p>Parses and validates a <code>.jd</code> source file and reports on it without exporting
+any model. Useful for checking a file for errors, inspecting the symbol table,
+or feeding an IDE.</p>
+<pre><code>jpipe diagnostic -i &lt;file&gt; [-o &lt;output&gt;] [-f &lt;format&gt;]
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Values</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-f</code>, <code>--format</code></td>
+<td><code>TEXT</code>, <code>JSON</code> (case-insensitive)</td>
+<td><code>TEXT</code></td>
+</tr>
+</tbody>
+</table>
+<p>The report has five sections:</p>
+<ol>
+<li><strong>Diagnostics</strong> — all ERROR and FATAL messages, with source locations and
+   their diagnostic code.</li>
+<li><strong>Action Statistics</strong> — total command count, macro count, and deferral
+   count from the <code>ExecutionEngine</code>.</li>
+<li><strong>Model Summary</strong> — for each model: kind (justification/template), parent
+   template (if any), element counts, and which justifications implement it.</li>
+<li><strong>Symbol Table</strong> — all element ids with their source locations, plus alias
+   mappings from composition operators.</li>
+<li><strong>Executed Actions</strong> — the ordered model-construction command trace.</li>
+</ol>
+<p>Sections whose data is absent (no statistics recorded, no actions executed)
+are omitted rather than printed empty.</p>
+<p>Both formats are produced from the same <code>DiagnosticSnapshot</code>, collected once by
+<code>CollectDiagnostics</code> and then rendered by either <code>DiagnosticReport</code> (text) or
+<code>JsonDiagnosticReport</code> (JSON), so the two can never describe different
+compilations. Delegates to
+<code>CompilerFactory.buildDiagnosticCompiler(format, out)</code>.</p>
+<h4 id="json-report">JSON report</h4>
+<pre><code class="language-jsonc">{
+  &quot;schemaVersion&quot;: 1,
+  &quot;source&quot;: &quot;examples/foo.jd&quot;,
+  &quot;status&quot;: &quot;ok&quot;,                    // &quot;ok&quot; | &quot;errors&quot;
+  &quot;diagnostics&quot;: [
+    { &quot;severity&quot;: &quot;error&quot;,           // &quot;error&quot; | &quot;fatal&quot;
+      &quot;code&quot;: &quot;unknown-model&quot;,       // omitted when the diagnostic has no code
+      &quot;source&quot;: &quot;foo.jd&quot;,
+      &quot;line&quot;: 12, &quot;column&quot;: 4,       // both omitted when the location is unknown
+      &quot;message&quot;: &quot;unknown model 'bar'&quot; }
+  ],
+  &quot;stats&quot;: { &quot;commands&quot;: { &quot;total&quot;: 42, &quot;macros&quot;: 3 }, &quot;deferrals&quot;: 1 },
+  &quot;models&quot;: [
+    { &quot;name&quot;: &quot;m&quot;, &quot;kind&quot;: &quot;justification&quot;,
+      &quot;implements&quot;: &quot;t&quot;,             // omitted when the model implements nothing
+      &quot;location&quot;: { &quot;source&quot;: &quot;foo.jd&quot;, &quot;line&quot;: 3, &quot;column&quot;: 0 },
+      &quot;elements&quot;: { &quot;conclusion&quot;: 1, &quot;subConclusion&quot;: 2, &quot;strategy&quot;: 1,
+                    &quot;evidence&quot;: 3, &quot;abstractSupport&quot;: 0 },
+      &quot;usedBy&quot;:  [ { &quot;name&quot;: &quot;j&quot;, &quot;location&quot;: { … } } ],  // templates only
+      &quot;symbols&quot;: [ { &quot;id&quot;: &quot;e1&quot;, &quot;kind&quot;: &quot;evidence&quot;,
+                     &quot;synthesized&quot;: false, &quot;location&quot;: { … } } ],
+      &quot;aliases&quot;: [ { &quot;from&quot;: &quot;a&quot;, &quot;to&quot;: &quot;b&quot; } ] }
+  ],
+  &quot;actions&quot;: [ { &quot;index&quot;: 1, &quot;depth&quot;: 0, &quot;macro&quot;: false, &quot;description&quot;: &quot;…&quot; } ]
+}
+</code></pre>
+<p>Optional keys are omitted rather than emitted as <code>null</code>. Arrays preserve order;
+object key order is not significant. <code>schemaVersion</code> is incremented whenever the
+set of members changes, additions included — the schema is strict, so no change
+is invisible to a consumer validating against it.</p>
+<p>The document is described by a published <strong><a href="../diagnostic-schema/">JSON Schema</a></strong>
+that acts as the contract with consumers; it ships on the classpath at
+<code>/schema/diagnostic-report-v1.schema.json</code> and every report the test suite
+produces is validated against it.</p>
+<p>The ASCII logo goes to standard error, so it never corrupts a report or an
+export written to standard output. It is also left out when the JSON report
+goes to standard output, since that is how tools call the command. Writing to a
+file with <code>-o</code> keeps it.</p>
+<p><strong>Reporting on a compilation that aborted.</strong> A <em>fatal</em> error — a syntax error,
+an unresolvable <code>load</code> — stops the pipeline, but the report is still written in
+both formats: the diagnostics describe the failure, <code>models</code> is empty and the
+symbol table reads <code>(empty)</code>, because nothing could be built. The exit code is
+1. Consumers detect the case by finding a diagnostic with <code>severity: "fatal"</code>,
+and need no separate path for it.</p>
+<p>A source file that cannot be read at all, whether it cannot be opened or fails
+while being read, is reported the same way, as a fatal diagnostic with exit
+code 1, rather than as the system error (42) it remains under <code>process</code>. A
+compilation that stopped is never reported as <code>ok</code>: a step that aborted without
+recording why still leaves a fatal in the report.</p>
+<p>This is why <code>diagnostic</code> has its own compiler rather than assembling the report
+as the tail of the analysis chain — a report produced as a pipeline step could
+never describe the failures that stopped that pipeline. <code>process</code> deliberately
+keeps the old behaviour: its output stream carries a model export, so a report
+poured into it would corrupt the artefact. A fatal there still reaches standard
+error with exit code 1 and no output.</p>
+<h3 id="doctor"><code>doctor</code></h3>
+<p>Checks that external tools required by jPipe are available on <code>PATH</code> and
+prints a status line for each. Also prints the jPipe version number.</p>
+<pre><code>jpipe doctor
+</code></pre>
+<pre><code>  dot (Graphviz): OK (version 12.2.1)
+</code></pre>
+<p>Currently checks: <code>dot</code> (Graphviz). A tool is considered available if the OS
+can launch the executable; the exit code of the probe is ignored. The probe
+output is scanned for a version number, which is reported next to the status —
+several operating systems ship an outdated Graphviz, and that shows up as
+rendering bugs. When no version can be read out of the banner, the status line
+reads <code>OK (version unknown)</code>. Returns exit code <code>0</code> if all tools are found, <code>1</code>
+otherwise.</p>
+<h2 id="shared-infrastructure">Shared infrastructure</h2>
+<h3 id="inputoutputcommand"><code>InputOutputCommand</code></h3>
+<p>Abstract base for <code>ProcessCommand</code> and <code>DiagnosticCommand</code>. Handles:</p>
+<ul>
+<li><strong>Logo display</strong> — prints <code>Logo.BANNER</code> on standard error, unless
+  <code>--headless</code> is set. <code>doctor</code> does the same.</li>
+<li><strong>Output stream resolution</strong> — through an <code>OutputTarget</code>. Standard output is
+  used as is. A file given with <code>-o</code> is not opened while the command runs: the
+  output is held in memory and written to the file, in place, once the command
+  has produced it. A run that aborts (a fatal error, an unknown model, a failed
+  render) leaves the previous file as it was; a run that reports non-fatal
+  errors still writes its export, as ADR-0016 requires. Writing in place keeps
+  what the target is — <code>/dev/null</code>, a pipe, a symbolic or hard link, a file's
+  owner and permissions. A target that is a directory, is read-only, or would be
+  created in a missing or read-only directory is refused before compiling, as
+  <code>error: cannot write '&lt;path&gt;': &lt;reason&gt;</code>.</li>
+<li><strong>Same input and output</strong> — an <code>-o</code> that names the input file is refused with
+  exit code <code>2</code> before anything runs, since the export (or the report) would
+  replace the source.</li>
+<li><strong>Error reporting</strong> — catches <code>CompilationException</code> and
+  <code>UnsupportedOperationException</code> and prints a clean <code>error: …</code> message to
+  stderr, with exit code <code>1</code>. An output that cannot be written, and a source
+  that cannot be read under <code>process</code>, print <code>error: …</code> naming the file, with
+  exit code <code>42</code>.</li>
+</ul>
+<p>Subclasses implement <code>doCall(OutputStream)</code> and receive the resolved output
+stream.</p>
+<h3 id="doctor_1"><code>Doctor</code></h3>
+<p>Package-private utility that probes each required external tool by attempting
+<code>ProcessBuilder</code> launch. Tools are configured in a static <code>LinkedHashMap</code> so
+that new dependencies can be added without changing <code>DoctorCommand</code>.</p>
+<h3 id="unexpectederrorhandler"><code>UnexpectedErrorHandler</code></h3>
+<p>Installed on the root <code>CommandLine</code> by <code>Main.commandLine()</code>, so it covers every
+subcommand. Any exception a command did not handle — a bug, or a failure outside
+the compiler's control — is reported as one <code>internal error: …</code> line on stderr,
+with a pointer to the issue tracker, and exit code <code>42</code>. The stack trace is
+logged at <code>DEBUG</code>, so <code>--log-level DEBUG</code> shows it. Without the handler, picocli
+would print the trace and exit <code>1</code>, which reads as an ordinary compilation
+error.</p>
+<h3 id="default-subcommand">Default subcommand</h3>
+<p>PicoCLI 4.x has no built-in default-subcommand API. <code>Main.withDefaultSubcommand()</code>
+pre-processes the argument array. It skips the parent-level flags, in either the
+<code>--log-level INFO</code> or the <code>--log-level=INFO</code> form, and looks at the token right
+after them: a subcommand name, <code>--help</code> or <code>--version</code> leaves the arguments
+unchanged; anything else gets <code>"process"</code> inserted in front of it. Only that
+position counts, so <code>jpipe -i doc.jd -m doctor</code> exports a model named <code>doctor</code>.
+Subcommand names and parent flag arities are derived from the live
+<code>CommandLine</code> object at call time, so the method stays correct when the command
+tree changes.</p>
+<h3 id="global-options">Global options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--headless</code></td>
+<td>Do not print the logo.</td>
+</tr>
+<tr>
+<td><code>--log-level LEVEL</code></td>
+<td>Verbosity of the compiler's trace on stderr: <code>OFF</code>, <code>ERROR</code> (default), <code>WARN</code>, <code>INFO</code>, <code>DEBUG</code>, <code>TRACE</code>, case-insensitive. Any other value is rejected.</td>
+</tr>
+<tr>
+<td><code>-h</code>, <code>--help</code> / <code>-V</code>, <code>--version</code></td>
+<td>On the root command and on every subcommand.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Diagnostics are not logs.</strong> The diagnostics of a <code>process</code> run are printed on
+stderr as <code>file:line:column: severity: [code] message</code> through the dedicated
+<code>jpipe.diagnostics</code> logger (<code>DiagnosticPrinter.LOGGER</code>). It sits outside
+the <code>ca.mcscert.jpipe</code> hierarchy that <code>--log-level</code> tunes, so no level hides a
+compilation error.</p>
+<h2 id="exit-codes">Exit codes</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Constant</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td><code>EXIT_OK</code></td>
+<td>Success</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td><code>EXIT_JPIPE_ERROR</code></td>
+<td>Compilation error or missing tool</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td><code>CommandLine.ExitCode.USAGE</code></td>
+<td>Invalid command line: unknown option, invalid value (picocli), or an output that is the input file</td>
+</tr>
+<tr>
+<td><code>42</code></td>
+<td><code>EXIT_SYSTEM_ERROR</code></td>
+<td>System error: a source that cannot be read (under <code>process</code>), an output that cannot be written, or an unexpected exception</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "toc.integrate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>
