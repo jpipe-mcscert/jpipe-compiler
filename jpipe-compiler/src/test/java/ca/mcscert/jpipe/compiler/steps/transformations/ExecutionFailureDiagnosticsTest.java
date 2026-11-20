@@ -6,6 +6,7 @@ import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.CommandExecutionException;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
+import ca.mcscert.jpipe.commands.linking.AmbiguousIdException;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
@@ -13,6 +14,7 @@ import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.operators.ApplyOperator;
 import ca.mcscert.jpipe.operators.ModelKind;
@@ -123,6 +125,22 @@ class ExecutionFailureDiagnosticsTest {
 					new RuntimeException("bad support"), ctx);
 			assertThat(ctx.diagnostics()).extracting(d -> d.message()).anyMatch(
 					m -> m.contains("bad support") || m.contains("invalid"));
+		}
+
+		@Test
+		void an_ambiguous_override_is_an_ambiguous_id() {
+			SourceLocation at = new SourceLocation("main.jd", 24, 13);
+			OverrideAbstractSupport cmd = new OverrideAbstractSupport("j",
+					"t:abs", "evidence", "E", at);
+			ExecutionFailureDiagnostics.diagnoseExecutionFailure(cmd,
+					new AmbiguousIdException("t:abs", "j",
+							List.of(new AbstractSupport("l:t:abs", "L"),
+									new AbstractSupport("r:t:abs", "R"))),
+					ctx);
+			assertThat(ctx.diagnostics()).singleElement().satisfies(d -> {
+				assertThat(d.code()).isEqualTo("ambiguous-id");
+				assertThat(d.line()).isEqualTo(24);
+			});
 		}
 
 		@Test

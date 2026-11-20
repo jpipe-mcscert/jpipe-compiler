@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import ca.mcscert.jpipe.commands.Command;
+import ca.mcscert.jpipe.compiler.CompilationConfig;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
@@ -77,8 +78,18 @@ public final class DuplicateModelFilter
 			return "";
 		}
 		String file = first.source() != null
-				? Path.of(first.source()).getFileName() + ":"
+				? fileName(first.source()) + ":"
 				: "line ";
 		return " at " + file + first.line();
+	}
+
+	/**
+	 * The file name of {@code source}, or {@code <stdin>} as is: it names no
+	 * file, and is not even a valid path on Windows.
+	 */
+	private static String fileName(String source) {
+		return CompilationConfig.STDIN.equals(source)
+				? source
+				: String.valueOf(Path.of(source).getFileName());
 	}
 }

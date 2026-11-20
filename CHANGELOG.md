@@ -79,10 +79,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   can no longer declare its own: that is now an `inherited-conclusion` error. It
   used to be accepted or rejected depending on whether the template was declared
   before or after the model (#177).
-- **Breaking:** a relation whose id is the end of several inherited ids, such as
-  `a` when both `root:a` and `mid:a` are inherited, or `t:a` for both `x:t:a`
-  and `y:t:a`, is now an `ambiguous-id` error asking for the full qualified id.
-  It used to bind to the first one found (#177).
+- **Breaking:** a relation or an override whose id is the end of several
+  inherited ids, such as `a` when both `root:a` and `mid:a` are inherited, or
+  `t:a` for both `x:t:a` and `y:t:a`, is now an `ambiguous-id` error asking for
+  the full qualified id. It used to bind to the first one found (#177).
 - **Breaking:** a template's `@support` that supports no strategy is now an error
   in that template (completeness rule `abstract-support-used`). It compiled, but
   no justification could override it, and the failure was only reported, without
@@ -152,6 +152,8 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   regenerating a committed step library leaves it unchanged (#187).
 
 ### Fixed
+- On Windows, compiling a source read from standard input no longer fails with
+  an internal error (exit code 42).
 - An id repeated in `unifyExclude` (`"c,c"`) no longer fails the composition with
   a misleading `duplicate element` error: the list is a set (#171).
 - A plain `refine` hook that names several elements of the base model is an

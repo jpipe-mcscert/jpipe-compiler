@@ -78,6 +78,14 @@ public final class OverrideAbstractSupport implements MacroCommand {
 	@Override
 	public List<Command> expand(Unit unit) {
 		JustificationModel model = unit.get(container);
+		// A short id that names several inherited elements is ambiguous, as in
+		// a relation: the element order must not choose the placeholder that
+		// is replaced (#177).
+		List<JustificationElement> ambiguous = model
+				.ambiguousMatches(qualifiedId);
+		if (!ambiguous.isEmpty()) {
+			throw new AmbiguousIdException(qualifiedId, container, ambiguous);
+		}
 		AbstractSupport old = (AbstractSupport) model.findById(qualifiedId)
 				.orElseThrow(() -> new NoSuchElementException(
 						"No abstract support with id: " + qualifiedId));

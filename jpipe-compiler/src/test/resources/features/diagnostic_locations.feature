@@ -33,6 +33,7 @@ Feature: Every diagnostic says where, and only once
     When I run the diagnostic compiler with format "json"
     Then the report signals errors
       And the JSON report has a diagnostic with code "abstract-support-used" at line 14
+      And the JSON report has exactly one diagnostic with code "abstract-support-used"
       And the JSON report has a diagnostic with code "unresolved-override" at line 21
       And the JSON report has no diagnostic at line 22
       And the JSON report has no diagnostic with code "no-abstract-support"

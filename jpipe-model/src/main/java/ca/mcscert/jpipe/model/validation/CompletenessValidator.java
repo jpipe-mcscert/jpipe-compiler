@@ -2,12 +2,16 @@ package ca.mcscert.jpipe.model.validation;
 
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.Violation;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.JustificationElement;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Checks that justification models are structurally complete.
@@ -50,6 +54,7 @@ import java.util.List;
 public final class CompletenessValidator {
 
 	private static final String IN_MODEL = "' in model '";
+	private static final String ABSTRACT_SUPPORT_USED = "abstract-support-used";
 
 	/**
 	 * Validates all models in the unit. Violations carry source locations
@@ -60,9 +65,17 @@ public final class CompletenessValidator {
 		List<Violation> violations = new ArrayList<>();
 		// A model that could not be built in full has its cause reported
 		// already; its gaps are consequences, not mistakes of their own.
+		// An unused @support is one mistake, wherever it is copied: a template
+		// built by an operator call keeps its sources' placeholders, at the
+		// place they are declared (#183).
+		Set<SourceLocation> unusedSupports = new HashSet<>();
 		unit.getModels().stream()
 				.filter(model -> unit.isComplete(model.getName()))
-				.forEach(model -> violations.addAll(checkModel(model, ctx)));
+				.flatMap(model -> checkModel(model, ctx).stream())
+				.filter(v -> !v.rule().equals(ABSTRACT_SUPPORT_USED)
+						|| !v.location().isKnown()
+						|| unusedSupports.add(v.location()))
+				.forEach(violations::add);
 		return violations;
 	}
 
@@ -145,15 +158,17 @@ public final class CompletenessValidator {
 					ctx.locationOf(name)));
 		}
 		// abstract-support-used: an abstract support that supports no
-		// strategy can never be overridden, so it is reported here, where it
-		// is written, rather than in every justification implementing the
+		// strategy can never be overridden, so it is reported in the template
+		// that declares it, rather than in every model implementing that
 		// template (#183).
+		List<JustificationElement> inherited = template.inheritedElements();
 		template.abstractSupports().stream()
+				.filter(as -> !inherited.contains(as))
 				.filter(as -> template.strategies().stream()
 						.noneMatch(s -> s.getSupports().stream()
 								.anyMatch(leaf -> leaf.id().equals(as.id()))))
 				.forEach(as -> violations.add(new Violation(
-						"abstract-support-used",
+						ABSTRACT_SUPPORT_USED,
 						"Abstract support '" + as.id() + "' in template '"
 								+ name + "' supports no strategy",
 						ctx.locationOf(name, as.id()))));

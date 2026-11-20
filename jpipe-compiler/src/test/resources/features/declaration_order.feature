@@ -43,3 +43,5 @@ Feature: The order of declarations does not change what a model means
     When I run the diagnostic compiler with format "json"
     Then the report signals errors
       And the JSON report has a diagnostic with code "ambiguous-id" at line 28
+      And the JSON report has a diagnostic with code "ambiguous-id" at line 56
+      And the JSON report has no diagnostic with code "no-abstract-support"

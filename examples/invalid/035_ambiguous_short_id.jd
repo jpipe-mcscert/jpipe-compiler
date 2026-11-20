@@ -27,3 +27,32 @@ justification j implements mid {
     evidence e     is "Another evidence"
     e supports a
 }
+
+// 'both' keeps the @support 'h' of each source, as l:top:h and r:top:h: the
+// override of 'top:h' on line 56 cannot tell which one it replaces.
+template top {
+    conclusion c is "A top conclusion"
+    strategy   s is "A top strategy"
+    @support   h is "A top abstract support"
+    s supports c
+    h supports s
+}
+
+template l implements top {
+    evidence e is "A left evidence"
+}
+
+template r implements top {
+    evidence e is "A right evidence"
+}
+
+template both is assemble(l, r) {
+    conclusionLabel: "Both"
+    strategyLabel:   "Both strategies"
+    unifyExclude:    "l:top:h,r:top:h"
+}
+
+justification twice implements both {
+    evidence top:h   is "Which one?"
+    evidence r:top:h is "The right one"
+}

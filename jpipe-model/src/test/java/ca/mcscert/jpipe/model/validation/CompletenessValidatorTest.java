@@ -2,7 +2,15 @@ package ca.mcscert.jpipe.model.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ca.mcscert.jpipe.commands.ExecutionEngine;
+import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
+import ca.mcscert.jpipe.commands.creation.CreateConclusion;
+import ca.mcscert.jpipe.commands.creation.CreateStrategy;
+import ca.mcscert.jpipe.commands.creation.CreateTemplate;
+import ca.mcscert.jpipe.commands.linking.AddSupport;
+import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.Violation;
@@ -189,6 +197,39 @@ class CompletenessValidatorTest {
 		}
 
 		@Test
+		void an_unused_support_is_reported_in_its_template_only() {
+			// 'mid' inherits it: one mistake, reported once (#183).
+			Unit unit = new ExecutionEngine().spawn("src",
+					List.of(new CreateTemplate("root"),
+							new CreateConclusion("root", "c", "C"),
+							new CreateStrategy("root", "s", "S"),
+							new CreateAbstractSupport("root", "used", "U"),
+							new CreateAbstractSupport("root", "dangling", "D"),
+							new AddSupport("root", "c", "s"),
+							new AddSupport("root", "s", "used"),
+							new CreateTemplate("mid"),
+							new ImplementsTemplate("mid", "root")));
+
+			assertThat(validator.validate(unit)).singleElement()
+					.extracting(Violation::message).asString()
+					.contains("'dangling' in template 'root'");
+		}
+
+		@Test
+		void an_unused_support_copied_by_a_composition_is_reported_once() {
+			// The copy keeps the place of the declaration it comes from.
+			SourceLocation declared = new SourceLocation("src", 4, 13);
+			Unit unit = new Unit("src");
+			unit.add(templateWithDangling("t", "dangling"));
+			unit.add(templateWithDangling("both", "unified_0"));
+			unit.recordLocation("t", "dangling", declared);
+			unit.recordLocation("both", "unified_0", declared);
+
+			assertThat(validator.validate(unit)).singleElement()
+					.extracting(Violation::location).isEqualTo(declared);
+		}
+
+		@Test
 		void validate_unit_checks_all_models() {
 			Unit unit = new Unit("src");
 			unit.add(new Justification("j1")); // no conclusion
@@ -218,8 +259,20 @@ class CompletenessValidatorTest {
 		return j;
 	}
 
+	/** A complete template, but for a @support that supports nothing. */
+	private static Template templateWithDangling(String name,
+			String danglingId) {
+		Template t = simpleTemplate(name);
+		t.addElement(new AbstractSupport(danglingId, "Dangling"));
+		return t;
+	}
+
 	private static Template simpleTemplate() {
-		Template t = new Template("t");
+		return simpleTemplate("t");
+	}
+
+	private static Template simpleTemplate(String name) {
+		Template t = new Template(name);
 		Conclusion c = new Conclusion("c", "Conclusion");
 		Strategy s = new Strategy("s", "Strategy");
 		AbstractSupport abs = new AbstractSupport("abs", "Abstract step");
