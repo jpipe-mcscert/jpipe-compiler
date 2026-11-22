@@ -10,6 +10,11 @@
 # verbose dependency tree, where Maven reports every such override as
 # "version managed from [range]", and checks each pin against each range.
 #
+# It fails closed: finding no range override at all means the tree no longer
+# reports them (maven-dependency-plugin 3.7.0 leaves them out, hence the
+# version pinned in the pom), not that every pin is fine. Once Cucumber stops
+# declaring ranges and the pins are gone, remove this check with them.
+#
 # Usage: scripts/check-managed-ranges.sh   (from the repository root)
 
 set -euo pipefail
@@ -63,6 +68,12 @@ for failure in sorted(set(failures)):
 if failures:
     print("Move the pin in the root pom.xml to a version every range accepts"
           " (see the comment next to cucumber.version).", file=sys.stderr)
+    sys.exit(1)
+if not checked:
+    print("ERROR: the dependency tree reports no managed version overriding a"
+          " range, so nothing was checked. Check the maven-dependency-plugin"
+          " version, or remove this check if no range is pinned any more.",
+          file=sys.stderr)
     sys.exit(1)
 print(f"{len(checked)} managed version(s) checked against the ranges they"
       " override: all within.")
