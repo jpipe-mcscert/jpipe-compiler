@@ -12,12 +12,14 @@ sources are not committed. See [docs/design/language.md](../docs/design/language
 for a full language reference with railroad diagrams.
 
 Railroad diagrams in `docs/design/img/` are produced by
-[gen_railroad.py](gen_railroad.py). To regenerate them:
+[gen_railroad.py](gen_railroad.py). Its dependency is locked with the rest of
+the documentation tooling, in [docs/requirements.txt](../docs/requirements.txt).
+To regenerate them, from the repository root, in a Python 3.12 virtual
+environment:
 
 ```bash
-cd jpipe-lang
-pipenv install --deploy
-pipenv run python3 gen_railroad.py
+pip install --require-hashes --only-binary :all: -r docs/requirements.txt
+python3 jpipe-lang/gen_railroad.py
 ```
 
 ## Dependencies

@@ -5,8 +5,8 @@ One SVG per parser rule, written to docs/design/img/.
 Usage (from the repository root):
     python3 jpipe-lang/gen_railroad.py
 
-Requires the railroad-diagrams package:
-    pip install railroad-diagrams
+Requires the railroad-diagrams package, locked with the documentation tooling:
+    pip install --require-hashes --only-binary :all: -r docs/requirements.txt
 """
 
 import io

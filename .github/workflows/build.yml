@@ -92,3 +92,9 @@ jobs:
           name: jpipe-cli-${{ steps.mvn_version.outputs.version }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
+
+      # The root pom pins the dependencies Cucumber declares as version ranges
+      # (#207). Maven applies a pin silently, even once a Cucumber update has
+      # moved its range past it: this fails the build instead.
+      - name: Check pinned versions against the ranges they override
+        run: scripts/check-managed-ranges.sh

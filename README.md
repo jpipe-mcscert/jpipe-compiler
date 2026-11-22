@@ -48,7 +48,7 @@ The jPipe environment supports the definition of justification to support softwa
 
 | Tool | Version | Purpose |
 |---|---|---|
-| [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) | latest | Previewing the documentation site locally (`mkdocs serve`) |
+| [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) and its plugins | locked in `docs/requirements.txt` | Previewing the documentation site locally (`mkdocs serve`); install them with `pip install --require-hashes --only-binary :all: -r docs/requirements.txt` |
 
 #### Building
 

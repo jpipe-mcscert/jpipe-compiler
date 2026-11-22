@@ -1,0 +1,24 @@
+# Python tools the documentation site is built with (docs.yml, #208).
+#
+# This file names the direct dependencies; requirements.txt locks the whole
+# resolved set by version and hash, and is what gets installed:
+#
+#     pip install --require-hashes --only-binary :all: -r docs/requirements.txt
+#
+# After editing this file, regenerate the lock under Python 3.12, the version
+# docs.yml builds with, using pip-tools 7.x and the command recorded in the
+# lock's header (Dependabot reuses it):
+#
+#     cd docs && pip-compile --generate-hashes --pip-args='--only-binary :all:' --strip-extras requirements.in
+#
+# --only-binary keeps the lock to versions that ship wheels, which is all the
+# workflow will install.
+#
+# Dependabot keeps the lock current (ADR-0007).
+
+# The site generator, its theme, and the PlantUML extension.
+mkdocs-material
+plantuml-markdown
+
+# Railroad diagrams of the grammar (jpipe-lang/gen_railroad.py).
+railroad-diagrams
