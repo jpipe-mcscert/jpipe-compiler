@@ -46,25 +46,9 @@ public final class CompilerFactory {
 
 	/**
 	 * Build a process-mode compiler from the given configuration. Its
-	 * diagnostics are printed on the {@code jpipe.diagnostics} logger.
-	 *
-	 * @param config
-	 *            the compilation configuration.
-	 * @param stdout
-	 *            stream to use when the output target is
-	 *            {@link CompilationConfig#STDOUT}.
-	 * @return a ready-to-use {@link Compiler}.
-	 */
-	public static Compiler build(CompilationConfig config,
-			OutputStream stdout) {
-		return processing(config, stdout);
-	}
-
-	/**
-	 * Build a process-mode compiler from the given configuration, printing its
-	 * diagnostics on {@code diagnostics} rather than through the logging
-	 * framework. This is how the CLI writes them straight to standard error
-	 * (#216).
+	 * diagnostics are printed on {@code diagnostics}, not through the logging
+	 * framework: that is how the CLI writes them straight to standard error,
+	 * whatever the log level (#216).
 	 *
 	 * @param config
 	 *            the compilation configuration.

@@ -152,7 +152,7 @@ updated automatically.
   path that created it, so it cannot ship in the release assets. After a Java
   upgrade it is stale: the launchers ignore it silently, and running
   `jpipe --create-aot-cache` again (or `brew postinstall jpipe`) restores it.
-  Debian's `postrm` removes it, since dpkg does not track it.
+  Debian's `prerm` removes it, since dpkg does not track it.
 - ADR-0023 is unaffected and remains the sub-policy governing *which* Ubuntu
   series the PPA matrix targets. This ADR governs the set of channels; ADR-0020
   owns the pipeline mechanics that implement them.

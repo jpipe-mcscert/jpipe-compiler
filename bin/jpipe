@@ -20,14 +20,17 @@ AOT="@@PREFIX@@/jpipe.aot"
 # `jpipe --create-aot-cache` once, and a user can run it again after a Java
 # upgrade. A stale cache is ignored without a word.
 if [ "$1" = "--create-aot-cache" ]; then
-    rm -f "$AOT.tmp"
+    rm -f "$AOT.tmp" "$AOT.log"
     if @@JAVA@@ -XX:AOTCacheOutput="$AOT.tmp" -Xlog:aot=off -jar "$JAR" \
         --headless process -i "@@PREFIX@@/aot-training.jd" -m trained \
-        -f python > /dev/null 2>&1 && [ -f "$AOT.tmp" ]; then
+        -f python > "$AOT.log" 2>&1 && [ -f "$AOT.tmp" ]; then
         mv -f "$AOT.tmp" "$AOT"
+        rm -f "$AOT.log"
         exit 0
     fi
-    rm -f "$AOT.tmp"
+    # What the training run printed is the only clue to why it failed.
+    cat "$AOT.log" >&2 2>/dev/null
+    rm -f "$AOT.tmp" "$AOT.log"
     echo "[jpipe] could not create the AOT cache; jPipe runs without it" >&2
     exit 1
 fi

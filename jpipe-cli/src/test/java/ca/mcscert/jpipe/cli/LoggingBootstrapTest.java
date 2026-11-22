@@ -3,6 +3,7 @@ package ca.mcscert.jpipe.cli;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ca.mcscert.jpipe.cli.Main.LogLevel;
+import java.util.Map;
 import java.util.Properties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,7 +37,7 @@ class LoggingBootstrapTest {
 		Properties system = new Properties();
 
 		LoggingBootstrap.select(new String[]{"--log-level", level, "process"},
-				system);
+				system, Map.of());
 
 		assertThat(system)
 				.containsEntry(LoggingBootstrap.PROVIDER,
@@ -51,20 +52,37 @@ class LoggingBootstrapTest {
 		Properties system = new Properties();
 
 		LoggingBootstrap.select(new String[]{"--log-level=WARN", "process"},
-				system);
+				system, Map.of());
 
 		assertThat(system).isEmpty();
 		assertThat(LoggingBootstrap.usesSimpleLogger(system)).isFalse();
 	}
 
-	@Test
-	void aBackEndTheUserChoseIsKept() {
+	/**
+	 * Log4j starts as it always did when the user configured it, or when
+	 * --log-level may hide in an @file that picocli expands only later.
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+			"log4j.provider=my.Provider |  | process",
+			"log4j2.configurationFile=mine.xml |  | process",
+			" | LOG4J_PROVIDER=my.Provider | process",
+			" |  | @opts.txt process"})
+	void log4jIsLeftAloneWhenTheBootstrapCannotBeSure(String property,
+			String variable, String commandLine) {
 		Properties system = new Properties();
-		system.setProperty(LoggingBootstrap.PROVIDER, "my.Provider");
+		if (property != null) {
+			String[] kv = property.split("=");
+			system.setProperty(kv[0], kv[1]);
+		}
+		Map<String, String> env = variable == null
+				? Map.of()
+				: Map.of(variable.split("=")[0], variable.split("=")[1]);
+		Properties before = (Properties) system.clone();
 
-		LoggingBootstrap.select(new String[]{"process"}, system);
+		LoggingBootstrap.select(commandLine.split(" "), system, env);
 
-		assertThat(system).hasSize(1).containsEntry(LoggingBootstrap.PROVIDER,
-				"my.Provider");
+		assertThat(system).isEqualTo(before);
+		assertThat(LoggingBootstrap.usesSimpleLogger(system)).isFalse();
 	}
 }

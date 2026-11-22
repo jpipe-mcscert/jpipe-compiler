@@ -18,7 +18,7 @@
     "post_install": [
         "$java = Join-Path (& scoop prefix temurin25-jre) 'bin\\java.exe'",
         "$p = Join-Path $dir 'jpipe.ps1'",
-        "(Get-Content $p -Raw).Replace('@@JAVA@@', $java).Replace('@@PREFIX@@', $dir) | Set-Content $p -NoNewline",
+        "(Get-Content $p -Raw).Replace('@@JAVA@@', $java.Replace(\"'\", \"''\")).Replace('@@PREFIX@@', $dir.Replace(\"'\", \"''\")) | Set-Content $p -NoNewline",
         "try { & $p --create-aot-cache } catch { Write-Warning \"jPipe runs without its AOT cache: $_\" }"
     ],
     "autoupdate": {

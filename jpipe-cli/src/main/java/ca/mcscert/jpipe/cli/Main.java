@@ -183,7 +183,7 @@ public class Main {
 
 	public static void main(String[] args) {
 		// Before anything asks for a logger: see LoggingBootstrap.
-		LoggingBootstrap.select(args, System.getProperties());
+		LoggingBootstrap.select(args, System.getProperties(), System.getenv());
 		CommandLine cmd = commandLine();
 		System.exit(cmd.execute(withDefaultSubcommand(args, cmd)));
 	}

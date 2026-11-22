@@ -338,24 +338,32 @@ class ShadedJarIT {
 				Files.readString(Path.of(required("launchers.dir"), "jpipe"))
 						.replace("@@JAVA@@", javaBinary())
 						.replace("@@PREFIX@@", dir.toString()));
-		Files.copy(Path.of(required("launchers.dir"), "aot-training.jd"),
-				dir.resolve("aot-training.jd"));
 		Files.createSymbolicLink(dir.resolve("jpipe.jar"), Path.of(jarPath()));
 		Map<String, String> path = Map.of("PATH",
-				pathWith(dir, "java", "which", "mv", "rm").toString());
+				pathWith(dir, "java", "which", "mv", "rm", "cat").toString());
+		List<String> createCache = List.of("/bin/sh", launcher.toString(),
+				"--create-aot-cache");
+
+		// Without its training model, the failure says why.
+		Execution failed = run(createCache, path);
+		boolean cacheAfterFailure = Files.exists(dir.resolve("jpipe.aot"));
+		Files.copy(Path.of(required("launchers.dir"), "aot-training.jd"),
+				dir.resolve("aot-training.jd"));
 		List<String> export = List.of("/bin/sh", launcher.toString(),
 				"--headless", "process", "-i", MINIMAL, "-m", "minimal", "-f",
 				"json");
 
-		Execution create = run(
-				List.of("/bin/sh", launcher.toString(), "--create-aot-cache"),
-				path);
+		Execution create = run(createCache, path);
 		Execution cached = run(export, path);
 		// A cache made stale by a Java upgrade must change nothing a caller
 		// sees: no message, same output, same exit code.
 		Files.writeString(dir.resolve("jpipe.aot"), "not a cache");
 		Execution stale = run(export, path);
 
+		assertThat(failed.exitCode()).isEqualTo(1);
+		assertThat(failed.err()).contains("aot-training.jd",
+				"could not create the AOT cache");
+		assertThat(cacheAfterFailure).isFalse();
 		assertThat(create.exitCode()).isZero();
 		assertThat(cached.exitCode()).isZero();
 		assertThat(new JSONObject(cached.out()).getString("name"))

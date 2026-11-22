@@ -23,7 +23,7 @@ All operational output (parse events, compilation progress, errors) goes through
 **Compilation diagnostics are not logs.** At the end of `compile()`, `ChainCompiler` has `DiagnosticPrinter` print the accumulated `ERROR`/`FATAL` diagnostics as bare `file:line:column: severity: [code] message` lines. These messages are the user-facing result of compilation (analogous to `gcc` printing errors to stderr) rather than internal pipeline observability, and tools such as jpipe-vscode parse them. They are not subject to log-level filtering and must always reach the user:
 
 - **The CLI prints them without a logger.** `ProcessCommand` builds its compiler with `CompilerFactory.build(config, out, diagnostics)`, passing picocli's error writer, so the lines go straight to stderr.
-- **A library caller that passes no writer** gets them on the dedicated `jpipe.diagnostics` logger, which sits outside the `ca.mcscert.jpipe` hierarchy that a log level tunes.
+- **A pipeline assembled with `ChainBuilder` and given no writer** (`ChainCompiler.reportingTo`), as the unit tests do, prints them on the dedicated `jpipe.diagnostics` logger, which sits outside the `ca.mcscert.jpipe` hierarchy that a log level tunes. `CompilerFactory` always takes the writer, so the CLI never depends on that logger.
 
 New pipeline code that needs to report an error condition uses `CompilationContext`, which feeds `DiagnosticPrinter`, not `System.err` directly.
 
@@ -34,7 +34,7 @@ The CLI starts log4j-core only when the run has something for it to log. Before 
 - **`OFF` and `ERROR`, the default:** the run uses the simple logger built into the Log4j API (`-Dlog4j.provider` set to its `SimpleProvider`), at that level. log4j-core and `log4j2.xml` never start. At these levels the compiler has nothing to log, and starting them cost about a quarter of a call's start-up time.
 - **`WARN` and above:** log4j-core starts with `log4j2.xml`, and `--log-level` sets the level of the `ca.mcscert.jpipe` logger through log4j-core's `Configurator`.
 
-A back end the user names with `-Dlog4j.provider` is left alone.
+Log4j starts as it always did, with log4j-core, when the bootstrap cannot be sure of the outcome: when the user configured Log4j through any `log4j` system property or `LOG4J_` environment variable (a provider, a configuration file), and when the command line holds an `@file` argument, which picocli expands only after Log4j has started and which may hold `--log-level`.
 
 ### Logger declaration
 

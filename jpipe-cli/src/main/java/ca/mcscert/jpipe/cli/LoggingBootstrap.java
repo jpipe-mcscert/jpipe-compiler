@@ -1,7 +1,9 @@
 package ca.mcscert.jpipe.cli;
 
 import ca.mcscert.jpipe.cli.Main.LogLevel;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -34,21 +36,34 @@ final class LoggingBootstrap {
 
 	private static final String LOG_LEVEL = "--log-level";
 
+	/** How picocli marks an argument file, whose content it expands. */
+	private static final String ARG_FILE = "@";
+
 	private LoggingBootstrap() {
 	}
 
 	/**
 	 * Selects the simple back end in {@code system} when the run asks for no
-	 * more than {@code ERROR}. A back end the user already chose, with
-	 * {@code -Dlog4j.provider}, is left alone.
+	 * more than {@code ERROR}.
+	 *
+	 * <p>
+	 * Log4j starts as it always did, with log4j-core, when this cannot be sure
+	 * of either: when the user configured Log4j, through any {@code log4j}
+	 * system property or {@code LOG4J_} environment variable (a provider, a
+	 * configuration file), and when an {@code @file} argument may hold
+	 * {@code --log-level}, which picocli expands only after Log4j has started.
 	 *
 	 * @param args
 	 *            the command line, as {@link Main#main} receives it.
 	 * @param system
 	 *            the system properties Log4j reads at start-up.
+	 * @param env
+	 *            the environment Log4j reads at start-up.
 	 */
-	static void select(String[] args, Properties system) {
-		if (system.getProperty(PROVIDER) != null) {
+	static void select(String[] args, Properties system,
+			Map<String, String> env) {
+		if (userConfiguredLog4j(system, env) || Arrays.stream(args)
+				.anyMatch(arg -> arg.startsWith(ARG_FILE))) {
 			return;
 		}
 		LogLevel level = requestedLevel(args);
@@ -59,6 +74,14 @@ final class LoggingBootstrap {
 		system.setProperty(SIMPLE_LOG + "level", level.name());
 		system.setProperty(SIMPLE_LOG + "showdatetime", "true");
 		system.setProperty(SIMPLE_LOG + "dateTimeFormat", "HH:mm:ss.SSS");
+	}
+
+	private static boolean userConfiguredLog4j(Properties system,
+			Map<String, String> env) {
+		return system.stringPropertyNames().stream().anyMatch(
+				key -> key.toLowerCase(Locale.ROOT).startsWith("log4j"))
+				|| env.keySet().stream().anyMatch(key -> key
+						.toUpperCase(Locale.ROOT).startsWith("LOG4J_"));
 	}
 
 	/**

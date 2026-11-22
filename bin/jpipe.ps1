@@ -32,17 +32,20 @@ $aot = Join-Path $prefix 'jpipe.aot'
 # upgrade. A stale cache is ignored without a word.
 if ($args.Count -ge 1 -and $args[0] -eq '--create-aot-cache') {
     # Windows PowerShell turns a native command's stderr into errors, which
-    # 'Stop' would make fatal: the training run's output is discarded anyway.
+    # 'Stop' would make fatal: the training run's output is only kept, to be
+    # shown if it fails.
     $ErrorActionPreference = 'Continue'
     $tmp = "$aot.tmp"
     Remove-Item -Force -ErrorAction SilentlyContinue $tmp
-    & $java "-XX:AOTCacheOutput=$tmp" '-Xlog:aot=off' -jar $jar `
+    $log = & $java "-XX:AOTCacheOutput=$tmp" '-Xlog:aot=off' -jar $jar `
         --headless process -i (Join-Path $prefix 'aot-training.jd') `
-        -m trained -f python *> $null
+        -m trained -f python 2>&1
     if ($LASTEXITCODE -eq 0 -and (Test-Path $tmp)) {
         Move-Item -Force $tmp $aot
         exit 0
     }
+    # What the training run printed is the only clue to why it failed.
+    $log | ForEach-Object { [Console]::Error.WriteLine("$_") }
     Remove-Item -Force -ErrorAction SilentlyContinue $tmp
     [Console]::Error.WriteLine('[jpipe] could not create the AOT cache; jPipe runs without it')
     exit 1
