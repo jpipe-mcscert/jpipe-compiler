@@ -14,6 +14,9 @@ import ca.mcscert.jpipe.commands.linking.RegisterAlias;
 import ca.mcscert.jpipe.commands.linking.RemoveElement;
 import ca.mcscert.jpipe.commands.linking.RewireStrategySupport;
 import ca.mcscert.jpipe.model.elements.Evidence;
+import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
+import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
+import org.junit.jupiter.params.provider.Arguments;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -39,6 +42,35 @@ class CommandNamespaceTest {
 		assertThatThrownBy(() -> command.withNamespace("ns"))
 				.isInstanceOf(UnsupportedOperationException.class)
 				.hasMessageContaining("never read from a file");
+	}
+
+	static Stream<Arguments> readFromAFile() {
+		return Stream.of(
+				Arguments.of(new CreateJustification("j"),
+						new CreateJustification("ns:j")),
+				Arguments.of(new CreateTemplate("t"),
+						new CreateTemplate("ns:t")),
+				Arguments.of(new CreateEvidence("j", "e", "E"),
+						new CreateEvidence("ns:j", "e", "E")),
+				Arguments.of(new CreateEvidence("j", "t:e", "E"),
+						new CreateEvidence("ns:j", "ns:t:e", "E")),
+				Arguments.of(new ImplementsTemplate("j", "t"),
+						new ImplementsTemplate("ns:j", "ns:t")),
+				Arguments.of(new AddSupport("j", "s", "t:e"),
+						new AddSupport("ns:j", "s", "ns:t:e")),
+				Arguments.of(
+						new OverrideAbstractSupport("j", "t:abs", "evidence",
+								"E"),
+						new OverrideAbstractSupport("ns:j", "ns:t:abs",
+								"evidence", "E")));
+	}
+
+	@ParameterizedTest
+	@MethodSource("readFromAFile")
+	void aCommandReadFromAFileQualifiesModelsAndQualifiedIds(Command command,
+			Command namespaced) {
+		assertThat(command.withNamespace("ns"))
+				.hasToString(namespaced.toString());
 	}
 
 	static Stream<Command> declaringNothing() {

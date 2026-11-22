@@ -128,6 +128,18 @@ class JpipeExporterTest {
 	}
 
 	@Test
+	void an_id_argument_of_the_result_is_written_back_as_the_call_wrote_it() {
+		Justification a = named("a");
+		Justification out = new Justification("out");
+		out.recordComposition(new Composition("assemble", List.of(a),
+				Map.of("unifyExclude", "a:e"),
+				Map.of("unifyExclude", Composition.Scope.RESULT)));
+
+		assertThat(new JpipeExporter().export(out))
+				.contains("unifyExclude: \"a:e\"");
+	}
+
+	@Test
 	void a_namespaced_model_is_inlined_under_a_plain_name() {
 		Template t = ModelFixtures.simpleTemplate();
 		Template namespaced = new Template("base:t");

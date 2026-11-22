@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.commands.Command;
+import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
+import ca.mcscert.jpipe.commands.linking.AddSupport;
+import ca.mcscert.jpipe.commands.PendingCommands;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.model.Composition;
@@ -33,6 +36,16 @@ class ApplyOperatorTest {
 
 		NoOpOperator(ModelKind kind) {
 			this.kind = kind;
+		}
+
+		@Override
+		protected java.util.Set<String> optionalArguments() {
+			return java.util.Set.of("label", "element");
+		}
+
+		@Override
+		protected Map<String, Composition.Scope> idArguments() {
+			return Map.of("element", Composition.Scope.SOURCE);
 		}
 
 		@Override
@@ -144,6 +157,51 @@ class ApplyOperatorTest {
 		}
 	}
 
+	// ── readiness ────────────────────────────────────────────────────────────
+
+	@Nested
+	class Readiness {
+
+		@Test
+		void readsItsSourcesInCallOrder() {
+			var op = applyOperator("out", "noop", List.of("b", "a", "c"),
+					Map.of(), ModelKind.JUSTIFICATION);
+			assertThat(op.reads()).containsExactly("b", "a", "c");
+			assertThat(op.breaksItsTarget()).isTrue();
+		}
+
+		@Test
+		void readyOnceItsSourcesAreSettled() {
+			Unit unit = unitWithModels("a", "b");
+			var op = applyOperator("out", "noop", List.of("a", "b"), Map.of(),
+					ModelKind.JUSTIFICATION);
+			PendingCommands changingB = (model, except) -> model.equals("b");
+
+			assertThat(op.ready(unit, PendingCommands.NONE)).isTrue();
+			assertThat(op.ready(unit, changingB)).isFalse();
+		}
+
+		@Test
+		void runsWhenStuckUnlessASourceStillWaitsOnItsStructure() {
+			Unit unit = unitWithModels("a");
+			var op = applyOperator("out", "noop", List.of("a"), Map.of(),
+					ModelKind.JUSTIFICATION);
+			Command implementsA = new ImplementsTemplate("a", "t");
+			Command relationInA = new AddSupport("a", "s", "e");
+
+			assertThat(op.runWhenStuck(unit, pendingOn("a", implementsA)))
+					.isFalse();
+			assertThat(op.runWhenStuck(unit, pendingOn("a", relationInA)))
+					.isTrue();
+		}
+
+		/** {@code command} pending, and changing {@code model}. */
+		private static PendingCommands pendingOn(String model,
+				Command command) {
+			return (m, except) -> m.equals(model) && !except.test(command);
+		}
+	}
+
 	// ── condition ────────────────────────────────────────────────────────────
 
 	@Nested
@@ -187,6 +245,20 @@ class ApplyOperatorTest {
 			List<Command> cmds = op.expand(unit);
 			engine.enrich(unit, new java.util.ArrayList<>(cmds));
 			assertThat(unit.findModel("out")).isPresent();
+		}
+
+		@Test
+		void aNamespacedCallMapsOnlyItsIdArguments() {
+			Unit unit = unitWithModels("ns:a");
+			var op = applyOperator("out", "noop", List.of("a"),
+					Map.of("label", "x:y", "element", "e"),
+					ModelKind.JUSTIFICATION).withNamespace("ns");
+			engine.enrich(unit, new java.util.ArrayList<>(op.expand(unit)));
+
+			assertThat(unit.get("ns:out").composition())
+					.hasValueSatisfying(c -> assertThat(c.arguments())
+							.containsOnly(Map.entry("label", "x:y"),
+									Map.entry("element", "e")));
 		}
 
 		@Test
