@@ -413,8 +413,9 @@ so log4j-core and `log4j2.xml` never start: at that level the compiler has
 nothing to log, and starting them was a large share of a call's start-up time
 (#216). `WARN` and above start log4j-core with `log4j2.xml`, and `setLogLevel`
 tunes the `ca.mcscert.jpipe` logger through its `Configurator`. Log4j also
-starts as before when the user configured it (any `log4j` system property or
-`LOG4J_` environment variable), and when an `@file` argument may hold
+starts as before when the user configured it (any `log4j` or
+`org.apache.logging.log4j` system property, or `LOG4J_` environment variable),
+and when an `@file` argument may hold
 `--log-level`, since picocli expands it only after Log4j has started.
 
 ## Exit codes

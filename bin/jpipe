@@ -23,8 +23,8 @@ if [ "$1" = "--create-aot-cache" ]; then
     rm -f "$AOT.tmp" "$AOT.log"
     if @@JAVA@@ -XX:AOTCacheOutput="$AOT.tmp" -Xlog:aot=off -jar "$JAR" \
         --headless process -i "@@PREFIX@@/aot-training.jd" -m trained \
-        -f python > "$AOT.log" 2>&1 && [ -f "$AOT.tmp" ]; then
-        mv -f "$AOT.tmp" "$AOT"
+        -f python > "$AOT.log" 2>&1 && [ -f "$AOT.tmp" ] \
+        && mv -f "$AOT.tmp" "$AOT" 2>> "$AOT.log"; then
         rm -f "$AOT.log"
         exit 0
     fi

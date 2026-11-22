@@ -41,8 +41,12 @@ if ($args.Count -ge 1 -and $args[0] -eq '--create-aot-cache') {
         --headless process -i (Join-Path $prefix 'aot-training.jd') `
         -m trained -f python 2>&1
     if ($LASTEXITCODE -eq 0 -and (Test-Path $tmp)) {
-        Move-Item -Force $tmp $aot
-        exit 0
+        try {
+            Move-Item -Force $tmp $aot -ErrorAction Stop
+            exit 0
+        } catch {
+            $log = @($log) + "$_"
+        }
     }
     # What the training run printed is the only clue to why it failed.
     $log | ForEach-Object { [Console]::Error.WriteLine("$_") }

@@ -66,6 +66,7 @@ class LoggingBootstrapTest {
 	@CsvSource(delimiter = '|', value = {
 			"log4j.provider=my.Provider |  | process",
 			"log4j2.configurationFile=mine.xml |  | process",
+			"org.apache.logging.log4j.simplelog.level=TRACE |  | process",
 			" | LOG4J_PROVIDER=my.Provider | process",
 			" |  | @opts.txt process"})
 	void log4jIsLeftAloneWhenTheBootstrapCannotBeSure(String property,

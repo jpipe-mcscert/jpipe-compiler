@@ -32,7 +32,13 @@ final class LoggingBootstrap {
 	/** The simple logger built into the Log4j API. */
 	static final String SIMPLE_PROVIDER = "org.apache.logging.log4j.simple.internal.SimpleProvider";
 
-	private static final String SIMPLE_LOG = "org.apache.logging.log4j.simplelog.";
+	/**
+	 * The namespace of Log4j's older property names, such as the simple
+	 * logger's {@code org.apache.logging.log4j.simplelog.level}.
+	 */
+	private static final String LOG4J_PACKAGE = "org.apache.logging.log4j.";
+
+	private static final String SIMPLE_LOG = LOG4J_PACKAGE + "simplelog.";
 
 	private static final String LOG_LEVEL = "--log-level";
 
@@ -48,10 +54,11 @@ final class LoggingBootstrap {
 	 *
 	 * <p>
 	 * Log4j starts as it always did, with log4j-core, when this cannot be sure
-	 * of either: when the user configured Log4j, through any {@code log4j}
-	 * system property or {@code LOG4J_} environment variable (a provider, a
-	 * configuration file), and when an {@code @file} argument may hold
-	 * {@code --log-level}, which picocli expands only after Log4j has started.
+	 * of either: when the user configured Log4j, through any {@code log4j} or
+	 * {@code org.apache.logging.log4j} system property or {@code LOG4J_}
+	 * environment variable (a provider, a configuration file, a level), and
+	 * when an {@code @file} argument may hold {@code --log-level}, which
+	 * picocli expands only after Log4j has started.
 	 *
 	 * @param args
 	 *            the command line, as {@link Main#main} receives it.
@@ -78,8 +85,10 @@ final class LoggingBootstrap {
 
 	private static boolean userConfiguredLog4j(Properties system,
 			Map<String, String> env) {
-		return system.stringPropertyNames().stream().anyMatch(
-				key -> key.toLowerCase(Locale.ROOT).startsWith("log4j"))
+		return system.stringPropertyNames().stream()
+				.map(key -> key.toLowerCase(Locale.ROOT))
+				.anyMatch(key -> key.startsWith("log4j")
+						|| key.startsWith(LOG4J_PACKAGE))
 				|| env.keySet().stream().anyMatch(key -> key
 						.toUpperCase(Locale.ROOT).startsWith("LOG4J_"));
 	}

@@ -34,7 +34,7 @@ The CLI starts log4j-core only when the run has something for it to log. Before 
 - **`OFF` and `ERROR`, the default:** the run uses the simple logger built into the Log4j API (`-Dlog4j.provider` set to its `SimpleProvider`), at that level. log4j-core and `log4j2.xml` never start. At these levels the compiler has nothing to log, and starting them cost about a quarter of a call's start-up time.
 - **`WARN` and above:** log4j-core starts with `log4j2.xml`, and `--log-level` sets the level of the `ca.mcscert.jpipe` logger through log4j-core's `Configurator`.
 
-Log4j starts as it always did, with log4j-core, when the bootstrap cannot be sure of the outcome: when the user configured Log4j through any `log4j` system property or `LOG4J_` environment variable (a provider, a configuration file), and when the command line holds an `@file` argument, which picocli expands only after Log4j has started and which may hold `--log-level`.
+Log4j starts as it always did, with log4j-core, when the bootstrap cannot be sure of the outcome: when the user configured Log4j through any `log4j` or `org.apache.logging.log4j` system property or `LOG4J_` environment variable (a provider, a configuration file, a level), and when the command line holds an `@file` argument, which picocli expands only after Log4j has started and which may hold `--log-level`.
 
 ### Logger declaration
 
