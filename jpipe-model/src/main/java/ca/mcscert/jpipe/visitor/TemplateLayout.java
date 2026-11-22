@@ -104,13 +104,13 @@ final class TemplateLayout {
 	}
 
 	/**
-	 * Whether the edge from {@code leafId} to {@code strategy} is drawn from
+	 * Whether the edge from {@code leafId} to {@code strategyId} is drawn from
 	 * the placeholder {@code leafId} fills rather than from the element: the
 	 * strategy is the template's, so the edge is the template's, and leads from
 	 * the placeholder it declares.
 	 */
-	boolean throughPlaceholder(String leafId, Strategy strategy) {
-		return inherited.contains(strategy.id()) && filled.contains(leafId);
+	boolean throughPlaceholder(String leafId, String strategyId) {
+		return inherited.contains(strategyId) && filled.contains(leafId);
 	}
 
 	/**
@@ -121,7 +121,7 @@ final class TemplateLayout {
 		return model.strategies().stream()
 				.filter(s -> s.getSupports().stream()
 						.anyMatch(leaf -> leaf.id().equals(placeholder.id()))
-						&& throughPlaceholder(placeholder.id(), s))
+						&& throughPlaceholder(placeholder.id(), s.id()))
 				.toList();
 	}
 

@@ -4,12 +4,8 @@ import static ca.mcscert.jpipe.util.QualifiedIds.qualify;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.CompilationConfig;
-import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
-import ca.mcscert.jpipe.commands.creation.CreateConclusion;
-import ca.mcscert.jpipe.commands.creation.CreateEvidence;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
-import ca.mcscert.jpipe.commands.creation.CreateStrategy;
-import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
+import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
@@ -454,22 +450,33 @@ public final class LoadResolver
 	}
 
 	/**
-	 * Runs the raw parsing chain (up to and including
-	 * {@link ActionListProvider}) on a file. This chain does <em>not</em>
-	 * include {@link LoadResolver} itself, preventing infinite recursion.
-	 * Nested loads in the sub-file are handled by the recursive
-	 * {@link #resolve} call after this method returns.
+	 * Runs the {@link #fileParser} on a file. It does <em>not</em> include
+	 * {@link LoadResolver} itself, preventing infinite recursion. Nested loads
+	 * in the sub-file are handled by the recursive {@link #resolve} call after
+	 * this method returns.
 	 */
 	private List<Command> parseFile(Path path, CompilationContext subCtx)
 			throws IOException {
-		Transformation<InputStream, List<Command>> chain = new CharStreamProvider()
-				.andThen(new Lexer()).andThen(new Parser())
+		try (InputStream in = Files.newInputStream(path)) {
+			return fileParser(operators, unificationEquivalences).fire(in,
+					subCtx);
+		}
+	}
+
+	/**
+	 * Parses one file into its commands, aborting on any syntax error, without
+	 * resolving its {@code load} directives. The compiler's parsing chain is
+	 * this, followed by a {@link LoadResolver}, which runs it again on every
+	 * file loaded.
+	 */
+	public static Transformation<InputStream, List<Command>> fileParser(
+			OperatorRegistry operators,
+			UnificationEquivalenceRegistry unificationEquivalences) {
+		return new CharStreamProvider().andThen(new Lexer())
+				.andThen(new Parser())
 				.andThen(new HaltAndCatchFire<ParseTree>())
 				.andThen(new ActionListProvider(operators,
 						unificationEquivalences));
-		try (InputStream in = Files.newInputStream(path)) {
-			return chain.fire(in, subCtx);
-		}
 	}
 
 	/** {@code prefix} and {@code namespace} joined, either one may be empty. */
@@ -542,25 +549,9 @@ public final class LoadResolver
 					qualify(ns, c.identifier()), c.location());
 			case CreateTemplate c ->
 				new CreateTemplate(qualify(ns, c.identifier()), c.location());
-			case CreateConclusion c ->
-				new CreateConclusion(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.label(),
-						c.location());
-			case CreateEvidence c ->
-				new CreateEvidence(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.label(),
-						c.location());
-			case CreateStrategy c ->
-				new CreateStrategy(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.label(),
-						c.location());
-			case CreateSubConclusion c ->
-				new CreateSubConclusion(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.label(),
-						c.location());
-			case CreateAbstractSupport c ->
-				new CreateAbstractSupport(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.label(),
+			case ElementCreationCommand c ->
+				ElementCreationCommand.of(qualify(ns, c.container()),
+						qualifyElement(ns, c.identifier()), c.element(),
 						c.location());
 			case ImplementsTemplate c ->
 				new ImplementsTemplate(qualify(ns, c.modelName()),

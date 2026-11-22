@@ -108,31 +108,31 @@ public class JsonExporter extends AbstractModelExporter {
 
 	@Override
 	public Void visit(Conclusion conclusion) {
-		appendElement("conclusion", conclusion);
+		appendElement(conclusion);
 		return null;
 	}
 
 	@Override
 	public Void visit(SubConclusion subConclusion) {
-		appendElement("sub-conclusion", subConclusion);
+		appendElement(subConclusion);
 		return null;
 	}
 
 	@Override
 	public Void visit(Strategy strategy) {
-		appendElement("strategy", strategy);
+		appendElement(strategy);
 		return null;
 	}
 
 	@Override
 	public Void visit(Evidence evidence) {
-		appendElement("evidence", evidence);
+		appendElement(evidence);
 		return null;
 	}
 
 	@Override
 	public Void visit(AbstractSupport abstractSupport) {
-		appendElement("abstract-support", abstractSupport);
+		appendElement(abstractSupport);
 		return null;
 	}
 
@@ -169,9 +169,9 @@ public class JsonExporter extends AbstractModelExporter {
 	// Private helpers
 	// -------------------------------------------------------------------------
 
-	private void appendElement(String type, JustificationElement element) {
+	private void appendElement(JustificationElement element) {
 		JSONObject obj = new JSONObject();
-		obj.put(TYPE_KEY, type);
+		obj.put(TYPE_KEY, element.kind());
 		obj.put(ID_KEY, qualify(element.id()));
 		obj.put(LABEL_KEY, element.label());
 		List<String> aliases = qualifiedOriginalsOf(element.id());

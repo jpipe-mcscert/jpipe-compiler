@@ -64,16 +64,20 @@ public final class ActionListProvider
 	 */
 	private static class ActionBuilder extends JPipeBaseListener {
 
-		private record Context(String unitFileName, String justificationId,
-				String parentTemplateName) {
-			public Context updateCurrentJustification(String id,
-					String parentName) {
-				return new Context(this.unitFileName, id, parentName);
-			}
+		/** Creates a support leaf: {@code CreateEvidence::new}, … */
+		@FunctionalInterface
+		private interface LeafCreation {
+			Command create(String model, String id, String label,
+					SourceLocation location);
 		}
 
 		private final List<Command> result;
-		private Context buildContext;
+		/** The file being read, named in every location. */
+		private final String unitFileName;
+		/** The model whose declaration is being read, if any. */
+		private String currentModel;
+		/** The template the current model implements, if any. */
+		private String parentTemplateName;
 		private final CompilationContext compilationCtx;
 		private final OperatorRegistry operators;
 		private final UnificationEquivalenceRegistry unificationEquivalences;
@@ -101,7 +105,7 @@ public final class ActionListProvider
 				OperatorRegistry operators,
 				UnificationEquivalenceRegistry unificationEquivalences) {
 			this.result = new ArrayList<>();
-			this.buildContext = new Context(name, null, null);
+			this.unitFileName = name;
 			this.compilationCtx = compilationCtx;
 			this.operators = operators;
 			this.unificationEquivalences = unificationEquivalences;
@@ -132,7 +136,7 @@ public final class ActionListProvider
 			String rule = JPipeParser.ruleNames[ctx.getRuleIndex()];
 			int line = ctx.start.getLine();
 			int col = ctx.start.getCharPositionInLine();
-			String model = buildContext.justificationId();
+			String model = currentModel;
 			if (model != null) {
 				logger.debug("{} {} @ {}:{} [{}]", event, rule, line, col,
 						model);
@@ -185,9 +189,7 @@ public final class ActionListProvider
 
 		@Override
 		public void exitJustification(JPipeParser.JustificationContext ctx) {
-			dropRelationsToRejectedConclusions();
-			this.buildContext = buildContext.updateCurrentJustification(null,
-					null);
+			exitModel();
 		}
 
 		@Override
@@ -230,8 +232,8 @@ public final class ActionListProvider
 				return;
 			}
 			String parentName = parent != null ? parent.getText() : null;
-			this.buildContext = buildContext.updateCurrentJustification(name,
-					parentName);
+			this.currentModel = name;
+			this.parentTemplateName = parentName;
 			this.conclusionDeclared = false;
 			this.rejectedConclusions.clear();
 			this.declarationStart = result.size();
@@ -249,9 +251,14 @@ public final class ActionListProvider
 
 		@Override
 		public void exitTemplate(JPipeParser.TemplateContext ctx) {
+			exitModel();
+		}
+
+		/** Shared by justification and template declarations. */
+		private void exitModel() {
 			dropRelationsToRejectedConclusions();
-			this.buildContext = buildContext.updateCurrentJustification(null,
-					null);
+			this.currentModel = null;
+			this.parentTemplateName = null;
 		}
 
 		/*
@@ -261,84 +268,71 @@ public final class ActionListProvider
 
 		@Override
 		public void enterEvidence(JPipeParser.EvidenceContext ctx) {
-			String identifier = ctx.element().id.getText();
-			String label = StringLiteral.value(ctx.element().name.getText());
-			SourceLocation loc = locationOf(ctx.element().id.getStart());
-			if (identifier.contains(":")) {
-				if (!validOverridePrefix(identifier, loc)) {
-					return;
-				}
-				result.add(new OverrideAbstractSupport(
-						buildContext.justificationId, identifier, "evidence",
-						label, loc));
-			} else {
-				result.add(new CreateEvidence(buildContext.justificationId,
-						identifier, label, loc));
+			enterSupportLeaf(ctx.element(), "evidence", CreateEvidence::new);
+		}
+
+		@Override
+		public void enterSub_conclusion(JPipeParser.Sub_conclusionContext ctx) {
+			enterSupportLeaf(ctx.element(), "sub-conclusion",
+					CreateSubConclusion::new);
+		}
+
+		/**
+		 * Shared by evidence and sub-conclusions: a qualified id overrides an
+		 * inherited {@code @support}, a plain one declares a new leaf.
+		 */
+		private void enterSupportLeaf(JPipeParser.ElementContext element,
+				String kind, LeafCreation creation) {
+			String identifier = element.id.getText();
+			SourceLocation loc = locationOf(element);
+			if (!identifier.contains(":")) {
+				result.add(creation.create(currentModel, identifier,
+						labelOf(element), loc));
+			} else if (validOverridePrefix(identifier, loc)) {
+				result.add(new OverrideAbstractSupport(currentModel, identifier,
+						kind, labelOf(element), loc));
 			}
 		}
 
 		@Override
 		public void enterAbstract(JPipeParser.AbstractContext ctx) {
-			String identifier = ctx.element().id.getText();
-			SourceLocation loc = locationOf(ctx.element().id.getStart());
-			result.add(new CreateAbstractSupport(buildContext.justificationId,
-					identifier,
-					StringLiteral.value(ctx.element().name.getText()), loc));
+			result.add(new CreateAbstractSupport(currentModel,
+					ctx.element().id.getText(), labelOf(ctx.element()),
+					locationOf(ctx.element())));
 		}
 
 		@Override
 		public void enterStrategy(JPipeParser.StrategyContext ctx) {
-			String identifier = ctx.element().id.getText();
-			SourceLocation loc = locationOf(ctx.element().id.getStart());
-			result.add(new CreateStrategy(buildContext.justificationId,
-					identifier,
-					StringLiteral.value(ctx.element().name.getText()), loc));
+			result.add(
+					new CreateStrategy(currentModel, ctx.element().id.getText(),
+							labelOf(ctx.element()), locationOf(ctx.element())));
 		}
 
 		@Override
 		public void enterConclusion(JPipeParser.ConclusionContext ctx) {
 			String identifier = ctx.element().id.getText();
-			SourceLocation loc = locationOf(ctx.element().id.getStart());
-			String modelId = buildContext.justificationId;
-			String parent = buildContext.parentTemplateName;
-			if (parent != null) {
+			SourceLocation loc = locationOf(ctx.element());
+			if (parentTemplateName != null) {
 				// A model that implements a template inherits its conclusion
 				// (ADR-0012). Decided here, from the declaration alone, it no
 				// longer depends on which of the two is declared first (#177).
 				rejectedConclusions.add(identifier);
 				compilationCtx.error(DiagnosticCodes.INHERITED_CONCLUSION, loc,
-						"Model '" + modelId + "' implements '" + parent
+						"Model '" + currentModel + "' implements '"
+								+ parentTemplateName
 								+ "' and inherits its conclusion: it cannot"
 								+ " declare its own");
 				return;
 			}
 			if (conclusionDeclared) {
-				compilationCtx.error(DiagnosticCodes.SINGLE_CONCLUSION,
-						loc.line(), loc.column(), "Model '" + modelId
+				compilationCtx.error(DiagnosticCodes.SINGLE_CONCLUSION, loc,
+						"Model '" + currentModel
 								+ "' declares multiple conclusions");
 				return;
 			}
 			conclusionDeclared = true;
-			result.add(new CreateConclusion(modelId, identifier,
-					StringLiteral.value(ctx.element().name.getText()), loc));
-		}
-
-		@Override
-		public void enterSub_conclusion(JPipeParser.Sub_conclusionContext ctx) {
-			String identifier = ctx.element().id.getText();
-			String label = StringLiteral.value(ctx.element().name.getText());
-			SourceLocation loc = locationOf(ctx.element().id.getStart());
-			if (identifier.contains(":")) {
-				if (!validOverridePrefix(identifier, loc)) {
-					return;
-				}
-				result.add(new OverrideAbstractSupport(
-						buildContext.justificationId, identifier,
-						"sub-conclusion", label, loc));
-			} else {
-				result.add(new CreateSubConclusion(buildContext.justificationId,
-						identifier, label, loc));
-			}
+			result.add(new CreateConclusion(currentModel, identifier,
+					labelOf(ctx.element()), loc));
 		}
 
 		@Override
@@ -354,20 +348,13 @@ public final class ActionListProvider
 			if (to.contains(":") && !validOverridePrefix(to, loc)) {
 				return;
 			}
-			result.add(new AddSupport(buildContext.justificationId, to, from,
-					loc));
+			result.add(new AddSupport(currentModel, to, from, loc));
 		}
 
 		/*
 		 * ***************************** * * Parsing Composition units * *
 		 * *****************************
 		 */
-
-		@Override
-		public void enterRule_config(JPipeParser.Rule_configContext ctx) {
-			// No-op: config key-value pairs are consumed eagerly in
-			// enterJustification / enterTemplate.
-		}
 
 		/**
 		 * The arguments of an operator call. A key given twice is reported, and
@@ -398,8 +385,18 @@ public final class ActionListProvider
 
 		/** Where {@code token} sits in the file being compiled. */
 		private SourceLocation locationOf(Token token) {
-			return new SourceLocation(buildContext.unitFileName,
-					token.getLine(), token.getCharPositionInLine());
+			return new SourceLocation(unitFileName, token.getLine(),
+					token.getCharPositionInLine());
+		}
+
+		/** Where {@code element} is declared: at its id. */
+		private SourceLocation locationOf(JPipeParser.ElementContext element) {
+			return locationOf(element.id.getStart());
+		}
+
+		/** The label of {@code element}, unquoted. */
+		private static String labelOf(JPipeParser.ElementContext element) {
+			return StringLiteral.value(element.name.getText());
 		}
 
 		/**
@@ -408,13 +405,10 @@ public final class ActionListProvider
 		 */
 		private boolean validOverridePrefix(String identifier,
 				SourceLocation loc) {
-			String parent = buildContext.parentTemplateName;
-			if (parent == null) {
-				compilationCtx.error(DiagnosticCodes.UNRESOLVED_OVERRIDE,
-						loc.line(), loc.column(),
+			if (parentTemplateName == null) {
+				compilationCtx.error(DiagnosticCodes.UNRESOLVED_OVERRIDE, loc,
 						"'" + identifier + "' is qualified but model '"
-								+ buildContext.justificationId
-								+ "' implements no template");
+								+ currentModel + "' implements no template");
 				return false;
 			}
 			// Permissive check: we only check if there is A parent.

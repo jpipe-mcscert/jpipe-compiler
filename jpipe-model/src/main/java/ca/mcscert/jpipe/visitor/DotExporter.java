@@ -10,7 +10,6 @@ import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
-import ca.mcscert.jpipe.model.elements.SupportLeaf;
 import java.util.List;
 
 /**
@@ -76,31 +75,31 @@ public class DotExporter extends AbstractModelExporter {
 
 	@Override
 	public Void visit(Conclusion conclusion) {
-		appendNode(conclusion, DotNodeStyle.CONCLUSION.toAttrs());
+		appendNode(conclusion);
 		return null;
 	}
 
 	@Override
 	public Void visit(SubConclusion subConclusion) {
-		appendNode(subConclusion, DotNodeStyle.SUB_CONCLUSION.toAttrs());
+		appendNode(subConclusion);
 		return null;
 	}
 
 	@Override
 	public Void visit(Strategy strategy) {
-		appendNode(strategy, DotNodeStyle.STRATEGY.toAttrs());
+		appendNode(strategy);
 		return null;
 	}
 
 	@Override
 	public Void visit(Evidence evidence) {
-		appendNode(evidence, DotNodeStyle.EVIDENCE.toAttrs());
+		appendNode(evidence);
 		return null;
 	}
 
 	@Override
 	public Void visit(AbstractSupport abstractSupport) {
-		appendNode(abstractSupport, DotNodeStyle.ABSTRACT_SUPPORT.toAttrs());
+		appendNode(abstractSupport);
 		return null;
 	}
 
@@ -141,19 +140,13 @@ public class DotExporter extends AbstractModelExporter {
 	// -------------------------------------------------------------------------
 
 	private void exportEdges(JustificationModel model) {
-		model.conclusion().ifPresent(c -> c.getSupport()
-				.ifPresent(s -> appendEdge(qualify(s.id()), qualify(c.id()))));
-
-		model.subConclusions().forEach(sc -> sc.getSupport()
-				.ifPresent(s -> appendEdge(qualify(s.id()), qualify(sc.id()))));
-
-		model.strategies().forEach(s -> leafEdgeSources(s)
-				.forEach(sourceId -> appendEdge(sourceId, qualify(s.id()))));
+		model.forEachSupportEdge((supported, supporter) -> appendEdge(
+				edgeSource(supporter, supported), qualify(supported)));
 	}
 
 	/**
-	 * Returns the DOT node ids of the leaves (edge sources) for the given
-	 * strategy.
+	 * The DOT node id an edge from {@code supporter} to {@code supported} is
+	 * drawn from.
 	 *
 	 * <p>
 	 * Template expansion copies every leaf, {@link AbstractSupport}
@@ -166,14 +159,14 @@ public class DotExporter extends AbstractModelExporter {
 	 * A leaf of an inherited strategy that is overridden resolves to the
 	 * abstract ghost node ({@link #ABSTRACT_SUFFIX}), because the template
 	 * structural edge points to the placeholder, not the concrete fulfilment
-	 * (see {@link TemplateLayout#throughPlaceholder}).
+	 * (see {@link TemplateLayout#throughPlaceholder}). Only a leaf fills a
+	 * placeholder, so the edges into a conclusion or a sub-conclusion, drawn
+	 * from a strategy, never do.
 	 */
-	private List<String> leafEdgeSources(Strategy strategy) {
-		return strategy.getSupports().stream().map(SupportLeaf::id)
-				.map(leafId -> layout.throughPlaceholder(leafId, strategy)
-						? qualify(leafId) + ABSTRACT_SUFFIX
-						: qualify(leafId))
-				.toList();
+	private String edgeSource(String supporter, String supported) {
+		return layout.throughPlaceholder(supporter, supported)
+				? qualify(supporter) + ABSTRACT_SUFFIX
+				: qualify(supporter);
 	}
 
 	// -------------------------------------------------------------------------
@@ -229,7 +222,8 @@ public class DotExporter extends AbstractModelExporter {
 	// Node and edge primitives
 	// -------------------------------------------------------------------------
 
-	private void appendNode(JustificationElement element, String attrs) {
+	private void appendNode(JustificationElement element) {
+		String attrs = DotNodeStyle.of(element).toAttrs();
 		String qid = qualify(element.id());
 		builder.append(INDENT).append(DotLabel.quoted(qid)).append(" [label=")
 				.append(DotLabel.wrapAndQuote(element.label())).append(", id=")
