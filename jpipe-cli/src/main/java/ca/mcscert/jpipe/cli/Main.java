@@ -45,7 +45,11 @@ public class Main {
 	@Option(names = {
 			"--log-level"}, paramLabel = "LEVEL", description = "Log verbosity: ${COMPLETION-CANDIDATES} (default: ERROR). Compilation errors are always shown.")
 	void setLogLevel(LogLevel level) {
-		Configurator.setLevel("ca.mcscert.jpipe", level.toLog4j());
+		// Under the simple back end, LoggingBootstrap already set the level,
+		// and log4j-core has no configuration to change (#216).
+		if (!LoggingBootstrap.usesSimpleLogger(System.getProperties())) {
+			Configurator.setLevel("ca.mcscert.jpipe", level.toLog4j());
+		}
 	}
 
 	/**
@@ -178,6 +182,8 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
+		// Before anything asks for a logger: see LoggingBootstrap.
+		LoggingBootstrap.select(args, System.getProperties());
 		CommandLine cmd = commandLine();
 		System.exit(cmd.execute(withDefaultSubcommand(args, cmd)));
 	}

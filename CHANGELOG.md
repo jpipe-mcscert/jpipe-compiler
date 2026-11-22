@@ -18,6 +18,17 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- `CompilerFactory.build(config, out, diagnostics)` prints a compilation's
+  diagnostics on the given writer instead of the `jpipe.diagnostics` logger,
+  in the same `file:line:column: severity: [code] message` lines (#216).
+
+### Changed
+- Each `jpipe` call starts about a quarter faster at the default log level:
+  log4j-core and its configuration now start only when `--log-level` asks for
+  `WARN` or more. Diagnostics still go to stderr in the same format, at every
+  level (#216).
+
 ### Deprecated
 - Public API that nothing in jPipe uses is deprecated for removal in the next
   major release, each with its replacement named in its javadoc (#214):

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Smoke tests running the shaded JAR as a user would: {@code java -jar}.
@@ -226,16 +227,37 @@ class ShadedJarIT {
 		assertThat(run.out()).contains(System.getProperty("project.version"));
 	}
 
-	@Test
-	void noLogLevelHidesACompilationError() throws IOException {
+	@ParameterizedTest
+	@ValueSource(strings = {"--log-level=OFF", "--log-level=ERROR",
+			"--log-level=INFO"})
+	void noLogLevelHidesACompilationError(String logLevel) throws IOException {
 		// Diagnostics used to reach the user only through the loggers that
 		// --log-level tunes, so OFF left a bare "Compilation failed" (#186).
-		Execution run = jpipe("--headless", "--log-level=OFF", "process", "-i",
+		// Each is a bare line, which jpipe-vscode and scripts parse, whichever
+		// logging back end the level starts (#216).
+		Execution run = jpipe("--headless", logLevel, "process", "-i",
 				example("invalid/025_syntax_error.jd"), "-m", "broken");
 
 		assertThat(run.exitCode()).isEqualTo(Main.EXIT_JPIPE_ERROR);
-		assertThat(run.err())
-				.containsPattern("025_syntax_error\\.jd:\\d+:\\d+: ");
+		assertThat(run.err()).containsPattern(
+				"(?m)^\\S*025_syntax_error\\.jd:\\d+:\\d+: error: ");
+	}
+
+	@ParameterizedTest
+	@CsvSource({"--log-level=ERROR, false", "--log-level=INFO, true"})
+	void log4jCoreStartsOnlyWhenTheLevelAsksForIt(String logLevel,
+			boolean started) throws IOException {
+		// log4j-core and its configuration used to start on every call, for a
+		// large share of its start-up time (#216). The INFO run shows that the
+		// check can see it start.
+		Execution run = run(List.of(javaBinary(), "-Xlog:class+load=info",
+				"-jar", jarPath(), "--headless", logLevel, "diagnostic", "-i",
+				MINIMAL), Map.of());
+
+		assertThat(run.exitCode()).isZero();
+		assertThat(run.out()
+				.contains("org.apache.logging.log4j.core.LoggerContext "))
+				.isEqualTo(started);
 	}
 
 	@Test

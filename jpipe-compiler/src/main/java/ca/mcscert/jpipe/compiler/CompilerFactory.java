@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.compiler;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
+import ca.mcscert.jpipe.compiler.model.ChainCompiler;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import ca.mcscert.jpipe.operators.builtin.AssembleOperator;
@@ -30,6 +31,7 @@ import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Unit;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.List;
 import java.util.Locale;
 
@@ -43,7 +45,8 @@ public final class CompilerFactory {
 	}
 
 	/**
-	 * Build a process-mode compiler from the given configuration.
+	 * Build a process-mode compiler from the given configuration. Its
+	 * diagnostics are printed on the {@code jpipe.diagnostics} logger.
 	 *
 	 * @param config
 	 *            the compilation configuration.
@@ -54,6 +57,33 @@ public final class CompilerFactory {
 	 */
 	public static Compiler build(CompilationConfig config,
 			OutputStream stdout) {
+		return processing(config, stdout);
+	}
+
+	/**
+	 * Build a process-mode compiler from the given configuration, printing its
+	 * diagnostics on {@code diagnostics} rather than through the logging
+	 * framework. This is how the CLI writes them straight to standard error
+	 * (#216).
+	 *
+	 * @param config
+	 *            the compilation configuration.
+	 * @param stdout
+	 *            stream to use when the output target is
+	 *            {@link CompilationConfig#STDOUT}.
+	 * @param diagnostics
+	 *            where the ERROR and FATAL diagnostics are printed, as
+	 *            {@code file:line:column: severity: [code] message} lines. Not
+	 *            closed.
+	 * @return a ready-to-use {@link Compiler}.
+	 */
+	public static Compiler build(CompilationConfig config, OutputStream stdout,
+			PrintWriter diagnostics) {
+		return processing(config, stdout).reportingTo(diagnostics);
+	}
+
+	private static ChainCompiler<InputStream, ?> processing(
+			CompilationConfig config, OutputStream stdout) {
 		return switch (config.format()) {
 			case JPIPE -> exporting(config, new ExportToJpipe())
 					.andThen(new StringSink(stdout));

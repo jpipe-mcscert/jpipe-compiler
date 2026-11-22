@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.compiler.Compiler;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +22,26 @@ class ChainCompilerTest {
 		AtomicReference<O> captured = new AtomicReference<>();
 		holder[0] = captured::set;
 		return captured;
+	}
+
+	@Test
+	void reportingTo_printsTheErrorsOnTheGivenWriter() throws IOException {
+		// The CLI prints diagnostics this way, without a logger (#216): the
+		// lines must stay those tools parse.
+		StringWriter err = new StringWriter();
+		Compiler compiler = fixedSource("x")
+				.andThen(Transformation.<String, String>of((input, ctx) -> {
+					ctx.error("E1", 3, 7, "boom");
+					return input;
+				})).andThen((String output) -> {
+					// intentionally empty
+				}).reportingTo(new PrintWriter(err));
+
+		boolean hasErrors = compiler.compile("f.jd", "out.txt");
+
+		assertThat(hasErrors).isTrue();
+		assertThat(err).hasToString(
+				"f.jd:3:7: error: [E1] boom" + System.lineSeparator());
 	}
 
 	@Test

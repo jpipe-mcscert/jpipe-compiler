@@ -401,10 +401,19 @@ tree changes.
 | `-h`, `--help` / `-V`, `--version` | On the root command and on every subcommand. |
 
 **Diagnostics are not logs.** The diagnostics of a `process` run are printed on
-stderr as `file:line:column: severity: [code] message` through the dedicated
-`jpipe.diagnostics` logger (`DiagnosticPrinter.LOGGER`). It sits outside
-the `ca.mcscert.jpipe` hierarchy that `--log-level` tunes, so no level hides a
-compilation error.
+stderr as `file:line:column: severity: [code] message` lines, on picocli's error
+writer: `ProcessCommand` builds its compiler with
+`CompilerFactory.build(config, out, diagnostics)`. No logger is involved, so no
+level hides a compilation error.
+
+**The logging back end follows the level.** Before picocli runs,
+`LoggingBootstrap` reads `--log-level` from the parent flags. At `OFF` or
+`ERROR`, the default, the run uses the simple logger built into the Log4j API,
+so log4j-core and `log4j2.xml` never start: at that level the compiler has
+nothing to log, and starting them was a large share of a call's start-up time
+(#216). `WARN` and above start log4j-core with `log4j2.xml`, and `setLogLevel`
+tunes the `ca.mcscert.jpipe` logger through its `Configurator`. A back end set
+with `-Dlog4j.provider` is left alone.
 
 ## Exit codes
 

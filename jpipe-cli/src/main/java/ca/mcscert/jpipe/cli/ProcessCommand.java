@@ -6,7 +6,9 @@ import ca.mcscert.jpipe.compiler.Format;
 import java.io.IOException;
 import java.io.OutputStream;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Spec;
 
 /**
  * Compiles a {@code .jd} source file and exports the selected model in the
@@ -23,12 +25,19 @@ class ProcessCommand extends InputOutputCommand {
 			"--model"}, description = "Name of the model to export.", required = true)
 	private String model;
 
+	@Spec
+	private CommandSpec spec;
+
 	@Override
 	protected Integer doCall(OutputStream out) throws IOException {
 		CompilationConfig config = new CompilationConfig(input, output, format,
 				model);
-		boolean hasErrors = CompilerFactory.build(config, out).compile(input,
-				output);
+		// Diagnostics go to standard error through picocli's writer, not
+		// through a logger: that is what lets the default run leave the
+		// logging back end unstarted (#216).
+		boolean hasErrors = CompilerFactory
+				.build(config, out, spec.commandLine().getErr())
+				.compile(input, output);
 		return hasErrors ? Main.EXIT_JPIPE_ERROR : Main.EXIT_OK;
 	}
 }
