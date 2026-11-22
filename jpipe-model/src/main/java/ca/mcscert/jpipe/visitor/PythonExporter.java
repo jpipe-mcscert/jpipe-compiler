@@ -165,40 +165,6 @@ public class PythonExporter extends AbstractModelExporter {
 	}
 
 	// -------------------------------------------------------------------------
-	// Element visit methods
-	// -------------------------------------------------------------------------
-
-	@Override
-	public Void visit(Conclusion conclusion) {
-		appendMethod(conclusion);
-		return null;
-	}
-
-	@Override
-	public Void visit(SubConclusion subConclusion) {
-		appendMethod(subConclusion);
-		return null;
-	}
-
-	@Override
-	public Void visit(Strategy strategy) {
-		appendMethod(strategy);
-		return null;
-	}
-
-	@Override
-	public Void visit(Evidence evidence) {
-		appendMethod(evidence);
-		return null;
-	}
-
-	@Override
-	public Void visit(AbstractSupport abstractSupport) {
-		appendMethod(abstractSupport);
-		return null;
-	}
-
-	// -------------------------------------------------------------------------
 	// AbstractModelExporter
 	// -------------------------------------------------------------------------
 
@@ -393,7 +359,8 @@ public class PythonExporter extends AbstractModelExporter {
 		builder.append(from).append("Fail, Outcome, Pass\n\n");
 	}
 
-	private void appendMethod(JustificationElement element) {
+	@Override
+	protected void visitElement(JustificationElement element) {
 		List<String> links = linksFor(element);
 		String name = functionNames.get(element);
 		String decorator = decoratorOf(element);

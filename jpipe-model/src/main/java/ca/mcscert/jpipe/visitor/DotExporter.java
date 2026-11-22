@@ -5,11 +5,7 @@ import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
-import ca.mcscert.jpipe.model.elements.Conclusion;
-import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
-import ca.mcscert.jpipe.model.elements.Strategy;
-import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.List;
 
 /**
@@ -67,40 +63,6 @@ public class DotExporter extends AbstractModelExporter {
 		builder.setLength(0);
 		model.accept(this);
 		return builder.toString();
-	}
-
-	// -------------------------------------------------------------------------
-	// Element visit methods
-	// -------------------------------------------------------------------------
-
-	@Override
-	public Void visit(Conclusion conclusion) {
-		appendNode(conclusion);
-		return null;
-	}
-
-	@Override
-	public Void visit(SubConclusion subConclusion) {
-		appendNode(subConclusion);
-		return null;
-	}
-
-	@Override
-	public Void visit(Strategy strategy) {
-		appendNode(strategy);
-		return null;
-	}
-
-	@Override
-	public Void visit(Evidence evidence) {
-		appendNode(evidence);
-		return null;
-	}
-
-	@Override
-	public Void visit(AbstractSupport abstractSupport) {
-		appendNode(abstractSupport);
-		return null;
 	}
 
 	// -------------------------------------------------------------------------
@@ -222,7 +184,8 @@ public class DotExporter extends AbstractModelExporter {
 	// Node and edge primitives
 	// -------------------------------------------------------------------------
 
-	private void appendNode(JustificationElement element) {
+	@Override
+	protected void visitElement(JustificationElement element) {
 		String attrs = DotNodeStyle.of(element).toAttrs();
 		String qid = qualify(element.id());
 		builder.append(INDENT).append(DotLabel.quoted(qid)).append(" [label=")

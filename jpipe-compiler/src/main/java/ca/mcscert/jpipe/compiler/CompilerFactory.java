@@ -101,26 +101,6 @@ public final class CompilerFactory {
 	}
 
 	/**
-	 * Build a diagnostic-mode compiler producing a human-readable report.
-	 * Equivalent to
-	 * {@link #buildDiagnosticCompiler(DiagnosticFormat, OutputStream)} with
-	 * {@link DiagnosticFormat#TEXT}.
-	 *
-	 * @param stdout
-	 *            stream to use when the output target is
-	 *            {@link CompilationConfig#STDOUT}.
-	 * @return a ready-to-use {@link Compiler}.
-	 * @deprecated nothing in jPipe calls it; call
-	 *             {@link #buildDiagnosticCompiler(DiagnosticFormat, OutputStream)}
-	 *             with {@link DiagnosticFormat#TEXT}. To be removed in the next
-	 *             major release.
-	 */
-	@Deprecated(since = "4.1.0", forRemoval = true)
-	public static Compiler buildDiagnosticCompiler(OutputStream stdout) {
-		return buildDiagnosticCompiler(DiagnosticFormat.TEXT, stdout);
-	}
-
-	/**
 	 * Build a diagnostic-mode compiler that parses the source and reports on it
 	 * without exporting any model.
 	 *

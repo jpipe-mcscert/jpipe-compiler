@@ -164,52 +164,6 @@ public abstract class CompositionOperator {
 
 	/**
 	 * Applies this operator to {@code sources} and returns the complete list of
-	 * commands needed to build the result model named {@code resultName}. Uses
-	 * {@link SourceLocation#UNKNOWN} for the result model's location.
-	 *
-	 * @throws InvalidOperatorCallException
-	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}, if a key is neither required,
-	 *             optional ({@link #optionalArguments()}) nor a unification
-	 *             key, or if a source model is given more than once
-	 * @deprecated nothing in jPipe calls it; call
-	 *             {@link #apply(String, List, Map, SourceLocation, Map)} with
-	 *             {@link SourceLocation#UNKNOWN} and {@code Map.of()}. To be
-	 *             removed in the next major release.
-	 */
-	@Deprecated(since = "4.1.0", forRemoval = true)
-	public final List<Command> apply(String resultName,
-			List<JustificationModel> sources, Map<String, String> arguments) {
-		return apply(resultName, sources, arguments, SourceLocation.UNKNOWN);
-	}
-
-	/**
-	 * Applies this operator to {@code sources} and returns the complete list of
-	 * commands needed to build the result model named {@code resultName}.
-	 *
-	 * @param location
-	 *            source location of the operator call; forwarded to
-	 *            {@link #createResultModel} so the result model is registered
-	 *            in the symbol table.
-	 * @throws InvalidOperatorCallException
-	 *             if any key declared by {@link #requiredArguments()} is absent
-	 *             from {@code arguments}, if a key is neither required,
-	 *             optional ({@link #optionalArguments()}) nor a unification
-	 *             key, or if a source model is given more than once
-	 * @deprecated nothing in jPipe calls it; call
-	 *             {@link #apply(String, List, Map, SourceLocation, Map)} with
-	 *             {@code Map.of()}. To be removed in the next major release.
-	 */
-	@Deprecated(since = "4.1.0", forRemoval = true)
-	public final List<Command> apply(String resultName,
-			List<JustificationModel> sources, Map<String, String> arguments,
-			SourceLocation location) {
-		return apply(resultName, sources, arguments, location, Map.of(),
-				Map.of());
-	}
-
-	/**
-	 * Applies this operator to {@code sources} and returns the complete list of
 	 * commands needed to build the result model named {@code resultName}.
 	 *
 	 * @param location

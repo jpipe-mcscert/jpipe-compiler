@@ -2,12 +2,7 @@ package ca.mcscert.jpipe.visitor;
 
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
-import ca.mcscert.jpipe.model.elements.AbstractSupport;
-import ca.mcscert.jpipe.model.elements.Conclusion;
-import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
-import ca.mcscert.jpipe.model.elements.Strategy;
-import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONArray;
@@ -103,40 +98,6 @@ public class JsonExporter extends AbstractModelExporter {
 	}
 
 	// -------------------------------------------------------------------------
-	// Element visit methods
-	// -------------------------------------------------------------------------
-
-	@Override
-	public Void visit(Conclusion conclusion) {
-		appendElement(conclusion);
-		return null;
-	}
-
-	@Override
-	public Void visit(SubConclusion subConclusion) {
-		appendElement(subConclusion);
-		return null;
-	}
-
-	@Override
-	public Void visit(Strategy strategy) {
-		appendElement(strategy);
-		return null;
-	}
-
-	@Override
-	public Void visit(Evidence evidence) {
-		appendElement(evidence);
-		return null;
-	}
-
-	@Override
-	public Void visit(AbstractSupport abstractSupport) {
-		appendElement(abstractSupport);
-		return null;
-	}
-
-	// -------------------------------------------------------------------------
 	// AbstractModelExporter
 	// -------------------------------------------------------------------------
 
@@ -169,7 +130,8 @@ public class JsonExporter extends AbstractModelExporter {
 	// Private helpers
 	// -------------------------------------------------------------------------
 
-	private void appendElement(JustificationElement element) {
+	@Override
+	protected void visitElement(JustificationElement element) {
 		JSONObject obj = new JSONObject();
 		obj.put(TYPE_KEY, element.kind());
 		obj.put(ID_KEY, qualify(element.id()));

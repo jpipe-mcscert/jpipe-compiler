@@ -19,9 +19,6 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
-- `CompilerFactory.build(config, out, diagnostics)` prints a compilation's
-  diagnostics on the given writer instead of the `jpipe.diagnostics` logger,
-  in the same `file:line:column: severity: [code] message` lines (#216).
 - `jpipe --create-aot-cache` records a cache of the classes a call loads, next
   to `jpipe.jar`, and the launchers use it when it is there. Homebrew, the PPA
   and Scoop run it once at install time. The cache only works for the Java
@@ -35,16 +32,6 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   `WARN` or more starts them. Together with the AOT cache an install creates,
   a `diagnostic` call goes from about 0.24 s to 0.17 s. Diagnostics still go
   to stderr in the same format, at every level (#216).
-
-### Deprecated
-- Public API that nothing in jPipe uses is deprecated for removal in the next
-  major release, each with its replacement named in its javadoc (#214):
-  `NoOpJustificationVisitor`, `ModelReplicator`, `ElementGroup.elements()`,
-  `AbstractModelExporter.qualifiedAliasesOf` (use `qualifiedOriginalsOf`),
-  `CompilerFactory.buildDiagnosticCompiler(OutputStream)`, and the three- and
-  four-argument `CompositionOperator.apply` overloads (use the five-argument
-  one). Code that uses them still compiles and behaves the same, with a
-  removal warning.
 
 ### Fixed
 - A `load` pattern without `**` only searches as deep as it can match, so

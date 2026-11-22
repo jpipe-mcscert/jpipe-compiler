@@ -5,7 +5,12 @@ import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.util.QualifiedIds;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.Conclusion;
+import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
+import ca.mcscert.jpipe.model.elements.Strategy;
+import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -113,26 +118,6 @@ public abstract class AbstractModelExporter
 		for (String original : qualifiedOriginalsOf(element.id())) {
 			linkIndex.put(original, element.id());
 		}
-	}
-
-	/**
-	 * Returns the qualified original ids that were merged into
-	 * {@code plainElementId}, or an empty list when the element is not the
-	 * target of any alias. Requires {@link #initAliases(JustificationModel)} to
-	 * have been called first.
-	 *
-	 * @deprecated it follows one alias hop and stops at an intermediate id when
-	 *             compositions are chained; use
-	 *             {@link #qualifiedOriginalsOf(String)}. To be removed in the
-	 *             next major release.
-	 */
-	@Deprecated(since = "4.1.0", forRemoval = true)
-	protected final List<String> qualifiedAliasesOf(String plainElementId) {
-		List<String> originals = aliasesByTarget.get(plainElementId);
-		if (originals == null) {
-			return List.of();
-		}
-		return originals.stream().map(this::qualify).toList();
 	}
 
 	/**
@@ -303,4 +288,46 @@ public abstract class AbstractModelExporter
 	 * element visit methods.
 	 */
 	protected abstract void exportModel(JustificationModel model);
+
+	/**
+	 * Serialises one element of the model being exported. Every kind of element
+	 * comes through here: an exporter that needs to tell them apart looks at
+	 * the element itself.
+	 */
+	protected abstract void visitElement(JustificationElement element);
+
+	/** Delegates to {@link #visitElement(JustificationElement)}. */
+	@Override
+	public final Void visit(Conclusion conclusion) {
+		visitElement(conclusion);
+		return null;
+	}
+
+	/** Delegates to {@link #visitElement(JustificationElement)}. */
+	@Override
+	public final Void visit(SubConclusion subConclusion) {
+		visitElement(subConclusion);
+		return null;
+	}
+
+	/** Delegates to {@link #visitElement(JustificationElement)}. */
+	@Override
+	public final Void visit(Strategy strategy) {
+		visitElement(strategy);
+		return null;
+	}
+
+	/** Delegates to {@link #visitElement(JustificationElement)}. */
+	@Override
+	public final Void visit(Evidence evidence) {
+		visitElement(evidence);
+		return null;
+	}
+
+	/** Delegates to {@link #visitElement(JustificationElement)}. */
+	@Override
+	public final Void visit(AbstractSupport abstractSupport) {
+		visitElement(abstractSupport);
+		return null;
+	}
 }

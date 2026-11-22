@@ -79,9 +79,6 @@ an abstract `CompositionOperator` class (Template Method pattern):
     `apply()` returns, via `Unifier.unify()`. It is not part of the sealed
     `apply()` template but is always applied to the command list before the
     engine sees it. See §5 below.
-- **`ModelReplicator`** — a stateless utility that generates commands to copy a
-  model's elements and edges non-destructively, following the same qualified-id
-  convention as `JustificationModel.inline()`.
 - **`OperatorRegistry`** — a name → `CompositionOperator` map populated at
   compiler startup.  Currently populated with hardcoded built-in operators in
   `CompilerFactory.builtInOperators()`; a service-loader extension point is

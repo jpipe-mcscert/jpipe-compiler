@@ -62,10 +62,6 @@ that call.
 - **`InvalidOperatorCallException`** — unchecked exception thrown for unknown
   operators, missing required arguments, incompatible kinds, or unknown
   unification methods. The engine wraps it in `CompilationException`.
-- **`ModelReplicator`** — stateless utility that generates commands to copy a
-  model's elements and edges under a given id prefix. Used to clone source
-  content non-destructively. Deprecated since 4.1.0: nothing in jPipe uses it,
-  and it goes in the next major release (#224).
 
 **`ApplyOperator`**
 
@@ -227,10 +223,6 @@ package "operators" {
   enum ModelKind {
     JUSTIFICATION
     TEMPLATE
-  }
-
-  class ModelReplicator {
-    + {static} replicate(target, source, prefix) : List<Command>
   }
 
   class InvalidOperatorCallException
