@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
-import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.Composition;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
@@ -16,7 +15,6 @@ import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.operators.equivalences.SameLabel;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -51,13 +49,10 @@ class ApplyOperatorTest {
 		}
 
 		@Override
-		protected Command createResultModel(String name,
-				SourceLocation location, List<JustificationModel> sources,
+		protected ModelKind resultKind(List<JustificationModel> sources,
 				Map<String, String> arguments, List<Command> elements) {
 			// The model created is the kind the call produces.
-			return kind == ModelKind.TEMPLATE
-					? new CreateTemplate(name)
-					: new CreateJustification(name);
+			return kind;
 		}
 
 	}
@@ -200,7 +195,8 @@ class ApplyOperatorTest {
 				assertThat(c.sources()).containsExactly(unit.get("b"),
 						unit.get("a"));
 				assertThat(c.arguments()).isEmpty();
-				assertThat(c.idArguments()).contains("unifyExclude");
+				assertThat(c.idArguments()).containsEntry("unifyExclude",
+						Composition.Scope.RESULT);
 			});
 		}
 
@@ -248,7 +244,7 @@ class ApplyOperatorTest {
 						source.getName() + ":" + e.id(), e.label())));
 			}
 			j.recordComposition(new Composition("assemble", List.of(sources),
-					Map.of(), Set.of()));
+					Map.of(), Map.of()));
 			return j;
 		}
 
@@ -258,7 +254,7 @@ class ApplyOperatorTest {
 				"base:t:abs, SOURCE, ns:base:t:abs",
 				"unknown:e, RESULT, unknown:e", "unknown:e, SOURCE, unknown:e"})
 		void an_element_id_is_mapped_onto_the_models_that_exist(String id,
-				ApplyOperator.Scope scope, String expected) {
+				Composition.Scope scope, String expected) {
 			// A two-stage composition under a namespace names its elements
 			// ns:both:ns:a:e: rewriting both:a:e as text gave ns:both:a:e,
 			// which names nothing (#178).
@@ -282,7 +278,7 @@ class ApplyOperatorTest {
 			Justification bNs = withEvidence("ns:b:ns", "e");
 
 			assertThat(ApplyOperator.inUnit("b:ns:a:e", "ns", List.of(b, bNs),
-					ApplyOperator.Scope.RESULT)).isEqualTo("ns:b:ns:ns:a:e");
+					Composition.Scope.RESULT)).isEqualTo("ns:b:ns:ns:a:e");
 		}
 
 		@Test
@@ -294,7 +290,7 @@ class ApplyOperatorTest {
 			List<JustificationModel> sources = List.of(b, bNs);
 
 			assertThatThrownBy(() -> ApplyOperator.inUnit("b:ns:a:e", "p",
-					sources, ApplyOperator.Scope.RESULT))
+					sources, Composition.Scope.RESULT))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("p:b:p:ns:a:e")
 					.hasMessageContaining("p:b:ns:p:a:e");
@@ -311,7 +307,7 @@ class ApplyOperatorTest {
 			Justification ns = composed("p:ns", withEvidence("p:a", "e"));
 
 			assertThat(ApplyOperator.inUnit("ns:a:e", "p", List.of(base, ns),
-					ApplyOperator.Scope.SOURCE)).isEqualTo("p:ns:a:e");
+					Composition.Scope.SOURCE)).isEqualTo("p:ns:a:e");
 		}
 
 		@Test
@@ -323,7 +319,7 @@ class ApplyOperatorTest {
 					composed("p:b", withEvidence("p:foo:a", "e"))));
 
 			assertThat(ApplyOperator.inUnit("b:foo:a:e", "p", List.of(base),
-					ApplyOperator.Scope.SOURCE))
+					Composition.Scope.SOURCE))
 					.isEqualTo("p:extra:p:b:p:foo:a:e");
 		}
 
@@ -338,7 +334,7 @@ class ApplyOperatorTest {
 			base.recordAlias("p:b:ns:p:a:e", "unified_0");
 
 			assertThat(ApplyOperator.inUnit("b:ns:a:e", "p", List.of(base),
-					ApplyOperator.Scope.SOURCE)).isEqualTo("p:b:p:ns:a:e");
+					Composition.Scope.SOURCE)).isEqualTo("p:b:p:ns:a:e");
 		}
 
 		@Test
@@ -349,7 +345,7 @@ class ApplyOperatorTest {
 			List<JustificationModel> sources = List.of(base);
 
 			assertThatThrownBy(() -> ApplyOperator.inUnit("b:ns:a:e", "p",
-					sources, ApplyOperator.Scope.SOURCE))
+					sources, Composition.Scope.SOURCE))
 					.isInstanceOf(InvalidOperatorCallException.class);
 		}
 	}

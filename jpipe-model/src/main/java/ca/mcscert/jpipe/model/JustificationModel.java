@@ -465,13 +465,27 @@ public abstract sealed class JustificationModel
 	}
 
 	/**
+	 * What {@code id}, as the source wrote it, names in this model: the element
+	 * {@link #findById} resolves it to, nothing, or the inherited elements it
+	 * names ambiguously. A caller that binds an id the source wrote uses this,
+	 * so that several matches are reported rather than settled by order
+	 * (ADR-0012, #177); {@link #findById} stays for the engine's hot path.
+	 */
+	public Binding bind(String id) {
+		List<JustificationElement> ambiguous = ambiguousMatches(id);
+		if (!ambiguous.isEmpty()) {
+			return new Binding.Ambiguous(ambiguous);
+		}
+		return findById(id).<Binding>map(Binding.Found::new)
+				.orElseGet(Binding.Missing::new);
+	}
+
+	/**
 	 * The elements {@code id} names ambiguously: when no element has that id,
 	 * the inherited ones it names through the short-name fallback of
-	 * {@link #findById}, if there are several; nothing otherwise. A caller that
-	 * binds an id the source wrote reports these rather than settle on the
-	 * first (ADR-0012, #177).
+	 * {@link #findById}, if there are several; nothing otherwise.
 	 */
-	public List<JustificationElement> ambiguousMatches(String id) {
+	private List<JustificationElement> ambiguousMatches(String id) {
 		boolean exact = (conclusion != null && conclusion.id().equals(id))
 				|| elements.stream().anyMatch(e -> e.id().equals(id));
 		if (exact) {

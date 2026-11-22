@@ -80,10 +80,9 @@ class CompositionOperatorTest {
 		}
 
 		@Override
-		protected Command createResultModel(String name,
-				SourceLocation location, List<JustificationModel> sources,
+		protected ModelKind resultKind(List<JustificationModel> sources,
 				Map<String, String> arguments, List<Command> elements) {
-			return new CreateJustification(name);
+			return ModelKind.JUSTIFICATION;
 		}
 
 		private static String shortId(String id) {
@@ -118,10 +117,9 @@ class CompositionOperatorTest {
 		}
 
 		@Override
-		protected Command createResultModel(String name,
-				SourceLocation location, List<JustificationModel> sources,
+		protected ModelKind resultKind(List<JustificationModel> sources,
 				Map<String, String> arguments, List<Command> elements) {
-			return new CreateJustification(name);
+			return ModelKind.JUSTIFICATION;
 		}
 	}
 
@@ -147,7 +145,8 @@ class CompositionOperatorTest {
 					List.of(new CreateConclusion("j", "c", "the conclusion")));
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of());
+					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 			Unit unit = engine.spawn("out", commands);
 
 			assertThat(unit.findModel("result")).isPresent();
@@ -166,8 +165,8 @@ class CompositionOperatorTest {
 							new AddSupport("j2", "c", "j2:s")));
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN,
-					Map.of());
+					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 			Unit unit = engine.spawn("out", commands);
 
 			// Both "j1:s" and "j2:s" merge to "s" — only one strategy in result
@@ -185,7 +184,8 @@ class CompositionOperatorTest {
 							new AddSupport("j", "j:s", "j:e")));
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of());
+					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 			Unit unit = engine.spawn("out", commands);
 
 			Justification result = (Justification) unit.get("result");
@@ -209,8 +209,8 @@ class CompositionOperatorTest {
 							new AddSupport("j2", "c", "j2:s")));
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN,
-					Map.of());
+					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 
 			long addSupportCount = commands.stream()
 					.filter(AddSupport.class::isInstance).count();
@@ -228,8 +228,8 @@ class CompositionOperatorTest {
 					List.of(new CreateConclusion("j2", "j2:c", "C")));
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN,
-					Map.of());
+					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 
 			assertThat(commands).filteredOn(RegisterAlias.class::isInstance)
 					.hasSize(2);
@@ -240,7 +240,8 @@ class CompositionOperatorTest {
 			Justification j = buildJustification("j",
 					List.of(new CreateConclusion("j", "c", "C")));
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of());
+					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 			assertThat(commands).isUnmodifiable();
 		}
 
@@ -261,7 +262,8 @@ class CompositionOperatorTest {
 			src.recordAlias("c", "unified_0");
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(src), Map.of(), SourceLocation.UNKNOWN, Map.of());
+					List.of(src), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 
 			// The TestOperator merges by short-id: "unified_0" stays as
 			// "unified_0".
@@ -287,7 +289,7 @@ class CompositionOperatorTest {
 			List<JustificationModel> sources = List.of(j);
 			Map<String, String> args = Map.of();
 			assertThatThrownBy(() -> op.apply("result", sources, args,
-					SourceLocation.UNKNOWN, Map.of()))
+					SourceLocation.UNKNOWN, Map.of()).commands())
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("mode");
 		}
@@ -297,8 +299,8 @@ class CompositionOperatorTest {
 			Justification j = buildJustification("j",
 					List.of(new CreateConclusion("j", "c", "C")));
 			assertThat(new RequiresArgOperator().apply("result", List.of(j),
-					Map.of("mode", "strict"), SourceLocation.UNKNOWN, Map.of()))
-					.isNotNull();
+					Map.of("mode", "strict"), SourceLocation.UNKNOWN, Map.of())
+					.commands()).isNotNull();
 		}
 	}
 }

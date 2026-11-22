@@ -7,7 +7,6 @@ import ca.mcscert.jpipe.model.Unit;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -20,8 +19,7 @@ public final class RecordComposition extends RegularCommand {
 	private final String operator;
 	private final List<String> sourceNames;
 	private final Map<String, String> arguments;
-	private final Set<String> idArguments;
-	private final Set<String> resultIdArguments;
+	private final Map<String, Composition.Scope> idArguments;
 
 	/**
 	 * @param container
@@ -33,20 +31,17 @@ public final class RecordComposition extends RegularCommand {
 	 * @param arguments
 	 *            the call's arguments, element ids as the unit names them.
 	 * @param idArguments
-	 *            the keys of {@code arguments} whose value holds element ids.
-	 * @param resultIdArguments
-	 *            the keys of {@code idArguments} whose ids name an element of
-	 *            the result rather than of a source.
+	 *            the keys of {@code arguments} whose value holds element ids,
+	 *            and where those ids name an element.
 	 */
 	public RecordComposition(String container, String operator,
 			List<String> sourceNames, Map<String, String> arguments,
-			Set<String> idArguments, Set<String> resultIdArguments) {
+			Map<String, Composition.Scope> idArguments) {
 		this.container = container;
 		this.operator = operator;
 		this.sourceNames = List.copyOf(sourceNames);
 		this.arguments = Map.copyOf(arguments);
-		this.idArguments = Set.copyOf(idArguments);
-		this.resultIdArguments = Set.copyOf(resultIdArguments);
+		this.idArguments = Map.copyOf(idArguments);
 	}
 
 	@Override
@@ -59,8 +54,8 @@ public final class RecordComposition extends RegularCommand {
 	public void doExecute(Unit context) {
 		List<JustificationModel> sources = sourceNames.stream()
 				.map(context::get).toList();
-		context.get(container).recordComposition(new Composition(operator,
-				sources, arguments, idArguments, resultIdArguments));
+		context.get(container).recordComposition(
+				new Composition(operator, sources, arguments, idArguments));
 	}
 
 	@Override

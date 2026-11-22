@@ -11,7 +11,6 @@ import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class JpipeExporterTest {
@@ -99,10 +98,10 @@ class JpipeExporterTest {
 		Justification a = named("a");
 		Justification b = named("b");
 		Justification out = new Justification("out");
-		out.recordComposition(new Composition(
-				"assemble", List.of(a, b), Map.of("strategyLabel", "Check both",
-						"conclusionLabel", "Both hold"),
-				Set.of("unifyExclude")));
+		out.recordComposition(new Composition("assemble", List.of(a, b),
+				Map.of("strategyLabel", "Check both", "conclusionLabel",
+						"Both hold"),
+				Map.of("unifyExclude", Composition.Scope.RESULT)));
 
 		String jd = new JpipeExporter().export(out);
 
@@ -120,7 +119,7 @@ class JpipeExporterTest {
 	void a_call_without_argument_has_no_configuration_block() {
 		Justification out = new Justification("out");
 		out.recordComposition(new Composition("assemble", List.of(named("a")),
-				Map.of(), Set.of()));
+				Map.of(), Map.of()));
 
 		assertThat(new JpipeExporter().export(out))
 				.contains("justification out is assemble(a)"
@@ -143,7 +142,7 @@ class JpipeExporterTest {
 		Justification out = new Justification("out");
 		out.recordComposition(new Composition("refine", List.of(j, j),
 				Map.of("hook", "base:t:abs", "label", "base:t:abs"),
-				Set.of("hook")));
+				Map.of("hook", Composition.Scope.SOURCE)));
 
 		String jd = new JpipeExporter().export(out);
 
@@ -162,7 +161,7 @@ class JpipeExporterTest {
 		Justification a = named("ns:a");
 		Justification out = new Justification("out");
 		out.recordComposition(
-				new Composition("assemble", List.of(a), Map.of(), Set.of()));
+				new Composition("assemble", List.of(a), Map.of(), Map.of()));
 		Unit unit = new Unit("src");
 		unit.add(out);
 		unit.add(a);

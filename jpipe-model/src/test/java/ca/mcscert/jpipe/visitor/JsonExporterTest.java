@@ -12,7 +12,6 @@ import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -154,7 +153,7 @@ class JsonExporterTest {
 		Justification refined = new Justification("refined");
 		refined.addElement(new SubConclusion("hook", "The code is tested"));
 		refined.recordComposition(new Composition("refine",
-				List.of(base, refinement), Map.of(), Set.of()));
+				List.of(base, refinement), Map.of(), Map.of()));
 		refined.recordAlias("base:e", "hook");
 		refined.recordAlias("refinement:c", "hook");
 
@@ -216,7 +215,7 @@ class JsonExporterTest {
 		Justification top = new Justification("top");
 		top.addElement(new Evidence("u", "The tests pass"));
 		top.recordComposition(new Composition("assemble", List.of(b1, b2),
-				Map.of(), Set.of()));
+				Map.of(), Map.of()));
 		top.recordAlias("b1:first:e", "u");
 		top.recordAlias("b2:first:e", "u");
 
@@ -233,7 +232,7 @@ class JsonExporterTest {
 		source.allElements().forEach(e -> copy.addElement(
 				new Evidence(source.getName() + ":" + e.id(), e.label())));
 		copy.recordComposition(new Composition("assemble", List.of(source),
-				Map.of(), Set.of()));
+				Map.of(), Map.of()));
 		return copy;
 	}
 }

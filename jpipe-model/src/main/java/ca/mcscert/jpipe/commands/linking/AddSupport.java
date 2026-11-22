@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.model.Binding;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
@@ -127,12 +128,13 @@ public final class AddSupport extends RegularCommand {
 	 * ones are an ambiguity, reported rather than settled by order (#177).
 	 */
 	private JustificationElement resolve(JustificationModel model, String id) {
-		List<JustificationElement> ambiguous = model.ambiguousMatches(id);
-		if (!ambiguous.isEmpty()) {
-			throw new AmbiguousIdException(id, container, ambiguous);
-		}
-		return model.findById(id).orElseThrow(
-				() -> new NoSuchElementException("No element with id: " + id));
+		return switch (model.bind(id)) {
+			case Binding.Found(JustificationElement element) -> element;
+			case Binding.Ambiguous(List<JustificationElement> candidates) ->
+				throw new AmbiguousIdException(id, container, candidates);
+			case Binding.Missing() ->
+				throw new NoSuchElementException("No element with id: " + id);
+		};
 	}
 
 	@Override

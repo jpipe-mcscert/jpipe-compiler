@@ -1,5 +1,8 @@
 package ca.mcscert.jpipe.operators.builtin;
 
+import ca.mcscert.jpipe.operators.ModelKind;
+import ca.mcscert.jpipe.operators.Composed;
+import ca.mcscert.jpipe.model.Composition;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -103,7 +106,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			assertThat(unit.findModel("refined")).isPresent();
 			assertThat(unit.get("refined")).isInstanceOf(Justification.class);
@@ -115,7 +118,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -131,7 +134,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -151,7 +154,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -184,7 +187,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 
 			long addSupportCount = cmds.stream()
 					.filter(AddSupport.class::isInstance).count();
@@ -200,7 +203,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -228,7 +231,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(base, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -248,7 +251,7 @@ class RefineOperatorTest {
 
 			List<Command> cmds = refine.apply("refined",
 					List.of(src, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -268,8 +271,11 @@ class RefineOperatorTest {
 			List<JustificationModel> sources = List.of(buildMinimal(),
 					buildRefinement());
 			Map<String, String> args = Map.of();
-			assertThatThrownBy(() -> refine.apply("refined", sources, args,
-					SourceLocation.UNKNOWN, Map.of()))
+			assertThatThrownBy(
+					() -> refine
+							.apply("refined", sources, args,
+									SourceLocation.UNKNOWN, Map.of())
+							.commands())
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("hook");
 		}
@@ -278,8 +284,11 @@ class RefineOperatorTest {
 		void throwsWhenSourceCountIsNotTwo() {
 			List<JustificationModel> sources = List.of(buildMinimal());
 			Map<String, String> args = Map.of("hook", "e");
-			assertThatThrownBy(() -> refine.apply("refined", sources, args,
-					SourceLocation.UNKNOWN, Map.of()))
+			assertThatThrownBy(
+					() -> refine
+							.apply("refined", sources, args,
+									SourceLocation.UNKNOWN, Map.of())
+							.commands())
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("2 sources");
 		}
@@ -289,8 +298,11 @@ class RefineOperatorTest {
 			List<JustificationModel> sources = List.of(buildMinimal(),
 					buildRefinement());
 			Map<String, String> args = Map.of("hook", "nonexistent");
-			assertThatThrownBy(() -> refine.apply("refined", sources, args,
-					SourceLocation.UNKNOWN, Map.of()))
+			assertThatThrownBy(
+					() -> refine
+							.apply("refined", sources, args,
+									SourceLocation.UNKNOWN, Map.of())
+							.commands())
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("nonexistent")
 					.hasMessageContaining("minimal");
@@ -308,8 +320,11 @@ class RefineOperatorTest {
 					buildRefinement());
 			Map<String, String> args = Map.of("hook", hook);
 
-			assertThatThrownBy(() -> refine.apply("refined", sources, args,
-					SourceLocation.UNKNOWN, Map.of()))
+			assertThatThrownBy(
+					() -> refine
+							.apply("refined", sources, args,
+									SourceLocation.UNKNOWN, Map.of())
+							.commands())
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("is a " + kind);
 		}
@@ -323,8 +338,11 @@ class RefineOperatorTest {
 			List<JustificationModel> sources = List.of(base, buildRefinement());
 			Map<String, String> args = Map.of("hook", "e1");
 
-			assertThatThrownBy(() -> refine.apply("refined", sources, args,
-					SourceLocation.UNKNOWN, Map.of()))
+			assertThatThrownBy(
+					() -> refine
+							.apply("refined", sources, args,
+									SourceLocation.UNKNOWN, Map.of())
+							.commands())
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContainingAll("ambiguous hook 'e1'",
 							"'first:e1'", "'second:e1'");
@@ -348,8 +366,11 @@ class RefineOperatorTest {
 					buildRefinement());
 			Map<String, String> args = Map.of("hook", "e", "unifyExlude", "x");
 
-			assertThatThrownBy(() -> refine.apply("refined", sources, args,
-					SourceLocation.UNKNOWN, Map.of()))
+			assertThatThrownBy(
+					() -> refine
+							.apply("refined", sources, args,
+									SourceLocation.UNKNOWN, Map.of())
+							.commands())
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContainingAll(
 							"unknown argument(s) [unifyExlude]",
@@ -363,8 +384,11 @@ class RefineOperatorTest {
 			List<JustificationModel> sources = List.of(minimal, minimal);
 			Map<String, String> args = Map.of("hook", "e");
 
-			assertThatThrownBy(() -> refine.apply("refined", sources, args,
-					SourceLocation.UNKNOWN, Map.of()))
+			assertThatThrownBy(
+					() -> refine
+							.apply("refined", sources, args,
+									SourceLocation.UNKNOWN, Map.of())
+							.commands())
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("'minimal' is given more than once");
 		}
@@ -379,12 +403,24 @@ class RefineOperatorTest {
 			List<JustificationModel> replaces = List.of(buildMinimal(),
 					buildRefinement());
 
-			assertThat(refine.apply("r", keeps, Map.of("hook", "abs1"),
-					SourceLocation.UNKNOWN, Map.of())).first()
+			Composed kept = refine.apply("r", keeps, Map.of("hook", "abs1"),
+					SourceLocation.UNKNOWN, Map.of());
+			Composed replaced = refine.apply("r", replaces, Map.of("hook", "e"),
+					SourceLocation.UNKNOWN, Map.of());
+
+			assertThat(kept.kind()).isEqualTo(ModelKind.TEMPLATE);
+			assertThat(kept.commands()).first()
 					.isInstanceOf(CreateTemplate.class);
-			assertThat(refine.apply("r", replaces, Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of())).first()
+			assertThat(replaced.kind()).isEqualTo(ModelKind.JUSTIFICATION);
+			assertThat(replaced.commands()).first()
 					.isInstanceOf(CreateJustification.class);
+		}
+
+		@Test
+		void the_hook_names_an_element_of_a_source() {
+			assertThat(refine.idArgumentScopes()).containsOnly(
+					Map.entry("hook", Composition.Scope.SOURCE),
+					Map.entry("unifyExclude", Composition.Scope.RESULT));
 		}
 
 	}

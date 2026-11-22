@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.model.Binding;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.MacroCommand;
 import ca.mcscert.jpipe.model.JustificationModel;
@@ -74,10 +75,12 @@ public final class OverrideAbstractSupport implements MacroCommand {
 	@Override
 	public Predicate<Unit> condition() {
 		return unit -> unit.findModel(container)
-				.map(m -> !m.ambiguousMatches(qualifiedId).isEmpty() || m
-						.findById(qualifiedId)
-						.filter(AbstractSupport.class::isInstance).isPresent())
-				.orElse(false);
+				.map(m -> switch (m.bind(qualifiedId)) {
+					case Binding.Found(JustificationElement e) ->
+						e instanceof AbstractSupport;
+					case Binding.Ambiguous _ -> true;
+					case Binding.Missing() -> false;
+				}).orElse(false);
 	}
 
 	/**
@@ -85,12 +88,12 @@ public final class OverrideAbstractSupport implements MacroCommand {
 	 * id resolves to, or every one it is ambiguous between.
 	 */
 	public List<String> namedIds(JustificationModel model) {
-		List<JustificationElement> ambiguous = model
-				.ambiguousMatches(qualifiedId);
-		return ambiguous.isEmpty()
-				? model.findById(qualifiedId).map(JustificationElement::id)
-						.stream().toList()
-				: ambiguous.stream().map(JustificationElement::id).toList();
+		return switch (model.bind(qualifiedId)) {
+			case Binding.Found(JustificationElement e) -> List.of(e.id());
+			case Binding.Ambiguous(List<JustificationElement> candidates) ->
+				candidates.stream().map(JustificationElement::id).toList();
+			case Binding.Missing() -> List.of();
+		};
 	}
 
 	@Override
@@ -99,14 +102,15 @@ public final class OverrideAbstractSupport implements MacroCommand {
 		// A short id that names several inherited elements is ambiguous, as in
 		// a relation: the element order must not choose the placeholder that
 		// is replaced (#177).
-		List<JustificationElement> ambiguous = model
-				.ambiguousMatches(qualifiedId);
-		if (!ambiguous.isEmpty()) {
-			throw new AmbiguousIdException(qualifiedId, container, ambiguous);
-		}
-		AbstractSupport old = (AbstractSupport) model.findById(qualifiedId)
-				.orElseThrow(() -> new NoSuchElementException(
-						"No abstract support with id: " + qualifiedId));
+		AbstractSupport old = switch (model.bind(qualifiedId)) {
+			case Binding.Found(AbstractSupport support) -> support;
+			case Binding.Ambiguous(List<JustificationElement> candidates) ->
+				throw new AmbiguousIdException(qualifiedId, container,
+						candidates);
+			case Binding.Found _,Binding.Missing _ ->
+				throw new NoSuchElementException(
+						"No abstract support with id: " + qualifiedId);
+		};
 
 		// Every strategy the placeholder supports is rewired, not only the
 		// first: one left behind would keep the removed placeholder (#187). A

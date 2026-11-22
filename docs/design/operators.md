@@ -73,8 +73,8 @@ until all named source models are present in the `Unit`.
 - `condition()` — defers until `unit.findModel(name)` succeeds for every
   source name.
 - `expand(Unit)` — looks up the operator, gathers source models, calls
-  `op.apply(…)`, checks the kind of the model it created against the declared
-  one, then passes the result through `Unifier.unify()` before returning the
+  `op.apply(…)`, checks the kind the operator chose for its result against
+  the declared one, then passes the result through `Unifier.unify()` before returning the
   final command list.
 
 **`Unifier`**
@@ -158,12 +158,18 @@ package "operators" {
   abstract class CompositionOperator {
     # requiredArguments() : Set<String>
     # optionalArguments() : Set<String>
-    + elementArguments() : Set<String>
+    # idArguments() : Map<String, Scope>
+    + {final} idArgumentScopes() : Map<String, Scope>
     # {abstract} equivalenceRelation(sources, args) : EquivalenceRelation
     # {abstract} mergeFunction(sources, args) : MergeFunction
-    # {abstract} createResultModel(name, loc, sources, args, elements) : Command
+    # {abstract} resultKind(sources, args, elements) : ModelKind
     # additionalCommands(name, sources, aliases, args) : List<Command>
-    + {final} apply(name, sources, args, loc, knownLocs) : List<Command>
+    + {final} apply(name, sources, args, loc, knownLocs) : Composed
+  }
+
+  class Composed <<record>> {
+    + kind : ModelKind
+    + commands : List<Command>
   }
 
   interface EquivalenceRelation <<FI>> {
@@ -280,8 +286,8 @@ note right of Op
   Phase 3: reconstruct edges
   Phase 4: additionalCommands()
 end note
-Op --> ApplyOperator                 : composed : List<Command>
-ApplyOperator -> Unifier             : unify(name, composed, args)
+Op --> ApplyOperator                 : composed : Composed (kind, commands)
+ApplyOperator -> Unifier             : unify(name, composed.commands, args)
 Unifier -> UnificationEquivalenceRegistry : find(args["unifyBy"])
 UnificationEquivalenceRegistry --> Unifier : EquivalenceRelation
 note right of Unifier
@@ -449,11 +455,13 @@ public final class MyOperator extends CompositionOperator {
     @Override
     protected Set<String> optionalArguments() { return Set.of("myOption"); }
 
-    // Optional: the arguments that hold the id of an element of a source, as
-    // that source names it, renamed with the models when the file is loaded
-    // under a namespace (`load "f.jd" as ns`).
+    // Optional: the arguments that hold element ids, each with the scope its
+    // ids are read in: SOURCE for an element of a source, as that source
+    // names it, RESULT for one of the result. They are renamed with the
+    // models when the file is loaded under a namespace (`load "f.jd" as ns`).
+    // unifyExclude (RESULT) is declared by the framework.
     @Override
-    public Set<String> elementArguments() { return Set.of(); }
+    protected Map<String, Scope> idArguments() { return Map.of(); }
 
     // (2) How source elements are partitioned into equivalence classes
     @Override
@@ -474,14 +482,13 @@ public final class MyOperator extends CompositionOperator {
         };
     }
 
-    // (4) The command that creates the result model, which decides its kind
-    //     (JUSTIFICATION or TEMPLATE); `elements` are
-    //     the commands creating its elements, for a kind that depends on them
+    // (4) The kind of the result model (JUSTIFICATION or TEMPLATE), which
+    //     the framework creates; `elements` are the commands creating its
+    //     elements, for a kind that depends on them
     @Override
-    protected Command createResultModel(String name, SourceLocation loc,
-            List<JustificationModel> sources,
+    protected ModelKind resultKind(List<JustificationModel> sources,
             Map<String, String> args, List<Command> elements) {
-        return new CreateJustification(name, loc);
+        return ModelKind.JUSTIFICATION;
     }
 
     // (5) Optional: synthesize elements/edges with no counterpart in any source
@@ -543,9 +550,10 @@ package "operators.builtin" {
   class RefineOperator {
     + {static} HOOK_ID : String = "hook"
     # requiredArguments() : Set<String>
+    # idArguments() : Map<String, Scope>
     # equivalenceRelation(sources, args) : EquivalenceRelation
     # mergeFunction(sources, args) : MergeFunction
-    # createResultModel(...) : Command
+    # resultKind(...) : ModelKind
   }
 
   class AssembleOperator {
@@ -554,7 +562,7 @@ package "operators.builtin" {
     # requiredArguments() : Set<String>
     # equivalenceRelation(sources, args) : EquivalenceRelation
     # mergeFunction(sources, args) : MergeFunction
-    # createResultModel(...) : Command
+    # resultKind(...) : ModelKind
     # additionalCommands(...) : List<Command>
   }
 

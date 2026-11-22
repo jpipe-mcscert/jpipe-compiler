@@ -1,24 +1,24 @@
 package ca.mcscert.jpipe.operators.builtin;
 
+import ca.mcscert.jpipe.model.Binding;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
-import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
 import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
+import ca.mcscert.jpipe.model.Composition.Scope;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
 import ca.mcscert.jpipe.operators.CompositionOperator;
 import ca.mcscert.jpipe.operators.EquivalenceRelation;
-import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
 import ca.mcscert.jpipe.operators.MergeFunction;
+import ca.mcscert.jpipe.operators.ModelKind;
 import ca.mcscert.jpipe.operators.SourcedElement;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Evidence;
 import java.util.stream.Collectors;
@@ -58,8 +58,8 @@ public final class RefineOperator extends CompositionOperator {
 	}
 
 	@Override
-	public Set<String> elementArguments() {
-		return Set.of(HOOK_ID);
+	protected Map<String, Scope> idArguments() {
+		return Map.of(HOOK_ID, Scope.SOURCE);
 	}
 
 	/**
@@ -70,13 +70,12 @@ public final class RefineOperator extends CompositionOperator {
 	 * keeps a {@code @support} failed (#181).
 	 */
 	@Override
-	protected Command createResultModel(String name, SourceLocation location,
-			List<JustificationModel> sources, Map<String, String> arguments,
-			List<Command> elements) {
+	protected ModelKind resultKind(List<JustificationModel> sources,
+			Map<String, String> arguments, List<Command> elements) {
 		return elements.stream()
 				.anyMatch(CreateAbstractSupport.class::isInstance)
-						? new CreateTemplate(name, location)
-						: new CreateJustification(name, location);
+						? ModelKind.TEMPLATE
+						: ModelKind.JUSTIFICATION;
 	}
 
 	@Override
@@ -139,18 +138,18 @@ public final class RefineOperator extends CompositionOperator {
 		// exporters read them as such (an id that is the target of an alias
 		// is an intermediate merge result): followed to the end here.
 		String id = base.resolveAlias(hook);
-		JustificationElement element = base.findById(id)
-				.orElseThrow(() -> new InvalidOperatorCallException(
-						"hook element '" + hook + "' not found in base model '"
-								+ base.getName() + "'"));
-		List<JustificationElement> ambiguous = base.ambiguousMatches(id);
-		if (!ambiguous.isEmpty()) {
-			throw new InvalidOperatorCallException("ambiguous hook '" + hook
-					+ "' in '" + base.getName() + "': it names "
-					+ ambiguous.stream().map(e -> "'" + e.id() + "'")
-							.collect(Collectors.joining(", "))
-					+ "; write the qualified id");
-		}
+		JustificationElement element = switch (base.bind(id)) {
+			case Binding.Found(JustificationElement found) -> found;
+			case Binding.Ambiguous(List<JustificationElement> candidates) ->
+				throw new InvalidOperatorCallException("ambiguous hook '" + hook
+						+ "' in '" + base.getName() + "': it names "
+						+ candidates.stream().map(e -> "'" + e.id() + "'")
+								.collect(Collectors.joining(", "))
+						+ "; write the qualified id");
+			case Binding.Missing() ->
+				throw new InvalidOperatorCallException("hook element '" + hook
+						+ "' not found in base model '" + base.getName() + "'");
+		};
 		if (!(element instanceof Evidence
 				|| element instanceof AbstractSupport)) {
 			throw new InvalidOperatorCallException("hook '" + hook + "' is a "

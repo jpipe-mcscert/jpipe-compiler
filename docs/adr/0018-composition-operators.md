@@ -64,7 +64,9 @@ an abstract `CompositionOperator` class (Template Method pattern):
     multiple source models share the same edge.
   - Subclasses provide `equivalenceRelation(sources, arguments)`,
     `mergeFunction(sources, arguments)`,
-    `createResultModel(name, location, sources, arguments, elements)`, and optionally
+    `resultKind(sources, arguments, elements)`, which chooses whether the
+    result is a justification or a template (the framework creates it, and
+    `apply()` returns that kind with the commands, as a `Composed`), and optionally
     `requiredArguments()` (missing required keys throw
     `InvalidOperatorCallException`).  All hook methods receive the full
     `sources` list so that operators can inspect source types and distinguish

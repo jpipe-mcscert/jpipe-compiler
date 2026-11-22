@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.operators;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.MacroCommand;
+import ca.mcscert.jpipe.model.Composition.Scope;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.QualifiedIdReadings;
 import ca.mcscert.jpipe.model.QualifiedIdReadings.SourceReading;
@@ -15,7 +16,6 @@ import java.util.Optional;
 import ca.mcscert.jpipe.commands.PendingCommands;
 import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.commands.linking.RecordComposition;
-import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -79,15 +79,6 @@ public final class ApplyOperator implements MacroCommand {
 				config.arguments(), config.location(), config.declaredKind());
 		return new ApplyOperator(renamed, operators, unificationEquivalences,
 				namespace.isEmpty() ? ns : QualifiedIds.qualify(ns, namespace));
-	}
-
-	/**
-	 * Which element an id argument of a call names: one of the result, written
-	 * {@code source:id} ({@code unifyExclude}), or one of a source, written as
-	 * that source names it ({@code refine}'s {@code hook}).
-	 */
-	enum Scope {
-		RESULT, SOURCE
 	}
 
 	/**
@@ -160,16 +151,12 @@ public final class ApplyOperator implements MacroCommand {
 		if (namespace.isEmpty()) {
 			return config.arguments();
 		}
-		Set<String> sourceKeys = op.elementArguments();
+		Map<String, Scope> scopes = op.idArgumentScopes();
 		Map<String, String> arguments = new LinkedHashMap<>();
 		config.arguments().forEach((key, value) -> {
-			if (Unifier.UNIFY_EXCLUDE_KEY.equals(key)) {
-				arguments.put(key, idsIn(value, sources, Scope.RESULT));
-			} else if (sourceKeys.contains(key)) {
-				arguments.put(key, idsIn(value, sources, Scope.SOURCE));
-			} else {
-				arguments.put(key, value);
-			}
+			Scope scope = scopes.get(key);
+			arguments.put(key,
+					scope == null ? value : idsIn(value, sources, scope));
 		});
 		return arguments;
 	}
@@ -222,11 +209,9 @@ public final class ApplyOperator implements MacroCommand {
 		// itself, not as the kind mismatch it may cause, and the kind checked
 		// is the one the composition actually produced.
 		Map<String, String> arguments = argumentsIn(sources, op);
-		List<Command> composed = op.apply(config.resultName(), sources,
-				arguments, config.location(), context.locations());
-		ModelKind actualKind = composed.getFirst() instanceof CreateTemplate
-				? ModelKind.TEMPLATE
-				: ModelKind.JUSTIFICATION;
+		Composed composed = op.apply(config.resultName(), sources, arguments,
+				config.location(), context.locations());
+		ModelKind actualKind = composed.kind();
 		if (actualKind != config.declaredKind()) {
 			throw new InvalidOperatorCallException("operator '"
 					+ config.operatorName() + "' produces a "
@@ -237,18 +222,11 @@ public final class ApplyOperator implements MacroCommand {
 		}
 		List<Command> commands = new ArrayList<>(
 				new Unifier(unificationEquivalences).unify(config.resultName(),
-						composed, arguments));
+						composed.commands(), arguments));
 		commands.add(new RecordComposition(config.resultName(),
 				config.operatorName(), config.sourceNames(), arguments,
-				idArguments(op), Set.of(Unifier.UNIFY_EXCLUDE_KEY)));
+				op.idArgumentScopes()));
 		return commands;
-	}
-
-	/** The keys of a call to {@code op} whose value holds element ids. */
-	private static Set<String> idArguments(CompositionOperator op) {
-		Set<String> keys = new HashSet<>(op.elementArguments());
-		keys.add(Unifier.UNIFY_EXCLUDE_KEY);
-		return keys;
 	}
 
 	/**

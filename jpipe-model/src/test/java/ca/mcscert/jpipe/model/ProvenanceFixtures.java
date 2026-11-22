@@ -6,7 +6,6 @@ import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Models built by hand as the compiler builds them, for tests that read ids
@@ -135,7 +134,7 @@ public final class ProvenanceFixtures {
 					new Evidence(source.getName() + ":" + e.id(), e.label())));
 		}
 		j.recordComposition(new Composition("assemble", sources, arguments,
-				Set.of("unifyExclude")));
+				Map.of("unifyExclude", Composition.Scope.RESULT)));
 		return j;
 	}
 }
