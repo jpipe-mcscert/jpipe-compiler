@@ -211,6 +211,13 @@ a load cycle and a FATAL whenever it also matches that file's name — which a
 catch-all such as `*.jd` always does; keep glob-loaded models in a directory of
 their own. See ADR-0022.
 
+The search follows symbolic links, as a literal path does: a linked directory is
+searched whether it is the anchor itself or lies below it. A link back to one of
+its own ancestors is skipped without a diagnostic, since everything behind it is
+already being searched. A file that matches through several paths, such as a
+link and its target, is loaded once, from the first of those paths in sorted
+order.
+
 ---
 
 ### Model-building steps

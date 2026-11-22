@@ -47,8 +47,11 @@ directive into many *files* worth of commands.
 Matching uses **glob** patterns via Java's native
 `FileSystems.getDefault().getPathMatcher("glob:" + pattern)`. Globs are the
 idiomatic, familiar way to match files, are safe, and require no manual tree
-walking beyond a `Files.walk`. True regular expressions on file paths are
-unusual and were rejected.
+walking beyond a `Files.walkFileTree`. The walk follows symbolic links, so a
+pattern sees a linked directory exactly as a literal path through the same link
+does; a link back to one of its own ancestors is skipped, and a file reached
+through several paths is matched once. True regular expressions on file paths
+are unusual and were rejected.
 
 Standard Java NIO glob semantics apply, matched against each candidate's path
 *relative to the pattern's anchor directory* (see below):
