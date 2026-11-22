@@ -6,11 +6,11 @@
 
 ## Context
 
-jPipe is distributed through Maven Central and consumed by downstream projects that implement custom operators via `jpipe-operators`. Stale dependencies accumulate security vulnerabilities and compatibility debt; but taking a breaking release by surprise destabilises the build and disrupts downstream consumers.
+jPipe is distributed as a command-line tool, through Homebrew, an Ubuntu PPA and Scoop (ADR-0025), and other tools build on it: the VS Code extension, jpipe-runner, and users' CI pipelines. Its Java modules are not published (ADR-0001). Stale dependencies accumulate security vulnerabilities and compatibility debt; but taking a breaking release by surprise destabilises the build and disrupts the tools and users that depend on jPipe.
 
 Two tensions must be balanced:
 
-- **Java version** — non-LTS Java releases receive only six months of support. Targeting a non-LTS version locks downstream users into a short-lived runtime. LTS releases (8, 11, 17, 21, 25, …) receive multi-year support and are the practical baseline for production deployments.
+- **Java version** — non-LTS Java releases receive only six months of support. Targeting a non-LTS version locks users into a short-lived runtime, which every install channel then has to provide. LTS releases (8, 11, 17, 21, 25, …) receive multi-year support and are the practical baseline for production deployments.
 - **Library versions** — always running latest gives the most security patches and API improvements, but introduces breaking changes unpredictably. Never updating accumulates CVEs and misses performance fixes.
 
 A review held only at release time lets a whole cycle of updates pile up into one release-day diff, and covers nothing the Maven Versions Plugin cannot see — the GitHub Actions the workflows run, for one. The other jPipe projects take weekly, grouped updates from Dependabot: the VS Code extension (jpipe-vscode ADR-VSC-0013) and the runner (jpipe-runner ADR-0026).
@@ -63,7 +63,7 @@ Dependabot security updates are enabled on the repository. **Security patches** 
 - Weekly updates spread the work across the cycle instead of concentrating it on release day.
 - One pull request a week is one branch to verify and merge, and dependencies that must match cannot be split across two. The cost is that a failing update fails the whole week, which jpipe-vscode ADR-VSC-0013 found with a grouped major on its first run: the failure is fixed on that branch, or the update is held, instead of reviewing a pull request per group every week.
 - Holding a major only with a written reason keeps the list of holds short and each one re-examinable at release time.
-- Targeting only LTS Java versions protects downstream projects (IDE plugins, CI integrations, operator authors) from being forced onto short-lived runtimes.
+- Targeting only LTS Java versions protects users and the tools built on jPipe (IDE plugins, CI integrations) from being forced onto short-lived runtimes.
 - Distinguishing security patches from routine updates lets the project respond to CVEs without waiting for a planned release.
 - The cadence and the holds follow the other jPipe projects. This one departs from them in taking a week's updates as one pull request, and in keeping `SONAR_TOKEN` out of Dependabot's reach (see *Consequences*).
 
