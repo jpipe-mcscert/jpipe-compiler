@@ -30,4 +30,9 @@ public record CompilationConfig(String inputFile, String outputFile,
 	public static boolean isStdin(String source) {
 		return STDIN.equals(source);
 	}
+
+	/** Whether {@code target} is standard output. */
+	public static boolean isStdout(String target) {
+		return STDOUT.equals(target);
+	}
 }

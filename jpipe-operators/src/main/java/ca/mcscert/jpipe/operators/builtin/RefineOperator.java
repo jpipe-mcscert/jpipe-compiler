@@ -23,7 +23,6 @@ import java.util.Set;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.Evidence;
-import ca.mcscert.jpipe.model.elements.Strategy;
 import java.util.stream.Collectors;
 
 /**
@@ -160,19 +159,10 @@ public final class RefineOperator extends CompositionOperator {
 		if (!(element instanceof Evidence
 				|| element instanceof AbstractSupport)) {
 			throw new InvalidOperatorCallException("hook '" + hook + "' is a "
-					+ kindOf(element) + " of '" + base.getName()
+					+ element.kind() + " of '" + base.getName()
 					+ "': only an evidence or a @support can be refined");
 		}
 		return element;
-	}
-
-	private static String kindOf(JustificationElement element) {
-		return switch (element) {
-			case Conclusion _ -> "conclusion";
-			case SubConclusion _ -> "sub-conclusion";
-			case Strategy _ -> "strategy";
-			default -> element.getClass().getSimpleName();
-		};
 	}
 
 	// ── Helpers

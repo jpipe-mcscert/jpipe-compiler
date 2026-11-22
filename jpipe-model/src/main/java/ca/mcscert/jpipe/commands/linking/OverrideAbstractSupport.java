@@ -113,10 +113,8 @@ public final class OverrideAbstractSupport implements MacroCommand {
 		// placeholder that supports none is still replaced: that is a mistake
 		// of its template, reported there once, not in every justification
 		// that overrides it (#183).
-		List<String> strategyIds = model.strategies().stream()
-				.filter(s -> s.getSupports().stream()
-						.anyMatch(sl -> sl.id().equals(old.id())))
-				.map(JustificationElement::id).toList();
+		List<String> strategyIds = model.strategiesSupportedBy(old.id())
+				.stream().map(JustificationElement::id).toList();
 
 		// Act on the id the placeholder actually has, which the short-name
 		// fallback of findById may have resolved: removing and rewiring the

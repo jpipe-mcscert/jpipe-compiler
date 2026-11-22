@@ -1,7 +1,6 @@
 package ca.mcscert.jpipe.commands.creation;
 
 import ca.mcscert.jpipe.model.SourceLocation;
-import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.Strategy;
 
 /** Creates a {@link Strategy} inside a justification. */
@@ -17,24 +16,7 @@ public final class CreateStrategy extends AbstractElementCreationCommand {
 	}
 
 	@Override
-	public ElementCreationCommand withId(String newId) {
-		return new CreateStrategy(container, newId, label, location);
-	}
-
-	@Override
 	public Strategy element() {
 		return new Strategy(identifier, label);
-	}
-
-	@Override
-	public void doExecute(Unit context) {
-		context.addInto(container, element());
-		context.recordLocation(container, identifier, location);
-	}
-
-	@Override
-	public String toString() {
-		return "create_strategy('" + container + "', '" + identifier + "', '"
-				+ label + "').";
 	}
 }

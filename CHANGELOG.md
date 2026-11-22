@@ -18,6 +18,11 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+- A `load` pattern without `**` only searches as deep as it can match, so
+  `load "*.jd"` no longer walks the whole directory tree below it (`.git`,
+  build outputs) and no longer fails on an unreadable directory there.
+
 ---
 
 ## [4.0.0] — 2026-11-19

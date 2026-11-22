@@ -347,6 +347,27 @@ class LoadResolverGlobTest {
 
 	@Test
 	@DisabledOnOs(OS.WINDOWS)
+	void aGlobDoesNotDescendBelowWhatItCanMatch() throws IOException {
+		// "*.jd" cannot cross a '/', so the walk never enters "locked": an
+		// unreadable directory there is no reason to fail the load.
+		writeTemplate("a.jd", "alpha");
+		Path locked = Files.createDirectories(dir.resolve("locked"));
+		writeTemplate("locked/b.jd", "beta");
+		Files.setPosixFilePermissions(locked,
+				PosixFilePermissions.fromString("---------"));
+		assumeFalse(Files.isReadable(locked), "running with root privileges");
+		try {
+			CompilationContext ctx = compile("*.jd", null);
+
+			assertThat(ctx.hasFatalErrors()).isFalse();
+		} finally {
+			Files.setPosixFilePermissions(locked,
+					PosixFilePermissions.fromString("rwxr-xr-x"));
+		}
+	}
+
+	@Test
+	@DisabledOnOs(OS.WINDOWS)
 	void aLinkedFileResolvesItsLoadsFromWhereItIsLinked() throws IOException {
 		// Its real path is only its identity: its own relative loads resolve
 		// from the link's directory, as when it is compiled through the link.

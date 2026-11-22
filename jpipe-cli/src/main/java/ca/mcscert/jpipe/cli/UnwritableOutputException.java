@@ -19,7 +19,7 @@ final class UnwritableOutputException extends IOException {
 	}
 
 	private static String describe(String target) {
-		return CompilationConfig.STDOUT.equals(target)
+		return CompilationConfig.isStdout(target)
 				? "cannot write to standard output"
 				: "cannot write '" + target + "'";
 	}
