@@ -47,8 +47,8 @@ class CompositionOperatorTest {
 
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
-				List<JustificationModel> sources, Map<String, String> arguments,
-				Map<String, String> knownAliases) {
+				List<JustificationModel> sources,
+				Map<String, String> arguments) {
 			return new SameShortId();
 		}
 
@@ -106,8 +106,8 @@ class CompositionOperatorTest {
 
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
-				List<JustificationModel> sources, Map<String, String> arguments,
-				Map<String, String> knownAliases) {
+				List<JustificationModel> sources,
+				Map<String, String> arguments) {
 			return (a, b) -> false;
 		}
 
@@ -247,9 +247,8 @@ class CompositionOperatorTest {
 		@Test
 		void transitiveAliasesFromSourceModelsAreCarriedForward() {
 			// Simulate a source model "src" whose element "c" was previously
-			// unified into "unified_0". The knownAliases map records
-			// "src/c" -> "unified_0" (as would be produced by a prior
-			// assemble).
+			// unified into "unified_0". Its aliases record "c" -> "unified_0"
+			// (as would be produced by a prior assemble).
 			// The operator then merges "unified_0" into a new id. After
 			// apply(),
 			// the result must contain a RegisterAlias entry so that the
@@ -259,11 +258,10 @@ class CompositionOperatorTest {
 			Justification src = buildJustification("src",
 					List.of(new CreateConclusion("src", "unified_0", "C")));
 
-			Map<String, String> knownAliases = Map.of("src/c", "unified_0");
+			src.recordAlias("c", "unified_0");
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(src), Map.of(), SourceLocation.UNKNOWN, Map.of(),
-					knownAliases);
+					List.of(src), Map.of(), SourceLocation.UNKNOWN, Map.of());
 
 			// The TestOperator merges by short-id: "unified_0" stays as
 			// "unified_0".

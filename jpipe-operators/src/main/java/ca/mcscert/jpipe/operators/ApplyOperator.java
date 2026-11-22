@@ -223,8 +223,7 @@ public final class ApplyOperator implements MacroCommand {
 		// is the one the composition actually produced.
 		Map<String, String> arguments = argumentsIn(sources, op);
 		List<Command> composed = op.apply(config.resultName(), sources,
-				arguments, config.location(), context.locations(),
-				context.aliases());
+				arguments, config.location(), context.locations());
 		ModelKind actualKind = composed.getFirst() instanceof CreateTemplate
 				? ModelKind.TEMPLATE
 				: ModelKind.JUSTIFICATION;

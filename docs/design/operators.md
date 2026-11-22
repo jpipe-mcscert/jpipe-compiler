@@ -182,7 +182,6 @@ package "operators" {
 
   class ElementGroup <<record>> {
     + members() : List<SourcedElement>
-    + elements() : List<JustificationElement>
   }
 
   class AliasRegistry {

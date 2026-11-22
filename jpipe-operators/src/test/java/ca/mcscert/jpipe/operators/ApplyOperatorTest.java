@@ -39,8 +39,8 @@ class ApplyOperatorTest {
 
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
-				List<JustificationModel> sources, Map<String, String> arguments,
-				Map<String, String> knownAliases) {
+				List<JustificationModel> sources,
+				Map<String, String> arguments) {
 			return (a, b) -> false;
 		}
 

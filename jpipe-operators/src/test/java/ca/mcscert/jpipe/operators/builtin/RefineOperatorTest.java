@@ -240,15 +240,15 @@ class RefineOperatorTest {
 		@Test
 		void hookCanBeReferencedByAlias() {
 			// Simulates refine(src, refinement) when "e" in src was unified
-			// into "unified_0" by a prior composition step. The alias map
-			// contains "src/e" → "unified_0".
+			// into "unified_0" by a prior composition step. Its aliases
+			// record "e" → "unified_0".
 			var src = buildUnifiedSource();
 			var refinement = buildRefinement();
-			Map<String, String> knownAliases = Map.of("src/e", "unified_0");
+			src.recordAlias("e", "unified_0");
 
 			List<Command> cmds = refine.apply("refined",
 					List.of(src, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of(), knownAliases);
+					SourceLocation.UNKNOWN, Map.of());
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -334,10 +334,10 @@ class RefineOperatorTest {
 		void a_hook_renamed_by_several_compositions_is_found() {
 			// One step only used to be followed (#181).
 			Justification base = buildUnifiedSource();
-			Map<String, String> aliases = Map.of("src/r1:a:e", "r1:unified_0",
-					"src/r1:unified_0", "unified_0");
+			base.recordAlias("r1:a:e", "r1:unified_0");
+			base.recordAlias("r1:unified_0", "unified_0");
 
-			assertThat(RefineOperator.resolveHook(base, "r1:a:e", aliases).id())
+			assertThat(RefineOperator.resolveHook(base, "r1:a:e").id())
 					.isEqualTo("unified_0");
 		}
 

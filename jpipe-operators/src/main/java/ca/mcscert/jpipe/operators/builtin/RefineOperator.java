@@ -1,6 +1,5 @@
 package ca.mcscert.jpipe.operators.builtin;
 
-import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
 import ca.mcscert.jpipe.commands.creation.CreateJustification;
@@ -16,7 +15,6 @@ import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.operators.InvalidOperatorCallException;
 import ca.mcscert.jpipe.operators.MergeFunction;
 import ca.mcscert.jpipe.operators.SourcedElement;
-import ca.mcscert.jpipe.util.Aliases;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,16 +81,14 @@ public final class RefineOperator extends CompositionOperator {
 
 	@Override
 	protected EquivalenceRelation equivalenceRelation(
-			List<JustificationModel> sources, Map<String, String> arguments,
-			Map<String, String> knownAliases) {
+			List<JustificationModel> sources, Map<String, String> arguments) {
 		if (sources.size() != 2) {
 			throw new InvalidOperatorCallException(
 					"refine requires exactly 2 sources, got " + sources.size());
 		}
 		JustificationModel base = sources.get(0);
 		JustificationModel refinement = sources.get(1);
-		String resolvedHookId = resolveHook(base, arguments.get(HOOK_ID),
-				knownAliases).id();
+		String resolvedHookId = resolveHook(base, arguments.get(HOOK_ID)).id();
 
 		return (a, b) -> a instanceof SourcedElement sa
 				&& b instanceof SourcedElement sb
@@ -131,19 +127,18 @@ public final class RefineOperator extends CompositionOperator {
 	}
 
 	/**
-	 * The element of {@code base} that {@code hook} names: through the unit's
+	 * The element of {@code base} that {@code hook} names: through the base's
 	 * aliases, followed to the end of the chain, since an element can have been
 	 * renamed by several composition steps, then by id, or by the one inherited
 	 * element whose qualified id ends with it. It must be an evidence or an
 	 * abstract support: only a leaf can be refined (#181).
 	 */
 	static JustificationElement resolveHook(JustificationModel base,
-			String hook, Map<String, String> knownAliases) {
-		// The unit's aliases form chains, one link per composition step, and
+			String hook) {
+		// A model's aliases form chains, one link per composition step, and
 		// exporters read them as such (an id that is the target of an alias
 		// is an intermediate merge result): followed to the end here.
-		String id = Aliases.follow(hook,
-				i -> knownAliases.get(Unit.registryKey(base.getName(), i)));
+		String id = base.resolveAlias(hook);
 		JustificationElement element = base.findById(id)
 				.orElseThrow(() -> new InvalidOperatorCallException(
 						"hook element '" + hook + "' not found in base model '"

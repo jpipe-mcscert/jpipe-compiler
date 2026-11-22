@@ -7,9 +7,9 @@ import java.util.Optional;
 
 /**
  * Records that {@code oldId} inside a result model is an alias for the merged
- * element {@code newId}. Persisted to {@link Unit} so that post-composition
+ * element {@code newId}. Recorded on the result model, so that post-composition
  * symbol lookups can resolve original element names through
- * {@link Unit#resolveAlias}.
+ * {@link ca.mcscert.jpipe.model.JustificationModel#resolveAlias}.
  */
 public final class RegisterAlias extends RegularCommand {
 

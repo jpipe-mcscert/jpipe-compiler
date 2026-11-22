@@ -56,10 +56,9 @@ public final class CollectDiagnostics
 	 */
 	public DiagnosticSnapshot snapshot(Unit input, CompilationContext ctx) {
 		Map<String, List<ImplementorInfo>> implementors = implementorsOf(input);
-		Map<String, Map<String, String>> aliases = groupAliasesByModel(input);
 		List<ModelInfo> models = new ArrayList<>();
 		for (JustificationModel model : input.getModels()) {
-			models.add(describe(input, model, implementors, aliases));
+			models.add(describe(input, model, implementors));
 		}
 		return new DiagnosticSnapshot(ctx.sourcePath(), ctx.diagnostics(),
 				ctx.stats(), List.copyOf(models), actionsOf(ctx));
@@ -70,8 +69,7 @@ public final class CollectDiagnostics
 	// -------------------------------------------------------------------------
 
 	private ModelInfo describe(Unit unit, JustificationModel model,
-			Map<String, List<ImplementorInfo>> implementors,
-			Map<String, Map<String, String>> aliasesByModel) {
+			Map<String, List<ImplementorInfo>> implementors) {
 		String name = model.getName();
 		boolean isTemplate = model instanceof Template;
 		String parent = model.getParent().map(JustificationModel::getName)
@@ -84,8 +82,7 @@ public final class CollectDiagnostics
 						? DiagnosticSnapshot.KIND_TEMPLATE
 						: DiagnosticSnapshot.KIND_JUSTIFICATION,
 				parent, unit.locationOf(name), countElements(model), usedBy,
-				collectSymbols(unit, model),
-				collectAliases(aliasesByModel.getOrDefault(name, Map.of())));
+				collectSymbols(unit, model), collectAliases(model.aliases()));
 	}
 
 	/** Maps each template name to the models implementing it. */
@@ -134,27 +131,6 @@ public final class CollectDiagnostics
 	private List<AliasInfo> collectAliases(Map<String, String> aliases) {
 		return aliases.entrySet().stream()
 				.map(e -> new AliasInfo(e.getKey(), e.getValue())).toList();
-	}
-
-	/**
-	 * Pre-groups the unit's alias map by model name for O(1) lookup per model.
-	 *
-	 * <p>
-	 * Alias keys use the convention {@code "modelName/elementId"}; the slash
-	 * separates the model scope from the element id within it.
-	 */
-	private static Map<String, Map<String, String>> groupAliasesByModel(
-			Unit unit) {
-		Map<String, Map<String, String>> byModel = new LinkedHashMap<>();
-		unit.aliases().forEach((key, newId) -> {
-			int slash = key.indexOf('/');
-			if (slash >= 0) {
-				byModel.computeIfAbsent(key.substring(0, slash),
-						k -> new LinkedHashMap<>())
-						.put(key.substring(slash + 1), newId);
-			}
-		});
-		return byModel;
 	}
 
 	// -------------------------------------------------------------------------
