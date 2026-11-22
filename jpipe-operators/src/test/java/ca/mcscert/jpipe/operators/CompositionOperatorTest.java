@@ -278,6 +278,43 @@ class CompositionOperatorTest {
 		}
 	}
 
+	/** An operator that forgets to choose the kind of its result. */
+	private static final class NoKindOperator extends CompositionOperator {
+
+		@Override
+		protected EquivalenceRelation equivalenceRelation(
+				List<JustificationModel> sources,
+				Map<String, String> arguments) {
+			return (x, y) -> false;
+		}
+
+		@Override
+		protected MergeFunction mergeFunction(List<JustificationModel> sources,
+				Map<String, String> arguments) {
+			return (r, g, a) -> List.of();
+		}
+
+		@Override
+		protected ModelKind resultKind(List<JustificationModel> sources,
+				Map<String, String> arguments, List<Command> elements) {
+			return null;
+		}
+	}
+
+	@Test
+	void anOperatorThatChoosesNoResultKindIsNamed() {
+		Justification j = buildJustification("j",
+				List.of(new CreateConclusion("j", "c", "C")));
+		var op = new NoKindOperator();
+		List<JustificationModel> sources = List.of(j);
+		Map<String, String> args = Map.of();
+
+		assertThatThrownBy(() -> op.apply("r", sources, args,
+				SourceLocation.UNKNOWN, Map.of()))
+				.isInstanceOf(NullPointerException.class)
+				.hasMessageContaining("NoKindOperator.resultKind");
+	}
+
 	@Nested
 	class RequiredArguments {
 
@@ -289,7 +326,7 @@ class CompositionOperatorTest {
 			List<JustificationModel> sources = List.of(j);
 			Map<String, String> args = Map.of();
 			assertThatThrownBy(() -> op.apply("result", sources, args,
-					SourceLocation.UNKNOWN, Map.of()).commands())
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("mode");
 		}

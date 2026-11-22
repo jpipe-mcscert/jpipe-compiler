@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -230,7 +231,9 @@ public abstract class CompositionOperator {
 					group.members().size());
 			elements.addAll(merge.merge(resultName, group, aliases));
 		}
-		ModelKind kind = resultKind(sources, args, elements);
+		ModelKind kind = Objects.requireNonNull(
+				resultKind(sources, args, elements),
+				() -> getClass().getSimpleName() + ".resultKind returned null");
 		commands.add(kind == ModelKind.TEMPLATE
 				? new CreateTemplate(resultName, location)
 				: new CreateJustification(resultName, location));

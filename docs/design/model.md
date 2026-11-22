@@ -165,8 +165,9 @@ when its `condition()` holds and, for `ImplementsTemplate`, `AddSupport` and
 `ApplyOperator` wait until the models they `reads()` are settled
 (`PendingCommands.settled`). A command declares whether its failure leaves
 its target unusable (`breaksItsTarget()`: an `implements`, an operator call),
-and records what its failure leaves behind (`recordFailure(Unit)`). A model
-whose `implements` failed or never ran is so marked incomplete on the `Unit`
+and records what its failure leaves behind (`recordFailure(Unit)`). The target
+of such a command that failed or never ran, a model whose `implements` did not
+apply or the result of an operator call, is so marked incomplete on the `Unit`
 (`markIncomplete`): nothing consumes it, and the validators skip it, since its
 gaps follow from a failure already reported. An override that fails records
 the placeholders it leaves (`recordFailedOverride`).

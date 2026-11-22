@@ -400,9 +400,8 @@ class AssembleOperatorTest {
 			var a = buildJustification("a", "C", "S", "E");
 			List<JustificationModel> sources = List.of(a);
 			var args = Map.of("strategyLabel", "s");
-			assertThatThrownBy(() -> assemble
-					.apply("r", sources, args, SourceLocation.UNKNOWN, Map.of())
-					.commands())
+			assertThatThrownBy(() -> assemble.apply("r", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("conclusionLabel");
 		}
@@ -412,9 +411,8 @@ class AssembleOperatorTest {
 			var a = buildJustification("a", "C", "S", "E");
 			List<JustificationModel> sources = List.of(a);
 			var args = Map.of("conclusionLabel", "c");
-			assertThatThrownBy(() -> assemble
-					.apply("r", sources, args, SourceLocation.UNKNOWN, Map.of())
-					.commands())
+			assertThatThrownBy(() -> assemble.apply("r", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("strategyLabel");
 		}
