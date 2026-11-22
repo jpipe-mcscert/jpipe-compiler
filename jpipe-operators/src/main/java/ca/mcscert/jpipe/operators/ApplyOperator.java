@@ -9,12 +9,13 @@ import ca.mcscert.jpipe.model.QualifiedIdReadings.SourceReading;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.Optional;
 import ca.mcscert.jpipe.commands.PendingCommands;
-import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
 import ca.mcscert.jpipe.commands.linking.RecordComposition;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -241,9 +242,13 @@ public final class ApplyOperator implements MacroCommand {
 	 */
 	@Override
 	public boolean ready(Unit unit, PendingCommands pending) {
-		return condition().test(unit)
-				&& config.sourceNames().stream().noneMatch(pending::target)
-				&& config.sourceNames().stream().allMatch(unit::isComplete);
+		return condition().test(unit) && pending.settled(unit, reads());
+	}
+
+	/** The result of a call that fails is never built. */
+	@Override
+	public boolean breaksItsTarget() {
+		return true;
 	}
 
 	/**
@@ -257,14 +262,15 @@ public final class ApplyOperator implements MacroCommand {
 	public boolean runWhenStuck(Unit unit, PendingCommands pending) {
 		return condition().test(unit)
 				&& config.sourceNames().stream().allMatch(unit::isComplete)
-				&& config.sourceNames().stream()
-						.noneMatch(source -> pending.target(source,
-								c -> !(c instanceof ImplementsTemplate)));
+				&& config.sourceNames().stream().noneMatch(source -> pending
+						.target(source, c -> !c.breaksItsTarget()));
 	}
 
+	/** The sources, in call order: a cycle through them is told in it. */
 	@Override
 	public Set<String> reads() {
-		return Set.copyOf(config.sourceNames());
+		return Collections
+				.unmodifiableSet(new LinkedHashSet<>(config.sourceNames()));
 	}
 
 	@Override

@@ -249,7 +249,8 @@ execution and macro expansion (see `model.md` — Commands). The result is a
 fully populated `Unit`.
 
 A command that fails does not stop the execution: the engine is given a
-failure handler that records it, and the rest of the queue still runs, so that
+failure handler that records it, and lets the command record what its failure
+leaves behind (`Command.recordFailure`), and the rest of the queue still runs, so that
 one mistake gives one error rather than a cascade of reports about statements
 that never ran. `ExecutionFailureDiagnostics` then reports each failure at the
 location of its command (an operator call names the operator and the model it
@@ -261,7 +262,9 @@ command to a specific semantic `ERROR` (e.g. `[unknown-element]`; for an
 operator call, `[unknown-model]` naming each source model that does not exist)
 rather than propagating a raw exception. A command that only waits on a model
 whose own construction failed, directly or through other stuck calls, is not
-reported again: that failure is the one cause. Calls that only wait on each
+reported again: that failure is the one cause. The analysis follows what each
+command targets, reads and declares (`target()`, `reads()`, `declares()`,
+`breaksItsTarget()`), not its type; only the message text is per command type. Calls that only wait on each
 other are reported as never built. The partial `Unit` built so far is
 returned so that downstream diagnostic steps can still run.
 

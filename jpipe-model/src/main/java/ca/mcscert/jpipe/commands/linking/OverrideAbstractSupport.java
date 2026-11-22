@@ -97,6 +97,17 @@ public final class OverrideAbstractSupport implements MacroCommand {
 		};
 	}
 
+	/**
+	 * The placeholders this override names stay in the model, and are no second
+	 * mistake: the failure is reported where it is (#183). The model is still
+	 * checked.
+	 */
+	@Override
+	public void recordFailure(Unit unit) {
+		unit.findModel(container).ifPresent(m -> namedIds(m)
+				.forEach(id -> unit.recordFailedOverride(container, id)));
+	}
+
 	@Override
 	public List<Command> expand(Unit unit) {
 		JustificationModel model = unit.get(container);

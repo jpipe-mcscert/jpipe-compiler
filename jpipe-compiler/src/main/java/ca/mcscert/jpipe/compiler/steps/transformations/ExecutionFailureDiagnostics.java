@@ -59,11 +59,10 @@ final class ExecutionFailureDiagnostics {
 	 */
 	static void diagnoseDeadlock(List<Command> stuck, Unit unit,
 			Set<String> failed, CompilationContext ctx) {
-		Set<String> neverBuilt = stuck.stream().<String>mapMulti((cmd, out) -> {
-			if (cmd instanceof ApplyOperator c) {
-				out.accept(c.resultName());
-			}
-		}).collect(Collectors.toSet());
+		// The models a stuck command declares: results of operator calls.
+		Set<String> neverBuilt = stuck.stream()
+				.flatMap(cmd -> cmd.declares().stream())
+				.collect(Collectors.toSet());
 		// A model whose `implements` is stuck never got its inherited
 		// structure: what else waits in it is no separate mistake. The
 		// `implements` itself is diagnosed: an unknown model, or a cycle.
@@ -94,9 +93,11 @@ final class ExecutionFailureDiagnostics {
 
 	/**
 	 * The models whose absence is already explained: those that {@code failed}
-	 * to build, and, until nothing changes, the result of every stuck operator
-	 * call with a source that is explained or does not exist at all. Each such
-	 * call has a cause that is reported once, at its root (#183).
+	 * to build, and, until nothing changes, the target of every stuck command
+	 * that {@linkplain Command#breaksItsTarget() breaks it} and reads a model
+	 * that is explained or does not exist at all: the result of an operator
+	 * call. Each such command has a cause that is reported once, at its root
+	 * (#183).
 	 *
 	 * <p>
 	 * Calls that only wait on one another are left out: nothing else explains
@@ -109,12 +110,13 @@ final class ExecutionFailureDiagnostics {
 		while (grew) {
 			grew = false;
 			for (Command cmd : stuck) {
-				if (cmd instanceof ApplyOperator c
-						&& !broken.contains(c.resultName())
-						&& c.sourceNames().stream()
+				Optional<String> target = cmd.target();
+				if (cmd.breaksItsTarget() && target.isPresent()
+						&& !broken.contains(target.get())
+						&& cmd.reads().stream()
 								.anyMatch(name -> broken.contains(name)
 										|| isUnknown(name, unit, neverBuilt))) {
-					broken.add(c.resultName());
+					broken.add(target.get());
 					grew = true;
 				}
 			}
@@ -138,33 +140,28 @@ final class ExecutionFailureDiagnostics {
 	}
 
 	/**
-	 * The models a failing command leaves unusable: the result of an operator
-	 * call, a model whose template could not be implemented.
+	 * The models a failing command leaves unusable: the target of each that
+	 * {@linkplain Command#breaksItsTarget() breaks it}, the result of an
+	 * operator call, a model whose template could not be implemented. Any other
+	 * model is still whole: what waits on it is reported.
 	 */
 	static Set<String> brokenModels(List<CommandExecutionException> failures) {
-		Set<String> broken = new HashSet<>();
-		for (CommandExecutionException f : failures) {
-			switch (f.failedCommand()) {
-				case ApplyOperator c -> broken.add(c.resultName());
-				case ImplementsTemplate c -> broken.add(c.modelName());
-				default -> {
-					// The model is still whole: what waits on it is reported.
-				}
-			}
-		}
-		return broken;
+		return failures.stream().map(CommandExecutionException::failedCommand)
+				.filter(Command::breaksItsTarget)
+				.flatMap(cmd -> cmd.target().stream())
+				.collect(Collectors.toSet());
 	}
 
-	/** Whether {@code cmd} is stuck only because it uses a broken model. */
+	/**
+	 * Whether {@code cmd} is stuck only because it changes a broken model. A
+	 * command that gives a model its structure is never skipped: an
+	 * {@code implements} reports what is its own to report (an unknown model, a
+	 * cycle) and nothing else, and a call is judged source by source (see
+	 * diagnoseApplyOperator).
+	 */
 	private static boolean waitsOn(Command cmd, Set<String> broken) {
-		return switch (cmd) {
-			case AddSupport c -> broken.contains(c.container());
-			case OverrideAbstractSupport c -> broken.contains(c.container());
-			// Never skipped: diagnoseImplementsTemplate reports what is its own
-			// to report (an unknown model, a cycle) and nothing else.
-			// A call is judged source by source: see diagnoseApplyOperator.
-			default -> false;
-		};
+		return !cmd.breaksItsTarget()
+				&& cmd.target().filter(broken::contains).isPresent();
 	}
 
 	/**
@@ -347,18 +344,15 @@ final class ExecutionFailureDiagnostics {
 		return false;
 	}
 
-	/** The models the stuck commands building {@code model} wait on. */
+	/**
+	 * The models the stuck commands building {@code model} wait on: what each
+	 * stuck command that targets it reads.
+	 */
 	private static List<String> dependencies(String model,
 			List<Command> stuck) {
-		return stuck.stream().<String>mapMulti((cmd, out) -> {
-			if (cmd instanceof ImplementsTemplate i
-					&& i.modelName().equals(model)) {
-				out.accept(i.templateName());
-			} else if (cmd instanceof ApplyOperator a
-					&& a.resultName().equals(model)) {
-				a.sourceNames().forEach(out);
-			}
-		}).toList();
+		return stuck.stream()
+				.filter(cmd -> cmd.target().filter(model::equals).isPresent())
+				.flatMap(cmd -> cmd.reads().stream()).toList();
 	}
 
 	/**
