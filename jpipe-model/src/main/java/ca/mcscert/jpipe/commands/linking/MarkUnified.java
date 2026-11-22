@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.Optional;
@@ -41,5 +42,12 @@ public final class MarkUnified extends RegularCommand {
 	@Override
 	public String toString() {
 		return "markUnified('" + container + "', '" + id + "').";
+	}
+
+	/** Created while the unit is built, never read from a file. */
+	@Override
+	public Command withNamespace(String ns) {
+		throw new UnsupportedOperationException(
+				"MarkUnified is never read from a file");
 	}
 }

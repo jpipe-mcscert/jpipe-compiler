@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.creation;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
@@ -44,5 +45,16 @@ public final class CreateTemplate extends RegularCommand {
 	@Override
 	public String toString() {
 		return "create_template('" + identifier + "').";
+	}
+
+	@Override
+	public CreateTemplate withNamespace(String ns) {
+		return new CreateTemplate(QualifiedIds.qualify(ns, identifier),
+				location);
+	}
+
+	@Override
+	public Optional<String> declares() {
+		return Optional.of(identifier);
 	}
 }

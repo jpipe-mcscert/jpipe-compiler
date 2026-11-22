@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.commands;
 
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -63,6 +64,28 @@ public interface Command {
 	}
 
 	void execute(Unit context);
+
+	/**
+	 * This command, read from a file loaded under namespace {@code ns}: every
+	 * model name it holds is qualified by {@code ns}, and every qualified
+	 * element id too (see {@link QualifiedIds#inNamespace}); a plain element
+	 * id, a label or a type is unchanged. Each command type states how it is
+	 * namespaced, so that none escapes the namespace silently. A command the
+	 * compiler creates while building the unit is never read from a file, and
+	 * refuses.
+	 *
+	 * @throws UnsupportedOperationException
+	 *             if this command is never read from a file
+	 */
+	Command withNamespace(String ns);
+
+	/**
+	 * The model this command declares, if it starts a model's declaration: a
+	 * justification, a template, or the result of an operator call.
+	 */
+	default Optional<String> declares() {
+		return Optional.empty();
+	}
 
 	/**
 	 * Where the statement this command comes from is written, so that a failure

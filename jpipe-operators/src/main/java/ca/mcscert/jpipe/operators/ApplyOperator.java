@@ -70,6 +70,7 @@ public final class ApplyOperator implements MacroCommand {
 	 * segment of {@code both:a:e} is a model name, and which, is known only
 	 * from the models that exist (#178).
 	 */
+	@Override
 	public ApplyOperator withNamespace(String ns) {
 		OperatorCallConfig renamed = new OperatorCallConfig(
 				QualifiedIds.qualify(ns, config.resultName()),
@@ -171,6 +172,11 @@ public final class ApplyOperator implements MacroCommand {
 
 	public String resultName() {
 		return config.resultName();
+	}
+
+	@Override
+	public Optional<String> declares() {
+		return Optional.of(config.resultName());
 	}
 
 	public String operatorName() {

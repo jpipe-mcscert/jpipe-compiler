@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
@@ -61,5 +62,12 @@ public final class RegisterAlias extends RegularCommand {
 	public String toString() {
 		return "registerAlias('" + container + "', '" + oldId + "' -> '" + newId
 				+ "').";
+	}
+
+	/** Created while the unit is built, never read from a file. */
+	@Override
+	public Command withNamespace(String ns) {
+		throw new UnsupportedOperationException(
+				"RegisterAlias is never read from a file");
 	}
 }

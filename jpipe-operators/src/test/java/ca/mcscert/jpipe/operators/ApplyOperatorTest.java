@@ -102,6 +102,13 @@ class ApplyOperatorTest {
 		}
 
 		@Test
+		void declaresItsResult() {
+			var op = applyOperator("out", "noop", List.of(), Map.of(),
+					ModelKind.JUSTIFICATION);
+			assertThat(op.declares()).contains("out");
+		}
+
+		@Test
 		void operatorName() {
 			var op = applyOperator("out", "noop", List.of(), Map.of(),
 					ModelKind.JUSTIFICATION);

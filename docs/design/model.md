@@ -184,6 +184,8 @@ package "commands" {
     + target() : Optional<String>
     + location() : SourceLocation
     + execute(Unit) : void
+    + {abstract} withNamespace(ns) : Command
+    + declares() : Optional<String>
   }
 
   abstract class RegularCommand {

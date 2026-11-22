@@ -109,4 +109,10 @@ public final class ImplementsTemplate extends RegularCommand {
 	public String toString() {
 		return "implements('" + modelName + "', '" + templateName + "').";
 	}
+
+	@Override
+	public ImplementsTemplate withNamespace(String ns) {
+		return new ImplementsTemplate(QualifiedIds.qualify(ns, modelName),
+				QualifiedIds.qualify(ns, templateName), location);
+	}
 }

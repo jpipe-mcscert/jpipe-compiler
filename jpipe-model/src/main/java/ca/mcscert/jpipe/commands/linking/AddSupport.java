@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.model.Binding;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.SourceLocation;
@@ -146,5 +147,12 @@ public final class AddSupport extends RegularCommand {
 	public String toString() {
 		return "support('" + container + "', '" + supportableId + "', '"
 				+ supporterId + "').";
+	}
+
+	@Override
+	public AddSupport withNamespace(String ns) {
+		return new AddSupport(QualifiedIds.qualify(ns, container),
+				QualifiedIds.inNamespace(ns, supportableId),
+				QualifiedIds.inNamespace(ns, supporterId), location);
 	}
 }

@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.model.Binding;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.MacroCommand;
@@ -151,5 +152,12 @@ public final class OverrideAbstractSupport implements MacroCommand {
 	public String toString() {
 		return "override('" + container + "', '" + qualifiedId + "', " + newType
 				+ ", '" + label + "')";
+	}
+
+	@Override
+	public OverrideAbstractSupport withNamespace(String ns) {
+		return new OverrideAbstractSupport(QualifiedIds.qualify(ns, container),
+				QualifiedIds.inNamespace(ns, qualifiedId), newType, label,
+				location);
 	}
 }

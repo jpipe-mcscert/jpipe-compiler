@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.creation;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.SourceLocation;
@@ -44,5 +45,16 @@ public final class CreateJustification extends RegularCommand {
 	@Override
 	public String toString() {
 		return "create_justification('" + identifier + "').";
+	}
+
+	@Override
+	public CreateJustification withNamespace(String ns) {
+		return new CreateJustification(QualifiedIds.qualify(ns, identifier),
+				location);
+	}
+
+	@Override
+	public Optional<String> declares() {
+		return Optional.of(identifier);
 	}
 }

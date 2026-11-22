@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Composition;
 import ca.mcscert.jpipe.model.JustificationModel;
@@ -67,5 +68,12 @@ public final class RecordComposition extends RegularCommand {
 	public String toString() {
 		return "recordComposition('" + container + "', '" + operator + "', "
 				+ sourceNames + ").";
+	}
+
+	/** Created while the unit is built, never read from a file. */
+	@Override
+	public Command withNamespace(String ns) {
+		throw new UnsupportedOperationException(
+				"RecordComposition is never read from a file");
 	}
 }

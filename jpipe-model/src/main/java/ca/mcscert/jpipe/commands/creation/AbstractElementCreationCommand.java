@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.creation;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
@@ -83,4 +84,9 @@ abstract sealed class AbstractElementCreationCommand extends RegularCommand
 				+ "', '" + identifier + "', '" + label + "').";
 	}
 
+	@Override
+	public ElementCreationCommand withNamespace(String ns) {
+		return ElementCreationCommand.of(QualifiedIds.qualify(ns, container),
+				QualifiedIds.inNamespace(ns, identifier), element(), location);
+	}
 }

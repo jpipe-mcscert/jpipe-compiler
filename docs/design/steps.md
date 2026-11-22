@@ -189,7 +189,10 @@ in the expanded sub-list is qualified with `ns:` so that loaded models do not
 collide with locally declared ones: model declarations, `implements`, the result
 and sources of operator calls, and the qualified element ids of overrides and
 relations (`base:t:abs` becomes `ns:base:t:abs`), which name elements inherited
-from a model of that file. Plain element ids are local and unchanged.
+from a model of that file. Plain element ids are local and unchanged. Each
+command states how it is namespaced (`Command.withNamespace`), so a new command
+type cannot escape the namespace; a command the compiler creates while building
+the unit, such as `RegisterAlias`, is never read from a file and refuses.
 
 A file is identified by its real path, so a symbolic link or another spelling of
 the same file is loaded once. A load is skipped as a duplicate only when the
@@ -230,8 +233,9 @@ order.
 Reports every model declared under a name already taken, in this file or in a
 loaded one, as `duplicate-model` at the second declaration (naming where the
 first one is), and drops that declaration before any command runs. The
-commands of a declaration are contiguous — its creation (`CreateJustification`,
-`CreateTemplate` or `ApplyOperator`), then its body, up to the next creation —
+commands of a declaration are contiguous — its creation, the command whose
+`declares()` names a model (`CreateJustification`, `CreateTemplate` or
+`ApplyOperator`), then its body, up to the next creation —
 so the whole second declaration goes, and nothing it contains is added to the
 first model.
 
