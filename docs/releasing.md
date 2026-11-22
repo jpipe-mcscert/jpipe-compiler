@@ -28,9 +28,9 @@ MINOR, fixes alone are PATCH. What `pom.xml` currently says is *not* an input to
 this decision; Phase 1 sets the pom to whatever you choose here.
 
 **Review held-back dependencies** ([ADR-0007](adr/0007-dependency-freshness-policy.md)) —
-a required step, not optional housekeeping. Dependabot keeps minors and patches
-current on `dev` week by week; what is left is what it holds back (the majors
-ignored in `.github/dependabot.yml`) and any major pull request still open.
+a required step, not optional housekeeping. Dependabot keeps `dev` current week
+by week, in one pull request; what is left is what it holds back (the majors
+ignored in `.github/dependabot.yml`) and that pull request, if it is still open.
 Decide, for each, whether it stays held for another cycle:
 
 ```bash

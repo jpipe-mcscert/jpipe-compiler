@@ -26,11 +26,8 @@ The project targets the **current Java LTS release**. When a new LTS is publishe
 Dependabot (`.github/dependabot.yml`) proposes updates **weekly**, as pull requests into `dev`, the repository's default branch ([ADR-0024](0024-git-branching-model.md)). It covers three ecosystems: Maven, through the version properties of the root `pom.xml`; GitHub Actions; and pip, for the Python tools the documentation site is built with.
 
 - **Only stable releases are proposed.** Alpha, beta, milestone, release-candidate and snapshot versions are never offered while the project is on a stable version: Dependabot recognises these Maven qualifiers itself. A dependency that marks its pre-releases some other way (`-preview`, `-ea`) is given an explicit `ignore` entry.
-- **Minor and patch updates arrive grouped**: one pull request for libraries, one for build plugins, so a red build names one week's changes. They are merged as they arrive, once CI is green — not deferred to the next release.
-- **GitHub Actions arrive in one pull request, majors included.** The workflows pin each action by major tag, so every update is a major, and they are mostly runtime moves.
-- **Dependencies that must match move in one group, majors included**: the ANTLR runtime and its plugin (one `antlr4.version`), and JUnit Jupiter with the JUnit Platform.
-- **A date-versioned dependency** (`org.json`, versioned `YYYYMMDD`) has its own group that accepts every update, since each of its releases is a semver major.
-- **A major arrives as its own pull request** and is treated as a minor feature, not a routine update: the migration happens on that branch, and an ADR is updated when the change affects conventions.
+- **A week's updates arrive in one pull request**, majors included: Maven, pip and GitHub Actions join one Dependabot multi-ecosystem group. A round of updates is one branch, verified as a whole, and merged as it arrives, once CI is green — not deferred to the next release. Dependencies that must match — the ANTLR runtime and its plugin (one `antlr4.version`), JUnit Jupiter and the JUnit Platform — need no group of their own: they always move in the same pull request.
+- **A major is treated as a minor feature**, not a routine update: its migration happens on that week's branch, and an ADR is updated when the change affects conventions. A major that cannot be migrated that week is given a hold, with its reason, rather than holding the rest of the week back.
 - **A major is held entirely** only where it is more than a bump, with the reason written beside the hold in `dependabot.yml`: ANTLR (a new major changes the generated parser), Log4j (Log4j 3 changes the configuration and plugin model the fat JAR is built around), and the dependencies Cucumber declares as version ranges (see *Constraints*).
 
 All versions stay in `<properties>` in the root `pom.xml`, one property per version, so each update is a one-line, auditable diff.
@@ -43,7 +40,7 @@ The one exception is `jpipe-runner`, which `build.yml` installs by version range
 
 ### Release-time review
 
-Before each release, the Maven Versions Plugin lists what the holds and the unmerged majors keep back:
+Before each release, the Maven Versions Plugin lists what the holds, and a weekly pull request not yet merged, keep back:
 
 ```
 mvn versions:display-dependency-updates
@@ -63,12 +60,12 @@ Dependabot security updates are enabled on the repository. **Security patches** 
 
 ## Rationale
 
-- Weekly, grouped updates keep each change small and attributable, and spread the work across the cycle instead of concentrating it on release day.
-- Groups carry minor and patch only: a grouped major fails the whole group, which jpipe-vscode ADR-VSC-0013 found on its first run. A major on its own pull request is the dedicated branch its migration needs.
+- Weekly updates spread the work across the cycle instead of concentrating it on release day.
+- One pull request a week is one branch to verify and merge, and dependencies that must match cannot be split across two. The cost is that a failing update fails the whole week, which jpipe-vscode ADR-VSC-0013 found with a grouped major on its first run: the failure is fixed on that branch, or the update is held, instead of reviewing a pull request per group every week.
 - Holding a major only with a written reason keeps the list of holds short and each one re-examinable at release time.
 - Targeting only LTS Java versions protects downstream projects (IDE plugins, CI integrations, operator authors) from being forced onto short-lived runtimes.
 - Distinguishing security patches from routine updates lets the project respond to CVEs without waiting for a planned release.
-- The same policy across the jPipe projects means one way of handling an update pull request, whichever repository it lands in.
+- The cadence and the holds follow the other jPipe projects. This one departs from them in taking a week's updates as one pull request, and in keeping `SONAR_TOKEN` out of Dependabot's reach (see *Consequences*).
 
 ## Consequences
 
