@@ -18,7 +18,7 @@ package ca.mcscert.jpipe.compiler.model;
  */
 public abstract class Checker<I> extends Transformation<I, I> {
 
-	/** Functional interface for the {@link #of} factory. */
+	/** Functional interface for the {@link #checking} factory. */
 	@FunctionalInterface
 	public interface Check<I> {
 		void apply(I input, CompilationContext ctx);

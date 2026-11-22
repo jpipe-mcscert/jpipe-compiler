@@ -29,14 +29,9 @@ final class DiagnosticPrinter {
 	static void print(CompilationContext ctx) {
 		for (Diagnostic d : ctx.diagnostics()) {
 			if (d.isError()) {
-				String loc = d.hasLocation()
-						? d.source() + ":" + d.line() + ":" + d.column() + ": "
-						: d.source() + ": ";
 				String level = d.level().name().toLowerCase(Locale.ROOT);
-				String msg = d.hasCode()
-						? "[" + d.code() + "] " + d.message()
-						: d.message();
-				diagnostics.error("{}{}: {}", loc, level, msg);
+				diagnostics.error("{}: {}: {}", d.where(), level,
+						d.codedMessage());
 			}
 		}
 	}

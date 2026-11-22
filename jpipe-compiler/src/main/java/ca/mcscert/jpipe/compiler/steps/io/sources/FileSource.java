@@ -14,7 +14,7 @@ public final class FileSource extends Source<InputStream> {
 
 	@Override
 	public InputStream provideFrom(String sourceName) throws IOException {
-		if (sourceName.equals(CompilationConfig.STDIN)) {
+		if (CompilationConfig.isStdin(sourceName)) {
 			return System.in;
 		}
 		return new FileInputStream(sourceName);

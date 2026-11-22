@@ -63,7 +63,7 @@ final class OutputTarget {
 	 */
 	static OutputTarget open(String output, OutputStream stdout)
 			throws UnwritableOutputException {
-		if (CompilationConfig.STDOUT.equals(output)) {
+		if (CompilationConfig.isStdout(output)) {
 			return new OutputTarget(output, new Borrowed(stdout), null);
 		}
 		return new OutputTarget(output, null, check(output));
@@ -76,7 +76,7 @@ final class OutputTarget {
 	 */
 	static boolean sameFile(String input, String output) {
 		if (CompilationConfig.isStdin(input)
-				|| CompilationConfig.STDOUT.equals(output)) {
+				|| CompilationConfig.isStdout(output)) {
 			return false;
 		}
 		try {

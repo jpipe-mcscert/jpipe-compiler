@@ -209,9 +209,7 @@ public final class CompletenessValidator {
 				.map(JustificationElement::id).collect(Collectors.toSet());
 		template.abstractSupports().stream()
 				.filter(as -> !inherited.contains(as.id()))
-				.filter(as -> template.strategies().stream()
-						.noneMatch(s -> s.getSupports().stream()
-								.anyMatch(leaf -> leaf.id().equals(as.id()))))
+				.filter(as -> template.strategiesSupportedBy(as.id()).isEmpty())
 				.forEach(as -> violations.add(new Violation(
 						ABSTRACT_SUPPORT_USED,
 						"Abstract support '" + as.id() + "' in template '"

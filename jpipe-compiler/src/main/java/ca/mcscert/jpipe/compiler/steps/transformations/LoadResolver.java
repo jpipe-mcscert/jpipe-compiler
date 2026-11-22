@@ -262,7 +262,7 @@ public final class LoadResolver
 
 		List<Path> matches;
 		try {
-			matches = matchGlob(anchored.root(), matcher);
+			matches = matchGlob(anchored.root(), anchored.pattern(), matcher);
 		} catch (IOException e) {
 			ctx.fatal(load.location(), cannotExpand(load, e));
 			return List.of();
@@ -436,13 +436,23 @@ public final class LoadResolver
 	 * Standard glob semantics apply: {@code *} does not cross directory
 	 * boundaries, while {@code **} does.
 	 *
+	 * <p>
+	 * Without {@code **}, nothing in {@code pattern} crosses a {@code /}, so no
+	 * match lies deeper than one level per {@code /} it holds, plus one: the
+	 * walk stops there rather than descending the whole tree under {@code root}
+	 * ({@code .git}, build outputs), and a directory it cannot read below that
+	 * depth no longer fails the load.
+	 *
 	 * @throws IOException
 	 *             if walking {@code root} fails; reported as a FATAL by the
 	 *             caller so an IO failure is not misclassified as a no-match.
 	 */
-	private static List<Path> matchGlob(Path root, PathMatcher matcher)
-			throws IOException {
-		try (Stream<Path> walk = Files.walk(root)) {
+	private static List<Path> matchGlob(Path root, String pattern,
+			PathMatcher matcher) throws IOException {
+		int depth = pattern.contains("**")
+				? Integer.MAX_VALUE
+				: (int) pattern.chars().filter(c -> c == '/').count() + 1;
+		try (Stream<Path> walk = Files.walk(root, depth)) {
 			return walk.filter(Files::isRegularFile)
 					.filter(p -> matcher.matches(root.relativize(p)))
 					.map(p -> p.toAbsolutePath().normalize()).sorted().toList();

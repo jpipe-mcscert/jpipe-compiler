@@ -315,6 +315,15 @@ public abstract sealed class JustificationModel
 	}
 
 	/**
+	 * The strategies of this model that {@code leafId} supports, in model
+	 * order.
+	 */
+	public List<Strategy> strategiesSupportedBy(String leafId) {
+		return strategies().stream().filter(s -> s.getSupports().stream()
+				.anyMatch(leaf -> leaf.id().equals(leafId))).toList();
+	}
+
+	/**
 	 * Returns {@code true} when the conclusion was defined directly in this
 	 * model, i.e. it was not inherited from a parent template via
 	 * {@link #inline}. Returns {@code false} when there is no conclusion yet or

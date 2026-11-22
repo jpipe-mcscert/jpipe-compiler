@@ -118,10 +118,8 @@ final class TemplateLayout {
 	 * from it; see throughPlaceholder.
 	 */
 	List<Strategy> supportedThroughPlaceholder(Node placeholder) {
-		return model.strategies().stream()
-				.filter(s -> s.getSupports().stream()
-						.anyMatch(leaf -> leaf.id().equals(placeholder.id()))
-						&& throughPlaceholder(placeholder.id(), s.id()))
+		return model.strategiesSupportedBy(placeholder.id()).stream()
+				.filter(s -> throughPlaceholder(placeholder.id(), s.id()))
 				.toList();
 	}
 
