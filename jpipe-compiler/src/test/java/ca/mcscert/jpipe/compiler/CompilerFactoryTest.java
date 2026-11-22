@@ -19,12 +19,6 @@ class CompilerFactoryTest {
 		assertThat(CompilerFactory.unitBuilder()).isNotNull();
 	}
 
-	@Test
-	void buildDiagnosticCompiler_returns_non_null() {
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		assertThat(CompilerFactory.buildDiagnosticCompiler(out)).isNotNull();
-	}
-
 	@ParameterizedTest
 	@EnumSource(DiagnosticFormat.class)
 	void buildDiagnosticCompiler_supports_every_format(

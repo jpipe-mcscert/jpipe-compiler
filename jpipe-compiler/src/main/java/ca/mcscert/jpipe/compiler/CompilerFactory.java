@@ -80,7 +80,12 @@ public final class CompilerFactory {
 	 *            stream to use when the output target is
 	 *            {@link CompilationConfig#STDOUT}.
 	 * @return a ready-to-use {@link Compiler}.
+	 * @deprecated nothing in jPipe calls it; call
+	 *             {@link #buildDiagnosticCompiler(DiagnosticFormat, OutputStream)}
+	 *             with {@link DiagnosticFormat#TEXT}. To be removed in the next
+	 *             major release.
 	 */
+	@Deprecated(since = "4.1.0", forRemoval = true)
 	public static Compiler buildDiagnosticCompiler(OutputStream stdout) {
 		return buildDiagnosticCompiler(DiagnosticFormat.TEXT, stdout);
 	}

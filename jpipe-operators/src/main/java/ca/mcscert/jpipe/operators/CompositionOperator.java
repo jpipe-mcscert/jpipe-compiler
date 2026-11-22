@@ -172,7 +172,12 @@ public abstract class CompositionOperator {
 	 *             from {@code arguments}, if a key is neither required,
 	 *             optional ({@link #optionalArguments()}) nor a unification
 	 *             key, or if a source model is given more than once
+	 * @deprecated nothing in jPipe calls it; call
+	 *             {@link #apply(String, List, Map, SourceLocation, Map)} with
+	 *             {@link SourceLocation#UNKNOWN} and {@code Map.of()}. To be
+	 *             removed in the next major release.
 	 */
+	@Deprecated(since = "4.1.0", forRemoval = true)
 	public final List<Command> apply(String resultName,
 			List<JustificationModel> sources, Map<String, String> arguments) {
 		return apply(resultName, sources, arguments, SourceLocation.UNKNOWN);
@@ -191,7 +196,11 @@ public abstract class CompositionOperator {
 	 *             from {@code arguments}, if a key is neither required,
 	 *             optional ({@link #optionalArguments()}) nor a unification
 	 *             key, or if a source model is given more than once
+	 * @deprecated nothing in jPipe calls it; call
+	 *             {@link #apply(String, List, Map, SourceLocation, Map)} with
+	 *             {@code Map.of()}. To be removed in the next major release.
 	 */
+	@Deprecated(since = "4.1.0", forRemoval = true)
 	public final List<Command> apply(String resultName,
 			List<JustificationModel> sources, Map<String, String> arguments,
 			SourceLocation location) {

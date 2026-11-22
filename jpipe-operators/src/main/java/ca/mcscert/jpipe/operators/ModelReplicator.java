@@ -28,7 +28,12 @@ import java.util.List;
  * When used inside a {@link MergeFunction}, the caller is responsible for
  * registering aliases in the {@link AliasRegistry} — this utility does not
  * touch the registry.
+ *
+ * @deprecated nothing in jPipe uses it: the operators copy source elements in
+ *             their own partition phase. To be removed in the next major
+ *             release.
  */
+@Deprecated(since = "4.1.0", forRemoval = true)
 public final class ModelReplicator {
 
 	private ModelReplicator() {

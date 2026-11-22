@@ -18,6 +18,16 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Deprecated
+- Public API that nothing in jPipe uses is deprecated for removal in the next
+  major release, each with its replacement named in its javadoc (#214):
+  `NoOpJustificationVisitor`, `ModelReplicator`, `ElementGroup.elements()`,
+  `AbstractModelExporter.qualifiedAliasesOf` (use `qualifiedOriginalsOf`),
+  `CompilerFactory.buildDiagnosticCompiler(OutputStream)`, and the three- and
+  four-argument `CompositionOperator.apply` overloads (use the five-argument
+  one). Code that uses them still compiles and behaves the same, with a
+  removal warning.
+
 ### Fixed
 - A `load` pattern without `**` only searches as deep as it can match, so
   `load "*.jd"` no longer walks the whole directory tree below it (`.git`,

@@ -120,7 +120,13 @@ public abstract class AbstractModelExporter
 	 * {@code plainElementId}, or an empty list when the element is not the
 	 * target of any alias. Requires {@link #initAliases(JustificationModel)} to
 	 * have been called first.
+	 *
+	 * @deprecated it follows one alias hop and stops at an intermediate id when
+	 *             compositions are chained; use
+	 *             {@link #qualifiedOriginalsOf(String)}. To be removed in the
+	 *             next major release.
 	 */
+	@Deprecated(since = "4.1.0", forRemoval = true)
 	protected final List<String> qualifiedAliasesOf(String plainElementId) {
 		List<String> originals = aliasesByTarget.get(plainElementId);
 		if (originals == null) {
@@ -136,9 +142,9 @@ public abstract class AbstractModelExporter
 	 * <p>
 	 * A composition applied to the result of another composition records a
 	 * chain ({@code a -> merged -> unified_0}) rather than a flat mapping, so a
-	 * one-hop lookup ({@link #qualifiedAliasesOf(String)}) stops at the
-	 * intermediate and loses the id the user actually wrote. The returned list
-	 * holds both the intermediates and the leaves, nearest first.
+	 * one-hop lookup would stop at the intermediate and lose the id the user
+	 * actually wrote. The returned list holds both the intermediates and the
+	 * leaves, nearest first.
 	 */
 	protected final List<String> qualifiedOriginalsOf(String plainElementId) {
 		return collectOriginals(plainElementId, false);

@@ -21,7 +21,11 @@ import ca.mcscert.jpipe.model.elements.SubConclusion;
  *
  * @param <R>
  *            return type of each visit method
+ * @deprecated nothing in jPipe extends it; implement
+ *             {@link JustificationVisitor} directly. To be removed in the next
+ *             major release.
  */
+@Deprecated(since = "4.1.0", forRemoval = true)
 public abstract class NoOpJustificationVisitor<R>
 		implements
 			JustificationVisitor<R> {
