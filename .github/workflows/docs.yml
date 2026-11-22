@@ -26,7 +26,19 @@ on:
       - 'CITATION.cff'
       - 'LICENSE'
       - 'code-of-conduct.md'
+  # A change to the site's toolchain is built, not deployed, in its pull
+  # request: a lock that cannot be installed (no wheel for a new version, a
+  # requirements.in edited without recompiling it) fails there rather than
+  # in the first deploy after the merge (#208).
+  pull_request:
+    paths:
+      - 'docs/requirements.in'
+      - 'docs/requirements.txt'
+      - 'mkdocs.yml'
+      - 'jpipe-lang/gen_railroad.py'
+      - '.github/workflows/docs.yml'
 
+# Pull requests from Dependabot and from forks get a read-only token anyway.
 permissions:
   contents: write
 
@@ -85,5 +97,10 @@ jobs:
             -e 's|^  - |    - |g' \
             README.md > docs/index.md
 
+      - name: Build the site
+        if: github.event_name == 'pull_request'
+        run: mkdocs build
+
       - name: Deploy to GitHub Pages
+        if: github.event_name == 'push'
         run: mkdocs gh-deploy --force

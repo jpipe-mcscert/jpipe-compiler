@@ -90,9 +90,10 @@ updates:
       - dependency-name: "org.apache.logging.log4j:log4j-core"
         update-types: ["version-update:semver-major"]
       # Pinned only because Cucumber declares them as version ranges (#207, see
-      # `cucumber.version` in the pom). Each of those ranges stops below the next major, so a
-      # major here would leave the range Cucumber was built against. They move to a new
-      # major by hand, with the Cucumber update that widens its range.
+      # `cucumber.version` in the pom). For each of them, the narrowest range Cucumber's own
+      # artifacts declare stops below the next major, so a major here would leave the range
+      # Cucumber was built against. They move to a new major by hand, with the Cucumber update
+      # that widens those ranges; build.yml fails on a pin outside a declared range.
       - dependency-name: "org.jspecify:jspecify"
         update-types: ["version-update:semver-major"]
       - dependency-name: "io.cucumber:messages"

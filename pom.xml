@@ -89,7 +89,9 @@
           They are pinned to what the ranges resolve to, in dependencyManagement.
           Move them with Cucumber: when a Cucumber update changes one of its
           ranges (`mvn dependency:tree -pl jpipe-compiler -Dverbose`), set the
-          pin to the version that range resolves to.
+          pin to the version that range resolves to. Maven applies a pin
+          silently even outside the range, so scripts/check-managed-ranges.sh,
+          run by build.yml, fails the build when one is.
         -->
         <jspecify.version>1.0.0</jspecify.version>
         <cucumber-messages.version>34.2.1</cucumber-messages.version>
@@ -219,11 +221,11 @@
                 <scope>test</scope>
             </dependency>
             <!-- Cucumber's ranged dependencies, pinned (see cucumber.version) -->
+            <!-- No scope: only the version is pinned, so a future main-code use is not demoted to test -->
             <dependency>
                 <groupId>org.jspecify</groupId>
                 <artifactId>jspecify</artifactId>
                 <version>${jspecify.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>io.cucumber</groupId>

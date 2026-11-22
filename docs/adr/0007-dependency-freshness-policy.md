@@ -37,7 +37,7 @@ All versions stay in `<properties>` in the root `pom.xml`, one property per vers
 
 ### Documentation tooling
 
-The documentation site is built by Python tools, installed by the `docs.yml` workflow. `docs/requirements.in` names them, and `docs/requirements.txt`, compiled from it by `pip-compile --generate-hashes`, locks the whole resolved set by version and hash. The workflow installs that lock with `--require-hashes --only-binary :all:`, so a deploy never installs anything it has not locked, and never runs a package's build code: the job runs with a token that can push to the repository. Dependabot recompiles the lock.
+The documentation site is built by Python tools, installed by the `docs.yml` workflow. `docs/requirements.in` names them, and `docs/requirements.txt`, compiled from it by `pip-compile --generate-hashes`, locks the whole resolved set by version and hash, choosing only versions that ship wheels (`--pip-args='--only-binary :all:'`; the exact command is recorded in the lock's header, which Dependabot reuses). The workflow installs that lock with `--require-hashes --only-binary :all:`, so a deploy never installs anything it has not locked, and never runs a package's build code: the job runs with a token that can push to the repository. Dependabot recompiles the lock. A pull request that changes the site's toolchain builds the site without deploying it, so a lock that cannot be installed fails there rather than after the merge.
 
 The one exception is `jpipe-runner`, which `build.yml` installs by version range for the runner contract check: the runner co-evolves with the compiler, and that check exists to catch a new runner release breaking the generated step libraries, which a lock would hide.
 
@@ -59,7 +59,7 @@ Dependabot security updates are enabled on the repository. **Security patches** 
 ### Constraints
 
 - **ANTLR4 runtime and plugin must be kept in sync** (`antlr4.version` drives both). A mismatch causes parse errors at runtime.
-- **No version range is resolved at build time.** Resolving a range makes Maven download the artifact's version list from Maven Central on every build, and the build fails when that download does: a dependency that a library declares as a range is pinned in `<dependencyManagement>` to the version the range resolves to. Cucumber declares three (`jspecify`, `messages`, `query`). Their majors are held, because each range stops below the next major, and the pins move by hand when a Cucumber update changes its ranges.
+- **No version range is resolved at build time.** Resolving a range makes Maven download the artifact's version list from Maven Central on every build, and the build fails when that download does: a dependency that a library declares as a range is pinned in `<dependencyManagement>` to the version the range resolves to. Cucumber declares three (`jspecify`, `messages`, `query`). Their majors are held, because for each of them the narrowest range Cucumber declares stops below the next major, and the pins move by hand when a Cucumber update changes its ranges. `build.yml` runs `scripts/check-managed-ranges.sh`, which fails when a pin lies outside a range some dependency declares: Maven itself applies a pin silently.
 
 ## Rationale
 
