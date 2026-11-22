@@ -149,7 +149,7 @@ jobs:
             source/packaging/homebrew/jpipe.rb > tap/jpipe.rb
           # @@PREFIX@@ and @@JAVA@@ stay: the formula fills them in at install.
           if grep -q -e '@@URL@@' -e '@@SHA256@@' tap/jpipe.rb; then
-            echo "ERROR: release placeholder left in jpipe.rb"
+            echo "ERROR: release placeholder left in jpipe.rb" >&2
             exit 1
           fi
 
