@@ -20,8 +20,8 @@
 #
 # A dependency joins the FIRST group it matches, so the lockstep groups come first.
 #
-# Both entries set `labels:`. Left unset, Dependabot adds a per-ecosystem label (`java`,
-# `github_actions`) next to `dependencies` whenever a file declares several ecosystems, and
+# Every entry sets `labels:`. Left unset, Dependabot adds a per-ecosystem label (`java`,
+# `github_actions`, `python`) next to `dependencies` whenever a file declares several ecosystems, and
 # creates it in the repository. Setting `labels:` replaces the defaults, so `dependencies` is
 # listed too, and `area: build` files the pull requests under the repository's label scheme.
 
@@ -89,6 +89,34 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "org.apache.logging.log4j:log4j-core"
         update-types: ["version-update:semver-major"]
+      # Pinned only because Cucumber declares them as version ranges (#207, see
+      # `cucumber.version` in the pom). Each of those ranges stops below the next major, so a
+      # major here would leave the range Cucumber was built against. They move to a new
+      # major by hand, with the Cucumber update that widens its range.
+      - dependency-name: "org.jspecify:jspecify"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "io.cucumber:messages"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "io.cucumber:query"
+        update-types: ["version-update:semver-major"]
+
+  # ------------------------------------------------------------------ pip
+  # The documentation site's Python tools: docs/requirements.in names them, and
+  # docs/requirements.txt, compiled by pip-compile, locks them by hash (#208). Dependabot
+  # recompiles the lock. CI only; nothing here reaches the compiler or its JAR.
+  - package-ecosystem: pip
+    directory: /docs
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "area: build"]
+    groups:
+      docs-tools:
+        applies-to: version-updates
+        update-types: [minor, patch]
+        patterns:
+          - "*"
 
   # -------------------------------------------------------- github-actions
   # Pinned by major tag, so every update here is a major: a tag move such as `@v5` → `@v6`.

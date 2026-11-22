@@ -1,7 +1,7 @@
 # ADR-0007: Dependency Freshness Policy
 
 **Date:** 2026-03-26
-**Last revised:** 2026-11-10
+**Last revised:** 2026-11-21
 **Status:** Accepted
 
 ## Context
@@ -23,7 +23,7 @@ The project targets the **current Java LTS release**. When a new LTS is publishe
 
 ### Continuous updates
 
-Dependabot (`.github/dependabot.yml`) proposes updates **weekly**, as pull requests into `dev`, the repository's default branch ([ADR-0024](0024-git-branching-model.md)). It covers two ecosystems: Maven, through the version properties of the root `pom.xml`, and GitHub Actions.
+Dependabot (`.github/dependabot.yml`) proposes updates **weekly**, as pull requests into `dev`, the repository's default branch ([ADR-0024](0024-git-branching-model.md)). It covers three ecosystems: Maven, through the version properties of the root `pom.xml`; GitHub Actions; and pip, for the Python tools the documentation site is built with.
 
 - **Only stable releases are proposed.** Alpha, beta, milestone, release-candidate and snapshot versions are never offered while the project is on a stable version: Dependabot recognises these Maven qualifiers itself. A dependency that marks its pre-releases some other way (`-preview`, `-ea`) is given an explicit `ignore` entry.
 - **Minor and patch updates arrive grouped**: one pull request for libraries, one for build plugins, so a red build names one week's changes. They are merged as they arrive, once CI and the quality gate are green — not deferred to the next release.
@@ -31,9 +31,15 @@ Dependabot (`.github/dependabot.yml`) proposes updates **weekly**, as pull reque
 - **Dependencies that must match move in one group, majors included**: the ANTLR runtime and its plugin (one `antlr4.version`), and JUnit Jupiter with the JUnit Platform.
 - **A date-versioned dependency** (`org.json`, versioned `YYYYMMDD`) has its own group that accepts every update, since each of its releases is a semver major.
 - **A major arrives as its own pull request** and is treated as a minor feature, not a routine update: the migration happens on that branch, and an ADR is updated when the change affects conventions.
-- **A major is held entirely** only where it is more than a bump, with the reason written beside the hold in `dependabot.yml`: ANTLR (a new major changes the generated parser) and Log4j (Log4j 3 changes the configuration and plugin model the fat JAR is built around).
+- **A major is held entirely** only where it is more than a bump, with the reason written beside the hold in `dependabot.yml`: ANTLR (a new major changes the generated parser), Log4j (Log4j 3 changes the configuration and plugin model the fat JAR is built around), and the dependencies Cucumber declares as version ranges (see *Constraints*).
 
 All versions stay in `<properties>` in the root `pom.xml`, one property per version, so each update is a one-line, auditable diff.
+
+### Documentation tooling
+
+The documentation site is built by Python tools, installed by the `docs.yml` workflow. `docs/requirements.in` names them, and `docs/requirements.txt`, compiled from it by `pip-compile --generate-hashes`, locks the whole resolved set by version and hash. The workflow installs that lock with `--require-hashes --only-binary :all:`, so a deploy never installs anything it has not locked, and never runs a package's build code: the job runs with a token that can push to the repository. Dependabot recompiles the lock.
+
+The one exception is `jpipe-runner`, which `build.yml` installs by version range for the runner contract check: the runner co-evolves with the compiler, and that check exists to catch a new runner release breaking the generated step libraries, which a lock would hide.
 
 ### Release-time review
 
@@ -53,6 +59,7 @@ Dependabot security updates are enabled on the repository. **Security patches** 
 ### Constraints
 
 - **ANTLR4 runtime and plugin must be kept in sync** (`antlr4.version` drives both). A mismatch causes parse errors at runtime.
+- **No version range is resolved at build time.** Resolving a range makes Maven download the artifact's version list from Maven Central on every build, and the build fails when that download does: a dependency that a library declares as a range is pinned in `<dependencyManagement>` to the version the range resolves to. Cucumber declares three (`jspecify`, `messages`, `query`). Their majors are held, because each range stops below the next major, and the pins move by hand when a Cucumber update changes its ranges.
 
 ## Rationale
 

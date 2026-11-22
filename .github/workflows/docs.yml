@@ -51,14 +51,14 @@ jobs:
         # then asks the mirror for package versions it no longer serves.
         run: sudo apt-get update -y && sudo apt-get install -y plantuml
 
-      - name: Install MkDocs
-        run: pip install mkdocs-material plantuml-markdown
+      - name: Install the site's Python tools
+        # Locked by version and hash, and wheels only: a source distribution
+        # would run its build code here, with a token that can push (#208).
+        run: |
+          pip install --require-hashes --only-binary :all: -r docs/requirements.txt
 
       - name: Generate railroad diagrams
-        run: |
-          pip install pipenv
-          cd jpipe-lang && pipenv install --deploy
-          pipenv run python3 gen_railroad.py
+        run: python3 jpipe-lang/gen_railroad.py
 
       - name: Generate Javadoc
         run: mvn javadoc:aggregate -q
