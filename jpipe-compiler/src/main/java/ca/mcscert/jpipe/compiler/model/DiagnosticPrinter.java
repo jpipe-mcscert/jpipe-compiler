@@ -29,9 +29,9 @@ final class DiagnosticPrinter {
 	static void print(CompilationContext ctx) {
 		for (Diagnostic d : ctx.diagnostics()) {
 			if (d.isError()) {
-				String level = d.level().name().toLowerCase(Locale.ROOT);
-				diagnostics.error("{}: {}: {}", d.where(), level,
-						d.codedMessage());
+				diagnostics.error("{}: {}: {}", d::where,
+						() -> d.level().name().toLowerCase(Locale.ROOT),
+						d::codedMessage);
 			}
 		}
 	}
