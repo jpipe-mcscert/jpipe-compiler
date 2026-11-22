@@ -35,21 +35,31 @@ OVERRIDE = re.compile(
     r"([\[(][^\])]*[\])])")
 
 
+NUMERIC = re.compile(r"\d+(\.\d+)*")
+
+
 def key(version):
-    """Orders dotted versions; numbers numerically, anything else as text."""
-    return [(0, int(p), "") if p.isdigit() else (1, 0, p)
-            for p in re.split(r"[.\-]", version)]
+    """
+    Orders dotted numeric versions the way Maven does: missing trailing
+    components count as zero, so 35.0 equals 35.0.0. Anything else (a
+    qualifier such as -rc1) is out of scope, and fails the check rather than
+    being ordered wrongly.
+    """
+    if not NUMERIC.fullmatch(version):
+        raise ValueError(version)
+    parts = [int(p) for p in version.split(".")]
+    while len(parts) > 1 and parts[-1] == 0:
+        parts.pop()
+    return parts
 
 
 def within(version, spec):
-    low, high = spec[1:-1].split(",")
+    low, high = (bound.strip() for bound in spec[1:-1].split(","))
     v = key(version)
-    if low:
-        if v < key(low) or (spec[0] == "(" and v == key(low)):
-            return False
-    if high:
-        if v > key(high) or (spec[-1] == ")" and v == key(high)):
-            return False
+    if low and (v < key(low) or (spec[0] == "(" and v == key(low))):
+        return False
+    if high and (v > key(high) or (spec[-1] == ")" and v == key(high))):
+        return False
     return True
 
 
@@ -60,11 +70,18 @@ with open(sys.argv[1], encoding="utf-8") as tree:
             if "," not in spec:
                 continue  # a single version, not a range
             checked.add((artifact, version, spec))
-            if not within(version, spec):
+            try:
+                inside = within(version, spec)
+            except ValueError as unsupported:
+                failures.append(f"{artifact}:{version} cannot be checked"
+                                f" against {spec}: '{unsupported}' is not a"
+                                " dotted numeric version")
+                continue
+            if not inside:
                 failures.append(f"{artifact}:{version} is outside {spec}")
 
 for failure in sorted(set(failures)):
-    print(f"ERROR: {failure}, a range a dependency declares", file=sys.stderr)
+    print(f"ERROR: {failure} (a range a dependency declares)", file=sys.stderr)
 if failures:
     print("Move the pin in the root pom.xml to a version every range accepts"
           " (see the comment next to cucumber.version).", file=sys.stderr)
