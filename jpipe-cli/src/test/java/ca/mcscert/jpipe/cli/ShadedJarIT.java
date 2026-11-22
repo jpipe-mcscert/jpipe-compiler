@@ -328,6 +328,45 @@ class ShadedJarIT {
 
 	@Test
 	@DisabledOnOs(OS.WINDOWS)
+	void thePosixLauncherCreatesAndUsesAnAotCache(@TempDir Path dir)
+			throws IOException {
+		// Each install channel runs `jpipe --create-aot-cache` once (#216).
+		// It succeeds only if the training model compiles cleanly, so this
+		// also keeps bin/aot-training.jd in step with the language.
+		Path launcher = dir.resolve("jpipe");
+		Files.writeString(launcher,
+				Files.readString(Path.of(required("launchers.dir"), "jpipe"))
+						.replace("@@JAVA@@", javaBinary())
+						.replace("@@PREFIX@@", dir.toString()));
+		Files.copy(Path.of(required("launchers.dir"), "aot-training.jd"),
+				dir.resolve("aot-training.jd"));
+		Files.createSymbolicLink(dir.resolve("jpipe.jar"), Path.of(jarPath()));
+		Map<String, String> path = Map.of("PATH",
+				pathWith(dir, "java", "which", "mv", "rm").toString());
+		List<String> export = List.of("/bin/sh", launcher.toString(),
+				"--headless", "process", "-i", MINIMAL, "-m", "minimal", "-f",
+				"json");
+
+		Execution create = run(
+				List.of("/bin/sh", launcher.toString(), "--create-aot-cache"),
+				path);
+		Execution cached = run(export, path);
+		// A cache made stale by a Java upgrade must change nothing a caller
+		// sees: no message, same output, same exit code.
+		Files.writeString(dir.resolve("jpipe.aot"), "not a cache");
+		Execution stale = run(export, path);
+
+		assertThat(create.exitCode()).isZero();
+		assertThat(cached.exitCode()).isZero();
+		assertThat(new JSONObject(cached.out()).getString("name"))
+				.isEqualTo("minimal");
+		assertThat(stale.exitCode()).isZero();
+		assertThat(stale.err()).isEmpty();
+		assertThat(stale.out()).isEqualTo(cached.out());
+	}
+
+	@Test
+	@DisabledOnOs(OS.WINDOWS)
 	void thePowerShellLauncherRunsWithoutGraphviz(@TempDir Path dir)
 			throws IOException {
 		Path pwsh = onPath("pwsh");

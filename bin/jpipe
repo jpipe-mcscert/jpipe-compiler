@@ -11,4 +11,28 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-@@JAVA@@ -jar @@PREFIX@@/jpipe.jar "$@"
+JAR="@@PREFIX@@/jpipe.jar"
+AOT="@@PREFIX@@/jpipe.aot"
+
+# An AOT cache of the classes a call loads makes it start about 30% faster
+# (#216). It only works for the Java build and the JAR path that created it,
+# so it is created here, on this machine: each install channel runs
+# `jpipe --create-aot-cache` once, and a user can run it again after a Java
+# upgrade. A stale cache is ignored without a word.
+if [ "$1" = "--create-aot-cache" ]; then
+    rm -f "$AOT.tmp"
+    if @@JAVA@@ -XX:AOTCacheOutput="$AOT.tmp" -Xlog:aot=off -jar "$JAR" \
+        --headless process -i "@@PREFIX@@/aot-training.jd" -m trained \
+        -f python > /dev/null 2>&1 && [ -f "$AOT.tmp" ]; then
+        mv -f "$AOT.tmp" "$AOT"
+        exit 0
+    fi
+    rm -f "$AOT.tmp"
+    echo "[jpipe] could not create the AOT cache; jPipe runs without it" >&2
+    exit 1
+fi
+
+if [ -f "$AOT" ]; then
+    exec @@JAVA@@ -XX:AOTCache="$AOT" -Xlog:aot=off -jar "$JAR" "$@"
+fi
+exec @@JAVA@@ -jar "$JAR" "$@"

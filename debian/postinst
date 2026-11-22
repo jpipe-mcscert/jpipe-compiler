@@ -10,6 +10,10 @@ case "$1" in
         fi
         sed -i "s|which java > /dev/null|test -x '${JAVA_BIN}'|g" /usr/bin/jpipe
         sed -i "s|@@JAVA@@|${JAVA_BIN}|g" /usr/bin/jpipe
+        # Faster start-up for every call, made on this machine because the
+        # cache only works for the Java build that created it (#216). Without
+        # it jPipe still runs, so a failure does not fail the install.
+        /usr/bin/jpipe --create-aot-cache || true
         ;;
 esac
 

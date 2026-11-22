@@ -150,6 +150,21 @@ jpipe doctor
 manual and required** — it is the one channel CI cannot smoke-test
 ([ADR-0025](adr/0025-mainstream-platform-distribution.md)).
 
+Each install should also have created the AOT cache next to `jpipe.jar`. No CI
+job runs a channel's install step, so check it on each platform you install on:
+
+```bash
+ls "$(brew --prefix jpipe)/jpipe.aot"      # macOS
+ls /usr/share/jpipe/jpipe.aot              # Ubuntu
+```
+
+```powershell
+Test-Path "$(scoop prefix jpipe)\jpipe.aot"   # Windows
+```
+
+A missing cache does not break jPipe, only slows its start-up; run
+`jpipe --create-aot-cache` by hand to see why it was not created.
+
 ---
 
 ## Phase 5 — Merge back and reopen development

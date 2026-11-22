@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+# The AOT cache is created by postinst, not shipped, so dpkg does not know to
+# remove it (#216).
+case "$1" in
+    remove|purge)
+        rm -f /usr/share/jpipe/jpipe.aot /usr/share/jpipe/jpipe.aot.tmp
+        ;;
+esac
+
+#DEBHELPER#

@@ -1,0 +1,27 @@
+{
+    "version": "@@VERSION@@",
+    "description": "jPipe — a compiler for justification models (Justified Pipelines)",
+    "homepage": "https://github.com/jpipe-mcscert/jpipe-compiler",
+    "license": "MIT",
+    "depends": [
+        "java/temurin25-jre",
+        "main/graphviz"
+    ],
+    "url": "@@URL@@",
+    "hash": "@@SHA256@@",
+    "bin": [
+        [
+            "jpipe.ps1",
+            "jpipe"
+        ]
+    ],
+    "post_install": [
+        "$java = Join-Path (& scoop prefix temurin25-jre) 'bin\\java.exe'",
+        "$p = Join-Path $dir 'jpipe.ps1'",
+        "(Get-Content $p -Raw).Replace('@@JAVA@@', $java).Replace('@@PREFIX@@', $dir) | Set-Content $p -NoNewline",
+        "try { & $p --create-aot-cache } catch { Write-Warning \"jPipe runs without its AOT cache: $_\" }"
+    ],
+    "autoupdate": {
+        "url": "https://github.com/jpipe-mcscert/jpipe-compiler/releases/download/v$version/jpipe-$version.zip"
+    }
+}

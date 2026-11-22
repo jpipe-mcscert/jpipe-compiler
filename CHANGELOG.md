@@ -22,12 +22,19 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - `CompilerFactory.build(config, out, diagnostics)` prints a compilation's
   diagnostics on the given writer instead of the `jpipe.diagnostics` logger,
   in the same `file:line:column: severity: [code] message` lines (#216).
+- `jpipe --create-aot-cache` records a cache of the classes a call loads, next
+  to `jpipe.jar`, and the launchers use it when it is there. Homebrew, the PPA
+  and Scoop run it once at install time. The cache only works for the Java
+  build that created it: after upgrading Java, run it again (`sudo` on Ubuntu,
+  `brew postinstall jpipe` on macOS). A missing or stale cache is ignored
+  silently (#216).
 
 ### Changed
-- Each `jpipe` call starts about a quarter faster at the default log level:
-  log4j-core and its configuration now start only when `--log-level` asks for
-  `WARN` or more. Diagnostics still go to stderr in the same format, at every
-  level (#216).
+- `jpipe` calls start about a quarter faster. At the default log level,
+  log4j-core and its configuration no longer start: only a `--log-level` of
+  `WARN` or more starts them. Together with the AOT cache an install creates,
+  a `diagnostic` call goes from about 0.24 s to 0.17 s. Diagnostics still go
+  to stderr in the same format, at every level (#216).
 
 ### Deprecated
 - Public API that nothing in jPipe uses is deprecated for removal in the next
