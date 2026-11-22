@@ -35,11 +35,14 @@ small changes straight to `dev`:
   creates a branch only with the maintainer's approval, and pushes to `dev`
   only when explicitly asked.
 - **Releasing** — the full runbook is [`docs/releasing.md`](docs/releasing.md),
-  driven by `scripts/release.sh`. **The `dev`→`main` merge and the tag push are
-  human-only actions** (see Critical Rules). Claude prepares the release commit
-  (changelog close-out, version bump) only when explicitly asked, which is the
-  request to commit to `dev`: it shows `scripts/release.sh prepare X.Y.Z
-  --dry-run` first, since the script commits by itself.
+  driven by `scripts/release.sh`. A release is a release branch, `release/X.Y.Z`,
+  cut from `dev`, that holds the release commit and goes into `main` by one pull
+  request; `main` is then merged back into `dev` (ADR-0024, amendment of
+  2026-11-21). **The merge into `main` and the tag push are human-only actions**
+  (see Critical Rules). Claude prepares the release commit (changelog close-out,
+  version bump) only when explicitly asked, on a release branch cut with the
+  maintainer's approval: it shows `scripts/release.sh prepare X.Y.Z --dry-run`
+  first, since the script commits by itself.
 - **Hotfixes** — branch from `main`, merge into `main`, release via a patch tag,
   then merge back into `dev`.
 
@@ -263,9 +266,9 @@ Rules:
 - **Releasing (maintainer action):** `scripts/release.sh prepare X.Y.Z` performs
   the close-out — it renames `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, adds
   the git-compare link at the bottom, and opens a fresh empty `## [Unreleased]`
-  above it. Do this by hand only if the script cannot. **The maintainer (human)
-  performs the `dev`→`main` merge and pushes the `vX.Y.Z` tag** — Claude does not
-  merge or tag. Full runbook: [`docs/releasing.md`](docs/releasing.md).
+  above it, on the release branch. Do this by hand only if the script cannot.
+  **The maintainer (human) merges the release branch into `main` and pushes the
+  `vX.Y.Z` tag** — Claude does not merge or tag. Full runbook: [`docs/releasing.md`](docs/releasing.md).
 
 Do not edit already-released sections except to correct an error.
 

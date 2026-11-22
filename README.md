@@ -69,13 +69,15 @@ locally. Only `main` requires a pull request.
 
 #### Releasing a new version
 
-A release is prepared on `dev`, merged into `main` through a pull request, and
+A release is prepared on a release branch cut from `dev`, merged into `main`
+through one pull request, and
 started by pushing a `vX.Y.Z` tag on `main`. The tag triggers the pipeline, which
 publishes the GitHub Release and updates Homebrew, Scoop and the Ubuntu PPA.
 
 ```bash
-scripts/release.sh prepare X.Y.Z       # on dev: set the version, close the changelog
-                                       # then push, and open the dev → main PR
+scripts/release.sh prepare X.Y.Z       # on release/X.Y.Z, cut from dev: set the version,
+                                       # close the changelog; then push the branch and
+                                       # open its PR into main
 scripts/release.sh preflight X.Y.Z     # on main, after the merge: re-run the
                                        # pipeline's checks before the tag exists
 git tag vX.Y.Z && git push origin vX.Y.Z

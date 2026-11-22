@@ -143,3 +143,40 @@ published immediately, with no staging step.
 This amendment narrows only *how* a change enters `dev`. The two-tier model, the
 role of each branch, and the release procedure are unaffected. The full release
 runbook lives in [`docs/releasing.md`](../releasing.md).
+
+## Amendment (2026-11-21): a release is a release branch into `main`
+
+The original decision released by merging `dev` into `main` through a pull
+request, after the release commit had reached `dev`: directly, under the
+amendment of 2026-08-07, or through a pull request of its own. The organization
+dropped that second path into `dev` for every jPipe repository: a release took
+two steps whose second re-ran every check on what `dev` had already reviewed.
+
+### Amended decision
+
+- **A release is one pull request, from a release branch into `main`.**
+  `release/X.Y.Z` is cut from the current `dev`, so it holds everything `dev`
+  holds; `scripts/release.sh prepare X.Y.Z` commits the version and the closed
+  changelog there, and refuses to run elsewhere. The branch goes into `main`
+  through the release pull request, whose diff is the whole release.
+- **The release commit reaches `dev` after the release**, when `main` is merged
+  back into `dev`, as before. It is not pushed to `dev` first.
+- **`main` stays release-only.** It is entered through a pull request from a
+  release branch or, for a hotfix, from a fix branch cut from `main`. The tag is
+  pushed by a human.
+- Version bumps after the release (`post-release`) still go straight to `dev`,
+  under the amendment of 2026-08-07.
+
+### Rationale
+
+`main` still receives only reviewed code: every change in a release branch was
+reviewed on its way into `dev`, and the release pull request reviews and gates the
+release as a whole. Everything in `main` is in `dev` once `main` is merged back.
+Work merged into `dev` while the release pull request is open waits for the next
+release, as it did when `dev` itself was the release branch.
+
+This amends the release step of the decision above, ADR-0020's "set during
+preparation, on `dev`", and the amendment of 2026-08-07's "entered exclusively
+through a `dev` → `main` pull request". The runbook is
+[`docs/releasing.md`](../releasing.md); the organization's rule is in its
+[contributing guide](https://github.com/jpipe-mcscert/.github/blob/main/CONTRIBUTING.md#releases).
