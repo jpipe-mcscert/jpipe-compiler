@@ -124,7 +124,7 @@ jobs:
       group: docs-deploy
       cancel-in-progress: true
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: site
           path: site
