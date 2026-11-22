@@ -62,9 +62,6 @@ that call.
 - **`InvalidOperatorCallException`** — unchecked exception thrown for unknown
   operators, missing required arguments, incompatible kinds, or unknown
   unification methods. The engine wraps it in `CompilationException`.
-- **`ModelReplicator`** — stateless utility that generates commands to copy a
-  model's elements and edges under a given id prefix. Used to clone source
-  content non-destructively.
 
 **`ApplyOperator`**
 
@@ -166,8 +163,6 @@ package "operators" {
     # {abstract} mergeFunction(sources, args) : MergeFunction
     # {abstract} createResultModel(name, loc, sources, args, elements) : Command
     # additionalCommands(name, sources, aliases, args) : List<Command>
-    + {final} apply(name, sources, args) : List<Command>
-    + {final} apply(name, sources, args, loc) : List<Command>
     + {final} apply(name, sources, args, loc, knownLocs) : List<Command>
   }
 
@@ -228,10 +223,6 @@ package "operators" {
   enum ModelKind {
     JUSTIFICATION
     TEMPLATE
-  }
-
-  class ModelReplicator {
-    + {static} replicate(target, source, prefix) : List<Command>
   }
 
   class InvalidOperatorCallException

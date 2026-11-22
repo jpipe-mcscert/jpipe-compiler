@@ -22,9 +22,11 @@ never pushes — those stay in your hands.
 Three judgement calls, none of which a script can make for you.
 
 **Pick the version number.** Read the `[Unreleased]` section and apply semantic
-versioning ([ADR-0001](adr/0001-semver-versioning.md)): a breaking change to a
-public API — `jpipe-operators` above all — is a MAJOR bump, new behaviour is
-MINOR, fixes alone are PATCH. What `pom.xml` currently says is *not* an input to
+versioning ([ADR-0001](adr/0001-semver-versioning.md)) to the CLI's public
+interface: the language, the commands and their options and exit codes, the
+export formats, and the diagnostics. A change that can break a user or a tool
+relying on it is a MAJOR bump, new behaviour is MINOR, fixes alone are PATCH.
+The Java modules are internal and do not count. What `pom.xml` currently says is *not* an input to
 this decision; Phase 1 sets the pom to whatever you choose here.
 
 **Review held-back dependencies** ([ADR-0007](adr/0007-dependency-freshness-policy.md)) —
@@ -149,6 +151,21 @@ jpipe doctor
 `jpipe doctor` should report the version you just tagged. **The Windows check is
 manual and required** — it is the one channel CI cannot smoke-test
 ([ADR-0025](adr/0025-mainstream-platform-distribution.md)).
+
+Each install should also have created the AOT cache next to `jpipe.jar`. No CI
+job runs a channel's install step, so check it on each platform you install on:
+
+```bash
+ls "$(brew --prefix jpipe)/jpipe.aot"      # macOS
+ls /usr/share/jpipe/jpipe.aot              # Ubuntu
+```
+
+```powershell
+Test-Path "$(scoop prefix jpipe)\jpipe.aot"   # Windows
+```
+
+A missing cache does not break jPipe, only slows its start-up; run
+`jpipe --create-aot-cache` by hand to see why it was not created.
 
 ---
 

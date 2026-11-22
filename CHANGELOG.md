@@ -18,10 +18,30 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- `jpipe --create-aot-cache` records a cache of the classes a call loads, next
+  to `jpipe.jar`, and the launchers use it when it is there. Homebrew, the PPA
+  and Scoop run it once at install time. The cache only works for the Java
+  build that created it: after upgrading Java, run it again (`sudo` on Ubuntu,
+  `brew postinstall jpipe` on macOS). A missing or stale cache is ignored
+  silently (#216).
+
+### Changed
+- `jpipe` calls start about a quarter faster. At the default log level,
+  log4j-core and its configuration no longer start: only a `--log-level` of
+  `WARN` or more starts them. Together with the AOT cache an install creates,
+  a `diagnostic` call goes from about 0.24 s to 0.17 s. Diagnostics still go
+  to stderr in the same format, at every level (#216).
+
 ### Fixed
 - A `load` pattern without `**` only searches as deep as it can match, so
   `load "*.jd"` no longer walks the whole directory tree below it (`.git`,
   build outputs) and no longer fails on an unreadable directory there.
+- A glob `load` follows symbolic links to directories, as a plain path already
+  did: `load "linked/*.jd"` no longer fails with "No file matches" when
+  `linked` is a link, and `**` no longer skips linked directories without a
+  word. A link back to a parent directory is skipped, and a file reached both
+  through a link and its real path is loaded once (#219).
 
 ---
 

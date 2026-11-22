@@ -50,21 +50,24 @@ Every channel must satisfy the following contract:
    asset published on the GitHub Release created by the tag-triggered pipeline.
    No channel compiles from source, so every platform ships bit-identical
    bytecode from a single `mvn verify`.
-4. **The index is ours and machine-updated.** The formula, manifest, or PPA
-   lives in a repository or service the project controls, and is updated by a
-   push from `release.yml`. Package indices are never edited by hand, and
-   jPipe is not published to third-party-curated indices that would take the
-   update out of the pipeline's hands.
+4. **The index is ours and machine-written.** The formula, manifest, or PPA
+   lives in a repository or service the project controls, and only
+   `release.yml` writes to it. The Homebrew formula and the Scoop manifest are
+   templates in this repository, under `packaging/homebrew/` and
+   `packaging/scoop/` (with the bucket's README), which the release renders and
+   writes to the tap and the bucket in full. Package indices are never edited
+   by hand, and jPipe is not published to third-party-curated indices that
+   would take the update out of the pipeline's hands.
 5. **Stable releases only.** Tags containing `-` (e.g. `v2.3.0-rc1`) publish a
    GitHub Release marked as a pre-release, but every channel job is skipped.
    Pre-releases are for verifying the pipeline, not for distribution.
 6. **Superseded versions stay installable.** Each channel keeps older releases
    reachable through its own native mechanism — versioned formulas
-   (`jpipe@X.Y.Z.rb`) for Homebrew, an `autoupdate` block that lets Scoop
-   reconstruct a manifest for an explicit `@version`, and Launchpad's published
-   version history for the PPA. The project does not maintain a separate
-   archive. A channel reaches only as far back as the first release that
-   published its asset.
+   (`jpipe@X.Y.Z.rb`) for Homebrew; for Scoop, the bucket's git history, which
+   holds one commit per release, with an `autoupdate` block as the fallback;
+   and Launchpad's published version history for the PPA. The project does not
+   maintain a separate archive. A channel reaches only as far back as the first
+   release that published its asset.
 
 Adding a channel means adding a release asset, a `release.yml` job, and a
 credential — and meeting all six points. A channel is dropped when its platform
@@ -90,16 +93,27 @@ updated automatically.
 - **Point 4 keeps release state out of human hands.** The failure mode for
   hand-edited package indices is a formula pointing at a URL whose checksum no
   longer matches. Making the pipeline the only writer makes that unrepresentable.
+  Keeping the whole formula and manifest here, rather than patching three fields
+  of a file the index owns, also means a change to how a channel installs jPipe
+  (a new dependency, a `post_install` step) is reviewed and released with the
+  code that needs it.
 - **Point 6 lets users pin without the project hoarding.** Each package manager
   already solves version pinning; adopting the native mechanism per channel is
-  cheaper and more idiomatic than a project-run artifact archive. For Scoop this
-  means an `autoupdate` block rather than pinned per-version manifests: Scoop
-  does **not** search bucket history for an older manifest — `generate_user_manifest`
-  synthesises one by substituting the requested version into the `autoupdate`
-  URL and hashing the downloaded archive. A single templatable release URL
-  therefore covers every version, and the bucket stays one file per app. The
-  block carries no `checkver`, so nothing polls or self-updates and point 4
-  still holds: the release pipeline remains the only writer.
+  cheaper and more idiomatic than a project-run artifact archive. Scoop 0.6.0
+  and later answer `scoop install mcscert/jpipe@X.Y.Z` by searching the
+  bucket's git history for the commit that held that version. Each release
+  writes exactly one commit, so that history is the archive, and each version
+  comes back with the hash its own pipeline recorded and its own `depends` and
+  `post_install`. Older Scoop, or Scoop with `USE_GIT_HISTORY` turned off, falls
+  back to the `autoupdate` block: `generate_user_manifest` substitutes the
+  requested version into the release URL, hashes whatever it downloads, and
+  applies today's `depends` and `post_install` to the old version. A single
+  templatable URL therefore covers every version, and the bucket stays one file
+  per app: separate per-version manifests are not idiomatic for Scoop, since
+  `@` cannot be part of an app name and each extra app would put its own
+  `jpipe` shim on the `PATH`. The block carries no `checkver`, so nothing polls
+  or self-updates and point 4 still holds: the release pipeline remains the
+  only writer.
 - **One channel per OS, not the most popular one.** Chocolatey and WinGet are
   larger Windows ecosystems than Scoop, but both are curated: publishing means
   submitting a package for review, which violates point 4. Scoop's bucket model
@@ -123,9 +137,22 @@ updated automatically.
 - Windows is the only channel CI cannot smoke-test: the release workflow runs
   entirely on `ubuntu-latest` and no Windows runner exists. Verifying a Scoop
   release requires a Windows machine and remains a manual release-checklist step.
-- `jpipe-mcscert/scoop-mcscert` must contain `bucket/jpipe.json` before the
-  first stable tag after this ADR; `update-scoop` updates an existing manifest
-  and does not create one.
+- **The bucket's history must never be rewritten.** A force-push, squash or
+  rebase on `main` of `jpipe-mcscert/scoop-mcscert` would remove every older
+  version for Scoop 0.6.0 users. The bucket's README says so, and its `main`
+  branch is protected against force-pushes.
+- Versions before 2.3.0 are not available through Scoop: they publish no `.zip`
+  asset, and `@2.2.0` resolves to the hand-written seed manifest, whose
+  download fails. The bucket's README documents it; fixing it would mean
+  rewriting the history.
+- Each channel runs `jpipe --create-aot-cache` once after installing (Debian's
+  `postinst`, Homebrew's `post_install`, Scoop's `post_install`), which records
+  an AOT cache next to `jpipe.jar` from the training model `aot-training.jd`
+  shipped with it (#216). The cache only works for the Java build and the JAR
+  path that created it, so it cannot ship in the release assets. After a Java
+  upgrade it is stale: the launchers ignore it silently, and running
+  `jpipe --create-aot-cache` again (or `brew postinstall jpipe`) restores it.
+  Debian's `prerm` removes it, since dpkg does not track it.
 - ADR-0023 is unaffected and remains the sub-policy governing *which* Ubuntu
   series the PPA matrix targets. This ADR governs the set of channels; ADR-0020
   owns the pipeline mechanics that implement them.

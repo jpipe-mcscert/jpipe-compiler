@@ -3,6 +3,9 @@ package ca.mcscert.jpipe.compiler.model;
 import ca.mcscert.jpipe.compiler.Compiler;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Objects;
+import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,11 +26,35 @@ public final class ChainCompiler<I, O> implements Compiler {
 	private final Source<I> source;
 	private final Transformation<I, O> chain;
 	private final Sink<O> sink;
+	private final Consumer<CompilationContext> report;
 
 	ChainCompiler(Source<I> source, Transformation<I, O> chain, Sink<O> sink) {
+		this(source, chain, sink, DiagnosticPrinter::print);
+	}
+
+	private ChainCompiler(Source<I> source, Transformation<I, O> chain,
+			Sink<O> sink, Consumer<CompilationContext> report) {
 		this.source = source;
 		this.chain = chain;
 		this.sink = sink;
+		this.report = report;
+	}
+
+	/**
+	 * The same compiler, printing its diagnostics on {@code diagnostics}
+	 * instead of the {@code jpipe.diagnostics} logger. The lines are the same;
+	 * only where they go changes, so that a caller such as the CLI does not
+	 * have to start a logging back end to show them (#216).
+	 *
+	 * @param diagnostics
+	 *            where the ERROR and FATAL diagnostics are printed, flushed
+	 *            after each compilation. Not closed.
+	 * @return a new compiler; this one is unchanged.
+	 */
+	public ChainCompiler<I, O> reportingTo(PrintWriter diagnostics) {
+		Objects.requireNonNull(diagnostics, "diagnostics");
+		return new ChainCompiler<>(source, chain, sink,
+				ctx -> DiagnosticPrinter.print(ctx, diagnostics));
 	}
 
 	@Override
@@ -47,7 +74,7 @@ public final class ChainCompiler<I, O> implements Compiler {
 			sink.pourInto(output);
 		} finally {
 			release(input);
-			DiagnosticPrinter.print(ctx);
+			report.accept(ctx);
 		}
 		logger.info("Compilation finished [{}]", sourceFile);
 		return ctx.hasErrors();

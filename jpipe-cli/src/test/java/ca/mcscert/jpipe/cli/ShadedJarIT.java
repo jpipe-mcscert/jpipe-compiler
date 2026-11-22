@@ -21,6 +21,7 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Smoke tests running the shaded JAR as a user would: {@code java -jar}.
@@ -226,16 +227,37 @@ class ShadedJarIT {
 		assertThat(run.out()).contains(System.getProperty("project.version"));
 	}
 
-	@Test
-	void noLogLevelHidesACompilationError() throws IOException {
+	@ParameterizedTest
+	@ValueSource(strings = {"--log-level=OFF", "--log-level=ERROR",
+			"--log-level=INFO"})
+	void noLogLevelHidesACompilationError(String logLevel) throws IOException {
 		// Diagnostics used to reach the user only through the loggers that
 		// --log-level tunes, so OFF left a bare "Compilation failed" (#186).
-		Execution run = jpipe("--headless", "--log-level=OFF", "process", "-i",
+		// Each is a bare line, which jpipe-vscode and scripts parse, whichever
+		// logging back end the level starts (#216).
+		Execution run = jpipe("--headless", logLevel, "process", "-i",
 				example("invalid/025_syntax_error.jd"), "-m", "broken");
 
 		assertThat(run.exitCode()).isEqualTo(Main.EXIT_JPIPE_ERROR);
-		assertThat(run.err())
-				.containsPattern("025_syntax_error\\.jd:\\d+:\\d+: ");
+		assertThat(run.err()).containsPattern(
+				"(?m)^\\S*025_syntax_error\\.jd:\\d+:\\d+: error: ");
+	}
+
+	@ParameterizedTest
+	@CsvSource({"--log-level=ERROR, false", "--log-level=INFO, true"})
+	void log4jCoreStartsOnlyWhenTheLevelAsksForIt(String logLevel,
+			boolean started) throws IOException {
+		// log4j-core and its configuration used to start on every call, for a
+		// large share of its start-up time (#216). The INFO run shows that the
+		// check can see it start.
+		Execution run = run(List.of(javaBinary(), "-Xlog:class+load=info",
+				"-jar", jarPath(), "--headless", logLevel, "diagnostic", "-i",
+				MINIMAL), Map.of());
+
+		assertThat(run.exitCode()).isZero();
+		assertThat(run.out()
+				.contains("org.apache.logging.log4j.core.LoggerContext "))
+				.isEqualTo(started);
 	}
 
 	@Test
@@ -302,6 +324,53 @@ class ShadedJarIT {
 		assertThat(export.exitCode()).isZero();
 		assertThat(new JSONObject(export.out()).getString("name"))
 				.isEqualTo("minimal");
+	}
+
+	@Test
+	@DisabledOnOs(OS.WINDOWS)
+	void thePosixLauncherCreatesAndUsesAnAotCache(@TempDir Path dir)
+			throws IOException {
+		// Each install channel runs `jpipe --create-aot-cache` once (#216).
+		// It succeeds only if the training model compiles cleanly, so this
+		// also keeps bin/aot-training.jd in step with the language.
+		Path launcher = dir.resolve("jpipe");
+		Files.writeString(launcher,
+				Files.readString(Path.of(required("launchers.dir"), "jpipe"))
+						.replace("@@JAVA@@", javaBinary())
+						.replace("@@PREFIX@@", dir.toString()));
+		Files.createSymbolicLink(dir.resolve("jpipe.jar"), Path.of(jarPath()));
+		Map<String, String> path = Map.of("PATH",
+				pathWith(dir, "java", "which", "mv", "rm", "cat").toString());
+		List<String> createCache = List.of("/bin/sh", launcher.toString(),
+				"--create-aot-cache");
+
+		// Without its training model, the failure says why.
+		Execution failed = run(createCache, path);
+		boolean cacheAfterFailure = Files.exists(dir.resolve("jpipe.aot"));
+		Files.copy(Path.of(required("launchers.dir"), "aot-training.jd"),
+				dir.resolve("aot-training.jd"));
+		List<String> export = List.of("/bin/sh", launcher.toString(),
+				"--headless", "process", "-i", MINIMAL, "-m", "minimal", "-f",
+				"json");
+
+		Execution create = run(createCache, path);
+		Execution cached = run(export, path);
+		// A cache made stale by a Java upgrade must change nothing a caller
+		// sees: no message, same output, same exit code.
+		Files.writeString(dir.resolve("jpipe.aot"), "not a cache");
+		Execution stale = run(export, path);
+
+		assertThat(failed.exitCode()).isEqualTo(1);
+		assertThat(failed.err()).contains("aot-training.jd",
+				"could not create the AOT cache");
+		assertThat(cacheAfterFailure).isFalse();
+		assertThat(create.exitCode()).isZero();
+		assertThat(cached.exitCode()).isZero();
+		assertThat(new JSONObject(cached.out()).getString("name"))
+				.isEqualTo("minimal");
+		assertThat(stale.exitCode()).isZero();
+		assertThat(stale.err()).isEmpty();
+		assertThat(stale.out()).isEqualTo(cached.out());
 	}
 
 	@Test

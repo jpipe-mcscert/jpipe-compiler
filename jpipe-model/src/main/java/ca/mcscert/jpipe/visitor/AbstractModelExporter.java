@@ -5,7 +5,12 @@ import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.util.QualifiedIds;
+import ca.mcscert.jpipe.model.elements.AbstractSupport;
+import ca.mcscert.jpipe.model.elements.Conclusion;
+import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
+import ca.mcscert.jpipe.model.elements.Strategy;
+import ca.mcscert.jpipe.model.elements.SubConclusion;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -116,29 +121,15 @@ public abstract class AbstractModelExporter
 	}
 
 	/**
-	 * Returns the qualified original ids that were merged into
-	 * {@code plainElementId}, or an empty list when the element is not the
-	 * target of any alias. Requires {@link #initAliases(JustificationModel)} to
-	 * have been called first.
-	 */
-	protected final List<String> qualifiedAliasesOf(String plainElementId) {
-		List<String> originals = aliasesByTarget.get(plainElementId);
-		if (originals == null) {
-			return List.of();
-		}
-		return originals.stream().map(this::qualify).toList();
-	}
-
-	/**
 	 * Returns every qualified id {@code plainElementId} was merged from,
 	 * following alias chains transitively.
 	 *
 	 * <p>
 	 * A composition applied to the result of another composition records a
 	 * chain ({@code a -> merged -> unified_0}) rather than a flat mapping, so a
-	 * one-hop lookup ({@link #qualifiedAliasesOf(String)}) stops at the
-	 * intermediate and loses the id the user actually wrote. The returned list
-	 * holds both the intermediates and the leaves, nearest first.
+	 * one-hop lookup would stop at the intermediate and lose the id the user
+	 * actually wrote. The returned list holds both the intermediates and the
+	 * leaves, nearest first.
 	 */
 	protected final List<String> qualifiedOriginalsOf(String plainElementId) {
 		return collectOriginals(plainElementId, false);
@@ -297,4 +288,46 @@ public abstract class AbstractModelExporter
 	 * element visit methods.
 	 */
 	protected abstract void exportModel(JustificationModel model);
+
+	/**
+	 * Serialises one element of the model being exported. Every kind of element
+	 * comes through here: an exporter that needs to tell them apart looks at
+	 * the element itself.
+	 */
+	protected abstract void visitElement(JustificationElement element);
+
+	/** Delegates to {@link #visitElement(JustificationElement)}. */
+	@Override
+	public final Void visit(Conclusion conclusion) {
+		visitElement(conclusion);
+		return null;
+	}
+
+	/** Delegates to {@link #visitElement(JustificationElement)}. */
+	@Override
+	public final Void visit(SubConclusion subConclusion) {
+		visitElement(subConclusion);
+		return null;
+	}
+
+	/** Delegates to {@link #visitElement(JustificationElement)}. */
+	@Override
+	public final Void visit(Strategy strategy) {
+		visitElement(strategy);
+		return null;
+	}
+
+	/** Delegates to {@link #visitElement(JustificationElement)}. */
+	@Override
+	public final Void visit(Evidence evidence) {
+		visitElement(evidence);
+		return null;
+	}
+
+	/** Delegates to {@link #visitElement(JustificationElement)}. */
+	@Override
+	public final Void visit(AbstractSupport abstractSupport) {
+		visitElement(abstractSupport);
+		return null;
+	}
 }

@@ -82,9 +82,10 @@ available.
   `which java` pre-flight check with `test -x '$JAVA_BIN'`, and replaces
   `@@JAVA@@` with the resolved binary path. Both the check and the invocation
   therefore validate and use the same binary.
-- The Homebrew formula in `jpipe-mcscert/homebrew-mcscert` must use
-  `Formula["openjdk@25"].opt_bin/"java"` in its `inreplace` call rather than the
-  string `"java"`.
+- The Homebrew formula must use `Formula["openjdk@25"].opt_bin/"java"` in its
+  `inreplace` call rather than the string `"java"`. Its template is
+  `packaging/homebrew/jpipe.rb`, which `release.yml` renders into
+  `jpipe-mcscert/homebrew-mcscert`.
 - Any future packaging format (RPM `%post`, AppImage, etc.) must apply the same
   principle: resolve the runtime binary path from the package manager's own
   registry rather than using an unqualified command name.

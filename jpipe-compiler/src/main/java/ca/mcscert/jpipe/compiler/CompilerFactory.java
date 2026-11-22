@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.compiler;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
+import ca.mcscert.jpipe.compiler.model.ChainCompiler;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import ca.mcscert.jpipe.operators.builtin.AssembleOperator;
@@ -30,6 +31,7 @@ import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Unit;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.List;
 import java.util.Locale;
 
@@ -43,17 +45,29 @@ public final class CompilerFactory {
 	}
 
 	/**
-	 * Build a process-mode compiler from the given configuration.
+	 * Build a process-mode compiler from the given configuration. Its
+	 * diagnostics are printed on {@code diagnostics}, not through the logging
+	 * framework: that is how the CLI writes them straight to standard error,
+	 * whatever the log level (#216).
 	 *
 	 * @param config
 	 *            the compilation configuration.
 	 * @param stdout
 	 *            stream to use when the output target is
 	 *            {@link CompilationConfig#STDOUT}.
+	 * @param diagnostics
+	 *            where the ERROR and FATAL diagnostics are printed, as
+	 *            {@code file:line:column: severity: [code] message} lines. Not
+	 *            closed.
 	 * @return a ready-to-use {@link Compiler}.
 	 */
-	public static Compiler build(CompilationConfig config,
-			OutputStream stdout) {
+	public static Compiler build(CompilationConfig config, OutputStream stdout,
+			PrintWriter diagnostics) {
+		return processing(config, stdout).reportingTo(diagnostics);
+	}
+
+	private static ChainCompiler<InputStream, ?> processing(
+			CompilationConfig config, OutputStream stdout) {
 		return switch (config.format()) {
 			case JPIPE -> exporting(config, new ExportToJpipe())
 					.andThen(new StringSink(stdout));
@@ -68,21 +82,6 @@ public final class CompilerFactory {
 							config.format().name().toLowerCase(Locale.ROOT)))
 					.andThen(new ByteSink(stdout));
 		};
-	}
-
-	/**
-	 * Build a diagnostic-mode compiler producing a human-readable report.
-	 * Equivalent to
-	 * {@link #buildDiagnosticCompiler(DiagnosticFormat, OutputStream)} with
-	 * {@link DiagnosticFormat#TEXT}.
-	 *
-	 * @param stdout
-	 *            stream to use when the output target is
-	 *            {@link CompilationConfig#STDOUT}.
-	 * @return a ready-to-use {@link Compiler}.
-	 */
-	public static Compiler buildDiagnosticCompiler(OutputStream stdout) {
-		return buildDiagnosticCompiler(DiagnosticFormat.TEXT, stdout);
 	}
 
 	/**

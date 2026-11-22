@@ -76,6 +76,7 @@ jobs:
           mkdir -p dist/jpipe-$VERSION
           cp "${{ steps.locate.outputs.path }}" dist/jpipe-$VERSION/jpipe.jar
           cp bin/jpipe dist/jpipe-$VERSION/jpipe
+          cp bin/aot-training.jd dist/jpipe-$VERSION/aot-training.jd
           tar -czf dist/jpipe-$VERSION.tar.gz -C dist jpipe-$VERSION
           echo "path=dist/jpipe-$VERSION.tar.gz" >> "$GITHUB_OUTPUT"
 
@@ -92,6 +93,7 @@ jobs:
           mkdir -p dist/scoop
           cp "${{ steps.locate.outputs.path }}" dist/scoop/jpipe.jar
           cp bin/jpipe.ps1 dist/scoop/jpipe.ps1
+          cp bin/aot-training.jd dist/scoop/aot-training.jd
           (cd dist/scoop && zip -qr "../jpipe-$VERSION.zip" .)
           echo "path=dist/jpipe-$VERSION.zip" >> "$GITHUB_OUTPUT"
 
@@ -123,6 +125,11 @@ jobs:
     if: ${{ !contains(needs.build-and-release.outputs.version, '-') }}
 
     steps:
+      - name: Checkout the tagged sources
+        uses: actions/checkout@v7
+        with:
+          path: source
+
       - name: Checkout Homebrew tap
         uses: actions/checkout@v7
         with:
@@ -136,10 +143,15 @@ jobs:
           SHA256="${{ needs.build-and-release.outputs.sha256 }}"
           URL="https://github.com/jpipe-mcscert/jpipe-compiler/releases/download/v${VERSION}/jpipe-${VERSION}.tar.gz"
 
-          # Update jpipe.rb (latest alias)
-          sed -i "s|url \".*\"|url \"${URL}\"|" tap/jpipe.rb
-          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" tap/jpipe.rb
-          sed -i "s|openjdk@[0-9]*|openjdk@25|g" tap/jpipe.rb
+          # The whole formula comes from the template in packaging/homebrew:
+          # the tap is never edited by hand (ADR-0025).
+          sed -e "s|@@URL@@|${URL}|" -e "s|@@SHA256@@|${SHA256}|" \
+            source/packaging/homebrew/jpipe.rb > tap/jpipe.rb
+          # @@PREFIX@@ and @@JAVA@@ stay: the formula fills them in at install.
+          if grep -q -e '@@URL@@' -e '@@SHA256@@' tap/jpipe.rb; then
+            echo "ERROR: release placeholder left in jpipe.rb" >&2
+            exit 1
+          fi
 
           # Create versioned formula jpipe@X.Y.Z.rb (e.g. 2.1.0 → JpipeAT210)
           AT_VERSION=$(echo "$VERSION" | tr -d '.')
@@ -153,6 +165,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "jpipe.rb" "jpipe@${VERSION}.rb"
+          # A re-run after a partial failure finds the tap already up to date.
+          if git diff --cached --quiet; then
+            echo "The tap already holds jpipe v${VERSION}"
+            exit 0
+          fi
           git commit -m "chore: bump jpipe to v${VERSION}"
           git push
 
@@ -163,6 +180,11 @@ jobs:
     if: ${{ !contains(needs.build-and-release.outputs.version, '-') }}
 
     steps:
+      - name: Checkout the tagged sources
+        uses: actions/checkout@v7
+        with:
+          path: source
+
       - name: Checkout Scoop bucket
         uses: actions/checkout@v7
         with:
@@ -176,12 +198,12 @@ jobs:
           SHA256="${{ needs.build-and-release.outputs.sha256_zip }}"
           URL="https://github.com/jpipe-mcscert/jpipe-compiler/releases/download/v${VERSION}/jpipe-${VERSION}.zip"
 
-          # Only version/url/hash are templated; everything else (depends,
-          # bin, post_install) is owned by the manifest in the bucket repo.
+          # The whole manifest and the bucket's README come from the templates
+          # in packaging/scoop: the bucket is never edited by hand (ADR-0025).
           jq --indent 4 --arg v "$VERSION" --arg u "$URL" --arg h "$SHA256" \
              '.version = $v | .url = $u | .hash = $h' \
-             scoop-bucket/bucket/jpipe.json > jpipe.json
-          mv jpipe.json scoop-bucket/bucket/jpipe.json
+             source/packaging/scoop/jpipe.json > scoop-bucket/bucket/jpipe.json
+          cp source/packaging/scoop/README.md scoop-bucket/README.md
 
       - name: Commit and push
         run: |
@@ -189,7 +211,14 @@ jobs:
           cd scoop-bucket
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add bucket/jpipe.json
+          git add bucket/jpipe.json README.md
+          # A re-run after a partial failure finds the bucket already up to
+          # date. Each release stays one commit: Scoop 0.6.0 and later install
+          # an older version from the commit that holds it.
+          if git diff --cached --quiet; then
+            echo "The bucket already holds jpipe v${VERSION}"
+            exit 0
+          fi
           git commit -m "chore: bump jpipe to v${VERSION}"
           git push
 

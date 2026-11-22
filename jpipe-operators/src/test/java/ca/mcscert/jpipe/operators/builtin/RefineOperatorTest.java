@@ -102,7 +102,8 @@ class RefineOperatorTest {
 			var minimal = buildMinimal();
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
-					List.of(minimal, refinement), Map.of("hook", "e"));
+					List.of(minimal, refinement), Map.of("hook", "e"),
+					SourceLocation.UNKNOWN, Map.of());
 			Unit unit = engine.spawn("out", cmds);
 			assertThat(unit.findModel("refined")).isPresent();
 			assertThat(unit.get("refined")).isInstanceOf(Justification.class);
@@ -113,7 +114,8 @@ class RefineOperatorTest {
 			var minimal = buildMinimal();
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
-					List.of(minimal, refinement), Map.of("hook", "e"));
+					List.of(minimal, refinement), Map.of("hook", "e"),
+					SourceLocation.UNKNOWN, Map.of());
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -128,7 +130,8 @@ class RefineOperatorTest {
 			var minimal = buildMinimal();
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
-					List.of(minimal, refinement), Map.of("hook", "e"));
+					List.of(minimal, refinement), Map.of("hook", "e"),
+					SourceLocation.UNKNOWN, Map.of());
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -147,7 +150,8 @@ class RefineOperatorTest {
 			var minimal = buildMinimal();
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
-					List.of(minimal, refinement), Map.of("hook", "e"));
+					List.of(minimal, refinement), Map.of("hook", "e"),
+					SourceLocation.UNKNOWN, Map.of());
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -179,7 +183,8 @@ class RefineOperatorTest {
 			var minimal = buildMinimal();
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
-					List.of(minimal, refinement), Map.of("hook", "e"));
+					List.of(minimal, refinement), Map.of("hook", "e"),
+					SourceLocation.UNKNOWN, Map.of());
 
 			long addSupportCount = cmds.stream()
 					.filter(AddSupport.class::isInstance).count();
@@ -194,7 +199,8 @@ class RefineOperatorTest {
 			var minimal = buildMinimal();
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
-					List.of(minimal, refinement), Map.of("hook", "e"));
+					List.of(minimal, refinement), Map.of("hook", "e"),
+					SourceLocation.UNKNOWN, Map.of());
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -221,7 +227,8 @@ class RefineOperatorTest {
 
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
-					List.of(base, refinement), Map.of("hook", "e"));
+					List.of(base, refinement), Map.of("hook", "e"),
+					SourceLocation.UNKNOWN, Map.of());
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -261,7 +268,8 @@ class RefineOperatorTest {
 			List<JustificationModel> sources = List.of(buildMinimal(),
 					buildRefinement());
 			Map<String, String> args = Map.of();
-			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+			assertThatThrownBy(() -> refine.apply("refined", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("hook");
 		}
@@ -270,7 +278,8 @@ class RefineOperatorTest {
 		void throwsWhenSourceCountIsNotTwo() {
 			List<JustificationModel> sources = List.of(buildMinimal());
 			Map<String, String> args = Map.of("hook", "e");
-			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+			assertThatThrownBy(() -> refine.apply("refined", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("2 sources");
 		}
@@ -280,7 +289,8 @@ class RefineOperatorTest {
 			List<JustificationModel> sources = List.of(buildMinimal(),
 					buildRefinement());
 			Map<String, String> args = Map.of("hook", "nonexistent");
-			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+			assertThatThrownBy(() -> refine.apply("refined", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("nonexistent")
 					.hasMessageContaining("minimal");
@@ -298,7 +308,8 @@ class RefineOperatorTest {
 					buildRefinement());
 			Map<String, String> args = Map.of("hook", hook);
 
-			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+			assertThatThrownBy(() -> refine.apply("refined", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("is a " + kind);
 		}
@@ -312,7 +323,8 @@ class RefineOperatorTest {
 			List<JustificationModel> sources = List.of(base, buildRefinement());
 			Map<String, String> args = Map.of("hook", "e1");
 
-			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+			assertThatThrownBy(() -> refine.apply("refined", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContainingAll("ambiguous hook 'e1'",
 							"'first:e1'", "'second:e1'");
@@ -336,7 +348,8 @@ class RefineOperatorTest {
 					buildRefinement());
 			Map<String, String> args = Map.of("hook", "e", "unifyExlude", "x");
 
-			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+			assertThatThrownBy(() -> refine.apply("refined", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContainingAll(
 							"unknown argument(s) [unifyExlude]",
@@ -350,7 +363,8 @@ class RefineOperatorTest {
 			List<JustificationModel> sources = List.of(minimal, minimal);
 			Map<String, String> args = Map.of("hook", "e");
 
-			assertThatThrownBy(() -> refine.apply("refined", sources, args))
+			assertThatThrownBy(() -> refine.apply("refined", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("'minimal' is given more than once");
 		}
@@ -365,9 +379,11 @@ class RefineOperatorTest {
 			List<JustificationModel> replaces = List.of(buildMinimal(),
 					buildRefinement());
 
-			assertThat(refine.apply("r", keeps, Map.of("hook", "abs1"))).first()
+			assertThat(refine.apply("r", keeps, Map.of("hook", "abs1"),
+					SourceLocation.UNKNOWN, Map.of())).first()
 					.isInstanceOf(CreateTemplate.class);
-			assertThat(refine.apply("r", replaces, Map.of("hook", "e"))).first()
+			assertThat(refine.apply("r", replaces, Map.of("hook", "e"),
+					SourceLocation.UNKNOWN, Map.of())).first()
 					.isInstanceOf(CreateJustification.class);
 		}
 

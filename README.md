@@ -134,6 +134,12 @@ Each channel installs a `jpipe` launcher on your `PATH`; run `jpipe doctor` to
 check the installed version and its runtime dependencies. The fat JAR is also
 attached to every [GitHub Release](https://github.com/jpipe-mcscert/jpipe-compiler/releases).
 
+Installing also runs `jpipe --create-aot-cache`, which records a cache that
+makes every call start faster. It only works for the Java build that created
+it: after upgrading Java, run `jpipe --create-aot-cache` again (`sudo` on
+Ubuntu, `brew postinstall jpipe` on macOS). Without a valid cache, jPipe runs
+as before, only slower to start.
+
 ### Running the compiler
 
 After building from source, the fat JAR is at `jpipe-cli/target/jpipe-cli-*.jar`. The

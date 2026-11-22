@@ -23,25 +23,29 @@ import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.FileSystemException;
+import java.nio.file.FileSystemLoopException;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitOption;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
-import java.util.stream.Stream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 /**
@@ -266,9 +270,6 @@ public final class LoadResolver
 		} catch (IOException e) {
 			ctx.fatal(load.location(), cannotExpand(load, e));
 			return List.of();
-		} catch (UncheckedIOException e) {
-			ctx.fatal(load.location(), cannotExpand(load, e.getCause()));
-			return List.of();
 		}
 		if (matches.isEmpty()) {
 			ctx.fatal(load.location(),
@@ -443,6 +444,14 @@ public final class LoadResolver
 	 * ({@code .git}, build outputs), and a directory it cannot read below that
 	 * depth no longer fails the load.
 	 *
+	 * <p>
+	 * The walk follows symbolic links, as a literal load does (#219): a linked
+	 * directory is searched like any other, whether it is {@code root} itself
+	 * or lies below it. A link back to one of its own ancestors leads only to
+	 * files the walk already visits, so it is skipped rather than reported. A
+	 * file reachable through several paths, such as a link and its target, is
+	 * returned once, under the first of its paths in sorted order.
+	 *
 	 * @throws IOException
 	 *             if walking {@code root} fails; reported as a FATAL by the
 	 *             caller so an IO failure is not misclassified as a no-match.
@@ -452,11 +461,36 @@ public final class LoadResolver
 		int depth = pattern.contains("**")
 				? Integer.MAX_VALUE
 				: (int) pattern.chars().filter(c -> c == '/').count() + 1;
-		try (Stream<Path> walk = Files.walk(root, depth)) {
-			return walk.filter(Files::isRegularFile)
-					.filter(p -> matcher.matches(root.relativize(p)))
-					.map(p -> p.toAbsolutePath().normalize()).sorted().toList();
+		List<Path> found = new ArrayList<>();
+		Files.walkFileTree(root, EnumSet.of(FileVisitOption.FOLLOW_LINKS),
+				depth, new SimpleFileVisitor<>() {
+					@Override
+					public FileVisitResult visitFile(Path file,
+							BasicFileAttributes attrs) {
+						if (attrs.isRegularFile()
+								&& matcher.matches(root.relativize(file))) {
+							found.add(file.toAbsolutePath().normalize());
+						}
+						return FileVisitResult.CONTINUE;
+					}
+
+					@Override
+					public FileVisitResult visitFileFailed(Path file,
+							IOException exc) throws IOException {
+						if (exc instanceof FileSystemLoopException) {
+							return FileVisitResult.CONTINUE;
+						}
+						throw exc;
+					}
+				});
+		Set<Path> seen = new HashSet<>();
+		List<Path> matches = new ArrayList<>();
+		for (Path match : found.stream().sorted().toList()) {
+			if (seen.add(identity(match))) {
+				matches.add(match);
+			}
 		}
+		return matches;
 	}
 
 	/**
