@@ -45,6 +45,18 @@ class PlainModelNamesTest {
 		assertThat(names.id(MODELS.get("out"), id)).isEqualTo(expected);
 	}
 
+	@ParameterizedTest(name = "in leaf, {0} is written {1}")
+	@CsvSource({"base:mid:m, base_mid:m", "root:abs, root:abs",
+			"root:s, root:s"})
+	void an_id_of_a_model_that_implements_a_template_is_renamed_through_the_chain(
+			String id, String expected) {
+		JustificationModel leaf = ProvenanceFixtures.templateChain();
+		PlainModelNames names = PlainModelNames
+				.of(List.of("root", "base:mid", "leaf"));
+
+		assertThat(names.id(leaf, id)).isEqualTo(expected);
+	}
+
 	@Test
 	void a_result_argument_is_renamed_through_the_call_sources() {
 		PlainModelNames names = PlainModelNames.of(MODELS.keySet());

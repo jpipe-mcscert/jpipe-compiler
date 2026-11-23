@@ -16,7 +16,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Reads a qualified id through the models it comes from (#202).
+ * Reads a qualified id an author wrote, an argument of an operator call,
+ * through the models it comes from (#202). The ids the compiler holds are never
+ * read this way: each model records where its copies come from (see
+ * {@link JustificationModel#originOf}, #209). An argument is text, and is read
+ * against the models that exist.
  *
  * <p>
  * An id is a string of {@code :}-separated segments, and a model loaded under a
@@ -69,17 +73,6 @@ public final class QualifiedIdReadings {
 			all.addAll(models);
 			return new Reading(all, local);
 		}
-	}
-
-	/**
-	 * The readings of {@code id}, an id of {@code model} written with model
-	 * names given by {@code names}. A single reading with no model when no
-	 * model's name can be read from the id: a plain id, an id minted by an
-	 * operator, or an id that names nothing.
-	 */
-	public static List<Reading> in(JustificationModel model, String id,
-			Function<JustificationModel, String> names) {
-		return orLocal(new Reader(names).in(model, id), id);
 	}
 
 	/**

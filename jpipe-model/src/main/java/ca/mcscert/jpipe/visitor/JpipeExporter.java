@@ -11,7 +11,6 @@ import ca.mcscert.jpipe.model.elements.Evidence;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.model.elements.Strategy;
 import ca.mcscert.jpipe.model.elements.SubConclusion;
-import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -272,18 +271,27 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 	/**
 	 * The support edges {@code model} inherits, as {@code [supported,
 	 * supporter]} pairs of the ids it gives them: its template's edges, each
-	 * end qualified by the template's name unless already qualified, as
-	 * {@link JustificationModel#inline} copies them. An override keeps the id
-	 * of the placeholder it replaces, so the edges it was rewired into are
-	 * inherited too.
+	 * end named as the model's copy of it (see
+	 * {@link JustificationModel#copyOf}). An override keeps the id of the
+	 * placeholder it replaces, so the edges it was rewired into are inherited
+	 * too.
 	 */
 	private static Set<List<String>> inheritedEdges(JustificationModel model) {
 		Set<List<String>> edges = new HashSet<>();
 		model.getParent().ifPresent(p -> p.forEachSupportEdge((supported,
-				supporter) -> edges.add(List.of(
-						QualifiedIds.qualifyIfPlain(p.getName(), supported),
-						QualifiedIds.qualifyIfPlain(p.getName(), supporter)))));
+				supporter) -> edges.add(List.of(copyIn(model, p, supported),
+						copyIn(model, p, supporter)))));
 		return edges;
+	}
+
+	/**
+	 * The id {@code model} gives its copy of {@code parent}'s element
+	 * {@code id}: a model holds a copy of every element of its template, its
+	 * conclusion included (ADR-0012).
+	 */
+	private static String copyIn(JustificationModel model,
+			JustificationModel parent, String id) {
+		return model.copyOf(parent, id).orElseThrow();
 	}
 
 	private void appendElement(String keyword, JustificationElement element) {

@@ -68,16 +68,24 @@ public final class PlainModelNames {
 
 	/**
 	 * {@code id}, an id of {@code owner}, with every model it names renamed.
-	 * Which segments name a model is read by provenance, through the models
-	 * {@code owner} is built from (see {@link QualifiedIdReadings}): in
-	 * {@code b:ns:a:e}, {@code b:ns} names a model only when the rest,
-	 * {@code a:e}, is an id of that model (#202).
+	 * Which segments name a model is not read from the id, which is ambiguous
+	 * once a model name holds a {@code :} ({@code b:ns:a:e}, #202): the id is
+	 * rebuilt from where its element was copied from (see
+	 * {@link JustificationModel#originOf}). A copy of an element {@code x} of a
+	 * model {@code m} is {@code m:x}, or {@code x} itself when template
+	 * expansion kept an id that was already qualified; an id with no origin is
+	 * local, and unchanged.
 	 */
 	public String id(JustificationModel owner, String id) {
-		return renamed.isEmpty()
-				? id
-				: rewrite(QualifiedIdReadings.in(owner, id,
-						JustificationModel::getName));
+		if (renamed.isEmpty()) {
+			return id;
+		}
+		return owner.originOf(id).map(origin -> {
+			String inOrigin = id(origin.model(), origin.id());
+			return id.equals(origin.id())
+					? inOrigin
+					: name(origin.model().getName()) + SEPARATOR + inOrigin;
+		}).orElse(id);
 	}
 
 	/**

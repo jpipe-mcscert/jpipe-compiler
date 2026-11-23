@@ -1,11 +1,8 @@
 package ca.mcscert.jpipe.visitor;
 
-import static ca.mcscert.jpipe.util.QualifiedIds.qualifyIfPlain;
-
 import ca.mcscert.jpipe.model.Composition;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
-import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -20,14 +17,14 @@ import java.util.Set;
  * (#200).
  *
  * <p>
- * A composition copies each element {@code x} of a source {@code S} as
- * {@code S:x}, and the ids it merges are recorded as aliases, the merged id
- * standing for them. The element {@code S:x} became is therefore {@code S:x}
- * followed through the composed model's aliases, which is how the composition
- * itself rewires the support edges, whatever the operator. Each source element
- * found that way is an origin of the element, with the kind it has in its
- * source, and so are its own origins in that source, if the source was composed
- * too.
+ * A composed model records where each copy it holds comes from (see
+ * {@link JustificationModel#originOf}), and the ids it merges are recorded as
+ * aliases, the merged id standing for them. The element a copy became is
+ * therefore its id followed through the composed model's aliases, which is how
+ * the composition itself rewires the support edges, whatever the operator. Each
+ * source element found that way is an origin of the element, with the kind it
+ * has in its source, and so are its own origins in that source, if the source
+ * was composed too.
  */
 final class CompositionOrigins {
 
@@ -90,18 +87,18 @@ final class CompositionOrigins {
 	private static void inherit(JustificationModel model,
 			JustificationModel parent, Map<String, List<Origin>> origins,
 			Map<JustificationModel, Map<String, List<Origin>>> known) {
-		Set<String> inherited = new HashSet<>();
-		model.inheritedElements().forEach(e -> inherited.add(e.id()));
+		List<JustificationElement> inherited = new ArrayList<>();
 		if (!model.hasOwnConclusion()) {
-			model.conclusion().ifPresent(c -> inherited.add(c.id()));
+			model.conclusion().ifPresent(inherited::add);
 		}
-		of(parent, known).forEach((id, list) -> {
-			String copy = qualifyIfPlain(parent.getName(), id);
-			if (inherited.contains(copy)) {
-				origins.computeIfAbsent(copy, _ -> new ArrayList<>())
-						.addAll(list);
-			}
-		});
+		inherited.addAll(model.inheritedElements());
+		Map<String, List<Origin>> fromParent = of(parent, known);
+		for (JustificationElement copy : inherited) {
+			model.inheritedOrigin(copy.id()).map(o -> fromParent.get(o.id()))
+					.ifPresent(list -> origins
+							.computeIfAbsent(copy.id(), _ -> new ArrayList<>())
+							.addAll(list));
+		}
 	}
 
 	/**
@@ -121,18 +118,23 @@ final class CompositionOrigins {
 	private static void collect(JustificationModel model,
 			Composition composition, Map<String, List<Origin>> origins,
 			Map<JustificationModel, Map<String, List<Origin>>> known) {
-		for (JustificationModel source : composition.sources()) {
-			Map<String, List<Origin>> deeper = of(source, known);
-			for (JustificationElement element : source.allElements()) {
-				String copy = QualifiedIds.qualify(source.getName(),
-						element.id());
-				List<Origin> list = origins.computeIfAbsent(
-						model.resolveAlias(copy), _ -> new ArrayList<>());
-				list.add(new Origin(source.getName(), copy, element.kind(), 1));
-				deeper.getOrDefault(element.id(), List.of())
-						.forEach(o -> list.add(new Origin(o.model(), o.id(),
-								o.type(), o.level() + 1)));
+		Map<JustificationModel, Map<String, List<Origin>>> deeper = new IdentityHashMap<>();
+		composition.sources()
+				.forEach(source -> deeper.put(source, of(source, known)));
+		model.origins().forEach((copy, from) -> {
+			Map<String, List<Origin>> inSource = deeper.get(from.model());
+			// An alias carried forward copies no element: what it was merged
+			// into is the source element whose origins count.
+			JustificationElement element = from.element().orElse(null);
+			if (inSource == null || element == null) {
+				return;
 			}
-		}
+			List<Origin> list = origins.computeIfAbsent(
+					model.resolveAlias(copy), _ -> new ArrayList<>());
+			list.add(new Origin(from.model().getName(), copy, element.kind(),
+					1));
+			inSource.getOrDefault(from.id(), List.of()).forEach(o -> list.add(
+					new Origin(o.model(), o.id(), o.type(), o.level() + 1)));
+		});
 	}
 }
