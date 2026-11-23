@@ -18,6 +18,12 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Installing or upgrading jPipe with Homebrew no longer prints the warning
+  ``Calling `post_install` is deprecated!``; the AOT cache is still created after
+  the install.
+
 ---
 
 ## [4.1.0] — 2026-11-22

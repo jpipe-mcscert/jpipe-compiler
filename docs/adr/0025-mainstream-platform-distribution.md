@@ -146,7 +146,7 @@ updated automatically.
   download fails. The bucket's README documents it; fixing it would mean
   rewriting the history.
 - Each channel runs `jpipe --create-aot-cache` once after installing (Debian's
-  `postinst`, Homebrew's `post_install`, Scoop's `post_install`), which records
+  `postinst`, Homebrew's `post_install_steps`, Scoop's `post_install`), which records
   an AOT cache next to `jpipe.jar` from the training model `aot-training.jd`
   shipped with it (#216). The cache only works for the Java build and the JAR
   path that created it, so it cannot ship in the release assets. After a Java

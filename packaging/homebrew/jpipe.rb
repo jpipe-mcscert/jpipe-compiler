@@ -27,7 +27,8 @@ class Jpipe < Formula
     # machine that created it (#216). jPipe runs without it, so a failure here
     # does not fail the install. After upgrading openjdk@25, run
     # `brew postinstall jpipe` to create it again.
-    def post_install
-        quiet_system bin/"jpipe", "--create-aot-cache"
+    post_install_steps do
+        run "jpipe", base: :bin, args: ["--create-aot-cache"],
+                     must_succeed: false, print_stderr: false
     end
 end
