@@ -28,21 +28,20 @@ small changes straight to `dev`:
   `dev`**, merge back **into `dev`**. Merging into `dev` is what adds the change
   to `[Unreleased]`.
 - **A PR into `dev` is not required.** Human authors may push low-risk changes
-  (version bumps, changelog close-out, CI configuration, small fixes carried by
-  their tests) straight to `dev` once `mvn verify` is green (ADR-0024, amendment
-  of 2026-08-07). Only `main` requires a PR. **This relaxation is for human
-  authors.** Claude commits on the session's branch, pushes it and stops; it
-  creates a branch only with the maintainer's approval, and pushes to `dev`
-  only when explicitly asked.
+  (version bumps, CI configuration, small fixes carried by their tests)
+  straight to `dev` once `mvn verify` is green (ADR-0024). Only `main` requires
+  a PR. **This relaxation is for human authors.** Claude commits on the
+  session's branch, pushes it and stops; it creates a branch only with the
+  maintainer's approval, and pushes to `dev` only when explicitly asked.
 - **Releasing** — the full runbook is [`docs/releasing.md`](docs/releasing.md),
   driven by `scripts/release.sh`. A release is a release branch, `release/X.Y.Z`,
   cut from `dev`, that holds the release commit and goes into `main` by one pull
-  request; `main` is then merged back into `dev` (ADR-0024, amendment of
-  2026-11-21). **The merge into `main` and the tag push are human-only actions**
-  (see Critical Rules). Claude prepares the release commit (changelog close-out,
-  version bump) only when explicitly asked, on a release branch cut with the
-  maintainer's approval: it shows `scripts/release.sh prepare X.Y.Z --dry-run`
-  first, since the script commits by itself.
+  request; `main` is then merged back into `dev` (ADR-0024). **The merge into
+  `main` and the tag push are human-only actions** (see Critical Rules).
+  Claude prepares the release commit (changelog close-out, version bump) only
+  when explicitly asked, on a release branch cut with the maintainer's
+  approval: it shows `scripts/release.sh prepare X.Y.Z --dry-run` first, since
+  the script commits by itself.
 - **Hotfixes** — branch from `main`, merge into `main`, release via a patch tag,
   then merge back into `dev`.
 

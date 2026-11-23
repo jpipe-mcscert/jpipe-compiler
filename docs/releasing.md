@@ -99,7 +99,7 @@ through a pull request: `main` is release-only, and every commit on it is a
 published version. Its diff is the whole release: what `dev` merged since the
 last one, and the release commit. The release commit goes into `main` without a
 pull request into `dev` first; Phase 5 brings it to `dev`
-([ADR-0024, amended](adr/0024-git-branching-model.md#amendment-2026-11-21-a-release-is-a-release-branch-into-main)).
+([ADR-0024](adr/0024-git-branching-model.md#releases)).
 Work merged into `dev` meanwhile waits for the next release.
 
 ---

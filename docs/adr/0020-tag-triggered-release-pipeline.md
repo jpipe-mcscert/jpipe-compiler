@@ -106,10 +106,10 @@ is correct when releasing `v2.1.0`.
 
 That validation is also the pipeline's sharpest edge: it runs *after* the tag has
 been pushed, so a pom that disagrees with the tag fails the release rather than
-preventing it. The release version is therefore set during preparation, on `dev`,
-by `scripts/release.sh prepare X.Y.Z` — and `scripts/release.sh preflight X.Y.Z`
-reproduces this check, and the "tag is on `main`" check above, locally before the
-tag exists.
+preventing it. The release version is therefore set during preparation, on the
+release branch, by `scripts/release.sh prepare X.Y.Z` — and
+`scripts/release.sh preflight X.Y.Z` reproduces this check, and the "tag is on
+`main`" check above, locally before the tag exists.
 
 Tags containing `-` (e.g. `v2.1.0-rc1`) are automatically marked as pre-releases;
 all three channel jobs are skipped for them.
