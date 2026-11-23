@@ -65,7 +65,7 @@ public abstract sealed class JustificationModel
 	 */
 	private final Map<String, List<Origin>> origins = new LinkedHashMap<>();
 	/** The id of the copy of each origin: {@link #origins}, reversed. */
-	private final Map<Origin, String> copies = new HashMap<>();
+	private final Map<Origin, String> copyIds = new HashMap<>();
 
 	protected JustificationModel(String name) {
 		this.name = name;
@@ -157,7 +157,7 @@ public abstract sealed class JustificationModel
 	 * Records that {@code prefix:id} is a copy of {@code id} of {@code from}.
 	 */
 	private void recordCopy(JustificationModel from, String id, String prefix) {
-		record(QualifiedIds.qualify(prefix, id), new Origin(from, id));
+		recordOrigin(QualifiedIds.qualify(prefix, id), new Origin(from, id));
 	}
 
 	/**
@@ -165,13 +165,13 @@ public abstract sealed class JustificationModel
 	 * ids collide once qualified give one id two origins: a duplicate id, which
 	 * compilation reports, and whose every origin is kept.
 	 */
-	private void record(String copy, Origin origin) {
+	private void recordOrigin(String copy, Origin origin) {
 		List<Origin> list = origins.computeIfAbsent(copy,
 				_ -> new ArrayList<>());
 		if (!list.contains(origin)) {
 			list.add(origin);
 		}
-		copies.putIfAbsent(origin, copy);
+		copyIds.putIfAbsent(origin, copy);
 	}
 
 	/**
@@ -210,7 +210,7 @@ public abstract sealed class JustificationModel
 			return Optional.empty();
 		}
 		return parent.copyOf(ancestor, ancestorId)
-				.map(idInParent -> copies.get(new Origin(parent, idInParent)));
+				.map(idInParent -> copyIds.get(new Origin(parent, idInParent)));
 	}
 
 	/** The origin of {@code id} when it is a copy of its parent's element. */
@@ -309,7 +309,7 @@ public abstract sealed class JustificationModel
 			Conclusion copy = (Conclusion) qualifiedCopy(tc, templateName);
 			if (this.conclusion == null) {
 				this.setConclusion(copy);
-				record(copy.id(), new Origin(template, tc.id()));
+				recordOrigin(copy.id(), new Origin(template, tc.id()));
 			}
 			// In Step 2, we want edges supporting 'tc' to now support our
 			// conclusion
@@ -319,7 +319,7 @@ public abstract sealed class JustificationModel
 		template.getElements().forEach(elem -> {
 			JustificationElement copy = qualifiedCopy(elem, templateName);
 			copies.put(elem.id(), copy);
-			record(copy.id(), new Origin(template, elem.id()));
+			recordOrigin(copy.id(), new Origin(template, elem.id()));
 		});
 
 		// Step 2: re-wire support edges between copies
