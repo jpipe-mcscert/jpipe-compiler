@@ -45,25 +45,28 @@ an abstract `CompositionOperator` class (Template Method pattern):
   compilation unit's location registry when `apply()` builds the sourced-element
   list, so `MergeFunction` implementations can forward it to creation commands
   and have it recorded in the result model's symbol-table entry.
-- **`CompositionOperator.apply()`** — the sealed template method.  Four overloads
-  are provided for call-site convenience; all delegate to the full 5-argument
-  form:
-  - `apply(resultName, sources, arguments)` — no location information (unit tests).
-  - `apply(resultName, sources, arguments, location)` — attaches a `SourceLocation`
-    to the result model declaration but supplies no element locations.
-  - `apply(resultName, sources, arguments, location, knownLocations)` — the
-    canonical form; `knownLocations` is a `Map<String, SourceLocation>` keyed
-    on `"modelName/elementId"` (the same format used by `Unit.locations()`).
-    `ApplyOperator.expand()` passes `context.locations()` here so that copied
-    elements carry their source file positions into the result model.
+- **`CompositionOperator.apply(resultName, sources, arguments, location,
+  knownLocations)`** — the sealed template method.  `location` is attached to
+  the result model's declaration; `knownLocations` is a
+  `Map<String, SourceLocation>` keyed on `"modelName/elementId"` (the same
+  format used by `Unit.locations()`).  `ApplyOperator.expand()` passes
+  `context.locations()` here so that copied elements carry their source file
+  positions into the result model.  Ids a prior composition step renamed are
+  read from each source's own aliases (`JustificationModel.aliases()`), so
+  no alias map is passed in.
   - Phase 1: creates elements, populates `AliasRegistry`, emits `RegisterAlias`
-    commands to persist aliases in the `Unit`.
+    commands to record the aliases on the result model.  A source's own
+    aliases are carried forward, qualified by the source's name, so that an
+    element stays reachable under the id it had before every composition
+    step.
   - Phase 2: reconstructs support edges by translating original endpoints through
     the registry, with set-based deduplication to prevent duplicate edges when
     multiple source models share the same edge.
   - Subclasses provide `equivalenceRelation(sources, arguments)`,
     `mergeFunction(sources, arguments)`,
-    `createResultModel(name, location, sources, arguments)`, and optionally
+    `resultKind(sources, arguments, elements)`, which chooses whether the
+    result is a justification or a template (the framework creates it, and
+    `apply()` returns that kind with the commands, as a `Composed`), and optionally
     `requiredArguments()` (missing required keys throw
     `InvalidOperatorCallException`).  All hook methods receive the full
     `sources` list so that operators can inspect source types and distinguish
@@ -79,19 +82,17 @@ an abstract `CompositionOperator` class (Template Method pattern):
     `apply()` returns, via `Unifier.unify()`. It is not part of the sealed
     `apply()` template but is always applied to the command list before the
     engine sees it. See §5 below.
-- **`ModelReplicator`** — a stateless utility that generates commands to copy a
-  model's elements and edges non-destructively, following the same qualified-id
-  convention as `JustificationModel.inline()`.
 - **`OperatorRegistry`** — a name → `CompositionOperator` map populated at
   compiler startup.  Currently populated with hardcoded built-in operators in
   `CompilerFactory.builtInOperators()`; a service-loader extension point is
   deferred to a later ADR.
-- **Aliases in `Unit`** — `Unit` gains `recordAlias(model, oldId, newId)`,
-  `resolveAlias(model, id)`, and `aliases()` (an unmodifiable view of the full
-  alias map, keyed on `"model/oldId"`), backed by a flat `Map<String, String>`.
-  A new `RegisterAlias` command writes alias entries so the mapping survives in
-  the compiled unit.  `aliases()` is used by `DiagnosticReport` to include
-  alias entries in the symbol table.
+- **Aliases on the model** — each `JustificationModel` holds its own aliases:
+  `recordAlias(oldId, newId)`, `resolveAlias(id)` (followed to the end of the
+  chain, one link per composition step), and `aliases()`.  A `RegisterAlias`
+  command writes an entry through `Unit.recordAlias(model, oldId, newId)`,
+  which requires the model to exist, so the mapping survives in the compiled
+  unit.  `DiagnosticReport` reads `aliases()` to include alias entries in the
+  symbol table.
 
 ### 2. Automatic post-composition unification (`jpipe-operators`)
 
@@ -184,9 +185,10 @@ Aliases are shown after the element list for each model, formatted as
 - `OperatorRegistry` as an explicit constructor dependency of `ActionListProvider`
   (rather than a static singleton) makes the available operator set visible at
   construction time and mockable in tests.
-- Persisting aliases to `Unit` via `RegisterAlias` commands keeps the alias data
-  in the same place as all other compiled model state, consistent with how
-  `recordLocation` / `locationOf` track source positions.
+- Persisting aliases via `RegisterAlias` commands keeps the alias data in the
+  compiled unit with all other model state.  Holding them once, on the model
+  they belong to, means every reader asks that model, and none rebuilds a
+  per-model view from unit-wide keys.
 - Passing `knownLocations` as a `Map<String, SourceLocation>` (rather than `Unit`
   itself) to `apply()` keeps the operator framework decoupled from the full
   compilation unit and limits the operator's read access to location data only.

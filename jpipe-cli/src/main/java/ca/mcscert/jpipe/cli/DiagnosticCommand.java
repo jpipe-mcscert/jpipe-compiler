@@ -40,6 +40,6 @@ class DiagnosticCommand extends InputOutputCommand {
 	@Override
 	protected boolean suppressLogo() {
 		return format == DiagnosticFormat.JSON
-				&& CompilationConfig.STDOUT.equals(output);
+				&& CompilationConfig.isStdout(output);
 	}
 }

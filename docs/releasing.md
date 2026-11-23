@@ -4,8 +4,9 @@ This is the release checklist. Work through the phases in order; each one ends
 with a single command or a single decision.
 
 **The shape of a release.** Day-to-day work accumulates on `dev`. A release closes
-out the `CHANGELOG.md` `[Unreleased]` section, merges `dev` into `main` through a
-pull request, and pushes a `vX.Y.Z` tag on `main`. The tag — nothing else —
+out the `CHANGELOG.md` `[Unreleased]` section on a release branch, `release/X.Y.Z`,
+cut from `dev`, merges that branch into `main` through one pull request, and pushes a
+`vX.Y.Z` tag on `main`. The tag — nothing else —
 triggers `release.yml`, which publishes the GitHub Release and updates Homebrew,
 Scoop and the Ubuntu PPA. See [ADR-0024](adr/0024-git-branching-model.md) for the
 branch model and [ADR-0020](adr/0020-tag-triggered-release-pipeline.md) for the
@@ -21,15 +22,17 @@ never pushes — those stay in your hands.
 Three judgement calls, none of which a script can make for you.
 
 **Pick the version number.** Read the `[Unreleased]` section and apply semantic
-versioning ([ADR-0001](adr/0001-semver-versioning.md)): a breaking change to a
-public API — `jpipe-operators` above all — is a MAJOR bump, new behaviour is
-MINOR, fixes alone are PATCH. What `pom.xml` currently says is *not* an input to
+versioning ([ADR-0001](adr/0001-semver-versioning.md)) to the CLI's public
+interface: the language, the commands and their options and exit codes, the
+export formats, and the diagnostics. A change that can break a user or a tool
+relying on it is a MAJOR bump, new behaviour is MINOR, fixes alone are PATCH.
+The Java modules are internal and do not count. What `pom.xml` currently says is *not* an input to
 this decision; Phase 1 sets the pom to whatever you choose here.
 
 **Review held-back dependencies** ([ADR-0007](adr/0007-dependency-freshness-policy.md)) —
-a required step, not optional housekeeping. Dependabot keeps minors and patches
-current on `dev` week by week; what is left is what it holds back (the majors
-ignored in `.github/dependabot.yml`) and any major pull request still open.
+a required step, not optional housekeeping. Dependabot keeps `dev` current week
+by week, in one pull request; what is left is what it holds back (the majors
+ignored in `.github/dependabot.yml`) and that pull request, if it is still open.
 Decide, for each, whether it stays held for another cycle:
 
 ```bash
@@ -46,12 +49,16 @@ a series when it enters support; drop one in the release that follows its EOL.
 
 ---
 
-## Phase 1 — Prepare, on `dev`
+## Phase 1 — Prepare, on a release branch
 
 ```bash
 git switch dev && git pull --ff-only
+git switch -c release/X.Y.Z
 scripts/release.sh prepare X.Y.Z
 ```
+
+The release branch holds everything `dev` holds: the release is what `dev` holds
+now. `prepare` refuses any other branch, and one that lacks commits of `origin/dev`.
 
 This sets every pom to `X.Y.Z-SNAPSHOT`, renames `## [Unreleased]` to
 `## [X.Y.Z] — <today>`, opens a fresh empty `[Unreleased]` above it, adds the
@@ -63,11 +70,10 @@ tag against the pom version and fails **after the tag has been pushed**, so the
 pom must say `X.Y.Z-SNAPSHOT` before you tag `vX.Y.Z` — whatever `dev` happened
 to be bumped to earlier is irrelevant once `prepare` has run.
 
-Then push. A release chore does not need a pull request
-([ADR-0024, amended](adr/0024-git-branching-model.md#amendment-2026-08-07-pull-requests-are-not-required-for-dev)):
+Then push the branch:
 
 ```bash
-git push
+git push -u origin release/X.Y.Z
 ```
 
 ---
@@ -84,13 +90,17 @@ already taken, changelog closed out, `mvn verify` green. It also reports whether
 `HEAD` is on `main` yet — expect a warning here, since the merge has not
 happened.
 
-Open a pull request from `dev` to `main` titled `Release vX.Y.Z`, take it
+Open a pull request from `release/X.Y.Z` to `main` titled `Release vX.Y.Z`, take it
 through the organization's
 [pull request steps](https://github.com/jpipe-mcscert/.github/blob/main/CONTRIBUTING.md#pull-requests)
 (draft, quality gate, one Copilot review, every comment answered), and merge it
 once it is ready. This is the one merge in the process that must go
 through a pull request: `main` is release-only, and every commit on it is a
-published version.
+published version. Its diff is the whole release: what `dev` merged since the
+last one, and the release commit. The release commit goes into `main` without a
+pull request into `dev` first; Phase 5 brings it to `dev`
+([ADR-0024, amended](adr/0024-git-branching-model.md#amendment-2026-11-21-a-release-is-a-release-branch-into-main)).
+Work merged into `dev` meanwhile waits for the next release.
 
 ---
 
@@ -142,6 +152,21 @@ jpipe doctor
 manual and required** — it is the one channel CI cannot smoke-test
 ([ADR-0025](adr/0025-mainstream-platform-distribution.md)).
 
+Each install should also have created the AOT cache next to `jpipe.jar`. No CI
+job runs a channel's install step, so check it on each platform you install on:
+
+```bash
+ls "$(brew --prefix jpipe)/jpipe.aot"      # macOS
+ls /usr/share/jpipe/jpipe.aot              # Ubuntu
+```
+
+```powershell
+Test-Path "$(scoop prefix jpipe)\jpipe.aot"   # Windows
+```
+
+A missing cache does not break jPipe, only slows its start-up; run
+`jpipe --create-aot-cache` by hand to see why it was not created.
+
 ---
 
 ## Phase 5 — Merge back and reopen development
@@ -158,8 +183,9 @@ rejects anything that is not a valid Maven version. The next **patch** is the
 low-surprise default: since Phase 1 sets the release version explicitly, an
 over-bump here is harmless, but it is what confused the 2.3.1 release.
 
-Merging `main` back into `dev` keeps the release commit shared between the two
-branches; `post-release` refuses to run until you have.
+Merging `main` back into `dev` brings the release commit to `dev`, so that the
+two branches share it; `post-release` refuses to run until you have. Delete the
+release branch once it is merged.
 
 ---
 
@@ -173,8 +199,8 @@ git push --delete origin vX.Y.Z
 git tag -d vX.Y.Z
 ```
 
-Fix the pom on `dev` (`scripts/release.sh prepare X.Y.Z`), merge to `main` again,
-and re-tag. Running `preflight` in Phase 3 is what prevents this.
+Fix the pom on a new release branch (`scripts/release.sh prepare X.Y.Z`), take it
+into `main` again, and re-tag. Running `preflight` in Phase 3 is what prevents this.
 
 **The release published but a channel job failed.** By design, a missing
 credential or a broken index fails one channel, not the release — the GitHub
@@ -188,4 +214,4 @@ release notes — write them before releasing, not after.
 
 **`post-release` says main is not merged back.** Run `git merge origin/main` on
 `dev` first. Skipping this leaves the release commit on `main` only, and the next
-release's `dev` → `main` merge becomes a conflict.
+release branch's merge into `main` becomes a conflict.

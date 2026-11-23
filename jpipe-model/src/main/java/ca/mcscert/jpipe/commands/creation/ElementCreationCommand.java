@@ -60,6 +60,9 @@ public sealed interface ElementCreationCommand extends Command, ElementView
 	 */
 	ElementCreationCommand withId(String newId);
 
+	@Override
+	ElementCreationCommand withNamespace(String ns);
+
 	/**
 	 * The element this command creates, built from the command's own id and
 	 * label but not attached to any model.

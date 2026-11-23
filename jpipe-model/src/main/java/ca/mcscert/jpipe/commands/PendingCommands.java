@@ -1,5 +1,7 @@
 package ca.mcscert.jpipe.commands;
 
+import ca.mcscert.jpipe.model.Unit;
+import java.util.Collection;
 import java.util.function.Predicate;
 
 /**
@@ -21,5 +23,15 @@ public interface PendingCommands {
 	/** Whether some pending command creates or changes {@code model}. */
 	default boolean target(String model) {
 		return target(model, c -> false);
+	}
+
+	/**
+	 * Whether every model of {@code models} is settled: it exists, no pending
+	 * command still changes it, and it was built in full. A command that reads
+	 * these models then sees what they are, not what they are so far (#177).
+	 */
+	default boolean settled(Unit unit, Collection<String> models) {
+		return models.stream().allMatch(m -> unit.findModel(m).isPresent()
+				&& !target(m) && unit.isComplete(m));
 	}
 }

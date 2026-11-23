@@ -4,20 +4,9 @@ import static ca.mcscert.jpipe.util.QualifiedIds.qualify;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.CompilationConfig;
-import ca.mcscert.jpipe.commands.creation.CreateAbstractSupport;
-import ca.mcscert.jpipe.commands.creation.CreateConclusion;
-import ca.mcscert.jpipe.commands.creation.CreateEvidence;
-import ca.mcscert.jpipe.commands.creation.CreateJustification;
-import ca.mcscert.jpipe.commands.creation.CreateStrategy;
-import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
-import ca.mcscert.jpipe.commands.creation.CreateTemplate;
-import ca.mcscert.jpipe.commands.linking.AddSupport;
-import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
-import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
-import ca.mcscert.jpipe.operators.ApplyOperator;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import org.apache.logging.log4j.LogManager;
@@ -27,25 +16,29 @@ import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.FileSystemException;
+import java.nio.file.FileSystemLoopException;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitOption;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
-import java.util.stream.Stream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 /**
@@ -141,6 +134,15 @@ public final class LoadResolver
 			throw new UnsupportedOperationException(
 					"LoadDirective must be expanded by LoadResolver,"
 							+ " not executed directly");
+		}
+
+		/**
+		 * Unchanged: a load in a loaded file is resolved, and its own commands
+		 * namespaced, before the file's commands are.
+		 */
+		@Override
+		public Command withNamespace(String ns) {
+			return this;
 		}
 	}
 
@@ -266,12 +268,9 @@ public final class LoadResolver
 
 		List<Path> matches;
 		try {
-			matches = matchGlob(anchored.root(), matcher);
+			matches = matchGlob(anchored.root(), anchored.pattern(), matcher);
 		} catch (IOException e) {
 			ctx.fatal(load.location(), cannotExpand(load, e));
-			return List.of();
-		} catch (UncheckedIOException e) {
-			ctx.fatal(load.location(), cannotExpand(load, e.getCause()));
 			return List.of();
 		}
 		if (matches.isEmpty()) {
@@ -440,36 +439,90 @@ public final class LoadResolver
 	 * Standard glob semantics apply: {@code *} does not cross directory
 	 * boundaries, while {@code **} does.
 	 *
+	 * <p>
+	 * Without {@code **}, nothing in {@code pattern} crosses a {@code /}, so no
+	 * match lies deeper than one level per {@code /} it holds, plus one: the
+	 * walk stops there rather than descending the whole tree under {@code root}
+	 * ({@code .git}, build outputs), and a directory it cannot read below that
+	 * depth no longer fails the load.
+	 *
+	 * <p>
+	 * The walk follows symbolic links, as a literal load does (#219): a linked
+	 * directory is searched like any other, whether it is {@code root} itself
+	 * or lies below it. A link back to one of its own ancestors leads only to
+	 * files the walk already visits, so it is skipped rather than reported. A
+	 * file reachable through several paths, such as a link and its target, is
+	 * returned once, under the first of its paths in sorted order.
+	 *
 	 * @throws IOException
 	 *             if walking {@code root} fails; reported as a FATAL by the
 	 *             caller so an IO failure is not misclassified as a no-match.
 	 */
-	private static List<Path> matchGlob(Path root, PathMatcher matcher)
+	private static List<Path> matchGlob(Path root, String pattern,
+			PathMatcher matcher) throws IOException {
+		int depth = pattern.contains("**")
+				? Integer.MAX_VALUE
+				: (int) pattern.chars().filter(c -> c == '/').count() + 1;
+		List<Path> found = new ArrayList<>();
+		Files.walkFileTree(root, EnumSet.of(FileVisitOption.FOLLOW_LINKS),
+				depth, new SimpleFileVisitor<>() {
+					@Override
+					public FileVisitResult visitFile(Path file,
+							BasicFileAttributes attrs) {
+						if (attrs.isRegularFile()
+								&& matcher.matches(root.relativize(file))) {
+							found.add(file.toAbsolutePath().normalize());
+						}
+						return FileVisitResult.CONTINUE;
+					}
+
+					@Override
+					public FileVisitResult visitFileFailed(Path file,
+							IOException exc) throws IOException {
+						if (exc instanceof FileSystemLoopException) {
+							return FileVisitResult.CONTINUE;
+						}
+						throw exc;
+					}
+				});
+		Set<Path> seen = new HashSet<>();
+		List<Path> matches = new ArrayList<>();
+		for (Path match : found.stream().sorted().toList()) {
+			if (seen.add(identity(match))) {
+				matches.add(match);
+			}
+		}
+		return matches;
+	}
+
+	/**
+	 * Runs the {@link #fileParser} on a file. It does <em>not</em> include
+	 * {@link LoadResolver} itself, preventing infinite recursion. Nested loads
+	 * in the sub-file are handled by the recursive {@link #resolve} call after
+	 * this method returns.
+	 */
+	private List<Command> parseFile(Path path, CompilationContext subCtx)
 			throws IOException {
-		try (Stream<Path> walk = Files.walk(root)) {
-			return walk.filter(Files::isRegularFile)
-					.filter(p -> matcher.matches(root.relativize(p)))
-					.map(p -> p.toAbsolutePath().normalize()).sorted().toList();
+		try (InputStream in = Files.newInputStream(path)) {
+			return fileParser(operators, unificationEquivalences).fire(in,
+					subCtx);
 		}
 	}
 
 	/**
-	 * Runs the raw parsing chain (up to and including
-	 * {@link ActionListProvider}) on a file. This chain does <em>not</em>
-	 * include {@link LoadResolver} itself, preventing infinite recursion.
-	 * Nested loads in the sub-file are handled by the recursive
-	 * {@link #resolve} call after this method returns.
+	 * Parses one file into its commands, aborting on any syntax error, without
+	 * resolving its {@code load} directives. The compiler's parsing chain is
+	 * this, followed by a {@link LoadResolver}, which runs it again on every
+	 * file loaded.
 	 */
-	private List<Command> parseFile(Path path, CompilationContext subCtx)
-			throws IOException {
-		Transformation<InputStream, List<Command>> chain = new CharStreamProvider()
-				.andThen(new Lexer()).andThen(new Parser())
+	public static Transformation<InputStream, List<Command>> fileParser(
+			OperatorRegistry operators,
+			UnificationEquivalenceRegistry unificationEquivalences) {
+		return new CharStreamProvider().andThen(new Lexer())
+				.andThen(new Parser())
 				.andThen(new HaltAndCatchFire<ParseTree>())
 				.andThen(new ActionListProvider(operators,
 						unificationEquivalences));
-		try (InputStream in = Files.newInputStream(path)) {
-			return chain.fire(in, subCtx);
-		}
 	}
 
 	/** {@code prefix} and {@code namespace} joined, either one may be empty. */
@@ -508,72 +561,15 @@ public final class LoadResolver
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Returns a new list in which every model-name argument of every command is
-	 * prefixed with {@code namespace + ":"}.
-	 *
-	 * <p>
-	 * Only model names (container references and model identifiers) are
-	 * prefixed. Element IDs, display labels, and type discriminators are left
-	 * untouched: element IDs are local to their model and get qualified by
+	 * Returns a new list in which every command is the one a file loaded under
+	 * {@code namespace} means: see {@link Command#withNamespace}. Element ids
+	 * are local to their model, and get qualified by
 	 * {@link ca.mcscert.jpipe.model.JustificationModel#inline} at template
-	 * expansion time. {@link LoadDirective}s and unrecognised command types are
-	 * passed through unchanged.
+	 * expansion time; only the qualified ones, which name an element inherited
+	 * from a model of the loaded file, are prefixed here.
 	 */
 	static List<Command> prefix(String namespace, List<Command> commands) {
-		List<Command> result = new ArrayList<>(commands.size());
-		for (Command cmd : commands) {
-			result.add(rewrite(namespace, cmd));
-		}
-		return result;
-	}
-
-	/**
-	 * An element id as seen from a namespaced load: a qualified id names an
-	 * element inherited from a model of the loaded file ({@code base:t:abs}),
-	 * whose name the namespace prefixes too; a plain id is local and unchanged.
-	 */
-	private static String qualifyElement(String ns, String id) {
-		return id.contains(":") ? qualify(ns, id) : id;
-	}
-
-	private static Command rewrite(String ns, Command cmd) {
-		return switch (cmd) {
-			case CreateJustification c -> new CreateJustification(
-					qualify(ns, c.identifier()), c.location());
-			case CreateTemplate c ->
-				new CreateTemplate(qualify(ns, c.identifier()), c.location());
-			case CreateConclusion c ->
-				new CreateConclusion(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.label(),
-						c.location());
-			case CreateEvidence c ->
-				new CreateEvidence(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.label(),
-						c.location());
-			case CreateStrategy c ->
-				new CreateStrategy(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.label(),
-						c.location());
-			case CreateSubConclusion c ->
-				new CreateSubConclusion(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.label(),
-						c.location());
-			case CreateAbstractSupport c ->
-				new CreateAbstractSupport(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.label(),
-						c.location());
-			case ImplementsTemplate c ->
-				new ImplementsTemplate(qualify(ns, c.modelName()),
-						qualify(ns, c.templateName()), c.location());
-			case AddSupport c -> new AddSupport(qualify(ns, c.container()),
-					qualifyElement(ns, c.supportableId()),
-					qualifyElement(ns, c.supporterId()), c.location());
-			case OverrideAbstractSupport c ->
-				new OverrideAbstractSupport(qualify(ns, c.container()),
-						qualifyElement(ns, c.qualifiedId()), c.newType(),
-						c.label(), c.location());
-			case ApplyOperator c -> c.withNamespace(ns);
-			default -> cmd;
-		};
+		return commands.stream().map(cmd -> cmd.withNamespace(namespace))
+				.toList();
 	}
 }

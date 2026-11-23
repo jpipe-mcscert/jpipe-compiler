@@ -37,7 +37,7 @@ public class SelectModel extends Transformation<Unit, JustificationModel> {
 	protected JustificationModel run(Unit unit, CompilationContext ctx) {
 		if (diagramName != null) {
 			JustificationModel model = unit.findModel(diagramName)
-					.orElseThrow(() -> new CompilationException("SelectModel",
+					.orElseThrow(() -> new CompilationException(stepName(),
 							"no model named '" + diagramName + "' in "
 									+ ctx.sourcePath()));
 			logger.debug("Selected model [{}]", diagramName);
@@ -53,7 +53,7 @@ public class SelectModel extends Transformation<Unit, JustificationModel> {
 		String available = models.stream().map(JustificationModel::getName)
 				.collect(Collectors.joining(", "));
 		logger.debug("Ambiguous selection — available: [{}]", available);
-		throw new CompilationException("SelectModel",
+		throw new CompilationException(stepName(),
 				"source defines multiple models — use -m/--model to specify one: "
 						+ available);
 	}

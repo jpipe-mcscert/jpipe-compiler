@@ -355,6 +355,11 @@ class DiagnosticReportTest {
 	private static MacroCommand macro(String label) {
 		return new MacroCommand() {
 			@Override
+			public Command withNamespace(String ns) {
+				return this;
+			}
+
+			@Override
 			public List<Command> expand(ca.mcscert.jpipe.model.Unit context) {
 				return List.of();
 			}

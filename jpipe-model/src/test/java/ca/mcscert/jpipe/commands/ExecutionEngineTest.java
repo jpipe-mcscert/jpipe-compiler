@@ -104,6 +104,11 @@ class ExecutionEngineTest {
 		void commandIsRetiredAfterItsConditionBecomesTrue() {
 			RegularCommand conditionedCmd = new RegularCommand() {
 				@Override
+				public Command withNamespace(String ns) {
+					return this;
+				}
+
+				@Override
 				public Predicate<Unit> condition() {
 					return unit -> unit.findModel("j1").isPresent();
 				}
@@ -132,6 +137,11 @@ class ExecutionEngineTest {
 		void engineThrowsWhenAllCommandsAreStuck() {
 			RegularCommand stuck1 = new RegularCommand() {
 				@Override
+				public Command withNamespace(String ns) {
+					return this;
+				}
+
+				@Override
 				public Predicate<Unit> condition() {
 					return unit -> false;
 				}
@@ -142,6 +152,11 @@ class ExecutionEngineTest {
 				}
 			};
 			RegularCommand stuck2 = new RegularCommand() {
+				@Override
+				public Command withNamespace(String ns) {
+					return this;
+				}
+
 				@Override
 				public Predicate<Unit> condition() {
 					return unit -> false;
@@ -199,6 +214,11 @@ class ExecutionEngineTest {
 		@Test
 		void deferredCommandAppearsOnceInHistory() {
 			RegularCommand deferred = new RegularCommand() {
+				@Override
+				public Command withNamespace(String ns) {
+					return this;
+				}
+
 				@Override
 				public Predicate<Unit> condition() {
 					return unit -> unit.findModel("j1").isPresent();
@@ -261,6 +281,11 @@ class ExecutionEngineTest {
 		void enginePropagatesExceptionFromCommand() {
 			RegularCommand failing = new RegularCommand() {
 				@Override
+				public Command withNamespace(String ns) {
+					return this;
+				}
+
+				@Override
 				public void doExecute(Unit context) {
 					throw new IllegalStateException("intentional failure");
 				}
@@ -282,6 +307,11 @@ class ExecutionEngineTest {
 			// The compiler reports every error of a source: one failing
 			// command must not hide the commands after it (#183).
 			RegularCommand failing = new RegularCommand() {
+				@Override
+				public Command withNamespace(String ns) {
+					return this;
+				}
+
 				@Override
 				public void doExecute(Unit context) {
 					throw new IllegalStateException("intentional failure");
@@ -373,6 +403,11 @@ class ExecutionEngineTest {
 			// see s2 without the relation the override held back.
 			List<String> seen = new ArrayList<>();
 			Command reader = new Command() {
+				@Override
+				public Command withNamespace(String ns) {
+					return this;
+				}
+
 				@Override
 				public boolean ready(Unit unit, PendingCommands pending) {
 					return !pending.target("j");

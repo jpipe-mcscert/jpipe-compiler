@@ -6,10 +6,26 @@ on:
       - dev
   pull_request:
     types: [opened, synchronize, reopened]
-    
+
+# As in build.yml: a new push cancels a pull request's stale analysis;
+# analyses of main and dev always run to completion.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     name: Build and analyze
+    # The analysis needs SONAR_TOKEN, which GitHub withholds from the runs
+    # Dependabot triggers and from pull requests opened from a fork: there the
+    # job is skipped, not failed. Those pull requests still run build.yml, and
+    # their change is analysed on the push that merges it (ADR-0007). Keeping
+    # the token out of Dependabot's secret store also keeps it away from the
+    # plugin versions a bump brings, which `mvn verify` runs.
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name == 'push' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

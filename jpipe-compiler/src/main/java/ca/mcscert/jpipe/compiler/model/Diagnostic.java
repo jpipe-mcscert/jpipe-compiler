@@ -52,6 +52,21 @@ public record Diagnostic(Level level, String code, String source, int line,
 		return code != null && !code.isEmpty();
 	}
 
+	/**
+	 * Where this diagnostic points, as {@code source:line:column}, or just
+	 * {@code source} when the location is unknown.
+	 */
+	public String where() {
+		return hasLocation()
+				? source + ":" + line + ":" + column
+				: String.valueOf(source);
+	}
+
+	/** The message, preceded by {@code [code]} when there is one. */
+	public String codedMessage() {
+		return hasCode() ? "[" + code + "] " + message : message;
+	}
+
 	// ── without location ────────────────────────────────────────────────────
 
 	public static Diagnostic error(String source, String message) {

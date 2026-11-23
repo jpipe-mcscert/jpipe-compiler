@@ -14,6 +14,7 @@ import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -57,6 +58,14 @@ public abstract sealed class JustificationModel
 	private final Map<String, String> aliases = new LinkedHashMap<>();
 	private final Set<String> unifiedIds = new LinkedHashSet<>();
 	private Composition composition = null;
+	/**
+	 * Where each copied element comes from, keyed by the id of the copy: set by
+	 * {@link #inline} and {@link #recordComposition}. A copy merged into
+	 * another element keeps its entry, under the id it was merged from.
+	 */
+	private final Map<String, List<Origin>> origins = new LinkedHashMap<>();
+	/** The id of the copy of each origin: {@link #origins}, reversed. */
+	private final Map<Origin, String> copyIds = new HashMap<>();
 
 	protected JustificationModel(String name) {
 		this.name = name;
@@ -133,6 +142,135 @@ public abstract sealed class JustificationModel
 					"Model '" + name + "' is already composed");
 		}
 		this.composition = composition;
+		// An operator copies each element x of a source S as S:x, the id its
+		// Phase 1 gives it before any merge, and carries each alias of S
+		// forward the same way (ADR-0018).
+		for (JustificationModel source : composition.sources()) {
+			source.allElements()
+					.forEach(e -> recordCopy(source, e.id(), source.getName()));
+			source.aliases().keySet().forEach(
+					alias -> recordCopy(source, alias, source.getName()));
+		}
+	}
+
+	/**
+	 * Records that {@code prefix:id} is a copy of {@code id} of {@code from}.
+	 */
+	private void recordCopy(JustificationModel from, String id, String prefix) {
+		recordOrigin(QualifiedIds.qualify(prefix, id), new Origin(from, id));
+	}
+
+	/**
+	 * Records that {@code copy} is a copy of {@code origin}. Two sources whose
+	 * ids collide once qualified give one id two origins: a duplicate id, which
+	 * compilation reports, and whose every origin is kept.
+	 */
+	private void recordOrigin(String copy, Origin origin) {
+		List<Origin> list = origins.computeIfAbsent(copy,
+				_ -> new ArrayList<>());
+		if (!list.contains(origin)) {
+			list.add(origin);
+		}
+		copyIds.putIfAbsent(origin, copy);
+	}
+
+	/**
+	 * Where the element this model holds, or held, under {@code id} was copied
+	 * from: an element of the template it implements, or of a source of the
+	 * call that built it, the first recorded when two collide. Empty for an
+	 * element the model declares, or that an operator created.
+	 */
+	public Optional<Origin> originOf(String id) {
+		List<Origin> list = origins.get(id);
+		return list == null ? Optional.empty() : Optional.of(list.getFirst());
+	}
+
+	/**
+	 * Every origin, keyed by the id of the copy, in the order they were
+	 * recorded: more than one when two copies collide.
+	 */
+	public Map<String, List<Origin>> origins() {
+		Map<String, List<Origin>> view = new LinkedHashMap<>();
+		origins.forEach((copy, list) -> view.put(copy, List.copyOf(list)));
+		return Collections.unmodifiableMap(view);
+	}
+
+	/**
+	 * The id this model gives its copy of {@code ancestorId}, an element of
+	 * {@code ancestor}, inherited through its chain of templates: the id itself
+	 * when {@code ancestor} is this model. Empty when the model holds no such
+	 * copy, as when it had a conclusion of its own before {@link #inline}.
+	 */
+	public Optional<String> copyOf(JustificationModel ancestor,
+			String ancestorId) {
+		if (ancestor == this) {
+			return Optional.of(ancestorId);
+		}
+		if (parent == null) {
+			return Optional.empty();
+		}
+		return parent.copyOf(ancestor, ancestorId)
+				.map(idInParent -> copyIds.get(new Origin(parent, idInParent)));
+	}
+
+	/** The origin of {@code id} when it is a copy of its parent's element. */
+	public Optional<Origin> inheritedOrigin(String id) {
+		return originOf(id).filter(o -> parent != null && o.model() == parent);
+	}
+
+	/** The kind of the parent's element {@code id} is a copy of, if any. */
+	private Optional<Class<? extends JustificationElement>> inheritedType(
+			String id) {
+		return inheritedOrigin(id).flatMap(Origin::element)
+				.map(JustificationElement::getClass);
+	}
+
+	/**
+	 * The kind of the parent's element each copy of it is, keyed by the id of
+	 * the copy: what {@link #inheritedType} gives for each, with the parent
+	 * indexed once rather than scanned per element.
+	 */
+	private Map<String, Class<? extends JustificationElement>> inheritedTypes() {
+		if (parent == null) {
+			return Map.of();
+		}
+		Map<String, JustificationElement> inParent = parent.elementsById();
+		Map<String, Class<? extends JustificationElement>> types = new HashMap<>();
+		origins.forEach((copy, list) -> {
+			Origin first = list.getFirst();
+			JustificationElement element = first.model() == parent
+					? inParent.get(first.id())
+					: null;
+			if (element != null) {
+				types.put(copy, element.getClass());
+			}
+		});
+		return types;
+	}
+
+	/**
+	 * Every element of this model by its exact id, the conclusion first: the
+	 * first one wins when two share an id, as with {@link #elementWithId}.
+	 */
+	public Map<String, JustificationElement> elementsById() {
+		Map<String, JustificationElement> byId = new HashMap<>();
+		if (conclusion != null) {
+			byId.put(conclusion.id(), conclusion);
+		}
+		elements.forEach(e -> byId.putIfAbsent(e.id(), e));
+		return byId;
+	}
+
+	/**
+	 * The element of this model whose id is exactly {@code id}, with none of
+	 * the short-name fallback of {@link #findById}.
+	 */
+	public Optional<JustificationElement> elementWithId(String id) {
+		if (conclusion != null && conclusion.id().equals(id)) {
+			return Optional.of(conclusion);
+		}
+		return elements.stream().filter(e -> e.id().equals(id))
+				.map(JustificationElement.class::cast).findFirst();
 	}
 
 	/** The operator call this model was built by, if it was composed. */
@@ -207,14 +345,18 @@ public abstract sealed class JustificationModel
 			Conclusion copy = (Conclusion) qualifiedCopy(tc, templateName);
 			if (this.conclusion == null) {
 				this.setConclusion(copy);
+				recordOrigin(copy.id(), new Origin(template, tc.id()));
 			}
 			// In Step 2, we want edges supporting 'tc' to now support our
 			// conclusion
 			copies.put(tc.id(), this.conclusion);
 		});
 
-		template.getElements().forEach(elem -> copies.put(elem.id(),
-				qualifiedCopy(elem, templateName)));
+		template.getElements().forEach(elem -> {
+			JustificationElement copy = qualifiedCopy(elem, templateName);
+			copies.put(elem.id(), copy);
+			recordOrigin(copy.id(), new Origin(template, elem.id()));
+		});
 
 		// Step 2: re-wire support edges between copies
 		rewireEdges(template, copies);
@@ -315,34 +457,39 @@ public abstract sealed class JustificationModel
 	}
 
 	/**
+	 * The strategies of this model that {@code leafId} supports, in model
+	 * order.
+	 */
+	public List<Strategy> strategiesSupportedBy(String leafId) {
+		return strategies().stream().filter(s -> s.getSupports().stream()
+				.anyMatch(leaf -> leaf.id().equals(leafId))).toList();
+	}
+
+	/**
 	 * Returns {@code true} when the conclusion was defined directly in this
 	 * model, i.e. it was not inherited from a parent template via
 	 * {@link #inline}. Returns {@code false} when there is no conclusion yet or
 	 * when the conclusion was set by inlining a parent template.
 	 */
 	public boolean hasOwnConclusion() {
-		if (conclusion == null || parent == null) {
-			return conclusion != null;
-		}
-		return !ancestorTypes().containsKey(conclusion.id());
+		return conclusion != null
+				&& !inheritedTypes().containsKey(conclusion.id());
 	}
 
-	/**
-	 * Elements defined directly in this model — their id has no counterpart in
-	 * any ancestor template.
-	 */
+	/** Elements defined directly in this model: no copy of its parent's. */
 	public List<JustificationElement> ownElements() {
-		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
-		return elements.stream().filter(e -> !pt.containsKey(e.id())).toList();
+		Map<String, Class<? extends JustificationElement>> types = inheritedTypes();
+		return elements.stream().filter(e -> !types.containsKey(e.id()))
+				.toList();
 	}
 
 	/**
-	 * Elements copied from an ancestor template whose runtime type is unchanged
+	 * Elements copied from the parent template whose runtime type is unchanged
 	 * (not overridden).
 	 */
 	public List<JustificationElement> inheritedElements() {
-		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
-		return elements.stream().filter(e -> pt.get(e.id()) == e.getClass())
+		Map<String, Class<? extends JustificationElement>> types = inheritedTypes();
+		return elements.stream().filter(e -> types.get(e.id()) == e.getClass())
 				.toList();
 	}
 
@@ -352,14 +499,14 @@ public abstract sealed class JustificationModel
 	 * order.
 	 */
 	public List<JustificationElement> declaredElements() {
-		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
-		return elements.stream().filter(e -> pt.get(e.id()) != e.getClass())
+		Map<String, Class<? extends JustificationElement>> types = inheritedTypes();
+		return elements.stream().filter(e -> types.get(e.id()) != e.getClass())
 				.toList();
 	}
 
 	/**
 	 * Elements that replaced an ancestor's {@link AbstractSupport} placeholder
-	 * — same qualified id, but a concrete type (e.g. {@link Evidence} or
+	 * — the copy's id, but a concrete type (e.g. {@link Evidence} or
 	 * {@link SubConclusion}).
 	 *
 	 * <p>
@@ -367,19 +514,19 @@ public abstract sealed class JustificationModel
 	 * these three lists partition {@link #getElements()}.
 	 */
 	public List<JustificationElement> concreteOverrides() {
-		Map<String, Class<? extends JustificationElement>> pt = ancestorTypes();
-		return elements.stream().filter(
-				e -> pt.containsKey(e.id()) && pt.get(e.id()) != e.getClass())
-				.toList();
+		Map<String, Class<? extends JustificationElement>> types = inheritedTypes();
+		return elements.stream().filter(e -> types.containsKey(e.id())
+				&& types.get(e.id()) != e.getClass()).toList();
 	}
 
 	/**
-	 * Returns {@code true} when {@code id} names an ancestor-template element
-	 * of any type <em>other than</em> an {@link AbstractSupport} placeholder (a
-	 * strategy, conclusion, sub-conclusion, or evidence inherited from the
-	 * template) — template-internal structure that a model implementing the
-	 * template must not reference. A model may only override the template's
-	 * {@code @support} placeholders, never reach inside its structure.
+	 * Returns {@code true} when {@code id} is a copy of an element of the
+	 * parent template of any type <em>other than</em> an
+	 * {@link AbstractSupport} placeholder (a strategy, conclusion,
+	 * sub-conclusion, or evidence inherited from the template) —
+	 * template-internal structure that a model implementing the template must
+	 * not reference. A model may only override the template's {@code @support}
+	 * placeholders, never reach inside its structure.
 	 *
 	 * <p>
 	 * Returns {@code false} for template {@code @support} ids (whether
@@ -387,38 +534,8 @@ public abstract sealed class JustificationModel
 	 * be the resolved (qualified) element id.
 	 */
 	public boolean isInheritedNonSupport(String id) {
-		Class<? extends JustificationElement> type = ancestorTypes().get(id);
-		return type != null && type != AbstractSupport.class;
-	}
-
-	/**
-	 * Builds a map from qualified element id to its runtime class for every
-	 * element (including the conclusion) in the direct parent template. Because
-	 * the parent's element list was already flattened by its own
-	 * {@link #inline} call, this map transitively covers all ancestors.
-	 *
-	 * <p>
-	 * Plain ids in the parent (e.g. {@code s}) are qualified to match how
-	 * {@link #inline} stored them in this model (e.g. {@code parent:s}).
-	 * Already-qualified ids (grandparent elements) are kept as-is.
-	 */
-	private Map<String, Class<? extends JustificationElement>> ancestorTypes() {
-		if (parent == null) {
-			return Map.of();
-		}
-		String parentName = parent.getName();
-		Map<String, Class<? extends JustificationElement>> map = new LinkedHashMap<>();
-		// Reads the parent's fields directly rather than through allElements(),
-		// which copies them: AddSupport calls this on every edge.
-		parent.conclusion()
-				.ifPresent(c -> map.put(
-						QualifiedIds.qualifyIfPlain(parentName, c.id()),
-						c.getClass()));
-		parent.getElements()
-				.forEach(e -> map.put(
-						QualifiedIds.qualifyIfPlain(parentName, e.id()),
-						e.getClass()));
-		return map;
+		return inheritedType(id).filter(type -> type != AbstractSupport.class)
+				.isPresent();
 	}
 
 	/**
@@ -431,12 +548,7 @@ public abstract sealed class JustificationModel
 	 * {@link #allElements()}, which copies the model's elements.
 	 */
 	public Optional<JustificationElement> findById(String id) {
-		if (conclusion != null && conclusion.id().equals(id)) {
-			return Optional.of(conclusion);
-		}
-		Optional<JustificationElement> exact = elements.stream()
-				.filter(e -> e.id().equals(id))
-				.map(JustificationElement.class::cast).findFirst();
+		Optional<JustificationElement> exact = elementWithId(id);
 		if (exact.isPresent()) {
 			return exact;
 		}
@@ -456,13 +568,27 @@ public abstract sealed class JustificationModel
 	}
 
 	/**
+	 * What {@code id}, as the source wrote it, names in this model: the element
+	 * {@link #findById} resolves it to, nothing, or the inherited elements it
+	 * names ambiguously. A caller that binds an id the source wrote uses this,
+	 * so that several matches are reported rather than settled by order
+	 * (ADR-0012, #177); {@link #findById} stays for the engine's hot path.
+	 */
+	public Binding bind(String id) {
+		List<JustificationElement> ambiguous = ambiguousMatches(id);
+		if (!ambiguous.isEmpty()) {
+			return new Binding.Ambiguous(ambiguous);
+		}
+		return findById(id).<Binding>map(Binding.Found::new)
+				.orElseGet(Binding.Missing::new);
+	}
+
+	/**
 	 * The elements {@code id} names ambiguously: when no element has that id,
 	 * the inherited ones it names through the short-name fallback of
-	 * {@link #findById}, if there are several; nothing otherwise. A caller that
-	 * binds an id the source wrote reports these rather than settle on the
-	 * first (ADR-0012, #177).
+	 * {@link #findById}, if there are several; nothing otherwise.
 	 */
-	public List<JustificationElement> ambiguousMatches(String id) {
+	private List<JustificationElement> ambiguousMatches(String id) {
 		boolean exact = (conclusion != null && conclusion.id().equals(id))
 				|| elements.stream().anyMatch(e -> e.id().equals(id));
 		if (exact) {

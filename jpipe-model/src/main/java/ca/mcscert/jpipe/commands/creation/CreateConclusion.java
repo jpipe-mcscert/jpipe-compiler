@@ -17,11 +17,6 @@ public final class CreateConclusion extends AbstractElementCreationCommand {
 	}
 
 	@Override
-	public ElementCreationCommand withId(String newId) {
-		return new CreateConclusion(container, newId, label, location);
-	}
-
-	@Override
 	public Conclusion element() {
 		return new Conclusion(identifier, label);
 	}
@@ -30,11 +25,5 @@ public final class CreateConclusion extends AbstractElementCreationCommand {
 	public void doExecute(Unit context) {
 		context.get(container).setConclusion(element());
 		context.recordLocation(container, identifier, location);
-	}
-
-	@Override
-	public String toString() {
-		return "create_conclusion('" + container + "', '" + identifier + "', '"
-				+ label + "').";
 	}
 }

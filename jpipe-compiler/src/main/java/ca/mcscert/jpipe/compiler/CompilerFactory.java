@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.compiler;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.model.ChainBuilder;
+import ca.mcscert.jpipe.compiler.model.ChainCompiler;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import ca.mcscert.jpipe.operators.builtin.AssembleOperator;
@@ -10,14 +11,11 @@ import ca.mcscert.jpipe.operators.equivalences.SameLabel;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.compiler.steps.checkers.CompletenessChecker;
 import ca.mcscert.jpipe.compiler.steps.checkers.ConsistencyChecker;
-import ca.mcscert.jpipe.compiler.steps.checkers.HaltAndCatchFire;
 import ca.mcscert.jpipe.compiler.steps.io.sinks.ByteSink;
 import ca.mcscert.jpipe.compiler.steps.io.sinks.StringSink;
 import ca.mcscert.jpipe.compiler.steps.io.sources.FileSource;
 import ca.mcscert.jpipe.compiler.steps.transformations.ActionListInterpretation;
-import ca.mcscert.jpipe.compiler.steps.transformations.ActionListProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.LoadResolver;
-import ca.mcscert.jpipe.compiler.steps.transformations.CharStreamProvider;
 import ca.mcscert.jpipe.compiler.steps.transformations.CollectDiagnostics;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticRenderer;
 import ca.mcscert.jpipe.compiler.steps.transformations.DiagnosticReport;
@@ -27,24 +25,19 @@ import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJson;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToJpipe;
 import ca.mcscert.jpipe.compiler.steps.transformations.ExportToPython;
 import ca.mcscert.jpipe.compiler.steps.transformations.JsonDiagnosticReport;
-import ca.mcscert.jpipe.compiler.steps.transformations.Lexer;
-import ca.mcscert.jpipe.compiler.steps.transformations.Parser;
 import ca.mcscert.jpipe.compiler.steps.transformations.RenderWithDot;
 import ca.mcscert.jpipe.compiler.steps.transformations.SelectModel;
+import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Unit;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.List;
-import org.antlr.v4.runtime.tree.ParseTree;
+import java.util.Locale;
 
 /**
  * Assembles a {@link Compiler} from a {@link CompilationConfig} by wiring the
  * appropriate pipeline steps.
- *
- * <p>
- * Not all formats are implemented yet. Unsupported combinations throw
- * {@link UnsupportedOperationException} at factory time, before any file I/O
- * occurs.
  */
 public final class CompilerFactory {
 
@@ -52,61 +45,43 @@ public final class CompilerFactory {
 	}
 
 	/**
-	 * Build a process-mode compiler from the given configuration.
+	 * Build a process-mode compiler from the given configuration. Its
+	 * diagnostics are printed on {@code diagnostics}, not through the logging
+	 * framework: that is how the CLI writes them straight to standard error,
+	 * whatever the log level (#216).
 	 *
 	 * @param config
 	 *            the compilation configuration.
 	 * @param stdout
 	 *            stream to use when the output target is
 	 *            {@link CompilationConfig#STDOUT}.
+	 * @param diagnostics
+	 *            where the ERROR and FATAL diagnostics are printed, as
+	 *            {@code file:line:column: severity: [code] message} lines. Not
+	 *            closed.
 	 * @return a ready-to-use {@link Compiler}.
-	 * @throws UnsupportedOperationException
-	 *             if the requested format is not yet implemented.
 	 */
-	public static Compiler build(CompilationConfig config,
-			OutputStream stdout) {
-		return switch (config.format()) {
-			case JPIPE -> parsingChain().andThen(unitBuilder())
-					.andThen(new SelectModel(config.diagramName()))
-					.andThen(new ExportToJpipe())
-					.andThen(new StringSink(stdout));
-			case DOT -> parsingChain().andThen(dotChain(config))
-					.andThen(new StringSink(stdout));
-			case PNG -> parsingChain().andThen(dotChain(config))
-					.andThen(new RenderWithDot("png"))
-					.andThen(new ByteSink(stdout));
-			case JPEG -> parsingChain().andThen(dotChain(config))
-					.andThen(new RenderWithDot("jpeg"))
-					.andThen(new ByteSink(stdout));
-			case SVG -> parsingChain().andThen(dotChain(config))
-					.andThen(new RenderWithDot("svg"))
-					.andThen(new ByteSink(stdout));
-			case JSON -> parsingChain().andThen(unitBuilder())
-					.andThen(new SelectModel(config.diagramName()))
-					.andThen(new ExportToJson())
-					.andThen(new StringSink(stdout));
-			case PYTHON -> parsingChain().andThen(unitBuilder())
-					.andThen(new SelectModel(config.diagramName()))
-					.andThen(new ExportToPython())
-					.andThen(new StringSink(stdout));
-			default -> throw new UnsupportedOperationException(
-					"Format not yet supported: " + config.format());
-		};
+	public static Compiler build(CompilationConfig config, OutputStream stdout,
+			PrintWriter diagnostics) {
+		return processing(config, stdout).reportingTo(diagnostics);
 	}
 
-	/**
-	 * Build a diagnostic-mode compiler producing a human-readable report.
-	 * Equivalent to
-	 * {@link #buildDiagnosticCompiler(DiagnosticFormat, OutputStream)} with
-	 * {@link DiagnosticFormat#TEXT}.
-	 *
-	 * @param stdout
-	 *            stream to use when the output target is
-	 *            {@link CompilationConfig#STDOUT}.
-	 * @return a ready-to-use {@link Compiler}.
-	 */
-	public static Compiler buildDiagnosticCompiler(OutputStream stdout) {
-		return buildDiagnosticCompiler(DiagnosticFormat.TEXT, stdout);
+	private static ChainCompiler<InputStream, ?> processing(
+			CompilationConfig config, OutputStream stdout) {
+		return switch (config.format()) {
+			case JPIPE -> exporting(config, new ExportToJpipe())
+					.andThen(new StringSink(stdout));
+			case JSON -> exporting(config, new ExportToJson())
+					.andThen(new StringSink(stdout));
+			case PYTHON -> exporting(config, new ExportToPython())
+					.andThen(new StringSink(stdout));
+			case DOT -> exporting(config, new ExportToDot())
+					.andThen(new StringSink(stdout));
+			case PNG, JPEG, SVG -> exporting(config, new ExportToDot())
+					.andThen(new RenderWithDot(
+							config.format().name().toLowerCase(Locale.ROOT)))
+					.andThen(new ByteSink(stdout));
+		};
 	}
 
 	/**
@@ -145,16 +120,15 @@ public final class CompilerFactory {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Parsing chain: reads a source file, lexes, parses, and extracts the
-	 * action list. Aborts on any syntax error via {@link HaltAndCatchFire}.
+	 * Parsing chain: reads a source file, turns it into its action list with
+	 * {@link LoadResolver#fileParser}, which aborts on any syntax error, then
+	 * resolves its {@code load} directives.
 	 */
 	public static ChainBuilder<InputStream, List<Command>> parsingChain() {
 		OperatorRegistry operators = builtInOperators();
 		UnificationEquivalenceRegistry unification = builtInUnificationEquivalences();
-		return new FileSource().andThen(new CharStreamProvider())
-				.andThen(new Lexer()).andThen(new Parser())
-				.andThen(new HaltAndCatchFire<ParseTree>())
-				.andThen(new ActionListProvider(operators, unification))
+		return new FileSource()
+				.andThen(LoadResolver.fileParser(operators, unification))
 				.andThen(new LoadResolver(operators, unification));
 	}
 
@@ -187,9 +161,15 @@ public final class CompilerFactory {
 	// Private helpers
 	// -------------------------------------------------------------------------
 
-	private static Transformation<List<Command>, String> dotChain(
-			CompilationConfig config) {
-		return unitBuilder().andThen(new SelectModel(config.diagramName()))
-				.andThen(new ExportToDot());
+	/**
+	 * Parses the source, builds the unit, selects the requested model, and
+	 * exports it with {@code exporter}.
+	 */
+	private static ChainBuilder<InputStream, String> exporting(
+			CompilationConfig config,
+			Transformation<JustificationModel, String> exporter) {
+		return parsingChain().andThen(
+				unitBuilder().andThen(new SelectModel(config.diagramName()))
+						.andThen(exporter));
 	}
 }

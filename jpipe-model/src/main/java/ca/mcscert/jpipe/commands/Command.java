@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.commands;
 
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
+import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -63,6 +64,52 @@ public interface Command {
 	}
 
 	void execute(Unit context);
+
+	/**
+	 * Whether this command failing, or never running, leaves the model it
+	 * {@linkplain #target() targets} unusable: nothing may consume it, and what
+	 * else waits in it is no separate mistake, since the cause is reported
+	 * where it is (#183). True of what gives a model its structure, an
+	 * {@code implements} or an operator call; by default false, the model still
+	 * being checked.
+	 */
+	default boolean breaksItsTarget() {
+		return false;
+	}
+
+	/**
+	 * Records in {@code unit} what this command failing leaves behind, so that
+	 * the checkers do not report it again as the gaps it leaves (#183). By
+	 * default, the target is marked incomplete when this command
+	 * {@linkplain #breaksItsTarget() breaks it}, and nothing otherwise.
+	 */
+	default void recordFailure(Unit unit) {
+		if (breaksItsTarget()) {
+			target().ifPresent(unit::markIncomplete);
+		}
+	}
+
+	/**
+	 * This command, read from a file loaded under namespace {@code ns}: every
+	 * model name it holds is qualified by {@code ns}, and every qualified
+	 * element id too (see {@link QualifiedIds#inNamespace}); a plain element
+	 * id, a label or a type is unchanged. Each command type states how it is
+	 * namespaced, so that none escapes the namespace silently. A command the
+	 * compiler creates while building the unit is never read from a file, and
+	 * refuses.
+	 *
+	 * @throws UnsupportedOperationException
+	 *             if this command is never read from a file
+	 */
+	Command withNamespace(String ns);
+
+	/**
+	 * The model this command declares, if it starts a model's declaration: a
+	 * justification, a template, or the result of an operator call.
+	 */
+	default Optional<String> declares() {
+		return Optional.empty();
+	}
 
 	/**
 	 * Where the statement this command comes from is written, so that a failure

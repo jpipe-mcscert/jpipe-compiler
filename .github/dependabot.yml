@@ -1,15 +1,13 @@
 # Dependency freshness (ADR-0007, after jpipe-vscode ADR-VSC-0013 and jpipe-runner ADR-0026):
-# weekly, grouped, against `dev` (the repository's default branch, ADR-0024).
+# weekly, against `dev` (the repository's default branch, ADR-0024), in ONE pull request.
 #
-# Two rules shape this file:
+# Every entry joins the `weekly` multi-ecosystem group, so a week's Maven, pip and GitHub
+# Actions updates arrive together, majors included: one branch per round of updates, verified
+# as a whole. A major that needs a migration has it on that pull request's branch, or gets a
+# hold below if it cannot happen that week.
 #
-#   1. GROUPS CARRY MINOR AND PATCH ONLY, unless their members must move together. A grouped
-#      major takes the whole pull request down with it. A major arrives as its own pull
-#      request, which is where its migration happens (ADR-0007). GitHub Actions are the one
-#      other exception (see their entry below).
-#
-#   2. A MAJOR IS HELD ENTIRELY only where it is more than a bump, and the reason is written
-#      next to the hold.
+# A MAJOR IS HELD ENTIRELY only where it is more than a bump, and the reason is written next to
+# the hold.
 #
 # Pre-releases need no rule here. While the current version is stable, Dependabot drops every
 # version whose Maven qualifier is alpha/aN, beta/bN, milestone/mN, rc, cr or snapshot, and every
@@ -18,14 +16,20 @@
 # caught. A qualifier outside that list (`-preview`, `-ea`, …) would pass as a release, so a new
 # dependency that uses one needs an `ignore` entry.
 #
-# A dependency joins the FIRST group it matches, so the lockstep groups come first.
-#
-# Both entries set `labels:`. Left unset, Dependabot adds a per-ecosystem label (`java`,
-# `github_actions`) next to `dependencies` whenever a file declares several ecosystems, and
-# creates it in the repository. Setting `labels:` replaces the defaults, so `dependencies` is
-# listed too, and `area: build` files the pull requests under the repository's label scheme.
+# Every entry sets `labels:`, as the group does. Left unset, Dependabot adds a per-ecosystem label
+# (`java`, `github_actions`, `python`) next to `dependencies` whenever a file declares several
+# ecosystems, and creates it in the repository. Setting `labels:` replaces the defaults, so
+# `dependencies` is listed too, and `area: build` files the pull request under the repository's
+# label scheme. A group's labels are added to its entries' labels.
 
 version: 2
+
+multi-ecosystem-groups:
+  weekly:
+    schedule:
+      interval: weekly
+      day: monday
+    labels: ["dependencies", "area: build"]
 
 updates:
 
@@ -33,50 +37,9 @@ updates:
   # Every version lives in a <properties> entry of the root pom; Dependabot edits the property.
   - package-ecosystem: maven
     directory: /
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
+    multi-ecosystem-group: weekly
+    patterns: ["*"]
     labels: ["dependencies", "area: build"]
-
-    groups:
-      # `antlr4.version` drives both the runtime and the code-generating plugin: a mismatch is
-      # a parse error at runtime, so they are one dependency in two artifacts.
-      antlr:
-        applies-to: version-updates
-        patterns:
-          - "org.antlr:*"
-      # Jupiter and the Platform (`junit-platform-suite`, used by Cucumber) are released in
-      # lockstep, and since JUnit 6 under one version number. They move in one pull request,
-      # majors included.
-      junit:
-        applies-to: version-updates
-        update-types: [major, minor, patch]
-        patterns:
-          - "org.junit.jupiter:*"
-          - "org.junit.platform:*"
-      # org.json is versioned by date (20260719), so every release is a semver major: holding
-      # majors would hold it forever, and grouping it with minors would never include it.
-      json:
-        applies-to: version-updates
-        update-types: [major, minor, patch]
-        patterns:
-          - "org.json:json"
-      # Build plugins and their tools: what breaks here is the build, not the compiler.
-      build-plugins:
-        applies-to: version-updates
-        update-types: [minor, patch]
-        patterns:
-          - "org.apache.maven.plugins:*"
-          - "*-maven-plugin"
-          - "org.apache.logging.log4j:log4j-transform-maven-shade-plugin-extensions"
-          - "com.puppycrawl.tools:checkstyle"
-      # Everything else, in one weekly pull request, so a red build names one week's changes.
-      dependencies:
-        applies-to: version-updates
-        update-types: [minor, patch]
-        patterns:
-          - "*"
 
     ignore:
       # ANTLR's major changes the generated parser and the grammar's target runtime: it is a
@@ -89,20 +52,33 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "org.apache.logging.log4j:log4j-core"
         update-types: ["version-update:semver-major"]
+      # Pinned only because Cucumber declares them as version ranges (#207, see
+      # `cucumber.version` in the pom). For each of them, the narrowest range Cucumber's own
+      # artifacts declare stops below the next major, so a major here would leave the range
+      # Cucumber was built against. They move to a new major by hand, with the Cucumber update
+      # that widens those ranges; build.yml fails on a pin outside a declared range.
+      - dependency-name: "org.jspecify:jspecify"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "io.cucumber:messages"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "io.cucumber:query"
+        update-types: ["version-update:semver-major"]
+
+  # ------------------------------------------------------------------ pip
+  # The documentation site's Python tools: docs/requirements.in names them, and
+  # docs/requirements.txt, compiled by pip-compile, locks them by hash (#208). Dependabot
+  # recompiles the lock. CI only; nothing here reaches the compiler or its JAR.
+  - package-ecosystem: pip
+    directory: /docs
+    multi-ecosystem-group: weekly
+    patterns: ["*"]
+    labels: ["dependencies", "area: build"]
 
   # -------------------------------------------------------- github-actions
-  # Pinned by major tag, so every update here is a major: a tag move such as `@v5` → `@v6`.
-  # The group therefore takes majors, the exception to rule 1. Restricting it to minor and
-  # patch would leave it empty and ungroup the actions. Their majors are mostly runtime moves
-  # (Node, ESM); one pull request a week is where to read them.
+  # Pinned by major tag, so every update here is a major: a tag move such as `@v5` → `@v6`,
+  # mostly a runtime move (Node, ESM).
   - package-ecosystem: github-actions
     directory: /
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
+    multi-ecosystem-group: weekly
+    patterns: ["*"]
     labels: ["dependencies", "area: build"]
-    groups:
-      actions:
-        patterns:
-          - "*"

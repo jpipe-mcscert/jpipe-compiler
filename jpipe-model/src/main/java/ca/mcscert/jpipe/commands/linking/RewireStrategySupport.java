@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Unit;
@@ -67,5 +68,12 @@ public final class RewireStrategySupport extends RegularCommand {
 		return "rewire('" + container + "', '" + strategyId + "', '"
 				+ oldSupporterId + "'[" + oldType + "] -> '" + newSupporterId
 				+ "'[" + newType + "])";
+	}
+
+	/** Created while the unit is built, never read from a file. */
+	@Override
+	public Command withNamespace(String ns) {
+		throw new UnsupportedOperationException(
+				"RewireStrategySupport is never read from a file");
 	}
 }

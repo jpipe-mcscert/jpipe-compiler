@@ -45,25 +45,24 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
-      - name: Extract Maven version
-        id: mvn_version
-        run: |
-          VERSION=$(mvn -B -q help:evaluate -Dexpression=project.version -DforceStdout)
-          [ -n "$VERSION" ] || { echo "ERROR: could not extract project version" >&2; exit 1; }
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
       # `verify`, not `package`: the shaded-JAR smoke tests (jpipe-cli's *IT)
       # run after packaging, and only this phase reaches them. It also brings
       # spotless, checkstyle and coverage into this job.
       - name: Build and test
         run: mvn -B verify
 
-      # Locate the shaded fat JAR (exclude the *-original.jar that Shade leaves behind)
+      # Locate the shaded fat JAR (exclude the *-original.jar that Shade leaves
+      # behind). Its name carries the project version, which names the
+      # artifact: reading it there saves a Maven run.
       - name: Locate fat JAR
         id: locate
         run: |
           JAR=$(find jpipe-cli/target -name "jpipe-cli-*.jar" ! -name "*-original.jar" -type f)
+          VERSION=$(basename "$JAR" .jar)
+          VERSION="${VERSION#jpipe-cli-}"
+          [ -n "$VERSION" ] || { echo "ERROR: could not find the fat JAR" >&2; exit 1; }
           echo "path=$JAR" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       # Contract with jpipe-runner (#165): the step libraries `-f PYTHON`
       # writes must import on the runner they target, and a dry run must refuse
@@ -89,6 +88,12 @@ jobs:
       - name: Upload fat JAR artifact
         uses: actions/upload-artifact@v7
         with:
-          name: jpipe-cli-${{ steps.mvn_version.outputs.version }}
+          name: jpipe-cli-${{ steps.locate.outputs.version }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
+
+      # The root pom pins the dependencies Cucumber declares as version ranges
+      # (#207). Maven applies a pin silently, even once a Cucumber update has
+      # moved its range past it: this fails the build instead.
+      - name: Check pinned versions against the ranges they override
+        run: scripts/check-managed-ranges.sh

@@ -35,16 +35,25 @@ A workflow (`.github/workflows/release.yml`) is triggered when a tag matching
    manifest carries the correct `Implementation-Version`.
 4. **Publishes a GitHub Release** with three assets:
    - `jpipe-cli-$VERSION.jar` — the fat JAR;
-   - `jpipe-$VERSION.tar.gz` — the Homebrew payload (`jpipe.jar` plus the
-     `bin/jpipe` launcher, in a versioned directory);
-   - `jpipe-$VERSION.zip` — the Scoop payload (`jpipe.jar` plus the
-     `bin/jpipe.ps1` launcher, flat at the archive root).
-5. **Updates** the `jpipe.rb` formula in `jpipe-mcscert/homebrew-mcscert` (URL,
-   SHA256, and `openjdk` dependency version) and writes a versioned
-   `jpipe@$VERSION.rb` alongside it.
-6. **Updates** `bucket/jpipe.json` in `jpipe-mcscert/scoop-mcscert` (version,
-   URL, hash). The manifest's `autoupdate` block is left untouched, and is what
-   lets Scoop reconstruct an older `scoop install mcscert/jpipe@X.Y.Z`.
+   - `jpipe-$VERSION.tar.gz` — the Homebrew payload (`jpipe.jar`, the
+     `bin/jpipe` launcher and the `bin/aot-training.jd` training model, in a
+     versioned directory);
+   - `jpipe-$VERSION.zip` — the Scoop payload (`jpipe.jar`, the
+     `bin/jpipe.ps1` launcher and `bin/aot-training.jd`, flat at the archive
+     root).
+5. **Writes** the `jpipe.rb` formula in `jpipe-mcscert/homebrew-mcscert` from
+   the template `packaging/homebrew/jpipe.rb` of the tagged commit, filling in
+   its URL and SHA256, and a versioned `jpipe@$VERSION.rb` alongside it.
+6. **Writes** `bucket/jpipe.json` and the `README.md` of
+   `jpipe-mcscert/scoop-mcscert` from the templates in `packaging/scoop/` of
+   the tagged commit, filling in the version, URL and hash. Each release is one
+   commit to the bucket, which is what lets Scoop 0.6.0 and later install an
+   older `mcscert/jpipe@X.Y.Z` from the bucket's history; the manifest's
+   `autoupdate` block is the fallback for older Scoop (ADR-0025).
+
+Steps 5 and 6 commit only when the rendered files differ from what the index
+holds, so a job re-run after a partial failure succeeds instead of stopping on
+"nothing to commit".
 7. **Builds and uploads** a signed Debian source package to `ppa:mcscert/ppa`
    on Launchpad, once per targeted Ubuntu series (see
    [ADR-0023](0023-ubuntu-release-target-policy.md)).

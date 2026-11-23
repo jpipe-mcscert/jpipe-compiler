@@ -51,6 +51,7 @@ the universal addressing form at every level of the model:
 |-----------|---------|
 | Element `s` declared directly in model `j` | `s` |
 | Element `s` inherited from template `t` into `j` | `t:s` |
+| Element `u:s`, already qualified, inherited from `t` into `j` | `u:s` |
 | Model `j` loaded under namespace `ns` | `ns:j` |
 | Element `s` in `ns:j` | `ns:j:s` |
 | Element `s` inherited from `ns:t` into `j` | `ns:t:s` |
@@ -64,7 +65,10 @@ introduced by the compiler at `ImplementsTemplate` execution time (and by
 When `ImplementsTemplate(modelName, templateName)` executes:
 
 1. Every element in the template (conclusion included) is copied into the
-   justification with id `{templateName}:{originalId}`.
+   justification with id `{templateName}:{originalId}`, or with its own id
+   when that is already qualified: an element the template inherits from a
+   further template keeps the id it has there, and is not qualified twice.
+   Each copy records where it comes from (see [Provenance](#provenance)).
 2. Every support edge declared in the template is rewritten to use the
    qualified ids of the copied elements.
 3. If the justification already contains an element whose plain id matches the
@@ -102,6 +106,36 @@ the relation. When several inherited elements match a plain id (`root:a` and
 its location, and must use the qualified id: picking one would bind it to an
 element the author may not have meant.
 
+### Provenance
+
+Each model records, when a copy is made, where each id it holds comes from: an
+`Origin`, the model copied from and the id there.
+
+- Template expansion (`inline`) records one per element it copies, the
+  conclusion included when it is inherited.
+- A composed model records, when its operator call is recorded, one per
+  `source:id` its operator copies (ADR-0018): each element of each source, and
+  each alias it holds.
+
+Every question about provenance is then a lookup:
+
+- whether an element is the model's own, inherited, or the concrete override of
+  an inherited `@support` (`ownElements`, `inheritedElements`,
+  `concreteOverrides`, `hasOwnConclusion`, `isInheritedNonSupport`);
+- which id a model gives its copy of an ancestor's element (`copyOf`), for the
+  template clusters of the diagram and the inherited edges of the JPIPE export;
+- which source elements a composed element was built from (the JSON export's
+  `origins`);
+- which segments of an id name a model, so that the JPIPE export can rename a
+  namespaced one;
+- in which template an override failed, for a placeholder inherited through a
+  chain.
+
+The id is not parsed back for any of these. Once a model loaded under a
+namespace has a `:` in its name, the text of an id reads two ways (`b:ns:a:e`,
+#202). The ids an author writes as operator arguments are text, and are still
+read against the models that exist (`QualifiedIdReadings`, ADR-0018).
+
 ### Operator model
 
 With eager inlining, every `JustificationModel` received by an operator is
@@ -116,8 +150,13 @@ template.
 - Eager inlining at `ImplementsTemplate` time localises the complexity to one
   command. The rest of the pipeline (operators, visitors, exporters) see only
   flat models.
-- Traceability is structural: the id prefix carries full provenance with no
-  extra metadata field.
+- Traceability is recorded, not parsed. The qualified id stays the address of
+  an element, not the record of where it comes from: once a namespaced model's
+  name holds a `:`, the id alone is ambiguous (#202). Parsing it also meant
+  that every copy mechanism and every reader had to agree on the
+  qualification convention, and that each new question about provenance
+  added another parser (#209). Recording the origin where the copy is made
+  answers them all in one place.
 - Ambiguity from multiple templates defining the same plain id is caught as a
   compile-time diagnostic, not a silent resolution.
 
@@ -126,14 +165,18 @@ template.
 - `JustificationElement.id()` returns a qualified path string, not a bare
   name. Callers that display or compare ids must be aware that inherited
   elements carry a prefix.
-- `ImplementsTemplate.doExecute()` must copy elements with prefixed ids and
-  rewrite support edges. It currently calls `setParent(template)` only; that
-  call is replaced by the expansion logic.
+- `ImplementsTemplate.doExecute()` expands the template through
+  `JustificationModel.inline`, which copies its elements with prefixed ids,
+  rewrites the support edges, records each copy's origin, and sets the model's
+  parent.
 - `findById` gains a two-pass resolution. `inheritedMatches(id)` lists every
   match of the fallback, so that a relation can refuse an ambiguous plain id.
 - The `load` statement follows the same scheme: loading `file.jd as ns`
   prefixes all model ids with `ns:` and their elements become `ns:model:id`.
 - Operators are simplified: no `Replicable` interface or deep-clone
   infrastructure is needed.
-- The `setParent` / `getParent` API on `JustificationModel` becomes redundant
-  once expansion is complete and can be removed.
+- `getParent` stays: a model's origins point into the template it implements,
+  and the chain of templates is how a placeholder inherited through several of
+  them is followed back.
+- A new mechanism that copies elements must record their origins, as `inline`
+  and `recordComposition` do, or its copies read as the model's own.

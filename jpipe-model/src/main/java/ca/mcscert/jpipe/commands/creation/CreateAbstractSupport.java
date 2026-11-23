@@ -1,7 +1,6 @@
 package ca.mcscert.jpipe.commands.creation;
 
 import ca.mcscert.jpipe.model.SourceLocation;
-import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 
 /** Creates an {@link AbstractSupport} inside a template. */
@@ -20,24 +19,7 @@ public final class CreateAbstractSupport
 	}
 
 	@Override
-	public ElementCreationCommand withId(String newId) {
-		return new CreateAbstractSupport(container, newId, label, location);
-	}
-
-	@Override
 	public AbstractSupport element() {
 		return new AbstractSupport(identifier, label);
-	}
-
-	@Override
-	public void doExecute(Unit context) {
-		context.addInto(container, element());
-		context.recordLocation(container, identifier, location);
-	}
-
-	@Override
-	public String toString() {
-		return "create_abstract_support('" + container + "', '" + identifier
-				+ "', '" + label + "').";
 	}
 }

@@ -5,7 +5,8 @@
 # Three verbs, matching the phases in docs/releasing.md:
 #
 #   preflight X.Y.Z          re-run release.yml's checks locally, before the tag exists
-#   prepare   X.Y.Z          set the pom version and close out the changelog, on dev
+#   prepare   X.Y.Z          set the pom version and close out the changelog, on
+#                            release/X.Y.Z, cut from dev
 #   post-release X.Y.Z-SNAPSHOT   bump to the next development version, on dev
 #
 # The script never merges a branch, never creates or pushes a tag, and never
@@ -45,8 +46,9 @@ Usage: scripts/release.sh <verb> [options]
 Verbs:
   preflight X.Y.Z            Check that everything release.yml validates would pass,
                              before the tag exists. Read-only. Runs `mvn verify`.
-  prepare X.Y.Z              On dev: set the pom to X.Y.Z-SNAPSHOT, close out the
-                             CHANGELOG [Unreleased] section, verify, and commit.
+  prepare X.Y.Z              On release/X.Y.Z, cut from the current dev: set the pom
+                             to X.Y.Z-SNAPSHOT, close out the CHANGELOG [Unreleased]
+                             section, verify, and commit.
   post-release X.Y.Z-SNAPSHOT
                              On dev, after main has been merged back: set the next
                              development version and commit.
@@ -118,6 +120,16 @@ check_branch_is() {
   fi
 }
 
+# A release branch carries everything dev holds: cut from the current dev.
+check_contains_dev() {
+  git fetch --quiet origin dev
+  if git merge-base --is-ancestor origin/dev HEAD; then
+    pass "$(current_branch) holds everything origin/dev holds"
+  else
+    fail "$(current_branch) lacks commits of origin/dev — cut it from the current dev"
+  fi
+}
+
 check_in_sync() {
   local branch upstream remote
   branch=$(current_branch)
@@ -145,7 +157,7 @@ check_on_main() {
     ON_MAIN=1
     pass "HEAD is on main — release.yml's branch check will pass"
   else
-    warn "HEAD is not on main yet — merge the dev → main release PR before tagging"
+    warn "HEAD is not on main yet — merge the release/X.Y.Z → main PR before tagging"
     note "release.yml refuses a tag that is not an ancestor of main"
   fi
 }
@@ -251,7 +263,7 @@ cmd_preflight() {
     printf '\n%sReady to tag.%s This is the last check before the release fires:\n' "$C_GREEN" "$C_OFF"
     printf '  git tag v%s && git push origin v%s\n' "$version" "$version"
   else
-    printf '\n%sReady.%s Next: merge the dev → main PR, then re-run this on main:\n' "$C_GREEN" "$C_OFF"
+    printf '\n%sReady.%s Next: merge the release/%s → main PR, then re-run this on main:\n' "$C_GREEN" "$C_OFF" "$version"
     printf '  git switch main && git pull --ff-only\n'
     printf '  scripts/release.sh preflight %s\n' "$version"
   fi
@@ -317,7 +329,11 @@ cmd_prepare() {
 
   head2 "Preparing the $version release"
   check_clean_tree
-  check_branch_is dev
+  check_branch_is "release/$version"
+  if [ "$(current_branch)" != "release/$version" ]; then
+    note "cut it from dev: git switch dev && git pull --ff-only && git switch -c release/$version"
+  fi
+  check_contains_dev
   check_in_sync
   check_tag_absent "$version"
 
@@ -357,9 +373,9 @@ cmd_prepare() {
 
   print_manual_checklist
   printf '\n%sPrepared.%s Next:\n' "$C_GREEN" "$C_OFF"
-  printf '  git push                                  # straight to dev, no PR needed\n'
+  printf '  git push -u origin release/%s\n' "$version"
   printf '  scripts/release.sh preflight %s\n' "$version"
-  printf '  then open the dev → main release PR\n'
+  printf '  then open the release PR from release/%s into main\n' "$version"
 }
 
 cmd_post_release() {

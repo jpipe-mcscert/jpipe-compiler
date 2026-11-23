@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.model.validation;
 
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
+import ca.mcscert.jpipe.model.Origin;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
@@ -170,26 +171,24 @@ public final class CompletenessValidator {
 
 	/**
 	 * Whether an override of {@code id} failed in {@code model}, or in a
-	 * template it inherits {@code id} from: there, it is the id without the
-	 * template's prefix, if inheriting added one.
+	 * template it inherits {@code id} from, under the id the copy has there:
+	 * the placeholder is followed through the origins of its copies (#209).
 	 */
 	private static boolean overrideFailed(JustificationModel model, String id,
 			ValidationContext ctx) {
+		JustificationModel current = model;
 		String local = id;
-		Optional<? extends JustificationModel> current = Optional.of(model);
-		while (current.isPresent()) {
-			JustificationModel m = current.get();
-			if (ctx.overrideFailed(m.getName(), local)) {
+		while (true) {
+			if (ctx.overrideFailed(current.getName(), local)) {
 				return true;
 			}
-			Optional<Template> parent = m.getParent();
-			String prefix = parent.map(t -> t.getName() + ":").orElse("");
-			if (!prefix.isEmpty() && local.startsWith(prefix)) {
-				local = local.substring(prefix.length());
+			Optional<Origin> origin = current.inheritedOrigin(local);
+			if (origin.isEmpty()) {
+				return false;
 			}
-			current = parent;
+			current = origin.get().model();
+			local = origin.get().id();
 		}
-		return false;
 	}
 
 	private void checkTemplate(Template template, String name,
@@ -209,9 +208,7 @@ public final class CompletenessValidator {
 				.map(JustificationElement::id).collect(Collectors.toSet());
 		template.abstractSupports().stream()
 				.filter(as -> !inherited.contains(as.id()))
-				.filter(as -> template.strategies().stream()
-						.noneMatch(s -> s.getSupports().stream()
-								.anyMatch(leaf -> leaf.id().equals(as.id()))))
+				.filter(as -> template.strategiesSupportedBy(as.id()).isEmpty())
 				.forEach(as -> violations.add(new Violation(
 						ABSTRACT_SUPPORT_USED,
 						"Abstract support '" + as.id() + "' in template '"

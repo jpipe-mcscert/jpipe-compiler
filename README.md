@@ -48,7 +48,7 @@ The jPipe environment supports the definition of justification to support softwa
 
 | Tool | Version | Purpose |
 |---|---|---|
-| [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) | latest | Previewing the documentation site locally (`mkdocs serve`) |
+| [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) and its plugins | locked in `docs/requirements.txt` | Previewing the documentation site locally (`mkdocs serve`); install them with `pip install --require-hashes --only-binary :all: -r docs/requirements.txt` |
 
 #### Building
 
@@ -69,13 +69,15 @@ locally. Only `main` requires a pull request.
 
 #### Releasing a new version
 
-A release is prepared on `dev`, merged into `main` through a pull request, and
+A release is prepared on a release branch cut from `dev`, merged into `main`
+through one pull request, and
 started by pushing a `vX.Y.Z` tag on `main`. The tag triggers the pipeline, which
 publishes the GitHub Release and updates Homebrew, Scoop and the Ubuntu PPA.
 
 ```bash
-scripts/release.sh prepare X.Y.Z       # on dev: set the version, close the changelog
-                                       # then push, and open the dev → main PR
+scripts/release.sh prepare X.Y.Z       # on release/X.Y.Z, cut from dev: set the version,
+                                       # close the changelog; then push the branch and
+                                       # open its PR into main
 scripts/release.sh preflight X.Y.Z     # on main, after the merge: re-run the
                                        # pipeline's checks before the tag exists
 git tag vX.Y.Z && git push origin vX.Y.Z
@@ -131,6 +133,12 @@ scoop install mcscert/jpipe
 Each channel installs a `jpipe` launcher on your `PATH`; run `jpipe doctor` to
 check the installed version and its runtime dependencies. The fat JAR is also
 attached to every [GitHub Release](https://github.com/jpipe-mcscert/jpipe-compiler/releases).
+
+Installing also runs `jpipe --create-aot-cache`, which records a cache that
+makes every call start faster. It only works for the Java build that created
+it: after upgrading Java, run `jpipe --create-aot-cache` again, with no other
+option (`sudo` on Ubuntu, `brew postinstall jpipe` on macOS). Without a valid cache, jPipe runs
+as before, only slower to start.
 
 ### Running the compiler
 

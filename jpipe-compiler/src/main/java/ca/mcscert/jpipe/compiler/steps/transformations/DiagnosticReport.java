@@ -64,16 +64,8 @@ public final class DiagnosticReport extends DiagnosticRenderer {
 			sb.append("(none)\n");
 		} else {
 			for (Diagnostic d : input.diagnostics()) {
-				String message = d.hasCode()
-						? "[" + d.code() + "] " + d.message()
-						: d.message();
-				if (d.hasLocation()) {
-					sb.append(String.format("[%s] %s:%d:%d: %s%n", d.level(),
-							d.source(), d.line(), d.column(), message));
-				} else {
-					sb.append(String.format("[%s] %s: %s%n", d.level(),
-							d.source(), message));
-				}
+				sb.append(String.format("[%s] %s: %s%n", d.level(), d.where(),
+						d.codedMessage()));
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.creation;
 
+import ca.mcscert.jpipe.commands.Command;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ca.mcscert.jpipe.commands.RegularCommand;
@@ -30,6 +31,11 @@ class CreationCommandsTest {
 	class RegularCommandContract {
 
 		private final RegularCommand cmd = new RegularCommand() {
+			@Override
+			public Command withNamespace(String ns) {
+				return this;
+			}
+
 			@Override
 			public void doExecute(Unit context) {
 				// intentionally empty

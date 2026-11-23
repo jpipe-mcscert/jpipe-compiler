@@ -4,6 +4,12 @@ site_url: https://ace-design.github.io/jpipe
 repo_url: https://github.com/jpipe-mcscert/jpipe-compiler
 repo_name: jpipe-mcscert/jpipe-compiler
 
+# The site's own build dependencies live in docs/, next to what they build,
+# but are not part of the site.
+exclude_docs: |
+  requirements.in
+  requirements.txt
+
 theme:
   name: material
   palette:

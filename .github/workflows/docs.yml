@@ -26,12 +26,26 @@ on:
       - 'CITATION.cff'
       - 'LICENSE'
       - 'code-of-conduct.md'
+  # A change to the site's toolchain is built, not deployed, in its pull
+  # request: a lock that cannot be installed (no wheel for a new version, a
+  # requirements.in edited without recompiling it) fails there rather than
+  # in the first deploy after the merge (#208).
+  pull_request:
+    paths:
+      - 'docs/requirements.in'
+      - 'docs/requirements.txt'
+      - 'mkdocs.yml'
+      - 'jpipe-lang/gen_railroad.py'
+      - '.github/workflows/docs.yml'
 
+# Read-only by default: only the deploy job, which runs no third-party code,
+# can push. A pull request builds the site with this token, so the code it
+# brings never runs with one that can write to the repository.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -51,14 +65,14 @@ jobs:
         # then asks the mirror for package versions it no longer serves.
         run: sudo apt-get update -y && sudo apt-get install -y plantuml
 
-      - name: Install MkDocs
-        run: pip install mkdocs-material plantuml-markdown
+      - name: Install the site's Python tools
+        # Locked by version and hash, and wheels only: no source distribution
+        # runs its build code here (#208).
+        run: |
+          pip install --require-hashes --only-binary :all: -r docs/requirements.txt
 
       - name: Generate railroad diagrams
-        run: |
-          pip install pipenv
-          cd jpipe-lang && pipenv install --deploy
-          pipenv run python3 gen_railroad.py
+        run: python3 jpipe-lang/gen_railroad.py
 
       - name: Generate Javadoc
         run: mvn javadoc:aggregate -q
@@ -85,5 +99,45 @@ jobs:
             -e 's|^  - |    - |g' \
             README.md > docs/index.md
 
-      - name: Deploy to GitHub Pages
-        run: mkdocs gh-deploy --force
+      - name: Build the site
+        run: mkdocs build
+
+      - name: Keep the site for the deploy job
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: site
+          path: site/
+          if-no-files-found: error
+          retention-days: 1
+
+  # Publishes the built site as the single commit of gh-pages, as
+  # `mkdocs gh-deploy --force` did, with git alone: nothing installed, nothing
+  # from the pull request, runs with the token that can push.
+  deploy:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: true
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: site
+          path: site
+
+      - name: Push to gh-pages
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          cd site
+          touch .nojekyll
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -q -m "Deployed ${GITHUB_SHA::7} with MkDocs"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

@@ -1,0 +1,35 @@
+// The workload `jpipe --create-aot-cache` records an AOT cache from (#216).
+// It is shipped next to jpipe.jar and compiled once at install time, so it
+// should go through what a typical call loads: a template and its
+// implementation, an operator, and an export. ShadedJarIT compiles it, so it
+// cannot fall out of step with the language.
+
+template quality {
+    conclusion c   is "The component is fit for release"
+    strategy   s   is "Check each quality attribute"
+    @support   tst is "The tests pass"
+    @support   rev is "The code was reviewed"
+
+    s   supports c
+    tst supports s
+    rev supports s
+}
+
+justification component implements quality {
+    evidence quality:tst is "CI test report"
+    evidence quality:rev is "Merged pull request"
+}
+
+justification release {
+    conclusion c is "The release is documented"
+    strategy   s is "Check the release notes"
+    evidence   e is "CHANGELOG entry"
+
+    s supports c
+    e supports s
+}
+
+justification trained is assemble(component, release) {
+    conclusionLabel: "The release can ship"
+    strategyLabel:   "Combine the component and release arguments"
+}

@@ -1,5 +1,8 @@
 package ca.mcscert.jpipe.operators.builtin;
 
+import ca.mcscert.jpipe.operators.ModelKind;
+import ca.mcscert.jpipe.operators.Composed;
+import ca.mcscert.jpipe.model.Composition;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -12,6 +15,7 @@ import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
 import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
+import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.Template;
@@ -83,7 +87,8 @@ class AssembleOperatorTest {
 				"An evidence");
 		var b = buildJustification("another_claim", "Another conclusion",
 				"Another strategy", "Another evidence");
-		List<Command> cmds = assemble.apply("assembled", List.of(a, b), ARGS);
+		List<Command> cmds = assemble.apply("assembled", List.of(a, b), ARGS,
+				SourceLocation.UNKNOWN, Map.of()).commands();
 		Unit unit = engine.spawn("out", cmds);
 		return (Justification) unit.get("assembled");
 	}
@@ -97,7 +102,8 @@ class AssembleOperatorTest {
 		void twoJustificationsProduceJustification() {
 			var a = buildJustification("a", "C", "S", "E");
 			var b = buildJustification("b", "C", "S", "E");
-			List<Command> cmds = assemble.apply("result", List.of(a, b), ARGS);
+			List<Command> cmds = assemble.apply("result", List.of(a, b), ARGS,
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			assertThat(unit.get("result")).isInstanceOf(Justification.class);
 		}
@@ -106,7 +112,8 @@ class AssembleOperatorTest {
 		void anyTemplateSourceProducesTemplate() {
 			var j = buildJustification("j", "C", "S", "E");
 			var t = buildTemplate("t");
-			List<Command> cmds = assemble.apply("result", List.of(j, t), ARGS);
+			List<Command> cmds = assemble.apply("result", List.of(j, t), ARGS,
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			assertThat(unit.get("result")).isInstanceOf(Template.class);
 		}
@@ -115,7 +122,8 @@ class AssembleOperatorTest {
 		void theResultIsAJustificationWhenAllSourcesAreJustifications() {
 			var a = buildJustification("a", "C", "S", "E");
 			var b = buildJustification("b", "C", "S", "E");
-			assertThat(assemble.apply("result", List.of(a, b), ARGS)).first()
+			assertThat(assemble.apply("result", List.of(a, b), ARGS,
+					SourceLocation.UNKNOWN, Map.of()).commands()).first()
 					.isInstanceOf(CreateJustification.class);
 		}
 
@@ -123,8 +131,17 @@ class AssembleOperatorTest {
 		void theResultIsATemplateWhenAnySourceIsATemplate() {
 			var j = buildJustification("j", "C", "S", "E");
 			var t = buildTemplate("t");
-			assertThat(assemble.apply("result", List.of(j, t), ARGS)).first()
+			Composed composed = assemble.apply("result", List.of(j, t), ARGS,
+					SourceLocation.UNKNOWN, Map.of());
+			assertThat(composed.kind()).isEqualTo(ModelKind.TEMPLATE);
+			assertThat(composed.commands()).first()
 					.isInstanceOf(CreateTemplate.class);
+		}
+
+		@Test
+		void onlyUnifyExcludeHoldsElementIds() {
+			assertThat(assemble.idArgumentScopes()).containsOnly(
+					Map.entry("unifyExclude", Composition.Scope.RESULT));
 		}
 	}
 
@@ -246,7 +263,7 @@ class AssembleOperatorTest {
 			var c = buildJustification("a_third_claim", "A third conclusion",
 					"A third strategy", "A third evidence");
 			List<Command> cmds = assemble.apply("assembled_3", List.of(a, b, c),
-					ARGS);
+					ARGS, SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("assembled_3");
 
@@ -299,8 +316,12 @@ class AssembleOperatorTest {
 
 		private Justification assembled(String name,
 				List<JustificationModel> sources) {
-			List<Command> cmds = unifier.unify(name,
-					assemble.apply(name, sources, ARGS), ARGS);
+			List<Command> cmds = unifier
+					.unify(name,
+							assemble.apply(name, sources, ARGS,
+									SourceLocation.UNKNOWN, Map.of())
+									.commands(),
+							ARGS);
 			return (Justification) engine.spawn("out", cmds).get(name);
 		}
 
@@ -337,7 +358,8 @@ class AssembleOperatorTest {
 					asserting("other"));
 			Map<String, String> clashing = Map.of("conclusionLabel", SHARED,
 					"strategyLabel", "An aggregating strategy");
-			List<Command> composed = assemble.apply("clash", sources, clashing);
+			List<Command> composed = assemble.apply("clash", sources, clashing,
+					SourceLocation.UNKNOWN, Map.of()).commands();
 
 			assertThatThrownBy(() -> unifier.unify("clash", composed, clashing))
 					.isInstanceOf(IncompatibleUnificationException.class)
@@ -378,7 +400,8 @@ class AssembleOperatorTest {
 			var a = buildJustification("a", "C", "S", "E");
 			List<JustificationModel> sources = List.of(a);
 			var args = Map.of("strategyLabel", "s");
-			assertThatThrownBy(() -> assemble.apply("r", sources, args))
+			assertThatThrownBy(() -> assemble.apply("r", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("conclusionLabel");
 		}
@@ -388,7 +411,8 @@ class AssembleOperatorTest {
 			var a = buildJustification("a", "C", "S", "E");
 			List<JustificationModel> sources = List.of(a);
 			var args = Map.of("conclusionLabel", "c");
-			assertThatThrownBy(() -> assemble.apply("r", sources, args))
+			assertThatThrownBy(() -> assemble.apply("r", sources, args,
+					SourceLocation.UNKNOWN, Map.of()))
 					.isInstanceOf(InvalidOperatorCallException.class)
 					.hasMessageContaining("strategyLabel");
 		}

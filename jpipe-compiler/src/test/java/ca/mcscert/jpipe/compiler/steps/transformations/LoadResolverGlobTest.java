@@ -1,6 +1,7 @@
 package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.abort;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -12,6 +13,7 @@ import ca.mcscert.jpipe.compiler.model.Diagnostic;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import java.io.IOException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -347,6 +349,27 @@ class LoadResolverGlobTest {
 
 	@Test
 	@DisabledOnOs(OS.WINDOWS)
+	void aGlobDoesNotDescendBelowWhatItCanMatch() throws IOException {
+		// "*.jd" cannot cross a '/', so the walk never enters "locked": an
+		// unreadable directory there is no reason to fail the load.
+		writeTemplate("a.jd", "alpha");
+		Path locked = Files.createDirectories(dir.resolve("locked"));
+		writeTemplate("locked/b.jd", "beta");
+		Files.setPosixFilePermissions(locked,
+				PosixFilePermissions.fromString("---------"));
+		assumeFalse(Files.isReadable(locked), "running with root privileges");
+		try {
+			CompilationContext ctx = compile("*.jd", null);
+
+			assertThat(ctx.hasFatalErrors()).isFalse();
+		} finally {
+			Files.setPosixFilePermissions(locked,
+					PosixFilePermissions.fromString("rwxr-xr-x"));
+		}
+	}
+
+	@Test
+	@DisabledOnOs(OS.WINDOWS)
 	void aLinkedFileResolvesItsLoadsFromWhereItIsLinked() throws IOException {
 		// Its real path is only its identity: its own relative loads resolve
 		// from the link's directory, as when it is compiled through the link.
@@ -392,6 +415,63 @@ class LoadResolverGlobTest {
 	}
 
 	/**
+	 * A glob anchored at a symbolic link to a directory searches that
+	 * directory, as a literal path through the same link does. The walk used to
+	 * stop at the link and report a no-match (#219).
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = {"linked/*.jd", "linked/**.jd"})
+	void aGlobAnchoredAtALinkedDirectoryFollowsTheLink(String pattern)
+			throws IOException {
+		writeTemplate("real/lib.jd", "lib");
+		link("linked", "real");
+
+		CompilationContext ctx = compile(pattern, null);
+
+		assertThat(ctx.hasErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("lib");
+	}
+
+	@Test
+	void aRecursiveGlobDescendsIntoALinkedDirectory() throws IOException {
+		// The linked directory used to be skipped without any message (#219).
+		writeTemplate("proj/plain/a.jd", "fromPlain");
+		writeTemplate("outside/b.jd", "fromLink");
+		link("proj/linked", "outside");
+
+		CompilationContext ctx = compile("**/*.jd", null,
+				dir.resolve("proj/main.jd").toString());
+
+		assertThat(ctx.hasErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("fromLink", "fromPlain");
+	}
+
+	@Test
+	@Timeout(30)
+	void aLinkBackToAnAncestorIsSkipped() throws IOException {
+		// Everything behind the link is already being walked: following it
+		// would only loop.
+		writeTemplate("lib/a.jd", "alpha");
+		link("lib/loop", "lib");
+
+		CompilationContext ctx = compile("lib/**.jd", null);
+
+		assertThat(ctx.hasErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("alpha");
+	}
+
+	@Test
+	void aFileMatchedThroughALinkAndItsTargetIsLoadedOnce() throws IOException {
+		writeTemplate("real/a.jd", "alpha");
+		link("linked", "real");
+
+		CompilationContext ctx = compile("**/*.jd", null);
+
+		assertThat(ctx.hasErrors()).isFalse();
+		assertThat(templateNames()).containsExactly("alpha");
+	}
+
+	/**
 	 * Compiles from a source file one level below the temporary directory, so
 	 * that a "../" pattern has somewhere to climb back up to.
 	 */
@@ -427,6 +507,22 @@ class LoadResolverGlobTest {
 			throws IOException {
 		writeSource(relativePath,
 				"template " + name + " { conclusion c is \"c\" }\n");
+	}
+
+	/**
+	 * Creates a symbolic link to a directory, both relative to the temporary
+	 * directory. Skips the test on a file system that cannot create one, such
+	 * as Windows without developer mode.
+	 */
+	private void link(String relativeLink, String relativeTarget)
+			throws IOException {
+		Path link = dir.resolve(relativeLink);
+		Files.createDirectories(link.getParent());
+		try {
+			Files.createSymbolicLink(link, dir.resolve(relativeTarget));
+		} catch (UnsupportedOperationException | FileSystemException e) {
+			abort("symbolic links are not supported here: " + e.getMessage());
+		}
 	}
 
 	private void writeSource(String relativePath, String content)

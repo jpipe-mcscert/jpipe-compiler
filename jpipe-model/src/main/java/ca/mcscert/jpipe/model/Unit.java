@@ -2,7 +2,6 @@ package ca.mcscert.jpipe.model;
 
 import ca.mcscert.jpipe.model.elements.CommonElement;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
-import ca.mcscert.jpipe.util.Aliases;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,7 +22,6 @@ public final class Unit {
 	private final String source;
 	private final Map<String, JustificationModel> models = new LinkedHashMap<>();
 	private final Map<String, SourceLocation> locations = new LinkedHashMap<>();
-	private final Map<String, String> aliases = new LinkedHashMap<>();
 	private final Set<String> incomplete = new LinkedHashSet<>();
 	private final Set<String> failedOverrides = new LinkedHashSet<>();
 
@@ -120,14 +118,6 @@ public final class Unit {
 		return Collections.unmodifiableMap(locations);
 	}
 
-	/**
-	 * Unmodifiable view of all recorded aliases. Keys are
-	 * {@code "modelName/oldId"}; values are the new (merged) id.
-	 */
-	public Map<String, String> aliases() {
-		return Collections.unmodifiableMap(aliases);
-	}
-
 	/** Records where a model (justification or template) was declared. */
 	public void recordLocation(String modelName, SourceLocation loc) {
 		if (loc.isKnown()) {
@@ -162,11 +152,14 @@ public final class Unit {
 
 	/**
 	 * Records that {@code oldId} in model {@code modelName} was merged into
-	 * {@code newId}.
+	 * {@code newId}. See {@link JustificationModel#recordAlias}.
+	 *
+	 * @throws NoSuchElementException
+	 *             if {@code modelName} does not exist yet: an alias is recorded
+	 *             after the model it belongs to is created.
 	 */
 	public void recordAlias(String modelName, String oldId, String newId) {
-		aliases.put(registryKey(modelName, oldId), newId);
-		findModel(modelName).ifPresent(m -> m.recordAlias(oldId, newId));
+		get(modelName).recordAlias(oldId, newId);
 	}
 
 	/**
@@ -175,15 +168,6 @@ public final class Unit {
 	 */
 	public void recordUnifiedId(String modelName, String id) {
 		findModel(modelName).ifPresent(m -> m.recordUnifiedId(id));
-	}
-
-	/**
-	 * Returns the id that {@code id} resolves to in {@code modelName}, followed
-	 * to the end of its alias chain, or {@code id} itself if no alias was
-	 * registered. See {@link JustificationModel#resolveAlias(String)}.
-	 */
-	public String resolveAlias(String modelName, String id) {
-		return Aliases.follow(id, i -> aliases.get(registryKey(modelName, i)));
 	}
 
 	public <R> R accept(JustificationVisitor<R> visitor) {

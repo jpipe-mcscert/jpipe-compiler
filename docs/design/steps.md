@@ -189,7 +189,10 @@ in the expanded sub-list is qualified with `ns:` so that loaded models do not
 collide with locally declared ones: model declarations, `implements`, the result
 and sources of operator calls, and the qualified element ids of overrides and
 relations (`base:t:abs` becomes `ns:base:t:abs`), which name elements inherited
-from a model of that file. Plain element ids are local and unchanged.
+from a model of that file. Plain element ids are local and unchanged. Each
+command states how it is namespaced (`Command.withNamespace`), so a new command
+type cannot escape the namespace; a command the compiler creates while building
+the unit, such as `RegisterAlias`, is never read from a file and refuses.
 
 A file is identified by its real path, so a symbolic link or another spelling of
 the same file is loaded once. A load is skipped as a duplicate only when the
@@ -211,6 +214,13 @@ a load cycle and a FATAL whenever it also matches that file's name — which a
 catch-all such as `*.jd` always does; keep glob-loaded models in a directory of
 their own. See ADR-0022.
 
+The search follows symbolic links, as a literal path does: a linked directory is
+searched whether it is the anchor itself or lies below it. A link back to one of
+its own ancestors is skipped without a diagnostic, since everything behind it is
+already being searched. A file that matches through several paths, such as a
+link and its target, is loaded once, from the first of those paths in sorted
+order.
+
 ---
 
 ### Model-building steps
@@ -223,8 +233,9 @@ their own. See ADR-0022.
 Reports every model declared under a name already taken, in this file or in a
 loaded one, as `duplicate-model` at the second declaration (naming where the
 first one is), and drops that declaration before any command runs. The
-commands of a declaration are contiguous — its creation (`CreateJustification`,
-`CreateTemplate` or `ApplyOperator`), then its body, up to the next creation —
+commands of a declaration are contiguous — its creation, the command whose
+`declares()` names a model (`CreateJustification`, `CreateTemplate` or
+`ApplyOperator`), then its body, up to the next creation —
 so the whole second declaration goes, and nothing it contains is added to the
 first model.
 
@@ -238,7 +249,8 @@ execution and macro expansion (see `model.md` — Commands). The result is a
 fully populated `Unit`.
 
 A command that fails does not stop the execution: the engine is given a
-failure handler that records it, and the rest of the queue still runs, so that
+failure handler that records it, and lets the command record what its failure
+leaves behind (`Command.recordFailure`), and the rest of the queue still runs, so that
 one mistake gives one error rather than a cascade of reports about statements
 that never ran. `ExecutionFailureDiagnostics` then reports each failure at the
 location of its command (an operator call names the operator and the model it
@@ -250,7 +262,9 @@ command to a specific semantic `ERROR` (e.g. `[unknown-element]`; for an
 operator call, `[unknown-model]` naming each source model that does not exist)
 rather than propagating a raw exception. A command that only waits on a model
 whose own construction failed, directly or through other stuck calls, is not
-reported again: that failure is the one cause. Calls that only wait on each
+reported again: that failure is the one cause. The analysis follows what each
+command targets, reads and declares (`target()`, `reads()`, `declares()`,
+`breaksItsTarget()`), not its type; only the message text is per command type. Calls that only wait on each
 other are reported as never built. The partial `Unit` built so far is
 returned so that downstream diagnostic steps can still run.
 
@@ -259,7 +273,8 @@ Every diagnostic names the file its location is in: an element of a
 
 A model whose `implements` failed, or never ran because its template never
 completes (an `implements` cycle, a template that could not be built), is
-marked incomplete on the `Unit`. Nothing consumes it, what waits in it is not
+marked incomplete on the `Unit`, as is the result of an operator call that
+failed or never ran. Nothing consumes it, what waits in it is not
 reported, and the consistency and completeness checkers skip it: the one cause
 is reported where it is. An `implements` cycle is reported once, as
 `cyclic-implements`, even when it goes through an operator call (`j implements

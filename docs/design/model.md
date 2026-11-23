@@ -103,6 +103,7 @@ package "model" {
     - conclusion : Conclusion
     - parent : Template
     - elements : List<E>
+    - origins : Map<String, Origin>
     + getName() : String
     + setConclusion(Conclusion) : void
     + conclusion() : Optional<Conclusion>
@@ -111,12 +112,23 @@ package "model" {
     + addElement(E) : void
     + getElements() : List<E>
     + findById(String) : Optional<E>
+    + bind(String) : Binding
+    + elementWithId(String) : Optional<E>
     + elementsOfType(Class<T>) : List<T>
     + subConclusions() : List<SubConclusion>
     + strategies() : List<Strategy>
     + evidence() : List<Evidence>
     + accept(JustificationVisitor<R>) : R
     + inline(Template, String) : void
+    + recordComposition(Composition) : void
+    + originOf(String) : Optional<Origin>
+    + copyOf(JustificationModel, String) : Optional<String>
+  }
+
+  class Origin <<record>> {
+    + model : JustificationModel
+    + id : String
+    + element() : Optional<E>
   }
 
   class Justification
@@ -147,12 +159,21 @@ package "model" {
 
   Unit o-- JustificationModel : models
   Template --o JustificationModel : parent
+  JustificationModel o-- Origin : origins
+  Origin --> JustificationModel : copied from
 
   JustificationModel --> Conclusion : conclusion
 }
 
 @enduml
 ```
+
+A model records where each copied id comes from, when the copy is made
+(`Origin`, ADR-0012): `inline` records one per element of the template it
+copies, and `recordComposition` one per `source:id` the operator copied, each
+element and each alias of each source. What a model owns, inherits or
+overrides, the id it gives its copy of an ancestor's element (`copyOf`), and
+which models an id names are looked up there, never parsed from the id.
 
 ### `commands` / `commands.creation`
 
@@ -161,10 +182,16 @@ concrete commands. The `ExecutionEngine` handles deferred execution (commands th
 are not ready yet), macro expansion, and deadlock detection. A command is ready
 when its `condition()` holds and, for `ImplementsTemplate`, `AddSupport` and
 `ApplyOperator`, when no pending command still targets the model it depends on
-(`ready(Unit, PendingCommands)`, `target()`). A model whose `implements` failed or
-never ran is marked incomplete on the `Unit` (`markIncomplete`): nothing consumes
-it, and the validators skip it, since its gaps follow from a failure already
-reported.
+(`ready(Unit, PendingCommands)`, `target()`): `ImplementsTemplate` and
+`ApplyOperator` wait until the models they `reads()` are settled
+(`PendingCommands.settled`). A command declares whether its failure leaves
+its target unusable (`breaksItsTarget()`: an `implements`, an operator call),
+and records what its failure leaves behind (`recordFailure(Unit)`). The target
+of such a command that failed or never ran, a model whose `implements` did not
+apply or the result of an operator call, is so marked incomplete on the `Unit`
+(`markIncomplete`): nothing consumes it, and the validators skip it, since its
+gaps follow from a failure already reported. An override that fails records
+the placeholders it leaves (`recordFailedOverride`).
 
 ```plantuml
 @startuml commands
@@ -184,6 +211,11 @@ package "commands" {
     + target() : Optional<String>
     + location() : SourceLocation
     + execute(Unit) : void
+    + {abstract} withNamespace(ns) : Command
+    + declares() : Optional<String>
+    + reads() : Set<String>
+    + breaksItsTarget() : boolean
+    + recordFailure(Unit) : void
   }
 
   abstract class RegularCommand {

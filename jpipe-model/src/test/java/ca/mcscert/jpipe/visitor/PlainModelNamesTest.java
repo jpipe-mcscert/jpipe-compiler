@@ -4,6 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.ProvenanceFixtures;
+import ca.mcscert.jpipe.model.Justification;
+import ca.mcscert.jpipe.model.Template;
+import ca.mcscert.jpipe.model.elements.Conclusion;
+import ca.mcscert.jpipe.model.elements.Evidence;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -43,6 +47,32 @@ class PlainModelNamesTest {
 		PlainModelNames names = PlainModelNames.of(MODELS.keySet());
 
 		assertThat(names.id(MODELS.get("out"), id)).isEqualTo(expected);
+	}
+
+	@ParameterizedTest(name = "in leaf, {0} is written {1}")
+	@CsvSource({"base:mid:m, base_mid:m", "root:abs, root:abs",
+			"root:s, root:s"})
+	void an_id_of_a_model_that_implements_a_template_is_renamed_through_the_chain(
+			String id, String expected) {
+		JustificationModel leaf = ProvenanceFixtures.templateChain();
+		PlainModelNames names = PlainModelNames
+				.of(List.of("root", "base:mid", "leaf"));
+
+		assertThat(names.id(leaf, id)).isEqualTo(expected);
+	}
+
+	@Test
+	void a_copy_is_renamed_by_the_prefix_template_expansion_gave_it() {
+		// inline names a copy after the implements, which a caller of the
+		// API may spell differently from the template's own name.
+		Template t = new Template("t");
+		t.setConclusion(new Conclusion("c", "C"));
+		t.addElement(new Evidence("x", "X"));
+		Justification j = new Justification("j");
+		j.inline(t, "ns:t");
+		PlainModelNames names = PlainModelNames.of(List.of("ns:t", "j"));
+
+		assertThat(names.id(j, "ns:t:x")).isEqualTo("ns_t:x");
 	}
 
 	@Test

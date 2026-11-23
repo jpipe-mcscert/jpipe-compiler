@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Unit;
 import java.util.function.Predicate;
@@ -35,5 +36,12 @@ public final class RemoveElement extends RegularCommand {
 	@Override
 	public String toString() {
 		return "remove('" + container + "', '" + elementId + "')";
+	}
+
+	/** Created while the unit is built, never read from a file. */
+	@Override
+	public Command withNamespace(String ns) {
+		throw new UnsupportedOperationException(
+				"RemoveElement is never read from a file");
 	}
 }

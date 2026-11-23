@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+# The AOT cache is created by postinst, not shipped, so dpkg does not know
+# about it (#216). It goes before dpkg removes the package's files, so that
+# /usr/share/jpipe is empty when dpkg removes it. On an upgrade, the new
+# version's postinst creates a cache for its own JAR.
+case "$1" in
+    remove|upgrade|deconfigure)
+        rm -f /usr/share/jpipe/jpipe.aot /usr/share/jpipe/jpipe.aot.tmp \
+              /usr/share/jpipe/jpipe.aot.log
+        ;;
+esac
+
+#DEBHELPER#
