@@ -18,6 +18,10 @@ format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+---
+
+## [4.1.0] — 2026-11-22
+
 ### Added
 - `jpipe --create-aot-cache` records a cache of the classes a call loads, next
   to `jpipe.jar`, and the launchers use it when it is there. Homebrew, the PPA
@@ -732,7 +736,8 @@ server.
 ### Added
 - Initial commit: first version of the compiler.
 
-[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v3.0.0...v4.0.0
 [3.0.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.5.0...v3.0.0
 [2.5.0]: https://github.com/jpipe-mcscert/jpipe-compiler/compare/v2.4.0...v2.5.0
