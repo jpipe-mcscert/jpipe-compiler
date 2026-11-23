@@ -226,6 +226,42 @@ public abstract sealed class JustificationModel
 	}
 
 	/**
+	 * The kind of the parent's element each copy of it is, keyed by the id of
+	 * the copy: what {@link #inheritedType} gives for each, with the parent
+	 * indexed once rather than scanned per element.
+	 */
+	private Map<String, Class<? extends JustificationElement>> inheritedTypes() {
+		if (parent == null) {
+			return Map.of();
+		}
+		Map<String, JustificationElement> inParent = parent.elementsById();
+		Map<String, Class<? extends JustificationElement>> types = new HashMap<>();
+		origins.forEach((copy, list) -> {
+			Origin first = list.getFirst();
+			JustificationElement element = first.model() == parent
+					? inParent.get(first.id())
+					: null;
+			if (element != null) {
+				types.put(copy, element.getClass());
+			}
+		});
+		return types;
+	}
+
+	/**
+	 * Every element of this model by its exact id, the conclusion first: the
+	 * first one wins when two share an id, as with {@link #elementWithId}.
+	 */
+	public Map<String, JustificationElement> elementsById() {
+		Map<String, JustificationElement> byId = new HashMap<>();
+		if (conclusion != null) {
+			byId.put(conclusion.id(), conclusion);
+		}
+		elements.forEach(e -> byId.putIfAbsent(e.id(), e));
+		return byId;
+	}
+
+	/**
 	 * The element of this model whose id is exactly {@code id}, with none of
 	 * the short-name fallback of {@link #findById}.
 	 */
@@ -436,12 +472,14 @@ public abstract sealed class JustificationModel
 	 * when the conclusion was set by inlining a parent template.
 	 */
 	public boolean hasOwnConclusion() {
-		return conclusion != null && inheritedType(conclusion.id()).isEmpty();
+		return conclusion != null
+				&& !inheritedTypes().containsKey(conclusion.id());
 	}
 
 	/** Elements defined directly in this model: no copy of its parent's. */
 	public List<JustificationElement> ownElements() {
-		return elements.stream().filter(e -> inheritedType(e.id()).isEmpty())
+		Map<String, Class<? extends JustificationElement>> types = inheritedTypes();
+		return elements.stream().filter(e -> !types.containsKey(e.id()))
 				.toList();
 	}
 
@@ -450,8 +488,9 @@ public abstract sealed class JustificationModel
 	 * (not overridden).
 	 */
 	public List<JustificationElement> inheritedElements() {
-		return elements.stream().filter(e -> inheritedType(e.id())
-				.filter(e.getClass()::equals).isPresent()).toList();
+		Map<String, Class<? extends JustificationElement>> types = inheritedTypes();
+		return elements.stream().filter(e -> types.get(e.id()) == e.getClass())
+				.toList();
 	}
 
 	/**
@@ -460,8 +499,9 @@ public abstract sealed class JustificationModel
 	 * order.
 	 */
 	public List<JustificationElement> declaredElements() {
-		return elements.stream().filter(e -> inheritedType(e.id())
-				.filter(e.getClass()::equals).isEmpty()).toList();
+		Map<String, Class<? extends JustificationElement>> types = inheritedTypes();
+		return elements.stream().filter(e -> types.get(e.id()) != e.getClass())
+				.toList();
 	}
 
 	/**
@@ -474,10 +514,9 @@ public abstract sealed class JustificationModel
 	 * these three lists partition {@link #getElements()}.
 	 */
 	public List<JustificationElement> concreteOverrides() {
-		return elements.stream()
-				.filter(e -> inheritedType(e.id())
-						.filter(type -> type != e.getClass()).isPresent())
-				.toList();
+		Map<String, Class<? extends JustificationElement>> types = inheritedTypes();
+		return elements.stream().filter(e -> types.containsKey(e.id())
+				&& types.get(e.id()) != e.getClass()).toList();
 	}
 
 	/**

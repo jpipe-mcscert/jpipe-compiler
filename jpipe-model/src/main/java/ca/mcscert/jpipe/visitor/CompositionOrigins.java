@@ -121,12 +121,19 @@ final class CompositionOrigins {
 		Map<JustificationModel, Map<String, List<Origin>>> deeper = new IdentityHashMap<>();
 		composition.sources()
 				.forEach(source -> deeper.put(source, of(source, known)));
+		// Each source indexed once, not scanned for every copy of it.
+		Map<JustificationModel, Map<String, JustificationElement>> elementsOf = new IdentityHashMap<>();
 		model.origins().forEach((copy, recorded) -> {
 			for (ca.mcscert.jpipe.model.Origin from : recorded) {
 				Map<String, List<Origin>> inSource = deeper.get(from.model());
 				// An alias carried forward copies no element: what it was
 				// merged into is the source element whose origins count.
-				JustificationElement element = from.element().orElse(null);
+				JustificationElement element = inSource == null
+						? null
+						: elementsOf
+								.computeIfAbsent(from.model(),
+										JustificationModel::elementsById)
+								.get(from.id());
 				if (inSource == null || element == null) {
 					continue;
 				}
