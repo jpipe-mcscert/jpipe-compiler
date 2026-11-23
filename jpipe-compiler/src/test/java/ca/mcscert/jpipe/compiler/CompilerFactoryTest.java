@@ -33,50 +33,11 @@ class CompilerFactoryTest {
 				.isNotNull();
 	}
 
-	@Test
-	void build_jpipe_format_returns_compiler() {
+	@ParameterizedTest
+	@EnumSource(Format.class)
+	void build_supports_every_format(Format format) {
 		CompilationConfig cfg = new CompilationConfig("test.jd",
-				CompilationConfig.STDOUT, Format.JPIPE, "j");
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		assertThat(CompilerFactory.build(cfg, out, DIAGNOSTICS)).isNotNull();
-	}
-
-	@Test
-	void build_dot_format_returns_compiler() {
-		CompilationConfig cfg = new CompilationConfig("test.jd",
-				CompilationConfig.STDOUT, Format.DOT, null);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		assertThat(CompilerFactory.build(cfg, out, DIAGNOSTICS)).isNotNull();
-	}
-
-	@Test
-	void build_json_format_returns_compiler() {
-		CompilationConfig cfg = new CompilationConfig("test.jd",
-				CompilationConfig.STDOUT, Format.JSON, null);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		assertThat(CompilerFactory.build(cfg, out, DIAGNOSTICS)).isNotNull();
-	}
-
-	@Test
-	void build_python_format_returns_compiler() {
-		CompilationConfig cfg = new CompilationConfig("test.jd",
-				CompilationConfig.STDOUT, Format.PYTHON, null);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		assertThat(CompilerFactory.build(cfg, out, DIAGNOSTICS)).isNotNull();
-	}
-
-	@Test
-	void build_png_format_returns_compiler() {
-		CompilationConfig cfg = new CompilationConfig("test.jd",
-				CompilationConfig.STDOUT, Format.PNG, null);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		assertThat(CompilerFactory.build(cfg, out, DIAGNOSTICS)).isNotNull();
-	}
-
-	@Test
-	void build_unsupported_format_throws() {
-		CompilationConfig cfg = new CompilationConfig("test.jd",
-				CompilationConfig.STDOUT, Format.SVG, null);
+				CompilationConfig.STDOUT, format, "j");
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		assertThat(CompilerFactory.build(cfg, out, DIAGNOSTICS)).isNotNull();
 	}

@@ -35,6 +35,15 @@ if [ "$1" = "--create-aot-cache" ]; then
     exit 1
 fi
 
+# It is the launcher's own command, which the JAR does not know: anywhere but
+# first, it would reach the JAR as an unknown option.
+for arg in "$@"; do
+    if [ "$arg" = "--create-aot-cache" ]; then
+        echo "[jpipe] --create-aot-cache takes no other option: run 'jpipe --create-aot-cache'" >&2
+        exit 2
+    fi
+done
+
 if [ -f "$AOT" ]; then
     exec @@JAVA@@ -XX:AOTCache="$AOT" -Xlog:aot=off -jar "$JAR" "$@"
 fi

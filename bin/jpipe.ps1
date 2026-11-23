@@ -55,6 +55,13 @@ if ($args.Count -ge 1 -and $args[0] -eq '--create-aot-cache') {
     exit 1
 }
 
+# It is the launcher's own command, which the JAR does not know: anywhere but
+# first, it would reach the JAR as an unknown option.
+if ($args -contains '--create-aot-cache') {
+    [Console]::Error.WriteLine("[jpipe] --create-aot-cache takes no other option: run 'jpipe --create-aot-cache'")
+    exit 2
+}
+
 if (Test-Path $aot) {
     & $java "-XX:AOTCache=$aot" '-Xlog:aot=off' -jar $jar @args
 } else {

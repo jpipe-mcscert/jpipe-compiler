@@ -136,8 +136,8 @@ attached to every [GitHub Release](https://github.com/jpipe-mcscert/jpipe-compil
 
 Installing also runs `jpipe --create-aot-cache`, which records a cache that
 makes every call start faster. It only works for the Java build that created
-it: after upgrading Java, run `jpipe --create-aot-cache` again (`sudo` on
-Ubuntu, `brew postinstall jpipe` on macOS). Without a valid cache, jPipe runs
+it: after upgrading Java, run `jpipe --create-aot-cache` again, with no other
+option (`sudo` on Ubuntu, `brew postinstall jpipe` on macOS). Without a valid cache, jPipe runs
 as before, only slower to start.
 
 ### Running the compiler

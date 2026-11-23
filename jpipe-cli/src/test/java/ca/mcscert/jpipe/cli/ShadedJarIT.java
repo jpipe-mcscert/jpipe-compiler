@@ -355,6 +355,9 @@ class ShadedJarIT {
 
 		Execution create = run(createCache, path);
 		Execution cached = run(export, path);
+		// The launcher's own command, which the JAR would not know.
+		Execution misplaced = run(List.of("/bin/sh", launcher.toString(),
+				"--headless", "--create-aot-cache"), path);
 		// A cache made stale by a Java upgrade must change nothing a caller
 		// sees: no message, same output, same exit code.
 		Files.writeString(dir.resolve("jpipe.aot"), "not a cache");
@@ -371,6 +374,9 @@ class ShadedJarIT {
 		assertThat(stale.exitCode()).isZero();
 		assertThat(stale.err()).isEmpty();
 		assertThat(stale.out()).isEqualTo(cached.out());
+		assertThat(misplaced.exitCode()).isEqualTo(2);
+		assertThat(misplaced.err())
+				.contains("--create-aot-cache takes no other option");
 	}
 
 	@Test
