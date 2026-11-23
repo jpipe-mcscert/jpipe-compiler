@@ -1,6 +1,8 @@
 package ca.mcscert.jpipe.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+import org.assertj.core.api.InstanceOfAssertFactories;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
@@ -84,28 +86,47 @@ class JustificationModelTest {
 		}
 
 		@Test
-		@DisplayName("ambiguousMatches lists the inherited elements a short id names, when several")
-		void ambiguousMatchesListsSeveralInheritedMatches() {
+		@DisplayName("bind reports the inherited elements a short id names, when several")
+		void bindReportsSeveralInheritedMatches() {
 			Justification j = new Justification("j");
 			j.addElement(new Evidence("ns1:t:e", "First"));
 			j.addElement(new Evidence("ns2:t:e", "Second"));
-			j.addElement(new Evidence("u:f", "Alone"));
 			// A qualified short form is ambiguous too; it used to bind the
 			// first in a relation.
-			assertThat(j.ambiguousMatches("t:e"))
-					.extracting(JustificationElement::id)
-					.containsExactly("ns1:t:e", "ns2:t:e");
-			assertThat(j.ambiguousMatches("f")).isEmpty();
+			assertThat(j.bind("t:e"))
+					.asInstanceOf(InstanceOfAssertFactories
+							.type(Binding.Ambiguous.class))
+					.extracting(Binding.Ambiguous::candidates)
+					.asInstanceOf(InstanceOfAssertFactories.LIST)
+					.extracting("id").containsExactly("ns1:t:e", "ns2:t:e");
 		}
 
 		@Test
-		@DisplayName("ambiguousMatches is empty when an element has the id itself")
-		void ambiguousMatchesIsEmptyForAnExactId() {
+		@DisplayName("bind finds the one inherited element a short id names")
+		void bindFindsTheOneInheritedMatch() {
 			Justification j = new Justification("j");
-			j.addElement(new Evidence("e", "Own"));
+			Evidence alone = new Evidence("u:f", "Alone");
+			j.addElement(alone);
+			assertThat(j.bind("f")).isEqualTo(new Binding.Found(alone));
+		}
+
+		@Test
+		@DisplayName("bind finds an element's own id, even when inherited ones share its short form")
+		void bindPrefersAnExactId() {
+			Justification j = new Justification("j");
+			Evidence own = new Evidence("e", "Own");
+			j.addElement(own);
 			j.addElement(new Evidence("a:e", "Inherited"));
 			j.addElement(new Evidence("b:e", "Inherited too"));
-			assertThat(j.ambiguousMatches("e")).isEmpty();
+			assertThat(j.bind("e")).isEqualTo(new Binding.Found(own));
+		}
+
+		@Test
+		@DisplayName("bind reports an id that names no element as missing")
+		void bindReportsAMissingId() {
+			Justification j = new Justification("j");
+			j.addElement(new Evidence("a:e", "Inherited"));
+			assertThat(j.bind("nowhere")).isEqualTo(new Binding.Missing());
 		}
 
 		@Test

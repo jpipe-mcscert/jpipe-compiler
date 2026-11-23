@@ -47,8 +47,8 @@ class CompositionOperatorTest {
 
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
-				List<JustificationModel> sources, Map<String, String> arguments,
-				Map<String, String> knownAliases) {
+				List<JustificationModel> sources,
+				Map<String, String> arguments) {
 			return new SameShortId();
 		}
 
@@ -80,10 +80,9 @@ class CompositionOperatorTest {
 		}
 
 		@Override
-		protected Command createResultModel(String name,
-				SourceLocation location, List<JustificationModel> sources,
+		protected ModelKind resultKind(List<JustificationModel> sources,
 				Map<String, String> arguments, List<Command> elements) {
-			return new CreateJustification(name);
+			return ModelKind.JUSTIFICATION;
 		}
 
 		private static String shortId(String id) {
@@ -106,8 +105,8 @@ class CompositionOperatorTest {
 
 		@Override
 		protected EquivalenceRelation equivalenceRelation(
-				List<JustificationModel> sources, Map<String, String> arguments,
-				Map<String, String> knownAliases) {
+				List<JustificationModel> sources,
+				Map<String, String> arguments) {
 			return (a, b) -> false;
 		}
 
@@ -118,10 +117,9 @@ class CompositionOperatorTest {
 		}
 
 		@Override
-		protected Command createResultModel(String name,
-				SourceLocation location, List<JustificationModel> sources,
+		protected ModelKind resultKind(List<JustificationModel> sources,
 				Map<String, String> arguments, List<Command> elements) {
-			return new CreateJustification(name);
+			return ModelKind.JUSTIFICATION;
 		}
 	}
 
@@ -147,7 +145,8 @@ class CompositionOperatorTest {
 					List.of(new CreateConclusion("j", "c", "the conclusion")));
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of());
+					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 			Unit unit = engine.spawn("out", commands);
 
 			assertThat(unit.findModel("result")).isPresent();
@@ -166,8 +165,8 @@ class CompositionOperatorTest {
 							new AddSupport("j2", "c", "j2:s")));
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN,
-					Map.of());
+					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 			Unit unit = engine.spawn("out", commands);
 
 			// Both "j1:s" and "j2:s" merge to "s" — only one strategy in result
@@ -185,7 +184,8 @@ class CompositionOperatorTest {
 							new AddSupport("j", "j:s", "j:e")));
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of());
+					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 			Unit unit = engine.spawn("out", commands);
 
 			Justification result = (Justification) unit.get("result");
@@ -209,8 +209,8 @@ class CompositionOperatorTest {
 							new AddSupport("j2", "c", "j2:s")));
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN,
-					Map.of());
+					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 
 			long addSupportCount = commands.stream()
 					.filter(AddSupport.class::isInstance).count();
@@ -228,8 +228,8 @@ class CompositionOperatorTest {
 					List.of(new CreateConclusion("j2", "j2:c", "C")));
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN,
-					Map.of());
+					List.of(j1, j2), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 
 			assertThat(commands).filteredOn(RegisterAlias.class::isInstance)
 					.hasSize(2);
@@ -240,16 +240,16 @@ class CompositionOperatorTest {
 			Justification j = buildJustification("j",
 					List.of(new CreateConclusion("j", "c", "C")));
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of());
+					List.of(j), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 			assertThat(commands).isUnmodifiable();
 		}
 
 		@Test
 		void transitiveAliasesFromSourceModelsAreCarriedForward() {
 			// Simulate a source model "src" whose element "c" was previously
-			// unified into "unified_0". The knownAliases map records
-			// "src/c" -> "unified_0" (as would be produced by a prior
-			// assemble).
+			// unified into "unified_0". Its aliases record "c" -> "unified_0"
+			// (as would be produced by a prior assemble).
 			// The operator then merges "unified_0" into a new id. After
 			// apply(),
 			// the result must contain a RegisterAlias entry so that the
@@ -259,11 +259,11 @@ class CompositionOperatorTest {
 			Justification src = buildJustification("src",
 					List.of(new CreateConclusion("src", "unified_0", "C")));
 
-			Map<String, String> knownAliases = Map.of("src/c", "unified_0");
+			src.recordAlias("c", "unified_0");
 
 			List<Command> commands = new TestOperator().apply("result",
-					List.of(src), Map.of(), SourceLocation.UNKNOWN, Map.of(),
-					knownAliases);
+					List.of(src), Map.of(), SourceLocation.UNKNOWN, Map.of())
+					.commands();
 
 			// The TestOperator merges by short-id: "unified_0" stays as
 			// "unified_0".
@@ -276,6 +276,43 @@ class CompositionOperatorTest {
 			assertThat(aliasCommands).anySatisfy(
 					ra -> assertThat(ra.oldId()).isEqualTo("src:c"));
 		}
+	}
+
+	/** An operator that forgets to choose the kind of its result. */
+	private static final class NoKindOperator extends CompositionOperator {
+
+		@Override
+		protected EquivalenceRelation equivalenceRelation(
+				List<JustificationModel> sources,
+				Map<String, String> arguments) {
+			return (x, y) -> false;
+		}
+
+		@Override
+		protected MergeFunction mergeFunction(List<JustificationModel> sources,
+				Map<String, String> arguments) {
+			return (r, g, a) -> List.of();
+		}
+
+		@Override
+		protected ModelKind resultKind(List<JustificationModel> sources,
+				Map<String, String> arguments, List<Command> elements) {
+			return null;
+		}
+	}
+
+	@Test
+	void anOperatorThatChoosesNoResultKindIsNamed() {
+		Justification j = buildJustification("j",
+				List.of(new CreateConclusion("j", "c", "C")));
+		var op = new NoKindOperator();
+		List<JustificationModel> sources = List.of(j);
+		Map<String, String> args = Map.of();
+
+		assertThatThrownBy(() -> op.apply("r", sources, args,
+				SourceLocation.UNKNOWN, Map.of()))
+				.isInstanceOf(NullPointerException.class)
+				.hasMessageContaining("NoKindOperator.resultKind");
 	}
 
 	@Nested
@@ -299,8 +336,8 @@ class CompositionOperatorTest {
 			Justification j = buildJustification("j",
 					List.of(new CreateConclusion("j", "c", "C")));
 			assertThat(new RequiresArgOperator().apply("result", List.of(j),
-					Map.of("mode", "strict"), SourceLocation.UNKNOWN, Map.of()))
-					.isNotNull();
+					Map.of("mode", "strict"), SourceLocation.UNKNOWN, Map.of())
+					.commands()).isNotNull();
 		}
 	}
 }

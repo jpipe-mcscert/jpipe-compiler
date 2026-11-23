@@ -4,16 +4,9 @@ import static ca.mcscert.jpipe.util.QualifiedIds.qualify;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.CompilationConfig;
-import ca.mcscert.jpipe.commands.creation.CreateJustification;
-import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
-import ca.mcscert.jpipe.commands.creation.CreateTemplate;
-import ca.mcscert.jpipe.commands.linking.AddSupport;
-import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
-import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.CompilationException;
 import ca.mcscert.jpipe.compiler.model.Transformation;
-import ca.mcscert.jpipe.operators.ApplyOperator;
 import ca.mcscert.jpipe.operators.OperatorRegistry;
 import ca.mcscert.jpipe.operators.UnificationEquivalenceRegistry;
 import org.apache.logging.log4j.LogManager;
@@ -141,6 +134,15 @@ public final class LoadResolver
 			throw new UnsupportedOperationException(
 					"LoadDirective must be expanded by LoadResolver,"
 							+ " not executed directly");
+		}
+
+		/**
+		 * Unchanged: a load in a loaded file is resolved, and its own commands
+		 * namespaced, before the file's commands are.
+		 */
+		@Override
+		public Command withNamespace(String ns) {
+			return this;
 		}
 	}
 
@@ -559,56 +561,15 @@ public final class LoadResolver
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Returns a new list in which every model-name argument of every command is
-	 * prefixed with {@code namespace + ":"}.
-	 *
-	 * <p>
-	 * Only model names (container references and model identifiers) are
-	 * prefixed. Element IDs, display labels, and type discriminators are left
-	 * untouched: element IDs are local to their model and get qualified by
+	 * Returns a new list in which every command is the one a file loaded under
+	 * {@code namespace} means: see {@link Command#withNamespace}. Element ids
+	 * are local to their model, and get qualified by
 	 * {@link ca.mcscert.jpipe.model.JustificationModel#inline} at template
-	 * expansion time. {@link LoadDirective}s and unrecognised command types are
-	 * passed through unchanged.
+	 * expansion time; only the qualified ones, which name an element inherited
+	 * from a model of the loaded file, are prefixed here.
 	 */
 	static List<Command> prefix(String namespace, List<Command> commands) {
-		List<Command> result = new ArrayList<>(commands.size());
-		for (Command cmd : commands) {
-			result.add(rewrite(namespace, cmd));
-		}
-		return result;
-	}
-
-	/**
-	 * An element id as seen from a namespaced load: a qualified id names an
-	 * element inherited from a model of the loaded file ({@code base:t:abs}),
-	 * whose name the namespace prefixes too; a plain id is local and unchanged.
-	 */
-	private static String qualifyElement(String ns, String id) {
-		return id.contains(":") ? qualify(ns, id) : id;
-	}
-
-	private static Command rewrite(String ns, Command cmd) {
-		return switch (cmd) {
-			case CreateJustification c -> new CreateJustification(
-					qualify(ns, c.identifier()), c.location());
-			case CreateTemplate c ->
-				new CreateTemplate(qualify(ns, c.identifier()), c.location());
-			case ElementCreationCommand c ->
-				ElementCreationCommand.of(qualify(ns, c.container()),
-						qualifyElement(ns, c.identifier()), c.element(),
-						c.location());
-			case ImplementsTemplate c ->
-				new ImplementsTemplate(qualify(ns, c.modelName()),
-						qualify(ns, c.templateName()), c.location());
-			case AddSupport c -> new AddSupport(qualify(ns, c.container()),
-					qualifyElement(ns, c.supportableId()),
-					qualifyElement(ns, c.supporterId()), c.location());
-			case OverrideAbstractSupport c ->
-				new OverrideAbstractSupport(qualify(ns, c.container()),
-						qualifyElement(ns, c.qualifiedId()), c.newType(),
-						c.label(), c.location());
-			case ApplyOperator c -> c.withNamespace(ns);
-			default -> cmd;
-		};
+		return commands.stream().map(cmd -> cmd.withNamespace(namespace))
+				.toList();
 	}
 }

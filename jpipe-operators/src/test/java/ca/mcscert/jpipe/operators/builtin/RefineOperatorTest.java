@@ -1,5 +1,8 @@
 package ca.mcscert.jpipe.operators.builtin;
 
+import ca.mcscert.jpipe.operators.ModelKind;
+import ca.mcscert.jpipe.operators.Composed;
+import ca.mcscert.jpipe.model.Composition;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -103,7 +106,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			assertThat(unit.findModel("refined")).isPresent();
 			assertThat(unit.get("refined")).isInstanceOf(Justification.class);
@@ -115,7 +118,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -131,7 +134,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -151,7 +154,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -184,7 +187,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 
 			long addSupportCount = cmds.stream()
 					.filter(AddSupport.class::isInstance).count();
@@ -200,7 +203,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(minimal, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -228,7 +231,7 @@ class RefineOperatorTest {
 			var refinement = buildRefinement();
 			List<Command> cmds = refine.apply("refined",
 					List.of(base, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of());
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -240,15 +243,15 @@ class RefineOperatorTest {
 		@Test
 		void hookCanBeReferencedByAlias() {
 			// Simulates refine(src, refinement) when "e" in src was unified
-			// into "unified_0" by a prior composition step. The alias map
-			// contains "src/e" → "unified_0".
+			// into "unified_0" by a prior composition step. Its aliases
+			// record "e" → "unified_0".
 			var src = buildUnifiedSource();
 			var refinement = buildRefinement();
-			Map<String, String> knownAliases = Map.of("src/e", "unified_0");
+			src.recordAlias("e", "unified_0");
 
 			List<Command> cmds = refine.apply("refined",
 					List.of(src, refinement), Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of(), knownAliases);
+					SourceLocation.UNKNOWN, Map.of()).commands();
 			Unit unit = engine.spawn("out", cmds);
 			Justification result = (Justification) unit.get("refined");
 
@@ -334,10 +337,10 @@ class RefineOperatorTest {
 		void a_hook_renamed_by_several_compositions_is_found() {
 			// One step only used to be followed (#181).
 			Justification base = buildUnifiedSource();
-			Map<String, String> aliases = Map.of("src/r1:a:e", "r1:unified_0",
-					"src/r1:unified_0", "unified_0");
+			base.recordAlias("r1:a:e", "r1:unified_0");
+			base.recordAlias("r1:unified_0", "unified_0");
 
-			assertThat(RefineOperator.resolveHook(base, "r1:a:e", aliases).id())
+			assertThat(RefineOperator.resolveHook(base, "r1:a:e").id())
 					.isEqualTo("unified_0");
 		}
 
@@ -379,12 +382,24 @@ class RefineOperatorTest {
 			List<JustificationModel> replaces = List.of(buildMinimal(),
 					buildRefinement());
 
-			assertThat(refine.apply("r", keeps, Map.of("hook", "abs1"),
-					SourceLocation.UNKNOWN, Map.of())).first()
+			Composed kept = refine.apply("r", keeps, Map.of("hook", "abs1"),
+					SourceLocation.UNKNOWN, Map.of());
+			Composed replaced = refine.apply("r", replaces, Map.of("hook", "e"),
+					SourceLocation.UNKNOWN, Map.of());
+
+			assertThat(kept.kind()).isEqualTo(ModelKind.TEMPLATE);
+			assertThat(kept.commands()).first()
 					.isInstanceOf(CreateTemplate.class);
-			assertThat(refine.apply("r", replaces, Map.of("hook", "e"),
-					SourceLocation.UNKNOWN, Map.of())).first()
+			assertThat(replaced.kind()).isEqualTo(ModelKind.JUSTIFICATION);
+			assertThat(replaced.commands()).first()
 					.isInstanceOf(CreateJustification.class);
+		}
+
+		@Test
+		void the_hook_names_an_element_of_a_source() {
+			assertThat(refine.idArgumentScopes()).containsOnly(
+					Map.entry("hook", Composition.Scope.SOURCE),
+					Map.entry("unifyExclude", Composition.Scope.RESULT));
 		}
 
 	}

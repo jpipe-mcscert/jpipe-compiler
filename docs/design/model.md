@@ -161,10 +161,16 @@ concrete commands. The `ExecutionEngine` handles deferred execution (commands th
 are not ready yet), macro expansion, and deadlock detection. A command is ready
 when its `condition()` holds and, for `ImplementsTemplate`, `AddSupport` and
 `ApplyOperator`, when no pending command still targets the model it depends on
-(`ready(Unit, PendingCommands)`, `target()`). A model whose `implements` failed or
-never ran is marked incomplete on the `Unit` (`markIncomplete`): nothing consumes
-it, and the validators skip it, since its gaps follow from a failure already
-reported.
+(`ready(Unit, PendingCommands)`, `target()`): `ImplementsTemplate` and
+`ApplyOperator` wait until the models they `reads()` are settled
+(`PendingCommands.settled`). A command declares whether its failure leaves
+its target unusable (`breaksItsTarget()`: an `implements`, an operator call),
+and records what its failure leaves behind (`recordFailure(Unit)`). The target
+of such a command that failed or never ran, a model whose `implements` did not
+apply or the result of an operator call, is so marked incomplete on the `Unit`
+(`markIncomplete`): nothing consumes it, and the validators skip it, since its
+gaps follow from a failure already reported. An override that fails records
+the placeholders it leaves (`recordFailedOverride`).
 
 ```plantuml
 @startuml commands
@@ -184,6 +190,11 @@ package "commands" {
     + target() : Optional<String>
     + location() : SourceLocation
     + execute(Unit) : void
+    + {abstract} withNamespace(ns) : Command
+    + declares() : Optional<String>
+    + reads() : Set<String>
+    + breaksItsTarget() : boolean
+    + recordFailure(Unit) : void
   }
 
   abstract class RegularCommand {

@@ -2,6 +2,7 @@ package ca.mcscert.jpipe.commands.linking;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.Unit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -14,21 +15,24 @@ class RegisterAliasTest {
 	@BeforeEach
 	void setUp() {
 		unit = new Unit("src");
+		unit.add(new Justification("result"));
+		unit.add(new Justification("other"));
 	}
 
 	@Nested
 	class Execute {
 
 		@Test
-		void recordsAliasInUnit() {
+		void recordsAliasOnTheModel() {
 			new RegisterAlias("result", "a:elem", "elem").execute(unit);
-			assertThat(unit.resolveAlias("result", "a:elem")).isEqualTo("elem");
+			assertThat(unit.get("result").resolveAlias("a:elem"))
+					.isEqualTo("elem");
 		}
 
 		@Test
 		void doesNotAffectOtherModels() {
 			new RegisterAlias("result", "a:elem", "elem").execute(unit);
-			assertThat(unit.resolveAlias("other", "a:elem"))
+			assertThat(unit.get("other").resolveAlias("a:elem"))
 					.isEqualTo("a:elem");
 		}
 

@@ -3,14 +3,11 @@ package ca.mcscert.jpipe.operators.builtin;
 import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.creation.CreateConclusion;
-import ca.mcscert.jpipe.commands.creation.CreateJustification;
 import ca.mcscert.jpipe.commands.creation.CreateStrategy;
 import ca.mcscert.jpipe.commands.creation.CreateSubConclusion;
-import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.commands.creation.ElementCreationCommand;
 import ca.mcscert.jpipe.commands.linking.AddSupport;
 import ca.mcscert.jpipe.model.JustificationModel;
-import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.elements.Conclusion;
 import ca.mcscert.jpipe.model.elements.Strategy;
@@ -72,18 +69,14 @@ public final class AssembleOperator extends CompositionOperator {
 	}
 
 	@Override
-	protected Command createResultModel(String name, SourceLocation location,
-			List<JustificationModel> sources, Map<String, String> arguments,
-			List<Command> elements) {
-		return kindOf(sources) == ModelKind.TEMPLATE
-				? new CreateTemplate(name, location)
-				: new CreateJustification(name, location);
+	protected ModelKind resultKind(List<JustificationModel> sources,
+			Map<String, String> arguments, List<Command> elements) {
+		return kindOf(sources);
 	}
 
 	@Override
 	protected EquivalenceRelation equivalenceRelation(
-			List<JustificationModel> sources, Map<String, String> arguments,
-			Map<String, String> knownAliases) {
+			List<JustificationModel> sources, Map<String, String> arguments) {
 		return (a, b) -> false; // no merging — every element is its own group
 	}
 

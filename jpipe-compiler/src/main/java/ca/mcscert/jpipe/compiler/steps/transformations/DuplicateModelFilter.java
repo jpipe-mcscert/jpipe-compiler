@@ -2,13 +2,10 @@ package ca.mcscert.jpipe.compiler.steps.transformations;
 
 import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.compiler.CompilationConfig;
-import ca.mcscert.jpipe.commands.creation.CreateJustification;
-import ca.mcscert.jpipe.commands.creation.CreateTemplate;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.DiagnosticCodes;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.SourceLocation;
-import ca.mcscert.jpipe.operators.ApplyOperator;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +41,7 @@ public final class DuplicateModelFilter
 		List<Command> kept = new ArrayList<>(commands.size());
 		boolean dropping = false;
 		for (Command cmd : commands) {
-			Optional<String> name = declaredModel(cmd);
+			Optional<String> name = cmd.declares();
 			if (name.isPresent()) {
 				SourceLocation first = declared.putIfAbsent(name.get(),
 						cmd.location());
@@ -60,16 +57,6 @@ public final class DuplicateModelFilter
 			}
 		}
 		return kept;
-	}
-
-	/** The model {@code cmd} declares, if it starts a model declaration. */
-	private static Optional<String> declaredModel(Command cmd) {
-		return switch (cmd) {
-			case CreateJustification c -> Optional.of(c.identifier());
-			case CreateTemplate c -> Optional.of(c.identifier());
-			case ApplyOperator c -> Optional.of(c.resultName());
-			default -> Optional.empty();
-		};
 	}
 
 	/** {@code " at lib.jd:8"}, or nothing when the first one is unlocated. */

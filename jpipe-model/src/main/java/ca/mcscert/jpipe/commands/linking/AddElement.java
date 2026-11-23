@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.Unit;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
@@ -35,5 +36,12 @@ public final class AddElement extends RegularCommand {
 	@Override
 	public String toString() {
 		return "add('" + container + "', " + element + ")";
+	}
+
+	/** Created while the unit is built, never read from a file. */
+	@Override
+	public Command withNamespace(String ns) {
+		throw new UnsupportedOperationException(
+				"AddElement is never read from a file");
 	}
 }

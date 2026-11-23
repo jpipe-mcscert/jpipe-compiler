@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.commands.linking;
 
+import ca.mcscert.jpipe.commands.Command;
 import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Unit;
@@ -7,9 +8,9 @@ import java.util.Optional;
 
 /**
  * Records that {@code oldId} inside a result model is an alias for the merged
- * element {@code newId}. Persisted to {@link Unit} so that post-composition
+ * element {@code newId}. Recorded on the result model, so that post-composition
  * symbol lookups can resolve original element names through
- * {@link Unit#resolveAlias}.
+ * {@link ca.mcscert.jpipe.model.JustificationModel#resolveAlias}.
  */
 public final class RegisterAlias extends RegularCommand {
 
@@ -61,5 +62,12 @@ public final class RegisterAlias extends RegularCommand {
 	public String toString() {
 		return "registerAlias('" + container + "', '" + oldId + "' -> '" + newId
 				+ "').";
+	}
+
+	/** Created while the unit is built, never read from a file. */
+	@Override
+	public Command withNamespace(String ns) {
+		throw new UnsupportedOperationException(
+				"RegisterAlias is never read from a file");
 	}
 }

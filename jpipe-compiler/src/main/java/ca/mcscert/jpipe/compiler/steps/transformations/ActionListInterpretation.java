@@ -5,8 +5,6 @@ import ca.mcscert.jpipe.commands.CommandExecutionException;
 import ca.mcscert.jpipe.commands.DeadlockException;
 import ca.mcscert.jpipe.commands.ExecutionEngine;
 import ca.mcscert.jpipe.commands.MacroCommand;
-import ca.mcscert.jpipe.commands.linking.ImplementsTemplate;
-import ca.mcscert.jpipe.commands.linking.OverrideAbstractSupport;
 import ca.mcscert.jpipe.compiler.model.CompilationContext;
 import ca.mcscert.jpipe.compiler.model.Transformation;
 import ca.mcscert.jpipe.model.Unit;
@@ -40,21 +38,10 @@ public final class ActionListInterpretation
 		List<CommandExecutionException> failures = new ArrayList<>();
 		ExecutionEngine engine = new ExecutionEngine(failure -> {
 			failures.add(failure);
-			// A model whose `implements` failed is unusable: nothing may
-			// consume it, and the checkers leave it alone. One whose override
-			// failed is still checked, but for the placeholder it keeps.
-			Unit partial = failure.partialUnit();
-			switch (failure.failedCommand()) {
-				case ImplementsTemplate it ->
-					partial.markIncomplete(it.modelName());
-				case OverrideAbstractSupport o ->
-					partial.findModel(o.container())
-							.ifPresent(m -> o.namedIds(m).forEach(id -> partial
-									.recordFailedOverride(o.container(), id)));
-				default -> {
-					// The model is still checked: see #183.
-				}
-			}
+			// Each command records what its failure leaves behind: a model
+			// whose `implements` failed is unusable, one whose override failed
+			// is still checked, but for the placeholder it keeps (#183).
+			failure.failedCommand().recordFailure(failure.partialUnit());
 		});
 		Unit unit;
 		DeadlockException deadlock = null;
@@ -69,9 +56,12 @@ public final class ActionListInterpretation
 			ExecutionFailureDiagnostics.diagnoseDeadlock(
 					deadlock.stuckCommands(), unit,
 					ExecutionFailureDiagnostics.brokenModels(failures), ctx);
-			ExecutionFailureDiagnostics
-					.stuckImplementations(deadlock.stuckCommands())
-					.forEach(unit::markIncomplete);
+			// Recorded once diagnosed: what never ran is no source to check.
+			for (Command stuck : deadlock.stuckCommands()) {
+				if (stuck.breaksItsTarget()) {
+					stuck.recordFailure(unit);
+				}
+			}
 		}
 
 		ctx.recordStat(CompilationContext.STAT_COMMANDS_DEFERRALS,

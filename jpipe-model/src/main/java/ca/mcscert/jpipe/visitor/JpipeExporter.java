@@ -219,30 +219,30 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 			return;
 		}
 		builder.append(" {").append(System.lineSeparator());
-		composition.arguments().forEach((key, value) -> builder.append(INDENT)
-				.append(key).append(": ")
-				.append(Quoting
-						.doubleQuoted(composition.idArguments().contains(key)
-								? renameIds(composition,
-										composition.resultIdArguments()
-												.contains(key),
-										value)
-								: value))
-				.append(System.lineSeparator()));
+		composition.arguments().forEach((key, value) -> {
+			Composition.Scope scope = composition.idArguments().get(key);
+			builder.append(INDENT).append(key).append(": ")
+					.append(Quoting.doubleQuoted(scope == null
+							? value
+							: renameIds(composition, scope, value)))
+					.append(System.lineSeparator());
+		});
 		builder.append("}").append(System.lineSeparator());
 	}
 
 	/**
-	 * A comma-separated list of ids, each renamed: as ids of the result when
-	 * {@code resultIds}, of a source otherwise.
+	 * A comma-separated list of ids, each renamed as an id of the result or of
+	 * a source, as {@code scope} says.
 	 */
-	private String renameIds(Composition composition, boolean resultIds,
+	private String renameIds(Composition composition, Composition.Scope scope,
 			String value) {
 		return Arrays.stream(value.split(",", -1)).map(String::strip)
-				.map(id -> resultIds
-						? names.resultArgument(composition.sources(), id)
-						: names.sourceArgument(composition.sources(), id))
-				.collect(Collectors.joining(","));
+				.map(id -> switch (scope) {
+					case RESULT ->
+						names.resultArgument(composition.sources(), id);
+					case SOURCE ->
+						names.sourceArgument(composition.sources(), id);
+				}).collect(Collectors.joining(","));
 	}
 
 	/**

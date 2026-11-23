@@ -1,79 +1,45 @@
 package ca.mcscert.jpipe.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class UnitAliasTest {
 
 	private Unit unit;
+	private Justification model;
 
 	@BeforeEach
 	void setUp() {
 		unit = new Unit("src");
+		model = new Justification("result");
+		unit.add(model);
 	}
 
-	@Nested
-	class ResolveAlias {
+	@Test
+	void recordingAnAliasRecordsItOnTheModel() {
+		unit.recordAlias("result", "a:s", "s");
 
-		@Test
-		void returnsIdUnchangedWhenNoAliasRecorded() {
-			assertThat(unit.resolveAlias("result", "a:elem"))
-					.isEqualTo("a:elem");
-		}
-
-		@Test
-		void returnsNewIdAfterRecording() {
-			unit.recordAlias("result", "a:elem", "elem");
-			assertThat(unit.resolveAlias("result", "a:elem")).isEqualTo("elem");
-		}
-
-		@Test
-		void aliasIsScopedToModel() {
-			unit.recordAlias("result", "a:elem", "elem");
-			assertThat(unit.resolveAlias("other", "a:elem"))
-					.isEqualTo("a:elem");
-		}
-
-		@Test
-		void multipleAliasesInSameModel() {
-			unit.recordAlias("result", "a:s", "s");
-			unit.recordAlias("result", "b:s", "s");
-			assertThat(unit.resolveAlias("result", "a:s")).isEqualTo("s");
-			assertThat(unit.resolveAlias("result", "b:s")).isEqualTo("s");
-		}
-
-		@Test
-		void followsAChainOfCompositionSteps() {
-			// One link per composition step: the model's resolveAlias agrees.
-			unit.recordAlias("result", "a:elem", "mid:elem");
-			unit.recordAlias("result", "mid:elem", "elem");
-			assertThat(unit.resolveAlias("result", "a:elem")).isEqualTo("elem");
-		}
+		assertThat(model.aliases()).containsEntry("a:s", "s");
 	}
 
-	@Nested
-	class MirrorsOntoModel {
+	@Test
+	void anAliasIsScopedToItsModel() {
+		Justification other = new Justification("other");
+		unit.add(other);
 
-		@Test
-		void recordingAnAliasPopulatesBothUnitAndModel() {
-			Justification model = new Justification("result");
-			unit.add(model);
+		unit.recordAlias("result", "a:elem", "elem");
 
-			unit.recordAlias("result", "a:s", "s");
+		assertThat(other.resolveAlias("a:elem")).isEqualTo("a:elem");
+	}
 
-			assertThat(unit.aliases()).containsEntry("result/a:s", "s");
-			assertThat(model.aliases()).containsEntry("a:s", "s");
-		}
-
-		@Test
-		void aliasForUnknownModelIsRecordedOnlyOnUnit() {
-			unit.recordAlias("absent", "a:s", "s");
-
-			assertThat(unit.aliases()).containsEntry("absent/a:s", "s");
-			assertThat(unit.findModel("absent")).isEmpty();
-		}
+	@Test
+	void anAliasForAModelNotYetCreatedIsRefused() {
+		assertThatThrownBy(() -> unit.recordAlias("absent", "a:s", "s"))
+				.isInstanceOf(NoSuchElementException.class)
+				.hasMessageContaining("absent");
 	}
 }
