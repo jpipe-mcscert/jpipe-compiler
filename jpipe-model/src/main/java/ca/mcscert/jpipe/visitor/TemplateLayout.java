@@ -1,7 +1,6 @@
 package ca.mcscert.jpipe.visitor;
 
-import static ca.mcscert.jpipe.util.QualifiedIds.qualifyIfPlain;
-
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
@@ -124,7 +123,6 @@ final class TemplateLayout {
 	}
 
 	private Cluster clusterOf(JustificationModel ancestor) {
-		String name = ancestor.getName();
 		List<JustificationElement> drawn = new ArrayList<>();
 		if (ancestor.hasOwnConclusion()) {
 			ancestor.conclusion().ifPresent(drawn::add);
@@ -132,11 +130,24 @@ final class TemplateLayout {
 		drawn.addAll(ancestor.ownElements());
 		drawn.addAll(ancestor.concreteOverrides());
 		List<Node> nodes = drawn.stream().map(e -> {
-			String id = qualifyIfPlain(name, e.id());
+			String id = idInModel(model, ancestor, e.id());
 			return new Node(id, e,
 					e instanceof AbstractSupport && filled.contains(id));
 		}).toList();
 		return new Cluster(ancestor, nodes);
+	}
+
+	/**
+	 * The id {@code model} gives its copy of {@code ancestor}'s element
+	 * {@code id}. A model given a conclusion of its own before its template was
+	 * expanded, which only a caller of the API can build (the compiler reports
+	 * it as {@code inherited-conclusion}), holds no copy of the template's:
+	 * that one is named as template expansion would name it.
+	 */
+	private static String idInModel(JustificationModel model,
+			JustificationModel ancestor, String id) {
+		return model.copyOf(ancestor, id).orElseGet(
+				() -> QualifiedIds.qualifyIfPlain(ancestor.getName(), id));
 	}
 
 	/**
@@ -147,7 +158,9 @@ final class TemplateLayout {
 		Set<String> ids = new HashSet<>();
 		JustificationModel cursor = model;
 		while (cursor != null) {
-			cursor.concreteOverrides().forEach(e -> ids.add(e.id()));
+			JustificationModel filler = cursor;
+			filler.concreteOverrides()
+					.forEach(e -> ids.add(idInModel(model, filler, e.id())));
 			cursor = cursor.getParent().orElse(null);
 		}
 		return ids;

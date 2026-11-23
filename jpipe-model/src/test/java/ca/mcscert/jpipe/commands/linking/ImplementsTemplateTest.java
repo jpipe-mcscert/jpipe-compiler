@@ -410,7 +410,6 @@ class ImplementsTemplateTest {
 			new CreateConclusion("t", "tc", "Template conclusion", concLoc)
 					.execute(unit);
 			new CreateJustification("j").execute(unit);
-			new CreateConclusion("j", "c", "My conclusion").execute(unit);
 			new ImplementsTemplate("j", "t").execute(unit);
 
 			assertThat(unit.locationOf("j", "t:tc")).isEqualTo(concLoc);

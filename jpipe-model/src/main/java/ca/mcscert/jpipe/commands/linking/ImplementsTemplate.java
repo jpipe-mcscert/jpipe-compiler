@@ -4,7 +4,6 @@ import ca.mcscert.jpipe.commands.RegularCommand;
 import ca.mcscert.jpipe.model.SourceLocation;
 import ca.mcscert.jpipe.model.Template;
 import ca.mcscert.jpipe.model.Unit;
-import ca.mcscert.jpipe.model.elements.JustificationElement;
 import ca.mcscert.jpipe.util.QualifiedIds;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
@@ -67,16 +66,16 @@ public final class ImplementsTemplate extends RegularCommand {
 
 	/**
 	 * Copies source locations of template elements into the justification's
-	 * registry under their qualified ids (e.g. {@code templateName:elementId}).
-	 * This lets downstream checkers report the original declaration site even
-	 * for elements that were inherited rather than declared directly.
+	 * registry under the ids of their copies (e.g.
+	 * {@code templateName:elementId}), as the model recorded where each copy
+	 * comes from. This lets downstream checkers report the original declaration
+	 * site even for elements that were inherited rather than declared directly.
 	 */
 	private void propagateLocations(Unit context, Template template) {
-		for (JustificationElement elem : template.allElements()) {
-			context.recordLocation(modelName,
-					QualifiedIds.qualifyIfPlain(templateName, elem.id()),
-					context.locationOf(templateName, elem.id()));
-		}
+		context.get(modelName).origins().forEach((copy, from) -> from.stream()
+				.filter(origin -> origin.model() == template)
+				.forEach(origin -> context.recordLocation(modelName, copy,
+						context.locationOf(templateName, origin.id()))));
 	}
 
 	/**
