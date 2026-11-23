@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.visitor;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.model.Composition;
 import ca.mcscert.jpipe.model.Justification;
 import ca.mcscert.jpipe.model.JustificationModel;
@@ -286,12 +287,15 @@ public class JpipeExporter implements JustificationVisitor<Void> {
 
 	/**
 	 * The id {@code model} gives its copy of {@code parent}'s element
-	 * {@code id}: a model holds a copy of every element of its template, its
-	 * conclusion included (ADR-0012).
+	 * {@code id}. A model given a conclusion of its own before its template was
+	 * expanded, which only a caller of the API can build (the compiler reports
+	 * it as {@code inherited-conclusion}), holds no copy of the template's:
+	 * that one is named as template expansion would name it.
 	 */
 	private static String copyIn(JustificationModel model,
 			JustificationModel parent, String id) {
-		return model.copyOf(parent, id).orElseThrow();
+		return model.copyOf(parent, id).orElseGet(
+				() -> QualifiedIds.qualifyIfPlain(parent.getName(), id));
 	}
 
 	private void appendElement(String keyword, JustificationElement element) {

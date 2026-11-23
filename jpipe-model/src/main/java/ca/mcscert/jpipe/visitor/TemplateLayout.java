@@ -1,5 +1,6 @@
 package ca.mcscert.jpipe.visitor;
 
+import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.model.JustificationModel;
 import ca.mcscert.jpipe.model.elements.AbstractSupport;
 import ca.mcscert.jpipe.model.elements.JustificationElement;
@@ -138,12 +139,15 @@ final class TemplateLayout {
 
 	/**
 	 * The id {@code model} gives its copy of {@code ancestor}'s element
-	 * {@code id}: a model holds a copy of every element of its ancestors, its
-	 * conclusion included (ADR-0012).
+	 * {@code id}. A model given a conclusion of its own before its template was
+	 * expanded, which only a caller of the API can build (the compiler reports
+	 * it as {@code inherited-conclusion}), holds no copy of the template's:
+	 * that one is named as template expansion would name it.
 	 */
 	private static String idInModel(JustificationModel model,
 			JustificationModel ancestor, String id) {
-		return model.copyOf(ancestor, id).orElseThrow();
+		return model.copyOf(ancestor, id).orElseGet(
+				() -> QualifiedIds.qualifyIfPlain(ancestor.getName(), id));
 	}
 
 	/**

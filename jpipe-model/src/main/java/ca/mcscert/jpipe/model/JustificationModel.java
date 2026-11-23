@@ -14,6 +14,7 @@ import ca.mcscert.jpipe.util.QualifiedIds;
 import ca.mcscert.jpipe.visitor.JustificationVisitor;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -62,7 +63,9 @@ public abstract sealed class JustificationModel
 	 * {@link #inline} and {@link #recordComposition}. A copy merged into
 	 * another element keeps its entry, under the id it was merged from.
 	 */
-	private final Map<String, Origin> origins = new LinkedHashMap<>();
+	private final Map<String, List<Origin>> origins = new LinkedHashMap<>();
+	/** The id of the copy of each origin: {@link #origins}, reversed. */
+	private final Map<Origin, String> copies = new HashMap<>();
 
 	protected JustificationModel(String name) {
 		this.name = name;
@@ -152,34 +155,51 @@ public abstract sealed class JustificationModel
 
 	/**
 	 * Records that {@code prefix:id} is a copy of {@code id} of {@code from}.
-	 * The first one recorded stays: two sources whose ids collide once
-	 * qualified are a duplicate id, which compilation reports.
 	 */
 	private void recordCopy(JustificationModel from, String id, String prefix) {
-		origins.putIfAbsent(QualifiedIds.qualify(prefix, id),
-				new Origin(from, id));
+		record(QualifiedIds.qualify(prefix, id), new Origin(from, id));
+	}
+
+	/**
+	 * Records that {@code copy} is a copy of {@code origin}. Two sources whose
+	 * ids collide once qualified give one id two origins: a duplicate id, which
+	 * compilation reports, and whose every origin is kept.
+	 */
+	private void record(String copy, Origin origin) {
+		List<Origin> list = origins.computeIfAbsent(copy,
+				_ -> new ArrayList<>());
+		if (!list.contains(origin)) {
+			list.add(origin);
+		}
+		copies.putIfAbsent(origin, copy);
 	}
 
 	/**
 	 * Where the element this model holds, or held, under {@code id} was copied
 	 * from: an element of the template it implements, or of a source of the
-	 * call that built it. Empty for an element the model declares, or that an
-	 * operator created.
+	 * call that built it, the first recorded when two collide. Empty for an
+	 * element the model declares, or that an operator created.
 	 */
 	public Optional<Origin> originOf(String id) {
-		return Optional.ofNullable(origins.get(id));
+		List<Origin> list = origins.get(id);
+		return list == null ? Optional.empty() : Optional.of(list.getFirst());
 	}
 
-	/** Unmodifiable view of every origin, keyed by the id of the copy. */
-	public Map<String, Origin> origins() {
-		return Collections.unmodifiableMap(origins);
+	/**
+	 * Every origin, keyed by the id of the copy, in the order they were
+	 * recorded: more than one when two copies collide.
+	 */
+	public Map<String, List<Origin>> origins() {
+		Map<String, List<Origin>> view = new LinkedHashMap<>();
+		origins.forEach((copy, list) -> view.put(copy, List.copyOf(list)));
+		return Collections.unmodifiableMap(view);
 	}
 
 	/**
 	 * The id this model gives its copy of {@code ancestorId}, an element of
 	 * {@code ancestor}, inherited through its chain of templates: the id itself
 	 * when {@code ancestor} is this model. Empty when the model holds no such
-	 * copy, as when it declares its own conclusion.
+	 * copy, as when it had a conclusion of its own before {@link #inline}.
 	 */
 	public Optional<String> copyOf(JustificationModel ancestor,
 			String ancestorId) {
@@ -190,10 +210,7 @@ public abstract sealed class JustificationModel
 			return Optional.empty();
 		}
 		return parent.copyOf(ancestor, ancestorId)
-				.flatMap(idInParent -> origins.entrySet().stream()
-						.filter(e -> e.getValue().model() == parent
-								&& e.getValue().id().equals(idInParent))
-						.map(Map.Entry::getKey).findFirst());
+				.map(idInParent -> copies.get(new Origin(parent, idInParent)));
 	}
 
 	/** The origin of {@code id} when it is a copy of its parent's element. */
@@ -292,7 +309,7 @@ public abstract sealed class JustificationModel
 			Conclusion copy = (Conclusion) qualifiedCopy(tc, templateName);
 			if (this.conclusion == null) {
 				this.setConclusion(copy);
-				origins.put(copy.id(), new Origin(template, tc.id()));
+				record(copy.id(), new Origin(template, tc.id()));
 			}
 			// In Step 2, we want edges supporting 'tc' to now support our
 			// conclusion
@@ -302,7 +319,7 @@ public abstract sealed class JustificationModel
 		template.getElements().forEach(elem -> {
 			JustificationElement copy = qualifiedCopy(elem, templateName);
 			copies.put(elem.id(), copy);
-			origins.put(copy.id(), new Origin(template, elem.id()));
+			record(copy.id(), new Origin(template, elem.id()));
 		});
 
 		// Step 2: re-wire support edges between copies
@@ -419,12 +436,12 @@ public abstract sealed class JustificationModel
 	 * when the conclusion was set by inlining a parent template.
 	 */
 	public boolean hasOwnConclusion() {
-		return conclusion != null && inheritedOrigin(conclusion.id()).isEmpty();
+		return conclusion != null && inheritedType(conclusion.id()).isEmpty();
 	}
 
 	/** Elements defined directly in this model: no copy of its parent's. */
 	public List<JustificationElement> ownElements() {
-		return elements.stream().filter(e -> inheritedOrigin(e.id()).isEmpty())
+		return elements.stream().filter(e -> inheritedType(e.id()).isEmpty())
 				.toList();
 	}
 

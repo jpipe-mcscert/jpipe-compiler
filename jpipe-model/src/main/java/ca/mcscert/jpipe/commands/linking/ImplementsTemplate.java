@@ -72,12 +72,10 @@ public final class ImplementsTemplate extends RegularCommand {
 	 * site even for elements that were inherited rather than declared directly.
 	 */
 	private void propagateLocations(Unit context, Template template) {
-		context.get(modelName).origins().forEach((copy, origin) -> {
-			if (origin.model() == template) {
-				context.recordLocation(modelName, copy,
-						context.locationOf(templateName, origin.id()));
-			}
-		});
+		context.get(modelName).origins().forEach((copy, from) -> from.stream()
+				.filter(origin -> origin.model() == template)
+				.forEach(origin -> context.recordLocation(modelName, copy,
+						context.locationOf(templateName, origin.id()))));
 	}
 
 	/**

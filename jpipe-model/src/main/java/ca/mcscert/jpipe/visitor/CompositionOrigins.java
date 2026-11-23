@@ -121,20 +121,23 @@ final class CompositionOrigins {
 		Map<JustificationModel, Map<String, List<Origin>>> deeper = new IdentityHashMap<>();
 		composition.sources()
 				.forEach(source -> deeper.put(source, of(source, known)));
-		model.origins().forEach((copy, from) -> {
-			Map<String, List<Origin>> inSource = deeper.get(from.model());
-			// An alias carried forward copies no element: what it was merged
-			// into is the source element whose origins count.
-			JustificationElement element = from.element().orElse(null);
-			if (inSource == null || element == null) {
-				return;
+		model.origins().forEach((copy, recorded) -> {
+			for (ca.mcscert.jpipe.model.Origin from : recorded) {
+				Map<String, List<Origin>> inSource = deeper.get(from.model());
+				// An alias carried forward copies no element: what it was
+				// merged into is the source element whose origins count.
+				JustificationElement element = from.element().orElse(null);
+				if (inSource == null || element == null) {
+					continue;
+				}
+				List<Origin> list = origins.computeIfAbsent(
+						model.resolveAlias(copy), _ -> new ArrayList<>());
+				list.add(new Origin(from.model().getName(), copy,
+						element.kind(), 1));
+				inSource.getOrDefault(from.id(), List.of())
+						.forEach(o -> list.add(new Origin(o.model(), o.id(),
+								o.type(), o.level() + 1)));
 			}
-			List<Origin> list = origins.computeIfAbsent(
-					model.resolveAlias(copy), _ -> new ArrayList<>());
-			list.add(new Origin(from.model().getName(), copy, element.kind(),
-					1));
-			inSource.getOrDefault(from.id(), List.of()).forEach(o -> list.add(
-					new Origin(o.model(), o.id(), o.type(), o.level() + 1)));
 		});
 	}
 }

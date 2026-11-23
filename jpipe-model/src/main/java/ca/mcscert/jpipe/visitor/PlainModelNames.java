@@ -82,9 +82,13 @@ public final class PlainModelNames {
 		}
 		return owner.originOf(id).map(origin -> {
 			String inOrigin = id(origin.model(), origin.id());
-			return id.equals(origin.id())
+			// The prefix the copy was given, which template expansion takes
+			// from the implements rather than from the template's name.
+			String prefix = id.substring(0,
+					Math.max(0, id.length() - origin.id().length() - 1));
+			return prefix.isEmpty()
 					? inOrigin
-					: name(origin.model().getName()) + SEPARATOR + inOrigin;
+					: name(prefix) + SEPARATOR + inOrigin;
 		}).orElse(id);
 	}
 
