@@ -30,6 +30,14 @@ $aot = Join-Path $prefix 'jpipe.aot'
 # so it is created here, on this machine: each install channel runs
 # `jpipe --create-aot-cache` once, and a user can run it again after a Java
 # upgrade. A stale cache is ignored without a word.
+# It is the launcher's own command, which the JAR does not know: it takes no
+# other argument, and anywhere but first it would reach the JAR as an unknown
+# option.
+if (($args -contains '--create-aot-cache') -and -not ($args.Count -eq 1 -and $args[0] -eq '--create-aot-cache')) {
+    [Console]::Error.WriteLine("[jpipe] --create-aot-cache takes no other option: run 'jpipe --create-aot-cache'")
+    exit 2
+}
+
 if ($args.Count -ge 1 -and $args[0] -eq '--create-aot-cache') {
     # Windows PowerShell turns a native command's stderr into errors, which
     # 'Stop' would make fatal: the training run's output is only kept, to be
@@ -53,13 +61,6 @@ if ($args.Count -ge 1 -and $args[0] -eq '--create-aot-cache') {
     Remove-Item -Force -ErrorAction SilentlyContinue $tmp
     [Console]::Error.WriteLine('[jpipe] could not create the AOT cache; jPipe runs without it')
     exit 1
-}
-
-# It is the launcher's own command, which the JAR does not know: anywhere but
-# first, it would reach the JAR as an unknown option.
-if ($args -contains '--create-aot-cache') {
-    [Console]::Error.WriteLine("[jpipe] --create-aot-cache takes no other option: run 'jpipe --create-aot-cache'")
-    exit 2
 }
 
 if (Test-Path $aot) {

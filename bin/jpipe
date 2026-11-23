@@ -19,6 +19,17 @@ AOT="@@PREFIX@@/jpipe.aot"
 # so it is created here, on this machine: each install channel runs
 # `jpipe --create-aot-cache` once, and a user can run it again after a Java
 # upgrade. A stale cache is ignored without a word.
+#
+# It is the launcher's own command, which the JAR does not know: it takes no
+# other argument, and anywhere but first it would reach the JAR as an unknown
+# option.
+for arg in "$@"; do
+    if [ "$arg" = "--create-aot-cache" ] && [ "$1 $#" != "--create-aot-cache 1" ]; then
+        echo "[jpipe] --create-aot-cache takes no other option: run 'jpipe --create-aot-cache'" >&2
+        exit 2
+    fi
+done
+
 if [ "$1" = "--create-aot-cache" ]; then
     rm -f "$AOT.tmp" "$AOT.log"
     if @@JAVA@@ -XX:AOTCacheOutput="$AOT.tmp" -Xlog:aot=off -jar "$JAR" \
@@ -34,15 +45,6 @@ if [ "$1" = "--create-aot-cache" ]; then
     echo "[jpipe] could not create the AOT cache; jPipe runs without it" >&2
     exit 1
 fi
-
-# It is the launcher's own command, which the JAR does not know: anywhere but
-# first, it would reach the JAR as an unknown option.
-for arg in "$@"; do
-    if [ "$arg" = "--create-aot-cache" ]; then
-        echo "[jpipe] --create-aot-cache takes no other option: run 'jpipe --create-aot-cache'" >&2
-        exit 2
-    fi
-done
 
 if [ -f "$AOT" ]; then
     exec @@JAVA@@ -XX:AOTCache="$AOT" -Xlog:aot=off -jar "$JAR" "$@"
